@@ -1,0 +1,50 @@
+
+Brief User's Guide to restarts with cm1.
+
+Last updated:  10 October 2006.
+
+-------------------------------------------------------------------------
+Background:
+
+Restart files allow the model simulation to restart from any point during
+the model simulation.  The model automatically saves all information that 
+is carried from one timestep to the next.  Please do not change basic 
+model parameters, like dx, dz, dtl, and ptype ... this could cause very 
+bad things to happen.  However, other model configurations, like the 
+advection scheme, could be changed without any problems.  In principle, 
+the time step could be changed, but this may cause some subtle problems 
+with generation of output ... you're on your own, if you want to try this.
+Also in principle, you could add parcels and passive fluid tracers, although 
+you may have to modify the code to prevent the model from looking for these 
+fields in the restart file. 
+
+-------------------------------------------------------------------------
+To save restart files:
+
+Simply set a value for "rstfrq" in "namelist.input".  The model will 
+generate a series of restart files, named (for example)
+cm1out_rst_0000_0001.dat.  The first set of numbers (0000 in the case)
+is the processor number.  For single processor runs, this is always 0000.
+The second set of numbers is the restart file number:  it starts at 1,
+and counts upward;  use this number to start a subsequent restart 
+simulation.
+
+-------------------------------------------------------------------------
+To restart the model:
+
+In "namelist.input", set irst = 1, and then specify the restart file 
+number (rstnum).  For example, if I wanted to use the file 
+cm1out_rst_0000_0004.dat, I would specify rstnum = 4.  All model output 
+is appended to the end of existing files (i.e., the cm1out_* files). 
+If, for some reason, those files do not exist ... or, perhaps they were 
+moved(?) ... the model does not care;  it will continue writing to these 
+files as if they had been there, and all the missing data (i.e., that 
+which was created before the restart time) is set to zero by default.
+So, when doing a restart, it is best to keep the original cm1out_* files
+laying around in the same directory ... although, you may want to back 
+them up to a safe location, in case something bad happens.
+
+
+
+Questions, comments, suggestions:  send email to gbryan@ucar.edu
+

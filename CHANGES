@@ -1,0 +1,128 @@
+
+ CM1 Numerical Model, release 20.2  (cm1r20.2)
+ 18 October 2020
+
+ Summary of changes.
+
+-------------------------------------------------------------
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+-------------------------------------------------------------
+1.  New options/features.
+
+   -------------------
+    cm1r20.1:
+
+ - Automatic domain decomposition for distributed memory parallelization 
+   using MPI; user no longer specifies nodex,nodey.
+   Also: there is no need for nx/nodex and ny/nodey to be exact integers;
+   i.e., domain size is now arbitrary, and is not tied to domain 
+   decomposition.
+
+ - Added P3 microphysics (ptype = 50,51,52).
+   (P3 = Predicted Particle Property bulk microphysics scheme)
+
+ - Added ISHMAEL/Jensen microphysics (ptype=55).
+   (ISHMAEL = Ice-Spheroids Habit Model with Aspect-ratio Evolution)
+
+ - Added MYJ PBL (ipbl=6, sfcmodel=7)
+   (MYJ = Mellor-Yamada-Janjic)
+
+ - Added capability to advect TKE with MYNN PBL (ipbl=4,5).  Advection of 
+   TKE is now "on" by default. 
+
+ - Added two-part near-surface subgrid turbulence model for LES (sgsmodel=3,4).
+   (Following Sullivan et al. 1994 BLM, and Bryan 2020 in prep.)
+
+ - NBA subgrid turbulence for LES (sgsmodel=5,6).
+   (NBA = Nonlinear Backscatter and Anisotropy model)
+
+ - Added large-scale nudging technique (for u,v,th,qv).  (see lsnudge.F)  
+   Based on Alland et al, 2020, article submitted to JAS)
+
+ - Domain-wide diagnostic files (dodomaindiag=.true.) can now be written
+   in CF-compliant netcdf format (output_format=2). 
+
+ - Azimuthal-average diagnostics (doazimavg=.true.) can now be written
+   in CF-compliant netcdf format (output_format=2). 
+
+ - Added option for automatic adaptive domain movement for tropical cyclones 
+   (see do_adapt_move option in namelist.input).  Storm center is based 
+   on the location of minimum pressure at the surface (actually, a smoothed 
+   surface pressure field). 
+
+ - Netcdf files are now CF-compliant (output_format=2). 
+
+ - CM1 netcdf files (output_format=2) are now directly readable by VAPOR
+   (Visualization and Analysis Platform for Ocean, Atmosphere, and Solar 
+    Researchers)  (https://www.vapor.ucar.edu/)
+
+ - Added immersed boundary (IB) method (see ib_module.F).
+   (Note: this is a simple version of the immersed boundary method, wherein
+    grid cells must be fully immersed.  Documentation is minimal, for now.
+    Contact George Bryan, gbryan@ucar.edu, if you are interested in using 
+    this capability.)
+
+ - Eddy recycling method near boundaries (see eddy_recycle.F).
+   (Again, a new but minimally documented capability.  Contact George Bryan,
+    gbryan@ucar.edu, if you are interested in more details.) 
+
+
+   -------------------
+    cm1r20.2:
+
+ - (nothing new)
+
+
+-------------------------------------------------------------
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+-------------------------------------------------------------
+2.  Changes, fixes, modifications, etc.
+
+   -------------------
+    cm1r20.1:
+
+ - Removed output_path, output_basename options for simplicity.  Instead, 
+   users are encouraged to create separate subdirectories for every simulation,
+   and name those subdirectories appropriately.  Note: CM1 does not need to 
+   be run in the "run" subdirectory; cm1.exe, namelist.input, and other files 
+   can be copied into subdirectories and executed from there.
+
+ - Some minor to major re-ordering of code to increase performance and 
+   readability (solve*.F, sound*.F, turb*.F)
+
+ - Updated RRTMG radiation, Thompson microphysics to the versions in WRFv4.2. 
+
+ - Updated NSSL microphysics code. (Thanks to Ted Mansell, NOAA/NSSL)
+
+ - More flex variables ("vars") in namelist.input. 
+
+
+   -------------------
+    cm1r20.2:
+
+ - Fixed the updraft nudging scheme when psolver=3.  
+   (sound.F)
+
+ - Fixed a problem with unitialized arrays with MYNN PBL when icloud_bl=0. 
+   (module_bl_mynn.F)
+
+ - Set default value of icloud_bl to 1 for MYNN PBL and added subgrid 
+   cloud information from MYNN PBL into RRTMG radiation scheme. 
+   (param.F, radiation_driver.F)
+
+ - Corrected resolved TKE budget in domain-wide diagnostics code.  Added 
+   u-, v-, and w-wariance budgets. 
+   (domaindiag.F)
+
+ - Fixed a problem with the eddy recycling code on the southern boundary 
+   when iorigin=2.  
+   (eddy_recycle.F)
+
+ - Fixed a quirky bug when using passive fluid tracers (iptra=1). Using 
+   passive tracers should no longer cause CM1 to mysteriously crash. 
+   (solve2.F)
+
+ - Fixed a problem with output of eddy diffusivities when using YSU PBL. 
+   (writeout.F)
+
+
