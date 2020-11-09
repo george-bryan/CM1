@@ -2138,6 +2138,12 @@ CONTAINS
     rdt = 1.0/delt
     DO k=kts,kte
 
+      ! shear: average to q level:
+      qSHEAR1D(k) = qSHEAR1D(min(kte,k+1)) + qSHEAR1D(k)
+
+      ! buoy: average to q level:
+      qBUOY1D(k) = qBUOY1D(min(kte,k+1)) + qBUOY1D(k)
+
       ! dissipation:
       qDISS1D(k) = -qke(k)*bp(k)
 
