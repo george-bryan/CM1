@@ -1916,7 +1916,8 @@ CONTAINS
        qBUOY1D(k) = elq*(sh(k)*(-dTdz*g/thl(k)) + gamv)
 
        !!!Dissipation Term
-       qDISS1D(k) = (q3sq**(3./2.))/(b1*MAX(el(k),1.))
+       ! GHB, 201109: get qdiss in mym_predict
+!!!       qDISS1D(k) = (q3sq**(3./2.))/(b1*MAX(el(k),1.))
     ENDIF
 
     END DO  kloop
@@ -1941,10 +1942,11 @@ CONTAINS
 
    IF ( bl_mynn_tkebudget == 1) THEN
       !JOE-TKE BUDGET
+      ! GHB, 201109: get budget terms in mym_predict
       qWT1D(kts)=0.
       qSHEAR1D(kts)=qSHEAR1D(kts+1)
       qBUOY1D(kts)=qBUOY1D(kts+1)
-      qDISS1D(kts)=qDISS1D(kts+1)
+!!!      qDISS1D(kts)=qDISS1D(kts+1)
    ENDIF
 
     if (spp_pbl==1) then
@@ -2014,6 +2016,8 @@ CONTAINS
        &            el, dfq, &
        &            pdk, pdt, pdq, pdc,&
        &            qke, tsq, qsq, cov, &
+       &            qWT1D,qSHEAR1D,qBUOY1D,qDISS1D, &  !GHB, qke budget terms
+       &            bl_mynn_tkebudget,              &
        &            s_aw,s_awqke,bl_mynn_edmf_tke &
        &)
 
@@ -2032,12 +2036,15 @@ CONTAINS
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: pdk, pdt, pdq, pdc
     REAL, INTENT(IN)    ::  flt, flq, ust, pmz, phh
     REAL, DIMENSION(kts:kte), INTENT(INOUT) :: qke,tsq, qsq, cov
+    REAL, DIMENSION(kts:kte), INTENT(inout) :: qWT1D,qSHEAR1D,qBUOY1D,qDISS1D
+    INTEGER, INTENT(in) :: bl_mynn_tkebudget
 ! WA 8/3/15
     REAL, DIMENSION(kts:kte+1), INTENT(INOUT) :: s_awqke,s_aw
 
     INTEGER :: k
-    REAL, DIMENSION(kts:kte) :: qkw, bp, rp, df3q
-    REAL :: vkz,pdk1,phm,pdt1,pdq1,pdc1,b1l,b2l,onoff
+    REAL, DIMENSION(kts:kte) :: qkw, bp, rp
+    REAL, DIMENSION(kts:kte+1) :: df3q
+    REAL :: vkz,pdk1,phm,pdt1,pdq1,pdc1,b1l,b2l,onoff,rdt
     REAL, DIMENSION(kts:kte) :: dtz
     REAL, DIMENSION(kts:kte) :: a,b,c,d,x
 
@@ -2124,6 +2131,23 @@ CONTAINS
        qke(k)=max(x(k), 1.e-4)
     ENDDO
       
+  IF ( bl_mynn_tkebudget == 1) THEN
+    ! QKE budget terms
+    ! GHB, 201109: moved to mym_predict, to ensure budget
+    ! terms exactly match was how qke is advanced in time
+    rdt = 1.0/delt
+    DO k=kts,kte
+
+      ! dissipation:
+      qDISS1D(k) = -qke(k)*bp(k)
+
+      ! turb transport:
+      qWT1D(k) = ( +df3q(k)*qke(max(kts,k-1))  &
+                   -(df3q(k)+df3q(k+1))*qke(k) &
+                   +df3q(k+1)*qke(min(kte,k+1)) )*dtz(k)*rdt
+
+    ENDDO
+  ENDIF
 
     IF ( levflag .EQ. 3 ) THEN
 !
@@ -4764,6 +4788,8 @@ ENDIF
                &ust(i,j), flt, flq, pmz, phh,    &
                &el, dfq, pdk, pdt, pdq, pdc,     &
                &Qke1, Tsq1, Qsq1, Cov1,          &
+               &qWT1,qSHEAR1,qBUOY1,qDISS1,      &  !GHB, qke budget terms
+               &bl_mynn_tkebudget,               &
                &s_aw1, s_awqke1, bl_mynn_edmf_tke)
 
           DO k=kts,kte-1
