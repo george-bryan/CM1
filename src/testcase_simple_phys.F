@@ -314,6 +314,7 @@
       do i=1,ni
         dum2(i,j,1) = 0.0
         dum1(i,j,nk+1) = 0.0
+        kzi(i,j) = 0  ! initilize this to zero 
       enddo
       enddo
 

@@ -45,6 +45,11 @@
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
+#  single processor + GPU, Portland Group compiler
+FC   = pgf90
+OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel -ta=tesla:cc70,lineinfo
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
