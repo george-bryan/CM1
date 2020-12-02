@@ -1205,6 +1205,7 @@
       vargrid(nvar) = '2'
       call getavg2d(prate(ib,jb),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: preciptation rate (mm/day) = ',86400.0*savg2d
 
     ENDIF
 
@@ -1326,6 +1327,7 @@
       call getavg2d(dum1(ib,jb,3),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       lwp = savg2d
+      if( myid.eq.0 ) print *,'  Metric: LWP (g/m2) = ',1000.0*lwp
 
       nvar = nvar+1
       varname(nvar) = 'pwat'
@@ -1549,6 +1551,7 @@
       vargrid(nvar) = '2'
       savg2d = qlfrac
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: cloud fraction (%) = ',100.0*qlfrac
 
       nvar = nvar+1
       varname(nvar) = 'qifrac_col'
@@ -8815,6 +8818,8 @@
         enddo
 
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+
+        if( myid.eq.0 ) print *,'  Metric: max w variance (m2/s2) = ',savg2d
 
       !c-c-c-c-c-c-c-c-c-c
 
