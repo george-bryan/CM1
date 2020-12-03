@@ -38,6 +38,7 @@
         IF(axisymm.eq.0)THEN
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
+          !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -49,6 +50,7 @@
         ELSE
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
+          !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -61,6 +63,7 @@
       ELSE
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
+          !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -75,6 +78,7 @@
           i=1
           !$omp parallel do default(shared)   &
           !$omp private(j,k)
+          !JMD !$acc parallel loop gang collapse(2) private(j,k)
           do k=1,nk
           do j=1,nj
             if(rru(1,j,k).ge.0.0)then
@@ -88,6 +92,7 @@
           i=ni
           !$omp parallel do default(shared)   &
           !$omp private(j,k)
+          !JMD !$acc parallel loop gang collapse(2) private(j,k)
           do k=1,nk
           do j=1,nj
             if(rru(ni+1,j,k).le.0.0)then
@@ -145,15 +150,17 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,foo1,foo2,foo3)
+      !JMD !$acc parallel loop gang collapse(3) private(i,j,k)
       DO k=1,nk
-
         do j=1,nj
         do i=-1,ni+2
           mass(i,j,k)=0.0
           flag(i,j,k)=.false.
         enddo
         enddo
-
+      ENDDO
+      !JMD !$acc parallel loop gang collapse(2) private(i,j,k,foo1,foo2,foo3)
+      do k=1,nk
         do j=1,nj
         do i=0,ni+1
           if(dum(i,j,k).lt.0.0)then
@@ -178,6 +185,7 @@
         IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -192,6 +200,7 @@
         ELSE
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -209,8 +218,9 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,foo1,foo2,foo3)
+      !JMD !$acc parallel loop gang private(i,j,k,foo1,foo2,foo3)
       DO k=1,nk
-
+ 
         do j=1,nj
         do i=-1,ni+2
           mass(i,j,k)=0.0
@@ -241,6 +251,7 @@
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,foo1,foo2,foo3)
+        !JMD !$acc parallel loop gang collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -291,6 +302,7 @@
       IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -302,6 +314,7 @@
       ELSE
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -316,6 +329,7 @@
           j=1
           !$omp parallel do default(shared)   &
           !$omp private(i,k)
+          !JMD !$acc parallel loop gang collapse(2) private(i,k)
           do k=1,nk
           do i=1,ni
             if(rrv(i,1,k).ge.0.0)then
@@ -329,6 +343,7 @@
           j=nj
           !$omp parallel do default(shared)   &
           !$omp private(i,k)
+          !JMD !$acc parallel loop gang collapse(2) private(i,k)
           do k=1,nk
           do i=1,ni
             if(rrv(i,nj+1,k).le.0.0)then
@@ -382,15 +397,20 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,foo1,foo2,foo3)
+      !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
       DO k=1,nk
-
         do j=-1,nj+2
         do i=1,ni
           mass(i,j,k)=0.0
           flag(i,j,k)=.false.
         enddo
         enddo
+      ENDDO
 
+      !$omp parallel do default(shared)   &
+      !$omp private(i,j,k,foo1,foo2,foo3)
+      !JMD !$acc parallel loop gang collapse(2) private(i,j,k,foo1,foo2,foo3)
+      DO k=1,nk
         do j=0,nj+1
         do i=1,ni
           if(dum(i,j,k).lt.0.0)then
@@ -417,6 +437,7 @@
         IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -431,6 +452,7 @@
         ELSE
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -476,6 +498,7 @@
       IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -487,6 +510,7 @@
       ELSE
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -499,6 +523,7 @@
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j)
         do j=1,nj
         do i=1,ni
           dum(i,j, 0)=0.0
@@ -508,6 +533,7 @@
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=0,nk+1
         do j=1,nj
         do i=1,ni
@@ -517,10 +543,11 @@
         enddo
         enddo
 
-        do k=1,nk
 
         !$omp parallel do default(shared)   &
-        !$omp private(i,j,foo1,foo2,foo3)
+        !$omp private(i,j,k,foo1,foo2,foo3)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k,foo1,foo2,foo3)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           if(dum(i,j,k).lt.0.0)then
@@ -547,6 +574,7 @@
         IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -561,6 +589,7 @@
         ELSE
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
