@@ -116,6 +116,7 @@
                    hadvorder,flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -215,6 +216,7 @@
         i=1
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+        !acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(i,j,k).ge.0.0)then
@@ -229,6 +231,7 @@
         i=ni+1
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+        !acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(i,j,k).le.0.0)then
@@ -243,6 +246,7 @@
         j=1
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
+        !acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
           if(rrv(i,j,k).ge.0.0)then
@@ -257,6 +261,7 @@
         j=nj+1
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
+        !acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
           if(rrv(i,j,k).le.0.0)then
@@ -272,6 +277,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -290,6 +296,7 @@
         i=1
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+        !$acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(1,j,k).ge.0.0)then
@@ -303,6 +310,7 @@
         i=ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+        !$acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(ni+1,j,k).le.0.0)then
@@ -316,6 +324,7 @@
         j=1
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
+        !$acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
           if(rrv(i,1,k).ge.0.0)then
@@ -329,6 +338,7 @@
         j=nj
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
+        !$acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
           if(rrv(i,nj+1,k).le.0.0)then
@@ -344,6 +354,7 @@
       IF( dobud .and. nrk.eq.nrkmax .and. sd_hediff.ge.1 )THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !$acc parallel loop gang collapse(3) private(i,j,k)
         DO k=1,nk
         do j=1,nj
         do i=1,ni
@@ -354,6 +365,7 @@
       ENDIF
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -403,6 +415,7 @@
       IF( dobud .and. nrk.eq.nrkmax .and. sd_hediff.ge.1 )then
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !$acc parallel loop gang collapse(2) private(i,j,k)
         DO k=1,nk
         do j=1,nj
         do i=1,ni
@@ -557,6 +570,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
       do j=1,nj
       do i=1,ni
         advz(i,j,1) = -dumz(i,j,2)*rdz*mh(1,1,1)
@@ -566,6 +580,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
       do k=2,nk-1
       do j=1,nj
       do i=1,ni
@@ -582,6 +597,8 @@
     IF( dobud .and. nrk.eq.nrkmax )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
+      !LOOP12 
+      !$acc parallel loop gang collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -598,6 +615,8 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
+      !LOOP13 
+      !$acc parallel loop gang collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -634,6 +653,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !LOOP14 
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -647,6 +668,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -669,6 +691,7 @@
         ! Cartesian grid:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -685,6 +708,7 @@
         j=1
         !$omp parallel do default(shared)   &
         !$omp private(i,k)
+        !$acc parallel loop gang collapse(2) private(i,k)
         do k=1,nk
         do i=1,ni
           diag(i,j,k,sd_hadv) = ( advx(i,j,k)                         &
@@ -698,6 +722,7 @@
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+        !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -715,6 +740,7 @@
       ! large-scale subsidence:
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -728,6 +754,7 @@
       ! subtract-off diffusion from advection:
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       DO k=1,nk
       do j=1,nj
       do i=1,ni
@@ -779,6 +806,7 @@
         ! Cartesian grid:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -798,6 +826,7 @@
         j=1
         !$omp parallel do default(shared)   &
         !$omp private(i,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do i=1,ni
           tot = diag(i,j,k,sd_hadv)
@@ -812,6 +841,7 @@
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -848,6 +878,7 @@
       endif
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       do i=1,ni
         dumz(i,j,1) = 0.0
@@ -860,6 +891,7 @@
         ! no terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -876,6 +908,7 @@
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
