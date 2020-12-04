@@ -305,7 +305,7 @@
       IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -317,7 +317,7 @@
       ELSE
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -332,7 +332,7 @@
           j=1
           !$omp parallel do default(shared)   &
           !$omp private(i,k)
-          !JMD !$acc parallel loop gang collapse(2) private(i,k)
+          !non-B4B !$acc parallel loop gang collapse(2) private(i,k)
           do k=1,nk
           do i=1,ni
             if(rrv(i,1,k).ge.0.0)then
@@ -346,7 +346,7 @@
           j=nj
           !$omp parallel do default(shared)   &
           !$omp private(i,k)
-          !JMD !$acc parallel loop gang collapse(2) private(i,k)
+          !non-B4B !$acc parallel loop gang collapse(2) private(i,k)
           do k=1,nk
           do i=1,ni
             if(rrv(i,nj+1,k).le.0.0)then
