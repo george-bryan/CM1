@@ -739,10 +739,11 @@
     ! advective tendencies:
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
+        !$acc data copyin(advx,advy,advz,s,rru,rrv,uh,vh,rr0,subs,rho0,rrw,mh) copyout(diag)
         ! Cartesian grid:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
+        !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -754,12 +755,14 @@
         enddo
         enddo
         enddo
+        !$acc end data
       ELSE
         ! axisymmetric grid:
         j=1
+        !$acc data copyin(advx,s,arh2,rru,arh1,uh,rr0,rrw,mh) copyout(diag)
         !$omp parallel do default(shared)   &
         !$omp private(i,k)
-        !non-B4B !$acc parallel loop gang collapse(2) private(i,k)
+        !$acc parallel loop gang collapse(2) private(i,k)
         do k=1,nk
         do i=1,ni
           diag(i,j,k,sd_hadv) = ( advx(i,j,k)                         &
@@ -768,12 +771,14 @@
                 + s(i,j,k)*( (rrw(i,j,k+1)-rrw(i,j,k))*rdz*mh(1,1,k) )  )*rr0(1,1,k)
         enddo
         enddo
+        !$acc end data
       ENDIF
     ELSE
+        !$acc data copyin(advx,advy,advz,s,rru,rrv,uh,vh,rr0,gz,rdsf,gz) copyout(diag)
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+        !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -785,13 +790,15 @@
         enddo
         enddo
         enddo
+        !$acc end data
     ENDIF
     !--------
     IF( sd_lsw.ge.1 )THEN
+      !$acc data copyin(subs) copyout(diag)
       ! large-scale subsidence:
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -799,13 +806,15 @@
       enddo
       enddo
       enddo
+      !$acc end data
     ENDIF
     !--------
     IF( diffit.eq.1 .and. sd_hediff.ge.1 )THEN
+      !$acc data copyin(diag) copyout(diag)
       ! subtract-off diffusion from advection:
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       DO k=1,nk
       do j=1,nj
       do i=1,ni
@@ -813,6 +822,7 @@
       enddo
       enddo
       ENDDO
+      !$acc end data
     ENDIF
     !--------
     gethidiffs:  &
