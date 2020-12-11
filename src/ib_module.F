@@ -800,7 +800,7 @@
 
   IF( stag.eq.1 )THEN
 
-    !$acc parallel loop private(i,j,k)
+    !JMD !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -881,7 +881,7 @@
   ELSEIF( stag.eq.2 )THEN
 
     if( doit )then
-    !$acc parallel loop private(i,j,k)
+    !JMD !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -959,7 +959,7 @@
   ELSEIF( stag.eq.3 )THEN
 
     if( doit )then
-    !$acc parallel loop private(i,j,k)
+    !JMD !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=0,nj+1
       !dir$ vector always
@@ -1037,7 +1037,7 @@
   ELSEIF( stag.eq.4 )THEN
 
   if( doit )then
-    !$acc parallel loop private(i,j,k)
+    !JMD !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1186,7 +1186,7 @@
 
   IF( stag.eq.1 )THEN
 
-    !$acc parallel loop private(i,j,k)
+    !JMD !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1267,7 +1267,7 @@
   ELSEIF( stag.eq.2 )THEN
 
     if( doit )then
-    !$acc parallel loop private(i,j,k,ubar,vbar)
+    !JMD !$acc parallel loop private(i,j,k,ubar,vbar)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1345,7 +1345,7 @@
   ELSEIF( stag.eq.3 )THEN
 
     if( doit )then
-    !$acc parallel loop private(i,j,k,ubar,vbar)
+    !JMD !$acc parallel loop private(i,j,k,ubar,vbar)
     DO k=1,(kmaxib-1)
       do j=0,nj+1
       !dir$ vector always
@@ -1423,7 +1423,7 @@
   ELSEIF( stag.eq.4 )THEN
 
   if( doit )then
-    !$acc parallel loop private(i,j,k,ubar,vbar,cc1,cc2)
+    !JMD !$acc parallel loop private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1564,7 +1564,7 @@
 
   IF( stag.eq.1 )THEN
 
-    !$acc parallel loop private(i,j,k)
+    !JMD !$acc parallel loop private(i,j,k)
     do j=1,nj
     !dir$ vector always
     do i=1,ni
@@ -1605,7 +1605,7 @@
         i2=ni+1
       endif
 
-    !$acc parallel loop private(i,j,k,kval,wbar)
+    !JMD !$acc parallel loop private(i,j,k,kval,wbar)
     do j=1,nj
     !dir$ vector always
     do i=i1,i2
@@ -1651,7 +1651,7 @@
         j2=nj+1
       endif
 
-    !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
+    !JMD !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
     do j=j1,j2
     !dir$ vector always
     do i=1,ni
@@ -1684,7 +1684,7 @@
 
   ELSEIF( stag.eq.4 )THEN
 
-    !$acc parallel loop private(i,j,k,kval,wbar)
+    !JMD !$acc parallel loop private(i,j,k,kval,wbar)
     do j=1,nj
     !dir$ vector always
     do i=1,ni
@@ -1741,7 +1741,7 @@
 
   IF( stag.eq.1 )THEN
    
-    !$acc parallel loop private(i,j,k)
+    !JMD !$acc parallel loop private(i,j,k)
     do j=1,nj
     !dir$ vector always
     do i=1,ni
@@ -1782,7 +1782,7 @@
         i2=ni+1
       endif
 
-    !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
+    !JMD !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
     do j=1,nj
     !dir$ vector always
     do i=i1,i2
@@ -1828,7 +1828,7 @@
         j2=nj+1
       endif
 
-    !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
+    !JMD !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
     do j=j1,j2
     !dir$ vector always
     do i=1,ni
@@ -1861,7 +1861,7 @@
 
   ELSEIF( stag.eq.4 )THEN
 
-    !$acc parallel loop private(i,j,k,kval,wbar)
+    !JMD !$acc parallel loop private(i,j,k,kval,wbar)
     do j=1,nj
     !dir$ vector always
     do i=1,ni

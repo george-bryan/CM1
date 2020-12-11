@@ -116,7 +116,7 @@
                    hadvorder,flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !$acc parallel loop gang collapse(2) private(i,j,k)
+      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -131,6 +131,7 @@
 
     IF( doweno )THEN
 
+      print *,'advs: weno_order: ',weno_order
       if(     weno_order.eq.3 )then
 
         call     hadv_weno3(  1 ,ni,nj,nk,c1,c2,rru,rrv,dumx,dumy,s,pdef,weps)
@@ -156,6 +157,7 @@
 
     ELSE
 
+      print *,'advs: hadvorder: ',hadvorder
       if(     hadvorder.eq.2 )then
 
         call     hadv_flx2(  1 ,ni,nj,nk,c1,c2,rru,rrv,dumx,dumy,s)
@@ -203,8 +205,10 @@
 
     IF( do_ib .and. hadvorder.ge.3 )THEN
       IF( doweno )THEN
+       print *,'advs: before ib_side_weno: '
         call   ib_side_weno(  1 ,ni,nj,nk,c1,c2,rru,rrv,dumx,dumy,s,hadvorder,bndy,hflxw,hflxe,hflxs,hflxn,weps,out3d)
       ELSE
+       print *,'advs: before ib_side_flx: '
         call   ib_side_flx(  1 ,ni,nj,nk,c1,c2,rru,rrv,dumx,dumy,s,hadvorder,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
       ENDIF
     ENDIF
@@ -214,6 +218,8 @@
 
       if(doitw)then
         i=1
+        print *,'advs: doitw'
+        !$acc data copyin(dumx,rru,dumk1,rvh,rmh) copyout(dumx,dumk1)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
         !acc parallel loop gang collapse(2) private(j,k)
@@ -225,10 +231,13 @@
           dumk1(k) = dumk1(k)+dumx(1,j,k)*rvh(j)*rmh(1,j,k)
         enddo
         ENDDO
+        !$acc end data
       endif
 
       if(doite)then
         i=ni+1
+        print *,'advs: doite'
+        !$acc data copyin(dumx,rru,dumk1,rvh,rmh) copyout(dumx,dumk1)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
         !acc parallel loop gang collapse(2) private(j,k)
@@ -240,10 +249,13 @@
           dumk1(k) = dumk1(k)-dumx(ni+1,j,k)*rvh(j)*rmh(ni+1,j,k)
         enddo
         ENDDO
+        !$acc end data
       endif
 
       if(doits)then
         j=1
+        print *,'advs: doits'
+        !$acc data copyin(dumy,rrv,dumk2,ruh,rmh) copyout(dumy,dumk2)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
         !acc parallel loop gang collapse(2) private(i,k)
@@ -255,10 +267,13 @@
           dumk2(k) = dumk2(k)+dumy(i,1,k)*ruh(i)*rmh(i,1,k)
         enddo
         ENDDO
+        !$acc end data
       endif
 
       if(doitn)then
         j=nj+1
+        print *,'advs: doitn'
+        !$acc data copyin(dumy,rrv,dumk2,ruh,rmh) copyout(dumy,dumk2)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
         !acc parallel loop gang collapse(2) private(i,k)
@@ -270,14 +285,19 @@
           dumk2(k) = dumk2(k)-dumy(i,nj+1,k)*ruh(i)*rmh(i,nj+1,k)
         enddo
         ENDDO
+        !$acc end data
       endif
 
     !-------------------------------------------------------
     !  hadv tendencies:
 
+      !PCAST: Initilaize to zero to enable usage of PCAST
+      advx=0.0
+      advy=0.0
+      !$acc data copyin(uh,vh,dumx,dumy) copyout(advx,advy)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -287,6 +307,9 @@
       enddo
       enddo
       enddo
+      !JMD !$acc compare(advx,advy)
+      !$acc end data 
+      !stop 'after the loop'
 
     !-------------------------------------------------------
     !  open bc:  set hadv to zero at inflow
@@ -294,6 +317,7 @@
 
       IF(doitw)THEN
         i=1
+        !$acc data copyin(advx,s,rru,uh) copyout(advx)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
         !$acc parallel loop gang collapse(2) private(j,k)
@@ -304,10 +328,12 @@
           endif
         enddo
         ENDDO
+        !$acc end data
       ENDIF
 
       IF(doite)THEN
         i=ni
+        !$acc data copyin(advx,s,rru,uh) copyout(advx)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
         !$acc parallel loop gang collapse(2) private(j,k)
@@ -318,10 +344,12 @@
           endif
         enddo
         ENDDO
+        !$acc end data
       ENDIF
 
       IF(doits)THEN
         j=1
+        !$acc data copyin(advy,s,rrv,vh) copyout(advy)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
         !$acc parallel loop gang collapse(2) private(i,k)
@@ -332,10 +360,12 @@
           endif
         enddo
         ENDDO
+        !$acc end data
       ENDIF
 
       IF(doitn)THEN
         j=nj
+        !$acc data copyin(advy,s,rrv,vh) copyout(advy)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
         !$acc parallel loop gang collapse(2) private(i,k)
@@ -346,12 +376,14 @@
           endif
         enddo
         ENDDO
+        !$acc end data
       ENDIF
 
     !-------------------------------------------------------
     ! 6th-order diffusion-s:
     IF(diffit.eq.1)THEN
       IF( dobud .and. nrk.eq.nrkmax .and. sd_hediff.ge.1 )THEN
+        !$acc data copyin(advx,advy) copyout(diag)
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
         !$acc parallel loop gang collapse(3) private(i,j,k)
@@ -362,7 +394,9 @@
         enddo
         enddo
         ENDDO
+        !$acc end data 
       ENDIF
+    !$acc data copyin(advx,advy,s,rho,dumx,ri,rho0) copyout(advx,advy,dumx,dumy)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
     !$acc parallel loop gang private(i,j,k)
@@ -412,7 +446,9 @@
       enddo
       enddo
     ENDDO
+    !$acc end data
       IF( dobud .and. nrk.eq.nrkmax .and. sd_hediff.ge.1 )then
+        !$acc data copyin(advx,advy,diag) copyout(diag)
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
         !$acc parallel loop gang collapse(2) private(i,j,k)
@@ -423,6 +459,7 @@
         enddo
         enddo
         ENDDO
+        !$acc end data
       ENDIF
     ENDIF
     !-------------------------------------------------------
@@ -489,7 +526,7 @@
       endif
 
     ELSE
-
+      print *,'vadvorder: ',vadvorder
       if(     vadvorder.eq.2 )then
 
         call     vadv_flx2(  1 ,ni,nj,nk,c1,c2,rrw,dumz,s)
@@ -544,11 +581,15 @@
     ENDIF
 
 !------
+   !PCAST: 
+   advz=0
 
     IF(terrain_flag)THEN
 
+      !$acc data copyin(dumz,rdsf) copyout(advz)
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
       do j=1,nj
       do i=1,ni
         advz(i,j,1) = -dumz(i,j,2)*rdsf(1)
@@ -558,6 +599,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
       do k=2,nk-1
       do j=1,nj
       do i=1,ni
@@ -565,9 +607,12 @@
       enddo
       enddo
       enddo
+      !$acc end data
 
     ELSE
 
+
+      !$acc data copyin(dumz,mh(1,1,1:nz)) copyout(advz)
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
       !$acc parallel loop gang vector collapse(2) private(i,j)
@@ -588,6 +633,7 @@
       enddo
       enddo
       enddo
+      !$acc end data 
 
     ENDIF
 
@@ -595,9 +641,9 @@
 !  Large-scale subsidence:
 
     IF( dobud .and. nrk.eq.nrkmax )THEN
+      !$acc data copyout(subs)
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !LOOP12 
       !$acc parallel loop gang collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
@@ -606,6 +652,7 @@
       enddo
       enddo
       enddo
+      !$acc end data
     ENDIF
 
     IF( dolsw )THEN
@@ -613,9 +660,9 @@
 
       call     wsub(ni  ,nj  ,nk  ,s  ,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
 
+      !$acc data copyin(advz,subs,rho0) copyout(advz)
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !LOOP13 
       !$acc parallel loop gang collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
@@ -626,6 +673,7 @@
       enddo
       enddo
       enddo
+      !$acc end data
 
     ENDIF
 
@@ -651,9 +699,9 @@
 
     IF(terrain_flag)THEN
 
+      !$acc data copyin(sten,advx,advy,advz,s,divx,rr0,gz) copyout(sten)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !LOOP14 
       !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
@@ -663,9 +711,11 @@
       enddo
       enddo
       enddo
+      !$acc end data
 
     ELSE
 
+      !$acc data copyin(sten,advx,advy,advz,s,divx,rr0) copyout(sten)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
       !$acc parallel loop gang collapse(2) private(i,j,k)
@@ -677,6 +727,7 @@
       enddo
       enddo
       enddo
+      !$acc end data
 
     ENDIF
 
@@ -691,7 +742,7 @@
         ! Cartesian grid:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !$acc parallel loop gang collapse(2) private(i,j,k)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -708,7 +759,7 @@
         j=1
         !$omp parallel do default(shared)   &
         !$omp private(i,k)
-        !$acc parallel loop gang collapse(2) private(i,k)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,k)
         do k=1,nk
         do i=1,ni
           diag(i,j,k,sd_hadv) = ( advx(i,j,k)                         &
@@ -722,7 +773,7 @@
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !$acc parallel loop gang collapse(2) private(i,j,k)
+        !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -740,7 +791,7 @@
       ! large-scale subsidence:
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !$acc parallel loop gang collapse(2) private(i,j,k)
+      !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -754,7 +805,7 @@
       ! subtract-off diffusion from advection:
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !$acc parallel loop gang collapse(2) private(i,j,k)
+      !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
       DO k=1,nk
       do j=1,nj
       do i=1,ni
@@ -806,7 +857,7 @@
         ! Cartesian grid:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -826,7 +877,7 @@
         j=1
         !$omp parallel do default(shared)   &
         !$omp private(i,k,tot,ndiff)
-        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do i=1,ni
           tot = diag(i,j,k,sd_hadv)
@@ -841,7 +892,7 @@
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -878,7 +929,7 @@
       endif
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       do i=1,ni
         dumz(i,j,1) = 0.0
@@ -891,7 +942,7 @@
         ! no terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -908,7 +959,7 @@
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni

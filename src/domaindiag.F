@@ -7482,7 +7482,7 @@
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-
+      w_pgrad=0.0
       if( wd_pgrad.ge.1 )then
 
         nvar = nvar+1
@@ -7535,6 +7535,9 @@
 
       endif
 
+      do k=0,nk+1
+        w_buoy(k) = 0.0
+      enddo
       !c-c-c-c-c-c-c-c-c-c
 
       if( wd_buoy.ge.1 )then
@@ -7559,7 +7562,6 @@
         do k=2,nk
           w_buoy(k) = savg(k)
         enddo
-
       endif
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9901,6 +9903,10 @@
     do k=1,nk
     do j=1,nj
     do i=1,ni
+         !print *,'rtkeb: ',rtkeb(i,j,k)
+         !print *,'wtk: ',wtk(i,j,k)
+         !print *,'wdiag: ',wdiag(i,j,k,wdn)
+         !print *,'wavg: ',wavg(k)
 !!!      rtkeb(i,j,k) = rtkeb(i,j,k) + wtk(i,j,k)*(wdiag(i,j,k,wdn)-savg(k))
 !!!      rtkeb(i,j,k) = rtkeb(i,j,k) + 0.5*( wtk(i,j,k  )*(wdiag(i,j,k  ,wdn)-savg(k  )) &
 !!!                                         +wtk(i,j,k+1)*(wdiag(i,j,k+1,wdn)-savg(k+1)) )

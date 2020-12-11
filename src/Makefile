@@ -23,7 +23,7 @@
 #  single processor, Intel compiler 
 #      (eg, NCAR's yellowstone/caldera/cheyenne)
 #FC   = ifort
-#OPTS = -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
+#OPTS = -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma -init=snan,arrays -traceback
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Intel compiler 
@@ -42,12 +42,12 @@
 #-----------------------------------------------------------------------------
 #  single processor, Portland Group compiler
 #FC   = pgf90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mnofma
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
 FC   = pgf90
-OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel -ta=tesla:cc70,lineinfo
+OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler

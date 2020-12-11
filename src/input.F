@@ -191,6 +191,7 @@
            rad_solcon,rad_jday,rad_zenangle,rad_declin,rad_hrang,             &
            adapt_move_frq
 
+
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
@@ -224,6 +225,8 @@
            time_azimavg,time_hifrq,time_ercyl
       integer count_last
 
+!$acc declare copyin(ni,nj,nk)
+!$acc declare copyin(rdx,rdy,rdz)
 !-----------------------------------------------------------------------
 
       namelist /param0/ nx,ny,nz,ppnode,                                &
@@ -300,6 +303,7 @@
               dodomaindiag,diagfrq
       namelist /param15/                                                      &
               doazimavg,azimavgfrq,rlen,do_adapt_move,adapt_move_frq
+
 
     CONTAINS
 
