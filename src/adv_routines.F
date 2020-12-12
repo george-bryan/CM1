@@ -1499,6 +1499,7 @@
     ENDDO
 
   ENDIF
+  !$acc compare(dumx(1:ni+1,1:nj+1,1:nk),dumy(1:ni+1,1:nj+1,1:nk))
   !$acc end data
 
     end subroutine hadv_flx5

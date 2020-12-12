@@ -864,10 +864,11 @@
       ! buh41 !
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
+        !$acc data copyin(diag,dumx,dumy,uh,vh,advx,advy,s,rru,rrv,rr0) copyout(diag) 
         ! Cartesian grid:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -882,12 +883,14 @@
         enddo
         enddo
         enddo
+        !$acc end data
       ELSE
         ! axisymmetric grid:
         j=1
+        !$acc data copyin(diag,advx,s,arh2,rru,arh1,uh,rr0) copyout(diag) 
         !$omp parallel do default(shared)   &
         !$omp private(i,k,tot,ndiff)
-        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do i=1,ni
           tot = diag(i,j,k,sd_hadv)
@@ -897,12 +900,14 @@
           diag(i,j,k,sd_hidiff) = tot-ndiff
         enddo
         enddo
+        !$acc end data
       ENDIF
     ELSE
+        !$acc data copyin(diag,dumx,dumy,uh,vh,advx,advy,s,rru,rrv,rr0,gz) copyout(diag) 
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -917,6 +922,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
     ENDIF
     ENDIF  gethidiffs
     !--------
@@ -937,22 +943,25 @@
         print *,' 13942 '
         call stopcm1
       endif
+      !$acc data copyout(dumz)
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       do i=1,ni
         dumz(i,j,1) = 0.0
         dumz(i,j,nk+1) = 0.0
       enddo
       enddo
+      !$acc end data
       ! step2: get non-diffusive and diffusive components of advection:
       ! buh42a !
     IF(.not.terrain_flag)THEN
+        !$acc data copyin(diag,dumz,mh,advz,subs,rho0,s,rrw,rr0) copyout(advz,diag)
         ! no terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -965,11 +974,13 @@
         enddo
         enddo
         enddo
+        !$acc end data
     ELSE
+        !$acc data copyin(diag,dumz,advz,rdsf,s,rrw,rr0,gz) copyout(advz,diag)
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
-        !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -982,6 +993,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
     ENDIF
     ENDIF  getvidiffs
     !--------
