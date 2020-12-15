@@ -1379,6 +1379,7 @@
       enddo
       enddo
     ENDDO
+    !JMD !$acc compare(dumx(1:ni+1,1:nj+1,1:nk),dumy(1:ni+1,1:nj+1,1:nk))
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1427,7 +1428,7 @@
       enddo
       enddo
     ENDDO
-    !non-B4B !$acc compare(dumx,dumy)
+    !JMD!$acc compare(dumx((i1-1):i2,1:nj+1,1:nk),dumy((i1-1):i2,1:nj+1,1:nk))
     
     !JMD stop 'hadv_flx5: after dumx,dumy calculation'
 
@@ -1468,6 +1469,7 @@
       enddo
       enddo
     ENDDO
+    !JMD!$acc compare(dumx(1:ni+1,(j1-1):j2,1:nk),dumy(1:ni+1,(j1-1):j2,1:nk))
 
   ELSEIF( stag.eq.4 )THEN
 
@@ -1497,9 +1499,9 @@
       enddo
       enddo
     ENDDO
+    !JMD!$acc compare(dumx(1:ni+1,1:nj+1,2:nk),dumy(1:ni+1,1:nj+1,2:nk))
 
   ENDIF
-  !$acc compare(dumx(1:ni+1,1:nj+1,1:nk),dumy(1:ni+1,1:nj+1,1:nk))
   !$acc end data
 
     end subroutine hadv_flx5

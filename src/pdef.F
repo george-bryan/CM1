@@ -30,15 +30,16 @@
 
       integer i,j,k
       real foo1,foo2,foo3,rdt
-
+     
 !----------------------------------------------------------------
 ! cm1r17:  include divx component
 
       IF(.not.terrain_flag)THEN
         IF(axisymm.eq.0)THEN
+          !$acc data copyin(rho0,s0,advx,s,rru,uh) copyout(dum)
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
-          !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
+          !$acc parallel loop gang collapse(2) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -47,6 +48,7 @@
           enddo
           enddo
           enddo
+          !$acc end data
         ELSE
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
