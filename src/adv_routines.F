@@ -45,6 +45,9 @@
     real :: s1,s2,s3,s4,s5
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
     bmin = weps
 
@@ -52,7 +55,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -93,7 +96,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop private(i,j,k,ubar,vbar)
+    !$acc parallel loop private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -136,7 +139,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop private(i,j,k,ubar,vbar)
+    !$acc parallel loop private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -167,7 +170,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -224,10 +227,12 @@
     real :: s1,s2,s3,s4,s5
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
     bmin = weps
 
-  !$acc data copyin(a,rru,rrv) copyout(dumx,dumy)
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
@@ -409,7 +414,7 @@
     ENDDO
 
   ENDIF
-  !$acc end data
+  !!$acc end data
 
     end subroutine hadv_weno5
 
@@ -436,6 +441,9 @@
     real :: s1,s2,s3,s4,s5,s6,s7
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
     bmin = weps
 
@@ -443,7 +451,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,bmax,doit)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,doit,bmax)
+    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,doit,bmax)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -536,7 +544,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -579,7 +587,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -610,7 +618,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -667,6 +675,9 @@
     real :: s1,s2,s3,s4,s5,s6,s7,s8,s9
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
     bmin = weps
 
@@ -674,7 +685,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
+    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -775,7 +786,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -818,7 +829,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -849,7 +860,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -901,12 +912,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -939,7 +953,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -974,7 +988,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -996,7 +1010,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1040,12 +1054,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1086,7 +1103,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1129,7 +1146,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1159,7 +1176,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1211,12 +1228,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1249,7 +1269,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1284,7 +1304,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1306,7 +1326,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1351,12 +1371,10 @@
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
     integer :: nelem
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
-  print *,'hadv_flx5: stag: ',stag
-  !PCAST: Initialize these to zero to allow PCAST to work properly
-  dumx=0.0
-  dumy=0.0
-  !$acc data copyin(a,rru,rrv) copyout(dumx,dumy)
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
@@ -1379,7 +1397,6 @@
       enddo
       enddo
     ENDDO
-    !JMD !$acc compare(dumx(1:ni+1,1:nj+1,1:nk),dumy(1:ni+1,1:nj+1,1:nk))
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1428,9 +1445,7 @@
       enddo
       enddo
     ENDDO
-    !JMD!$acc compare(dumx((i1-1):i2,1:nj+1,1:nk),dumy((i1-1):i2,1:nj+1,1:nk))
     
-    !JMD stop 'hadv_flx5: after dumx,dumy calculation'
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -1469,7 +1484,6 @@
       enddo
       enddo
     ENDDO
-    !JMD!$acc compare(dumx(1:ni+1,(j1-1):j2,1:nk),dumy(1:ni+1,(j1-1):j2,1:nk))
 
   ELSEIF( stag.eq.4 )THEN
 
@@ -1499,10 +1513,8 @@
       enddo
       enddo
     ENDDO
-    !JMD!$acc compare(dumx(1:ni+1,1:nj+1,2:nk),dumy(1:ni+1,1:nj+1,2:nk))
 
   ENDIF
-  !$acc end data
 
     end subroutine hadv_flx5
 
@@ -1524,12 +1536,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1562,7 +1577,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1597,7 +1612,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1619,7 +1634,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1663,12 +1678,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1709,7 +1727,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1752,7 +1770,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1782,7 +1800,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1834,12 +1852,14 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
-
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1872,7 +1892,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1907,7 +1927,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1929,7 +1949,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1973,12 +1993,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2019,7 +2042,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2062,7 +2085,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -2092,7 +2115,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -2144,12 +2167,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2182,7 +2208,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2217,7 +2243,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -2239,7 +2265,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -2287,6 +2313,8 @@
     real :: s1,s2,s3,s4,s5
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
@@ -2294,7 +2322,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
       do k=3,nk-1
       !dir$ vector always
@@ -2326,7 +2354,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=3,nk-1
@@ -2360,7 +2388,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=3,nk-1
@@ -2382,7 +2410,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=2,nk-1
@@ -2429,10 +2457,11 @@
     real :: s1,s2,s3,s4,s5
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
-    print *,'vadv_weno5: start of subroutine'
 !ccccccccccccccccccccccccccccccccccc
 !  s-staggered variable:
 
@@ -2440,7 +2469,8 @@
 
   pdefs:  &
   if( pdefweno.eq.1 )then
-      !$acc data copyin(a,rrw) copyout(dumz)
+      !PCAST
+      !dumz=0.0
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
       !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
@@ -2474,7 +2504,7 @@
       enddo
       enddo
       enddo
-      !$acc end data 
+      !!$acc end data 
 
       call     vadv_lwr_weno_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
 
@@ -2483,7 +2513,6 @@
   !--------------------------------------!
   else  pdefs
 
-      !$acc data copyin(a,rrw) copyout(dumz)
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
       !$acc parallel loop gang collapse(2) private(i,j,k)
@@ -2499,7 +2528,7 @@
       enddo
       enddo
       enddo
-      !$acc end data
+      !!$acc end data
 
       call     vadv_lwr_weno_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
 
@@ -2525,7 +2554,6 @@
         i2=ni+1
       endif
 
-    !$acc data copyin(a,rrw) copyout(dumz)
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
@@ -2544,7 +2572,7 @@
       enddo
 
     ENDDO
-    !$acc end data
+    !!$acc end data
 
 !ccccccccccccccccccccccccccccccccccc
 !  v-staggered variable:
@@ -2564,7 +2592,6 @@
         j2=nj+1
       endif
 
-    !$acc data copyin(a,rrw) copyout(dumz)
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
@@ -2583,14 +2610,13 @@
       enddo
 
     ENDDO
-    !$acc end data
+    !!$acc end data
 
 !ccccccccccccccccccccccccccccccccccc
 !  w-staggered variable:
 
   ELSEIF( stag.eq.4 )THEN
 
-    !$acc data copyin(a,rrw) copyout(dumz)
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
@@ -2609,7 +2635,7 @@
       enddo
 
     ENDDO
-    !$acc end data
+    !!$acc end data
 
 !ccccccccccccccccccccccccccccccccccc
 
@@ -2648,6 +2674,8 @@
     real :: s1,s2,s3,s4,s5,s6,s7
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
@@ -2655,7 +2683,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,bmax,doit)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,bmax,doit)
+    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,bmax,doit)
     DO j=1,nj
       do k=5,nk-3
       !dir$ vector always
@@ -2713,7 +2741,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=5,nk-3
@@ -2747,7 +2775,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=5,nk-3
@@ -2769,7 +2797,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=4,nk-3
@@ -2820,6 +2848,8 @@
     real :: s1,s2,s3,s4,s5,s6,s7,s8,s9
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
@@ -2827,7 +2857,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
+    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
     DO j=1,nj
       do k=6,nk-4
       !dir$ vector always
@@ -2888,7 +2918,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=6,nk-4
@@ -2922,7 +2952,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=6,nk-4
@@ -2944,7 +2974,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=5,nk-4
@@ -2992,12 +3022,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=2,nk
@@ -3026,7 +3059,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar,cc1,cc2)
     DO j=1,nj
 
       do k=2,nk
@@ -3058,7 +3091,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar,cc1,cc2)
     DO j=j1,j2
 
       do k=2,nk
@@ -3078,7 +3111,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=1,nk
@@ -3112,12 +3145,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k),
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=3,nk-1
@@ -3150,11 +3186,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=3,nk-1
-      !dir$ vector always
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -3185,7 +3220,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=3,nk-1
@@ -3207,7 +3242,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=2,nk-1
@@ -3249,12 +3284,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=3,(nk-1)
@@ -3283,7 +3321,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=3,(nk-1)
@@ -3313,7 +3351,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=3,(nk-1)
@@ -3331,7 +3369,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=2,(nk-1)
@@ -3369,12 +3407,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   IF( stag.eq.1 )THEN
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=4,nk-2
       do j=1,nj
       !dir$ vector always
@@ -3405,7 +3446,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
       do k=4,nk-2
       do j=1,nj
       !dir$ vector always
@@ -3437,7 +3478,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
       do k=4,nk-2
       do j=j1,j2
       !dir$ vector always
@@ -3456,7 +3497,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
       do k=3,nk-2
       do j=1,nj
       !dir$ vector always
@@ -3498,12 +3539,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=4,nk-2
@@ -3532,7 +3576,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=4,nk-2
@@ -3562,7 +3606,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=4,nk-2
@@ -3580,7 +3624,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=3,nk-2
@@ -3620,13 +3664,16 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=5,nk-3
@@ -3660,7 +3707,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=5,nk-3
@@ -3696,7 +3743,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=5,nk-3
@@ -3719,7 +3766,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=4,nk-3
@@ -3765,12 +3812,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=5,nk-3
@@ -3799,7 +3849,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=5,nk-3
@@ -3829,7 +3879,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=5,nk-3
@@ -3847,7 +3897,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=4,nk-3
@@ -3889,13 +3939,16 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=6,nk-4
@@ -3929,7 +3982,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=6,nk-4
@@ -3965,7 +4018,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=6,nk-4
@@ -3988,7 +4041,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=5,nk-4
@@ -4036,12 +4089,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw) &
+    !$acc present(dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=6,nk-4
@@ -4070,7 +4126,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=6,nk-4
@@ -4100,7 +4156,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=6,nk-4
@@ -4118,7 +4174,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=5,nk-4
@@ -4167,6 +4223,8 @@
     real :: s1,s2,s3,s4,s5,s6,s7,s8,s9
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
@@ -4174,6 +4232,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
+    !$acc parallel loop gang vector private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
     DO j=1,nj
 
       k = 2
@@ -4215,6 +4274,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector private(i,j,k,wbar,cc1,cc2)
     DO j=1,nj
 
       k = 2
@@ -4262,6 +4322,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector private(i,j,k,wbar,cc1,cc2)
     DO j=j1,j2
 
       k = 2
@@ -4297,6 +4358,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector private(i,j,k,wbar,cc1,cc2)
     DO j=1,nj
 
       k = 1
@@ -4349,6 +4411,8 @@
     real :: s1,s2,s3,s4,s5,s6,s7,s8,s9
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
@@ -4357,7 +4421,7 @@
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4372,7 +4436,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4402,7 +4466,7 @@
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4418,7 +4482,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4449,7 +4513,7 @@
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4465,7 +4529,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4484,7 +4548,7 @@
       k = 2
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4500,7 +4564,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4539,13 +4603,15 @@
     real :: s1,s2,s3,s4,s5,s6,s7,s8,s9
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4558,7 +4624,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4592,6 +4658,8 @@
     real :: s1,s2,s3,s4,s5,s6,s7,s8,s9
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
@@ -4600,7 +4668,7 @@
       k = 4
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4615,7 +4683,7 @@
       k = nk-2
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4645,7 +4713,7 @@
       k = 4
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4661,7 +4729,7 @@
       k = nk-2
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4692,7 +4760,7 @@
       k = 4
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4708,7 +4776,7 @@
       k = nk-2
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4727,7 +4795,7 @@
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4743,7 +4811,7 @@
       k = nk-2
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4782,6 +4850,8 @@
     real :: s1,s2,s3,s4,s5,s6,s7,s8,s9
     real :: bmin,bmax
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
     bmin = weps
 
@@ -4790,7 +4860,7 @@
       k = 5
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4805,7 +4875,7 @@
       k = nk-3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4835,7 +4905,7 @@
       k = 5
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4851,7 +4921,7 @@
       k = nk-3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4882,7 +4952,7 @@
       k = 5
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4898,7 +4968,7 @@
       k = nk-3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4917,7 +4987,7 @@
       k = 4
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4933,7 +5003,7 @@
       k = nk-3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !JMD !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4967,13 +5037,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
 
       k = 2
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4988,7 +5060,7 @@
       k = nk
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5018,7 +5090,7 @@
       k = 2
       !$omp parallel do default(shared)   &
       !$omp private(i,j,cc1,cc2,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5036,7 +5108,7 @@
       k = nk
       !$omp parallel do default(shared)   &
       !$omp private(i,j,cc1,cc2,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5070,7 +5142,7 @@
       k = 2
       !$omp parallel do default(shared)   &
       !$omp private(i,j,cc1,cc2,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5088,7 +5160,7 @@
       k = nk
       !$omp parallel do default(shared)   &
       !$omp private(i,j,cc1,cc2,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5109,7 +5181,7 @@
       k = 1
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5125,7 +5197,7 @@
       k = nk
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5159,13 +5231,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
 
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5180,7 +5254,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j)
+      !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5210,7 +5284,7 @@
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5226,7 +5300,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5257,7 +5331,7 @@
       k = 3
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5273,7 +5347,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5291,7 +5365,7 @@
       k = 2
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5307,7 +5381,7 @@
       k = nk-1
       !$omp parallel do default(shared)   &
       !$omp private(i,j,wbar)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$acc parallel loop gang collapse(2) private(i,j,wbar)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5341,13 +5415,15 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
 
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) private(i,j)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5362,7 +5438,7 @@
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) private(i,j)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5394,7 +5470,7 @@
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5410,7 +5486,7 @@
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5444,7 +5520,7 @@
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5460,7 +5536,7 @@
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5480,7 +5556,7 @@
     k = 3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
 
       !dir$ vector always
@@ -5497,7 +5573,7 @@
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5532,6 +5608,8 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   IF( stag.eq.1 )THEN
@@ -5539,7 +5617,7 @@
     k = 5
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) private(i,j)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5554,7 +5632,7 @@
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) private(i,j)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5585,7 +5663,7 @@
     k = 5
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5600,7 +5678,7 @@
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5634,7 +5712,7 @@
     k = 5
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5649,7 +5727,7 @@
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5670,7 +5748,7 @@
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5685,7 +5763,7 @@
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5720,12 +5798,14 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k)
     DO j=1,nj
       do k=2,nk,(nk-2)
       !dir$ vector always
@@ -5753,7 +5833,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar,cc1,cc2)
     DO j=1,nj
 
       do k=2,nk,(nk-2)
@@ -5785,7 +5865,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar,cc1,cc2)
     DO j=j1,j2
 
       do k=2,nk,(nk-2)
@@ -5805,7 +5885,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=1,nk,(nk-1)
@@ -5839,12 +5919,14 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=3,(nk-1),(nk-4)
@@ -5873,7 +5955,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=3,(nk-1),(nk-4)
@@ -5903,7 +5985,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=3,(nk-1),(nk-4)
@@ -5921,7 +6003,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !non-B4B !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=2,(nk-1),(nk-3)
@@ -5955,12 +6037,14 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=4,nk-2,(nk-6)
@@ -5989,7 +6073,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=4,nk-2,(nk-6)
@@ -6019,7 +6103,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=4,nk-2,(nk-6)
@@ -6037,7 +6121,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=3,nk-2,(nk-5)
@@ -6071,12 +6155,14 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k)
     DO j=1,nj
 
       do k=5,nk-3,(nk-8)
@@ -6105,7 +6191,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=5,nk-3,(nk-8)
@@ -6135,7 +6221,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=5,nk-3,(nk-8)
@@ -6153,7 +6239,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !JMD !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=4,nk-3,(nk-7)
@@ -6595,6 +6681,8 @@
       real :: wbar
 
       integer, parameter :: j = 1
+      !$acc declare present(c1,c2) &
+      !$acc present(rrw,a,dumz)
 
 !----------------------------------------------------------------
     ! u-staggered, axisymmetric grid:
@@ -6623,7 +6711,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=3,nk-1
       !dir$ vector always
       do i=2,i2
@@ -6640,7 +6728,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=4,nk-2
       !dir$ vector always
       do i=2,i2
@@ -6657,7 +6745,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=5,nk-3
       !dir$ vector always
       do i=2,i2
@@ -6674,7 +6762,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=6,nk-4
       !dir$ vector always
       do i=2,i2
@@ -6797,7 +6885,7 @@
     IF(     vadvordrv.eq.2 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=2,nk
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
@@ -6807,7 +6895,7 @@
     ELSEIF( vadvordrv.eq.3 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=3,nk-1
       !dir$ vector always
       do i=2,i2
@@ -6822,7 +6910,7 @@
     ELSEIF( vadvordrv.eq.4 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=3,nk-1
       !dir$ vector always
       do i=2,i2
@@ -6833,7 +6921,7 @@
     ELSEIF( vadvordrv.eq.5 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=4,nk-2
       !dir$ vector always
       do i=2,i2
@@ -6848,7 +6936,7 @@
     ELSEIF( vadvordrv.eq.6 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=4,nk-2
       !dir$ vector always
       do i=2,i2
@@ -6859,7 +6947,7 @@
     ELSEIF( vadvordrv.eq.7 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=5,nk-3
       !dir$ vector always
       do i=2,i2
@@ -6874,7 +6962,7 @@
     ELSEIF( vadvordrv.eq.8 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=5,nk-3
       !dir$ vector always
       do i=2,i2
@@ -6885,7 +6973,7 @@
     ELSEIF( vadvordrv.eq.9 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=6,nk-4
       !dir$ vector always
       do i=2,i2
@@ -6900,7 +6988,7 @@
     ELSEIF( vadvordrv.eq.10 )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,k,wbar)
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=6,nk-4
       !dir$ vector always
       do i=2,i2
@@ -7007,7 +7095,7 @@
     ! near boundaries (even-ordered schemes):
 
     IF( vadvordrv.eq.10 )THEN
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=5,(nk-3),(nk-8)
       !dir$ vector always
       do i=2,i2
@@ -7017,7 +7105,7 @@
       enddo
     ENDIF
     IF( vadvordrv.eq.10 .or. vadvordrv.eq.8 )THEN
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=4,(nk-2),(nk-6)
       !dir$ vector always
       do i=2,i2
@@ -7027,7 +7115,7 @@
       enddo
     ENDIF
     IF( vadvordrv.eq.10 .or. vadvordrv.eq.8 .or. vadvordrv.eq.6 )THEN
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=3,(nk-1),(nk-4)
       !dir$ vector always
       do i=2,i2
@@ -7092,6 +7180,12 @@
       real :: tem0
       double precision, dimension(nk) :: budx
       integer, dimension(4) :: reqsx
+      !$acc declare present(xh,rxh,arh1,arh2,uh,ruh) &
+      !$acc present(xf,vh,rvh) &
+      !$acc present(rmh,rho0,rr0,rf0,rrf0) &
+      !$acc present(gz,rgz) &
+      !$acc present(advx,dum,mass) &
+      !$acc present(rru,s0,s,flag)
 
 !!!      budx(k) = 0.0d0
 
@@ -7103,9 +7197,8 @@
 
     if( weno_order.eq.3 )then
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7121,9 +7214,8 @@
 
     elseif( weno_order.eq.5 )then
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7139,9 +7231,8 @@
 
     elseif( weno_order.eq.7 )then
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7157,9 +7248,8 @@
 
     elseif( weno_order.eq.9 )then
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7184,9 +7274,8 @@
 
     if( weno_order.eq.9 )then
       i = 5
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$omp parallel do default(shared) private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7199,9 +7288,8 @@
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 )then
       i = 4
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$omp parallel do default(shared) private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7214,9 +7302,8 @@
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 .or. weno_order.eq.5 )then
       i = 3
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$omp parallel do default(shared) private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7229,9 +7316,8 @@
     endif
 
       i = 2
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$omp parallel do default(shared) private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7245,9 +7331,8 @@
 
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$omp parallel do default(shared) private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7265,9 +7350,8 @@
 
 
     if(hadvorder.eq.2)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       dum(1,j,k) = 0.0
@@ -7278,9 +7362,8 @@
       enddo
       ENDDO
     elseif(hadvorder.eq.3)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7294,9 +7377,8 @@
       enddo
       ENDDO
     elseif(hadvorder.eq.4)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7306,9 +7388,8 @@
       enddo
       ENDDO
     elseif(hadvorder.eq.5)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7322,9 +7403,8 @@
       enddo
       ENDDO
     elseif(hadvorder.eq.6)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7334,9 +7414,8 @@
       enddo
       ENDDO
     elseif(hadvorder.eq.7)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7352,7 +7431,7 @@
     elseif(hadvorder.eq.8)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7364,7 +7443,7 @@
     elseif(hadvorder.eq.9)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7380,7 +7459,7 @@
     elseif(hadvorder.eq.10)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7400,7 +7479,7 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7415,7 +7494,7 @@
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7430,7 +7509,7 @@
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7445,7 +7524,7 @@
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7460,7 +7539,7 @@
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-        !JMD !$acc parallel loop gang vector private(j,k)
+        !$acc parallel loop gang vector private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(i,j,k).ge.0.0)then
@@ -7479,7 +7558,7 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx8(s(i-4,j,k),s(i-3,j,k),s(i-2,j,k),s(i-1,j,k),s(i  ,j,k),s(i+1,j,k),s(i+2,j,k),s(i+3,j,k))
@@ -7490,7 +7569,7 @@
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx6(s(i-3,j,k),s(i-2,j,k),s(i-1,j,k),s(i  ,j,k),s(i+1,j,k),s(i+2,j,k))
@@ -7501,7 +7580,7 @@
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx4(s(i-2,j,k),s(i-1,j,k),s(i  ,j,k),s(i+1,j,k))
@@ -7512,7 +7591,7 @@
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*0.5*(s(i-1,j,k)+s(i,j,k))
@@ -7526,7 +7605,7 @@
       i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*0.5*(s(i-1,j,k)+s(i,j,k))
@@ -7544,7 +7623,7 @@
         i=ni+1
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !JMD !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector private(j,k)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).le.0.0)then
@@ -7557,7 +7636,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !JMD !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7571,7 +7650,7 @@
         i=ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-        !JMD !$acc parallel loop gang vector private(j,k)
+        !$acc parallel loop gang vector private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(ni+1,j,k).le.0.0)then
@@ -7594,8 +7673,10 @@
 
       IF(pdscheme.eq.1 .and. pdef.eq.1)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
+        !$acc data copyin(xh,arh1,arh2,uh,dt) copy(advx,dum,mass,flag)
         call pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
         call pdefx2(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
+        !$acc end data
       ENDIF
 
 !----------------------------------------------------------------
@@ -9468,9 +9549,12 @@
 
     integer :: i,j,k
     real :: div
+    !$acc declare present(a,c1,c2,mh,rr0,rf0) &
+    !$acc present(dumz,subs)
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,div)
+    !$acc parallel loop gang vector private(i,j,k,div)
     DO j=1,jy
       !-----
       do k=2,(nk-1)

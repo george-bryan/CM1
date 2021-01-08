@@ -227,6 +227,7 @@
 
 !$acc declare copyin(ni,nj,nk)
 !$acc declare copyin(rdx,rdy,rdz)
+!$acc declare copyin(smeps)
 !-----------------------------------------------------------------------
 
       namelist /param0/ nx,ny,nz,ppnode,                                &

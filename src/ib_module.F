@@ -794,13 +794,15 @@
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv)
 
     doit = .true.
 !!!    if( doit )then
 
   IF( stag.eq.1 )THEN
 
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -881,7 +883,7 @@
   ELSEIF( stag.eq.2 )THEN
 
     if( doit )then
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -959,7 +961,7 @@
   ELSEIF( stag.eq.3 )THEN
 
     if( doit )then
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=0,nj+1
       !dir$ vector always
@@ -1037,7 +1039,7 @@
   ELSEIF( stag.eq.4 )THEN
 
   if( doit )then
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1180,13 +1182,15 @@
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv)
 
     doit = .true.
 !!!    if( doit )then
 
   IF( stag.eq.1 )THEN
 
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1267,7 +1271,7 @@
   ELSEIF( stag.eq.2 )THEN
 
     if( doit )then
-    !JMD !$acc parallel loop private(i,j,k,ubar,vbar)
+    !$acc parallel loop private(i,j,k,ubar,vbar)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1345,7 +1349,7 @@
   ELSEIF( stag.eq.3 )THEN
 
     if( doit )then
-    !JMD !$acc parallel loop private(i,j,k,ubar,vbar)
+    !$acc parallel loop private(i,j,k,ubar,vbar)
     DO k=1,(kmaxib-1)
       do j=0,nj+1
       !dir$ vector always
@@ -1423,7 +1427,7 @@
   ELSEIF( stag.eq.4 )THEN
 
   if( doit )then
-    !JMD !$acc parallel loop private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=1,(kmaxib-1)
       do j=1,nj+1
       !dir$ vector always
@@ -1561,10 +1565,12 @@
 
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw)
 
   IF( stag.eq.1 )THEN
 
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     do j=1,nj
     !dir$ vector always
     do i=1,ni
@@ -1605,7 +1611,7 @@
         i2=ni+1
       endif
 
-    !JMD !$acc parallel loop private(i,j,k,kval,wbar)
+    !$acc parallel loop private(i,j,k,kval,wbar)
     do j=1,nj
     !dir$ vector always
     do i=i1,i2
@@ -1651,7 +1657,7 @@
         j2=nj+1
       endif
 
-    !JMD !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
+    !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
     do j=j1,j2
     !dir$ vector always
     do i=1,ni
@@ -1684,7 +1690,7 @@
 
   ELSEIF( stag.eq.4 )THEN
 
-    !JMD !$acc parallel loop private(i,j,k,kval,wbar)
+    !$acc parallel loop private(i,j,k,kval,wbar)
     do j=1,nj
     !dir$ vector always
     do i=1,ni
@@ -1738,10 +1744,11 @@
 
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2)
 
   IF( stag.eq.1 )THEN
    
-    !JMD !$acc parallel loop private(i,j,k)
+    !$acc parallel loop private(i,j,k)
     do j=1,nj
     !dir$ vector always
     do i=1,ni
@@ -1782,7 +1789,7 @@
         i2=ni+1
       endif
 
-    !JMD !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
+    !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
     do j=1,nj
     !dir$ vector always
     do i=i1,i2
@@ -1828,7 +1835,7 @@
         j2=nj+1
       endif
 
-    !JMD !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
+    !$acc parallel loop private(i,j,k,kval,wbar,cc1,cc2)
     do j=j1,j2
     !dir$ vector always
     do i=1,ni
@@ -1861,7 +1868,7 @@
 
   ELSEIF( stag.eq.4 )THEN
 
-    !JMD !$acc parallel loop private(i,j,k,kval,wbar)
+    !$acc parallel loop private(i,j,k,kval,wbar)
     do j=1,nj
     !dir$ vector always
     do i=1,ni

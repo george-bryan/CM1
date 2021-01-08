@@ -69,6 +69,10 @@
       real :: tem0,coef,tot,ndiff
 
       integer, dimension(4) :: reqsx,reqsy
+      !$acc declare present(gz,rgz,mh,rmh,rho0,rr0,rf0,rrf0) &
+      !$acc present(c1,c2) &
+      !$acc present(rru,rrv,rrw) &
+      !$acc present(s0,s)
 
 !----------------------------------------------------------------
 
@@ -111,12 +115,13 @@
 !-----------------
 
     hadvsection:  IF(axisymm.eq.1)THEN
+      print *,'before call to advsaxi'
       call advsaxi(doweno,bflag,bsq,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,rmh,gz,rgz, &
                    rho0,rr0,rf0,rrf0,advx,dumx,mass,rru,s0,s,pdef,dt,weps,   &
                    hadvorder,flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !non-B4B !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -129,9 +134,9 @@
 !----------------------------------------------------------------
 ! Advection in horizontal directions
 
+    !$acc data copy(dumx,dumy)
     IF( doweno )THEN
 
-      print *,'advs: weno_order: ',weno_order
       if(     weno_order.eq.3 )then
 
         call     hadv_weno3(  1 ,ni,nj,nk,c1,c2,rru,rrv,dumx,dumy,s,pdef,weps)
@@ -157,7 +162,6 @@
 
     ELSE
 
-      print *,'advs: hadvorder: ',hadvorder
       if(     hadvorder.eq.2 )then
 
         call     hadv_flx2(  1 ,ni,nj,nk,c1,c2,rru,rrv,dumx,dumy,s)
@@ -202,6 +206,7 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. hadvorder.ge.3 )THEN
       IF( doweno )THEN
@@ -216,15 +221,13 @@
     !-------------------------------------------------------
     !  open bc:  set hadv to zero at inflow
 
+      !$acc data copyin(rvh) copy(dumx,dumk1(1:nk))
       if(doitw)then
         i=1
         print *,'advs: doitw'
         !LOOP01
-        !$acc data copyin(dumx,rru,dumk1,rvh,rmh) copyout(dumx,dumk1)
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-        !LOOP01
-        !acc parallel loop gang collapse(2) private(j,k)
+        !$omp parallel do default(shared) !$omp private(j,k)
+        !$acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(i,j,k).ge.0.0)then
@@ -234,18 +237,13 @@
         enddo
         ENDDO
         !LOOP01
-        !$acc end data
       endif
 
       if(doite)then
         i=ni+1
-        print *,'advs: doite'
         !LOOP02
-        !$acc data copyin(dumx,rru,dumk1,rvh,rmh) copyout(dumx,dumk1)
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-        !LOOP02
-        !acc parallel loop gang collapse(2) private(j,k)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
           if(rru(i,j,k).le.0.0)then
@@ -255,18 +253,16 @@
         enddo
         ENDDO
         !LOOP02
-        !$acc end data
       endif
+      !$acc end data
 
+      !$acc data copyin(dumy,dumk2,ruh) copy(dumy,dumk2(1:nk))
       if(doits)then
         j=1
         print *,'advs: doits'
         !LOOP03
-        !$acc data copyin(dumy,rrv,dumk2,ruh,rmh) copyout(dumy,dumk2)
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-        !LOOP03
-        !acc parallel loop gang collapse(2) private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
           if(rrv(i,j,k).ge.0.0)then
@@ -276,18 +272,14 @@
         enddo
         ENDDO
         !LOOP03
-        !$acc end data
       endif
 
       if(doitn)then
         j=nj+1
         print *,'advs: doitn'
         !LOOP04
-        !$acc data copyin(dumy,rrv,dumk2,ruh,rmh) copyout(dumy,dumk2)
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-        !LOOP04
-        !acc parallel loop gang collapse(2) private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
           if(rrv(i,j,k).le.0.0)then
@@ -297,19 +289,15 @@
         enddo
         ENDDO
         !LOOP04
-        !$acc end data
       endif
+      !$acc end data
 
     !-------------------------------------------------------
     !  hadv tendencies:
 
-      !PCAST: Initilaize to zero to enable usage of PCAST
-      advx=0.0
-      advy=0.0
       !LOOP05
-      !$acc data copyin(uh,vh,dumx,dumy) copyout(advx,advy)
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$acc data copyin(uh,vh,dumx,dumy) copy(advx,advy)
+      !$omp parallel do default(shared) private(i,j,k)
       !LOOP05
       !$acc parallel loop gang vector private(i,j,k)
       do k=1,nk
@@ -321,7 +309,6 @@
       enddo
       enddo
       enddo
-      !JMD !$acc compare(advx,advy)
       !LOOP05
       !$acc end data 
       !stop 'after the loop'
@@ -330,13 +317,11 @@
     !  open bc:  set hadv to zero at inflow
     !            (here, we subtract-off the divx piece)
 
+     !$acc data copyin(uh) copy(advx)
       IF(doitw)THEN
         i=1
         !LOOP06
-        !$acc data copyin(advx,s,rru,uh) copyout(advx)
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-        !LOOP06
+        !$omp parallel do default(shared) private(j,k)
         !$acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
@@ -345,17 +330,12 @@
           endif
         enddo
         ENDDO
-        !LOOP06
-        !$acc end data
       ENDIF
 
       IF(doite)THEN
         i=ni
         !LOOP07
-        !$acc data copyin(advx,s,rru,uh) copyout(advx)
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-        !LOOP07
+        !$omp parallel do default(shared) private(j,k)
         !$acc parallel loop gang collapse(2) private(j,k)
         DO k=1,nk
         do j=1,nj
@@ -365,16 +345,14 @@
         enddo
         ENDDO
         !LOOP07
-        !$acc end data
       ENDIF
+      !$acc end data
 
+      !$acc data copyin(vh) copy(advy)
       IF(doits)THEN
         j=1
         !LOOP08
-        !$acc data copyin(advy,s,rrv,vh) copyout(advy)
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-        !LOOP08
+        !$omp parallel do default(shared) private(i,k)
         !$acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
@@ -383,17 +361,12 @@
           endif
         enddo
         ENDDO
-        !LOOP08
-        !$acc end data
       ENDIF
 
       IF(doitn)THEN
         j=nj
         !LOOP09
-        !$acc data copyin(advy,s,rrv,vh) copyout(advy)
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-        !LOOP09
+        !$omp parallel do default(shared) private(i,k)
         !$acc parallel loop gang collapse(2) private(i,k)
         DO k=1,nk
         do i=1,ni
@@ -402,9 +375,8 @@
           endif
         enddo
         ENDDO
-        !LOOP09
-        !$acc end data
       ENDIF
+      !$acc end data
 
     !-------------------------------------------------------
     ! 6th-order diffusion-s:
@@ -412,9 +384,7 @@
       IF( dobud .and. nrk.eq.nrkmax .and. sd_hediff.ge.1 )THEN
         !LOOP10
         !$acc data copyin(advx,advy) copyout(diag(1:ni,1:nj,1:nk,sd_hediff))
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !LOOP10
+        !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang private(i,j,k)
         DO k=1,nk
         do j=1,nj
@@ -427,10 +397,8 @@
         !$acc end data 
       ENDIF
     !LOOP11 
-    !$acc data copyin(advx,advy,s,rho,dumx,ri,rho0) copyout(advx,advy,dumx,dumy)
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-    !LOOP11
+    !$acc data copyin(advx,advy,rho,dumx,ri) copyout(advx,advy,dumx,dumy)
+    !$omp parallel do default(shared) private(i,j,k)
     !$acc parallel loop gang private(i,j,k)
     DO k=1,nk
       do j=1,nj
@@ -482,10 +450,9 @@
     !$acc end data
       IF( dobud .and. nrk.eq.nrkmax .and. sd_hediff.ge.1 )then
         !LOOP12
-        !$acc data copyin(advx,advy,diag(1:ni,1:nj,1:nk,sd_hediff)) copyout(diag(1:ni,1:nj,1:nk,sd_hediff))
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !LOOP12
+        !$acc data copyin(advx,advy) &
+        !$acc copyout(diag(:,:,:,sd_hediff))
+        !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang collapse(2) private(i,j,k)
         DO k=1,nk
         do j=1,nj
@@ -510,11 +477,12 @@
           bsq=bsq+dumk1(k)*tem0
         enddo
       ENDIF
-
+      !$acc data copyin(xh,arh1,arh2,uh,dt) copy(advx,dumx,mass,flag)
       IF(pdscheme.eq.1 .and. pdef.eq.1)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
         call pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dumx,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
       ENDIF
+      !$acc end data
 
 !----------------------------------------------------------------
 !  Misc for y-direction
@@ -525,17 +493,20 @@
           bsq=bsq+dumk2(k)*tem0
         enddo
       ENDIF
-
+      !non-B4B
+      !$acc data copyin(vh,dt) copy(advy,dumy,mass,flag)
       IF(pdscheme.eq.1 .and. pdef.eq.1)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
         call pdefy1(vh,rho0,gz,rgz,rrv,advy,dumy,mass,s0,s,dt,flag,ss31,ss32,sn31,sn32,reqsy)
       ENDIF
+      !$acc end data
 
     ENDIF  hadvsection
 
 !----------------------------------------------------------------
 ! Advection in z-direction
 
+    !$acc data copy(dumz)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -562,7 +533,7 @@
       endif
 
     ELSE
-      print *,'vadvorder: ',vadvorder
+
       if(     vadvorder.eq.2 )then
 
         call     vadv_flx2(  1 ,ni,nj,nk,c1,c2,rrw,dumz,s)
@@ -607,6 +578,7 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. vadvorder.ge.3 )THEN
       IF( doweno )THEN
@@ -617,15 +589,12 @@
     ENDIF
 
 !------
-   !PCAST: 
-   advz=0
 
     IF(terrain_flag)THEN
 
       !LOOP12 
       !$acc data copyin(dumz,rdsf(1:nk)) copyout(advz)
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
       !LOOP12a 
       !$acc parallel loop gang vector collapse(2) private(i,j)
       do j=1,nj
@@ -635,9 +604,8 @@
       enddo
       enddo
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
       !LOOP12b 
+      !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(2) private(i,j,k)
       do k=2,nk-1
       do j=1,nj
@@ -653,7 +621,7 @@
 
 
       !LOOP13
-      !$acc data copyin(dumz,mh(1,1,1:nz)) copyout(advz)
+      !$acc data copyin(dumz) copy(advz)
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
       !LOOP13a
@@ -685,10 +653,10 @@
 !  Large-scale subsidence:
 
     IF( dobud .and. nrk.eq.nrkmax )THEN
-      !LOOP14 !$acc data copyout(subs)
+      !JMD!$acc data copyout(subs)
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !LOOP14 !$acc parallel loop gang collapse(3) private(i,j,k)
+      !JMD!$acc parallel loop gang collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -696,19 +664,19 @@
       enddo
       enddo
       enddo
-      !LOOP14 !$acc end data
+      !JMD!$acc end data
     ENDIF
 
     IF( dolsw )THEN
       ! vertical advection from specified large-scale w profile:
 
+      !$acc data copy(dumz,subs)
       call     wsub(ni  ,nj  ,nk  ,s  ,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
+      !$acc end data
 
-      !LOOP15 !$acc data copyin(advz(1:ni,1:nj,1:nk),subs(1:ni,1:nj,1:nk),rho0(1,1,1:nk)) &
-      !LOOP15 !$acc copyout(advz(1:ni,1:nj,1:nk))
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
-      !LOOP15 !$acc parallel loop gang private(i,j,k)
+      !$acc data copyin(subs) copy(advz)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -718,36 +686,40 @@
       enddo
       enddo
       enddo
-      !LOOP15 !$acc end data
+      !$acc end data
 
     ENDIF
 
 !----------------------------------------------------------------
 !  Misc for z-direction
 
+      !$acc data copyin(rdsf,dt) &
+      !$acc copy(advz(ib:ie,jb:je,kb:ke),dumz,mass,flag)
       IF(pdscheme.eq.1 .and. pdef.eq.1)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
         call pdefz(mh,rho0,gz,rgz,rdsf,rrw,advz,dumz,mass,s0,s,dt,flag)
       ENDIF
+      !$acc end data
 
 !----------------------------------------------------------------
 !  Finish pdefxy:
 
+      !$acc data copyin(xh,vh,arh1,arh2,uh,dt) copy(advx,advy,dumx,dumy,mass,flag)
       IF(pdscheme.eq.1 .and. pdef.eq.1 .and. axisymm.eq.0)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
         call pdefx2(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dumx,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
         call pdefy2(vh,rho0,gz,rgz,rrv,advy,dumy,mass,s0,s,dt,flag,ss31,ss32,sn31,sn32,reqsy)
       ENDIF
+      !$acc end data
 
 !----------------------------------------------------------------
 !  Total advection tendency:
 
+    !$acc data copyin(advx,advy,advz,divx) copy(sten)
     IF(terrain_flag)THEN
 
-      !LOOP16 !$acc data copyin(sten,advx,advy,advz,s,divx,rr0,gz) copyout(sten)
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !LOOP16 !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -756,16 +728,15 @@
       enddo
       enddo
       enddo
-      !LOOP16 !$acc end data
+      !!$acc end data
 
     ELSE
 
-      !LOOP17 !$acc data copyin(sten(1:ni,1:nj,1:nk),advx(1:ni,1:nj,1:nk),advy(1:ni,1:nj,1:nk)) &
-      !LOOP17 !$acc copyin(advz(1:ni,1:nj,1:nk),s(1:ni,1:nj,1:nk),divx(1:ni,1:nj,1:nk),rr0(1,1,1:nk)) &
-      !LOOP17 !$acc copyout(sten(1:ni,1:nj,1:nk))
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-      !LOOP17 !$acc parallel loop gang collapse(2) private(i,j,k)
+      !LOOP17 generates convergence error in satadj2
+      !!$acc data copyin(advx,advy,advz) &
+      !!$acc copyin(divx) copy(sten)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -774,9 +745,9 @@
       enddo
       enddo
       enddo
-      !LOOP17 !$acc end data
 
     ENDIF
+    !$acc end data
 
 !----------------------------------------------------------------
 !  Diagnostics:
@@ -787,12 +758,11 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         !LOOP18
-        !$acc data copyin(advx,advy,advz,s,rru,rrv,uh,vh,rr0,subs,rho0,rrw,mh) copyout(diag(:,:,:,sd_hadv),diag(:,:,:,sd_vadv))
+        !LOOP18 !$acc data copyin(advx,advy,advz,uh,vh,subs) &
+        !LOOP18 !$acc copyout(diag(1:ni,1:nj,1:nk,sd_hadv),diag(1:ni,1:nj,1:nk,sd_vadv))
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !LOOP18
-        !$acc parallel loop gang collapse(2) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !LOOP18 !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -804,16 +774,14 @@
         enddo
         enddo
         enddo
-        !LOOP18
-        !$acc end data
+        !LOOP18 !$acc end data
       ELSE
         ! axisymmetric grid:
         j=1
         !LOOP19
-        !$acc data copyin(advx,s,arh2,rru,arh1,uh,rr0,rrw,mh) copyout(diag(:,:,:,sd_hadv),diag(:,:,:,sd_vadv))
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k)
-        !LOOP19
+        !$acc data copyin(advx,arh2,arh1,uh) &
+        !$acc copyout(diag(:,:,:,sd_hadv),diag(:,:,:,sd_vadv))
+        !$omp parallel do default(shared) private(i,k)
         !$acc parallel loop gang collapse(2) private(i,k)
         do k=1,nk
         do i=1,ni
@@ -828,11 +796,10 @@
       ENDIF
     ELSE
         !LOOP20
-        !$acc data copyin(advx,advy,advz,s,rru,rrv,uh,vh,rr0,gz,rdsf,gz) copyout(diag(:,:,:,sd_hadv),diag(:,:,:,sd_vadv))
+        !$acc data copyin(advx,advy,advz,uh,vh,rdsf) &
+        !$acc copyout(diag(:,:,:,sd_hadv),diag(:,:,:,sd_vadv))
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !LOOP20
+        !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang collapse(2) private(i,j,k)
         do k=1,nk
         do j=1,nj
@@ -851,12 +818,10 @@
     !--------
     IF( sd_lsw.ge.1 )THEN
       !LOOP21
-      !$acc data copyin(subs) copyout(diag(:,:,:,sd_lsw))
+      !JMD!$acc data copyin(subs) copyout(diag(:,:,:,sd_lsw))
       ! large-scale subsidence:
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
-      !LOOP21
-      !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !JMD!$acc parallel loop gang collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -865,16 +830,14 @@
       enddo
       enddo
       !LOOP21
-      !$acc end data
+      !JMD!$acc end data
     ENDIF
     !--------
     IF( diffit.eq.1 .and. sd_hediff.ge.1 )THEN
       !LOOP22
-      !$acc data copyin(diag) copyout(diag(:,:,:,sd_hadv))
+      !$acc data copyin(diag(:,:,:,sd_hediff)) copy(diag(:,:,:,sd_hadv))
       ! subtract-off diffusion from advection:
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
-      !LOOP22
+      !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang collapse(2) private(i,j,k)
       DO k=1,nk
       do j=1,nj
@@ -893,6 +856,7 @@
       ! step1: get non-diffusive advective fluxes:
       ! buh31a !
     IF( axisymm.eq.0 )THEN
+      !$acc data copy(dumx(ib:ie,jb:je,kb:ke),dumy(ib:ie,jb:je,kb:ke))
       if(     hadvorder.eq.3 .or. ( advwenos.ge.1 .and. weno_order.eq.3 ) )then
         call     hadv_flx4(  1 ,ni,nj,nk,c1,c2,rru,rrv,dumx,dumy,s)
       elseif( hadvorder.eq.5 .or. ( advwenos.ge.1 .and. weno_order.eq.5 ) )then
@@ -905,6 +869,7 @@
         print *,' 13941 '
         call stopcm1
       endif
+      !$acc end data
     ELSE
       if(     hadvorder.eq.3 .or. ( advwenos.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -927,12 +892,11 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         !LOOP23
-        !$acc data copyin(diag,dumx,dumy,uh,vh,advx,advy,s,rru,rrv,rr0) copyout(diag(:,:,:,sd_hadv),diag(:,:,:,sd_hidiff),advx,advy) 
+        !LOOP23 !$acc data copyin(dumx,dumy,uh,vh) copy(diag(1:ni,1:nj,1:nk,sd_hadv)) &
+        !LOOP23 !$acc copyout(diag(1:ni,1:nj,1:nk,sd_hidiff),advx,advy) 
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
-        !LOOP23
-        !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !LOOP23 !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -947,16 +911,14 @@
         enddo
         enddo
         enddo
-        !LOOP23
-        !$acc end data
+        !LOOP23 !$acc end data
       ELSE
         ! axisymmetric grid:
         j=1
         !LOOP24
-        !$acc data copyin(diag,advx,s,arh2,rru,arh1,uh,rr0) copyout(diag(:,:,:,sd_hadv),diag(:,:,:,sd_hidiff)) 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k,tot,ndiff)
-        !LOOP24 
+        !$acc data copyin(advx,arh2,arh1,uh) copy(diag(:,:,:,sd_hadv)) &
+        !$acc copyout(diag(:,:,:,sd_hidiff)) 
+        !$omp parallel do default(shared) private(i,k,tot,ndiff)
         !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do i=1,ni
@@ -967,18 +929,15 @@
           diag(i,j,k,sd_hidiff) = tot-ndiff
         enddo
         enddo
-        !LOOP24 
         !$acc end data
       ENDIF
     ELSE
         !LOOP25
-        !$acc data copyin(diag(1:ni,1:nj,1:nk,sd_hadv),dumx,dumy,uh,vh,advx,advy,s,rru,rrv,rr0,gz) &
-        !$acc copyout(diag(1:ni,1:nj,1:nk,sd_hadv),diag(1:ni,1:nj,1:nk,sd_hidiff)) & 
-        !$acc copyout(advx(1:ni,1:nj,1:nk),advy(1:ni,1:nj,1:nk)) 
+        !$acc data copyin(dumx,dumy,uh,vh) &
+        !$acc copy(diag(:,:,:,sd_hadv)) &
+        !$acc copyout(diag(:,:,:,sd_hidiff),advx,advy) 
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
-        !LOOP25
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
         !$acc parallel loop gang collapse(2) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
@@ -994,7 +953,6 @@
         enddo
         enddo
         enddo
-        !LOOP25
         !$acc end data
     ENDIF
     ENDIF  gethidiffs
@@ -1004,6 +962,7 @@
       ! vert implicit diffusion tendency:
       ! step1: get non-diffusive advective fluxes:
       ! buh32a !
+      !$acc data copy(dumz)
       if(     vadvorder.eq.3 .or. ( advwenos.ge.1 .and. weno_order.eq.3 ) )then
         call     vadv_flx4(  1 ,ni,nj,nk,c1,c2,rrw,dumz,s)
       elseif( vadvorder.eq.5 .or. ( advwenos.ge.1 .and. weno_order.eq.5 ) )then
@@ -1017,10 +976,7 @@
         call stopcm1
       endif
       !LOOP26 
-      !$acc data copyout(dumz)
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !LOOP26
+      !$omp parallel do default(shared) private(i,j)
       !$acc parallel loop gang collapse(2) private(i,j)
       do j=1,nj
       do i=1,ni
@@ -1034,9 +990,10 @@
       ! buh42a !
     IF(.not.terrain_flag)THEN
         !LOOP27 Gets an illegal address
-        !LOOP27 !$acc data copyin(diag(1:ni,1:nj,1:nk,sd_vadv),dumz(1:ni,1:nj,1:nk+1),mh(1,1,1:nk)) &
-        !LOOP27 !$acc copyin(subs(1:ni,1:nj,1:nk),rho0(1,1,1:nk),s(1:ni,1:nj,1:nk),rrw(1:ni,1:nj,1:nk+1),rr0(1,1,1:nk)) &
-        !LOOP27 !$acc copyout(advz(1:ni,1:nj,1:nk),diag(1:ni,1:nj,1:nk,sd_vadv),diag(1:ni,1:nj,1:nk,sd_vidiff))
+        !LOOP27 !$acc data copyin(dumz) &
+        !LOOP27 !$acc copyin(subs) &
+        !LOOP27 !$acc copy(diag(:,:,:,sd_vadv)) &
+        !LOOP27 !$acc copyout(advz,diag(1:ni,1:nj,1:nk,sd_vidiff))
         ! no terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
@@ -1055,7 +1012,7 @@
         enddo
         !LOOP27 !$acc end data
     ELSE
-        !LOOP28 !$acc data copyin(diag(:,:,:,sd_vadv),dumz,advz,rdsf,s,rrw,rr0,gz) copyout(advz,diag(:,:,:,sd_vadv),diag(:,:,:,sd_vidiff))
+        !LOOP28 !$acc data copyin(diag(:,:,:,sd_vadv),dumz,advz,rdsf) copyout(advz,diag(:,:,:,sd_vadv),diag(:,:,:,sd_vidiff))
         ! Cartesian with terrain:
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tot,ndiff)
@@ -1134,6 +1091,9 @@
       logical :: doweno
       double precision :: weps
       real :: coef,tot,ndiff
+      !$acc declare present(gz,rgz,mh,rho0,rr0,rf0,rrf0) &
+      !$acc present(c1,c2) &
+      !$acc present(rru,rrv,rrw)
 
 !------------------------------------------------------------
 
@@ -1197,6 +1157,7 @@
 !----------------------------------------------------------------
 ! Advection in horizontal directions
 
+    !$acc data copyin(u3d) copy(dumx,dumy)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -1268,6 +1229,7 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. hadvordrv.ge.3 )THEN
       IF( doweno )THEN
@@ -1438,6 +1400,7 @@
 
   vadvu:  IF(axisymm.eq.0)THEN
 
+    !$acc data copyin(u3d) copy(dumz)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -1509,6 +1472,7 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. vadvordrv.ge.3 )THEN
       IF( doweno )THEN
@@ -1668,7 +1632,9 @@
     IF( dolsw )THEN
       ! vertical advection from specified large-scale w profile:
 
+      !$acc data copyin(u3d) copy(dumz,subs)
       call     wsub(ni+1,nj  ,nk  ,u3d,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
+      !$acc end data
 
     ENDIF
 
@@ -1819,6 +1785,7 @@
       ! step1: get non-diffusive advective fluxes:
       ! buh31a !
     IF( axisymm.eq.0 )THEN
+      !$acc data copyin(u3d) copy(dumx,dumy)
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     hadv_flx4(  2 ,ni+1,nj,nk,c1,c2,rru,rrv,dumx,dumy,u3d)
       elseif( hadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -1831,6 +1798,7 @@
         print *,' 13951 '
         call stopcm1
       endif
+      !$acc end data
     ELSE
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -1916,6 +1884,7 @@
       ! vert implicit diffusion tendency:
       ! step1: get non-diffusive advective fluxes:
       ! buh32a !
+      !$acc data copyin(u3d) copy(dumz)
       if(     vadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     vadv_flx4(  2 ,ni+1,nj,nk,c1,c2,rrw,dumz,u3d)
       elseif( vadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -1928,6 +1897,7 @@
         print *,' 13952 '
         call stopcm1
       endif
+      !$acc end data
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
       do j=1,nj
@@ -2069,6 +2039,9 @@
       logical :: doweno
       double precision :: weps
       real :: coef,tot,ndiff
+      !$acc declare present(gz,rgz,mh,rho0,rr0,rf0,rrf0) &
+      !$acc present(c1,c2) &
+      !$acc present(rru,rrv,rrw)
 
 !------------------------------------------------------------
 
@@ -2133,6 +2106,7 @@
 
 !-----------------
 
+    !$acc data copyin(v3d) copy(dumx,dumy)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -2204,11 +2178,14 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. hadvordrv.ge.3 )THEN
       IF( doweno )THEN
+        print *,'before: ib_side_weno'
         call   ib_side_weno(  3 ,ni,nj+1,nk,c1,c2,rru,rrv,dumx,dumy,v3d,hadvordrv,bndy,hflxw,hflxe,hflxs,hflxn,weps)
       ELSE
+        print *,'before: ib_side_flx'
         call   ib_side_flx(  3 ,ni,nj+1,nk,c1,c2,rru,rrv,dumx,dumy,v3d,hadvordrv,bndy,hflxw,hflxe,hflxs,hflxn)
       ENDIF
     ENDIF
@@ -2373,6 +2350,7 @@
 ! Advection in z-direction
 
 
+    !$acc data copyin(v3d) copy(dumz)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -2444,11 +2422,15 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. vadvordrv.ge.3 )THEN
+      !JMD not currently executed
       IF( doweno )THEN
+        print *,'before call to ib_lwr_weno'
         call   ib_lwr_weno( 3 ,ni,nj+1,nk,c1,c2,rrw,dumz,v3d,kbdy,vadvordrv,weps)
       ELSE
+        print *,'before call to ib_lwr_flx'
         call   ib_lwr_flx(  3 ,ni,nj+1,nk,c1,c2,rrw,dumz,v3d,kbdy,vadvordrv)
       ENDIF
     ENDIF
@@ -2635,7 +2617,9 @@
     IF( dolsw )THEN
       ! vertical advection from specified large-scale w profile:
 
+      !$acc data copyin(v3d) copy(dumz,subs)
       call     wsub(ni  ,nj+1,nk  ,v3d,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
+      !$acc end data
 
     ENDIF
 
@@ -2737,6 +2721,7 @@
       ! step1: get non-diffusive advective fluxes:
       ! buh31a !
     IF( axisymm.eq.0 )THEN
+      !$acc data copyin(v3d) copy(dumx,dumy)
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     hadv_flx4(  3 ,ni,nj+1,nk,c1,c2,rru,rrv,dumx,dumy,v3d)
       elseif( hadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -2749,6 +2734,7 @@
         print *,' 13961 '
         call stopcm1
       endif
+      !$acc end data
     ELSE
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -2764,6 +2750,7 @@
       endif
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       do k=1,nk
       do j=1,1
       do i=0,ni+1
@@ -2772,6 +2759,7 @@
       enddo
       enddo
       enddo
+      print *,'before call to advvaxi'
       call advvaxi(.false.,xh,rxh,arh1,arh2,uh,xf,vf,rho0,rr0,rf0,rrf0,dumx,advx,advz,rru,hadv)
     ENDIF
       ! step2: get non-diffusive and diffusive components of advection:
@@ -2845,6 +2833,7 @@
       ! vert implicit diffusion tendency:
       ! step1: get non-diffusive advective fluxes:
       ! buh32a !
+      !$acc data copyin(v3d) copy(dumz)
       if(     vadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     vadv_flx4(  3 ,ni,nj+1,nk,c1,c2,rrw,dumz,v3d)
       elseif( vadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -2857,6 +2846,7 @@
         print *,' 13962 '
         call stopcm1
       endif
+      !$acc end data
       !$omp parallel do default(shared)   &
       !$omp private(i,j)
       do j=j1,j2
@@ -2999,6 +2989,9 @@
       logical :: doweno
       double precision :: weps
       real :: coef,tot,ndiff
+      !$acc declare present(gz,rgz,mh,rho0,rr0,rf0,rrf0) &
+      !$acc present(c1,c2) &
+      !$acc present(rru,rrv,rrw)
 
 !----------------------------------------------------------------
 
@@ -3044,8 +3037,8 @@
 !----------------------------------------------------------------
 ! Advection in horizontal directions
 
+    !$acc data copyin(w3d) copy(dumx,dumy)
     IF( doweno )THEN
-
       if(     weno_order.eq.3 )then
 
         call     hadv_weno3(  4 ,ni,nj,nk+1,c1,c2,rru,rrv,dumx,dumy,w3d,0,weps)
@@ -3115,11 +3108,14 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. hadvorder.ge.3 )THEN
       IF( doweno )THEN
+        print *,'before call to ib_side_weno'
         call   ib_side_weno(  4 ,ni,nj,nk+1,c1,c2,rru,rrv,dumx,dumy,w3d,hadvorder,bndy,hflxw,hflxe,hflxs,hflxn,weps)
       ELSE
+        print *,'before call to ib_side_flx'
         call   ib_side_flx(  4 ,ni,nj,nk+1,c1,c2,rru,rrv,dumx,dumy,w3d,hadvorder,bndy,hflxw,hflxe,hflxs,hflxn)
       ENDIF
     ENDIF
@@ -3370,6 +3366,7 @@
 ! Advection in z-direction
 
 
+    !$acc data copyin(w3d) copy(dumz)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -3441,11 +3438,14 @@
       endif
 
     ENDIF
+    !$acc end data
 
     IF( do_ib .and. vadvorder.ge.3 )THEN
       IF( doweno )THEN
+        print *,'before call to ib_lwr_weno'
         call   ib_lwr_weno( 4 ,ni,nj,nk+1,c1,c2,rrw,dumz,w3d,kbdy,vadvorder,weps)
       ELSE
+        print *,'before call to ib_lwr_flx'
         call   ib_lwr_flx(  4 ,ni,nj,nk+1,c1,c2,rrw,dumz,w3d,kbdy,vadvorder)
       ENDIF
     ENDIF
@@ -3625,6 +3625,7 @@
       ! step1: get non-diffusive advective fluxes:
       ! buh31 !
     IF( axisymm.eq.0 )THEN
+      !$acc data copyin(w3d) copy(dumx,dumy)
       if(     hadvorder.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     hadv_flx4(  4 ,ni,nj,nk+1,c1,c2,rru,rrv,dumx,dumy,w3d)
       elseif( hadvorder.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -3637,6 +3638,7 @@
         print *,' 13971 '
         call stopcm1
       endif
+      !$acc end data
     ELSE
       if(     hadvorder.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -3650,6 +3652,7 @@
         print *,' 13981 '
         call stopcm1
       endif
+      print *,'before call to advwaxi'
       call advwaxi(.false.,xh,rxh,arh1,arh2,uh,xf,vh,rho0,rr0,rf0,rrf0,dumx,advx,rru,w3d,c1,c2,hadv)
     ENDIF
       ! step2: get non-diffusive and diffusive components of advection:
@@ -3722,6 +3725,7 @@
       ! vert implicit diffusion tendency:
       ! step1: get non-diffusive advective fluxes:
       ! buh32 !
+      !$acc data copyin(w3d) copy(dumz)
       if(     vadvorder.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     vadv_flx4(  4 ,ni,nj,nk+1,c1,c2,rrw,dumz,w3d)
       elseif( vadvorder.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -3734,6 +3738,7 @@
         print *,' 13972 '
         call stopcm1
       endif
+      !$acc end data
       ! step2: get non-diffusive and diffusive components of advection:
       ! buh42a !
     IF(.not.terrain_flag)THEN

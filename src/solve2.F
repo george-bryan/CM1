@@ -921,6 +921,7 @@
 !--------------------------------------------------------------------
 !  advection:
 
+          !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0)
           call advu(nrk   ,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
                      rru,u3d,uten,rrv,rrw,rdsf,c1,c2,rho,dttmp,doubud,udiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,vf,mf,v3d,w3d)
           call advv(nrk   ,xh,rxh,arh1,arh2,uh,xf,vh,vf,gz,rgz,gzv,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
@@ -929,6 +930,7 @@
                       dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx,                       &
                       rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       dowbud ,wdiag,hadvordrv,vadvordrv,advwenov,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
+          !$acc end data
 
 !--------------------------------------------------------------------
 !  Buoyancy
@@ -1101,12 +1103,14 @@
         enddo
         weps = epsilon
         diffit = 0
+        !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw,ppi,sadv,mh,rmh,rho0,rr0,rf0,rrf0) 
         call advs(nrk,0,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,           &
                    rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                    rru,rrv,rrw,ppi,sadv,sten ,0,0,dttmp,weps,                             &
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                    .false.,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,1,1,1,              &
                    1,1,1,wprof,dumk1,dumk2,2,2,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
+        !$acc end data
       endif
 
       ENDIF
@@ -1415,16 +1419,17 @@
 
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
-
         weps = 10.0*epsilon
         diffit = 0
         if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
+        !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw,tha,sadv,mh,rmh,rho0,rr0,rf0,rrf0) 
         call advs(nrk,1,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,           &
                    rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                    rru,rrv,rrw,tha,sadv,thten,0,0,dttmp,weps,                             &
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hadv,td_vadv,td_lsw, &
                    td_hidiff,td_vidiff,td_hediff,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
+        !$acc end data
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
@@ -1488,6 +1493,9 @@
       diffit = 0
       if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
 
+    !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw) &
+    !$acc copyin(qa(ib:ie,jb:je,kb:ke,n),q3d(ib:ie,jb:je,kb:ke,n)) &
+    !$acc copyin(mh,rmh,rho0,rr0,rf0,rrf0)
     IF( n.eq.nqv )THEN
       call advs(nrk,1,bflag,bsq(n),xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,     &
                  rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
@@ -1503,6 +1511,7 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
     ENDIF
+    !$acc end data
 
 
       !$omp parallel do default(shared)   &
@@ -1733,10 +1742,12 @@
         endif
         endif
 
+          !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0)
           call   advw(nrk   ,xh,rxh,arh1,arh2,uh,xf,vh,gz,rgz,mh,mf,rho0,rr0,rf0,rrf0,  &
                       dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx,                       &
                       rru,rrv,rrw,tke3d,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       .false.,wdiag,hadvordrs,vadvordrs,advwenos,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
+          !$acc end data
 
         if( dotdwrite .and. kd_adv.ge.1 )then
         if( nrk.eq.nrkmax )then
@@ -1815,6 +1826,7 @@
         call comm_3s_end(  qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
 #endif
 
+        !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw,qke,qke3d,mh,rmh,rho0,rr0,rf0,rrf0) 
         weps = 10.0*epsilon
         diffit = 0
         if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
@@ -1824,6 +1836,7 @@
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
+        !$acc end data
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
@@ -1897,12 +1910,16 @@
       weps = 1.0*epsilon
       diffit = 0
       if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
+      !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw) &
+      !$acc copyin(pta(ib:ie,jb:je,kb:ke,n),pt3d(ib:ie,jb:je,kb:ke,n))  &
+      !$acc copyin(mh,rmh,rho0,rr0,rf0,rrf0)
       call advs(nrk,1,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,       &
                  rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                  rru,rrv,rrw,pta(ib,jb,kb,n),pt3d(ib,jb,kb,n),sten,pdef,1,dttmp,weps,   &
                  flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
+      !$acc end data
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)

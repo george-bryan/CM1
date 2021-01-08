@@ -314,6 +314,7 @@
         enddo
         enddo
 
+        !$acc data copyin(c1,c2,gz,rgz,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0)
         call advu(nrkmax,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
                    rru,uten1,uten,rrv,rrw,rdsf,c1,c2,rho, dt  ,.false.,udiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,vf,mf,vten1,w3d)
 
@@ -324,6 +325,7 @@
                     dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx,                       &
                     rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho, dt  ,               &
                     .false.,wdiag,hadvordrv,vadvordrv,advwenov,bndy,kbdy,uf,vf,uten1,vten1,hflxw,hflxe,hflxs,hflxn)
+        !$acc end data
 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
