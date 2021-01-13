@@ -795,7 +795,9 @@
     real :: ubar,vbar,cc1,cc2
     logical :: doit
     !$acc declare present(c1,c2) &
-    !$acc present(rru,rrv)
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy)
+
 
     doit = .true.
 !!!    if( doit )then
@@ -1183,7 +1185,8 @@
     real :: ubar,vbar,cc1,cc2
     logical :: doit
     !$acc declare present(c1,c2) &
-    !$acc present(rru,rrv)
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy)
 
     doit = .true.
 !!!    if( doit )then
@@ -1566,7 +1569,7 @@
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
     !$acc declare present(c1,c2) &
-    !$acc present(rrw)
+    !$acc present(rrw,dumz)
 
   IF( stag.eq.1 )THEN
 
@@ -1744,7 +1747,8 @@
 
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
-    !$acc declare present(c1,c2)
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a)
 
   IF( stag.eq.1 )THEN
    

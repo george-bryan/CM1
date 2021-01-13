@@ -7673,7 +7673,7 @@
 
       IF(pdscheme.eq.1 .and. pdef.eq.1)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
-        !$acc data copyin(xh,arh1,arh2,uh,dt) copy(advx,dum,mass,flag)
+        !$acc data copyin(dt) copy(advx,dum,mass,flag)
         call pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
         call pdefx2(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
         !$acc end data
