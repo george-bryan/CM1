@@ -294,7 +294,7 @@
 
       !LOOP05
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -715,7 +715,6 @@
     ! advective tendencies:
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
-        print *,'sd_hadv,sd_vadv: ',sd_hadv,sd_vadv
         !LOOP18 has issues
         ! Cartesian grid:
         !$omp parallel do default(shared) private(i,j,k)
@@ -1016,9 +1015,12 @@
       double precision :: weps
       real :: coef,tot,ndiff
       !$acc declare present(arh1,arh2,uh,vh) &
-      !$acc present(gz,rgz,mh,rho0,rr0,rf0,rrf0) &
-      !$acc present(rru,rrv,rrw) &
+      !$acc present(gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0) &
+      !$acc present(dumx,dumy,dumz,advx,advy,advz,subs) &
+      !$acc present(divx,rru,rrv,rrw) &
+      !$acc present(uten,udiag) &
       !$acc present(rdsf,c1,c2,rho) &
+      !$acc present(uf,vf,mf) &
       !$acc present(u3d,v3d,w3d)
 
 !------------------------------------------------------------
@@ -1069,8 +1071,8 @@
 
     hadvsection:  IF(axisymm.eq.1)THEN
       call advuaxi(doweno,arh1,arh2,xf,rxf,arf1,arf2,uf,vh,rho0,rr0,rf0,rrf0,dumx,advx,rru,u3d,hadvordrv)
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=i1,i2
@@ -1083,7 +1085,6 @@
 !----------------------------------------------------------------
 ! Advection in horizontal directions
 
-    !$acc data copy(dumx,dumy)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -1155,7 +1156,6 @@
       endif
 
     ENDIF
-    !$acc end data
 
     IF( do_ib .and. hadvordrv.ge.3 )THEN
       IF( doweno )THEN
@@ -1170,8 +1170,8 @@
 
       if(doits)then
         j=1
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=i1,i2
           if((rrv(i,j,k)+rrv(i-1,j,k)).ge.0.0)then
@@ -1183,8 +1183,8 @@
 
       if(doitn)then
         j=nj+1
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=i1,i2
           if((rrv(i,j,k)+rrv(i-1,j,k)).le.0.0)then
@@ -1197,8 +1197,8 @@
     !-------------------------------------------------------
     !  hadv tendencies:
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=i1,i2
@@ -1214,8 +1214,8 @@
 
       IF(doits)THEN
         j=1
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=i1,i2
           if((rrv(i,1,k)+rrv(i-1,1,k)).ge.0.0)then
@@ -1229,8 +1229,8 @@
 
       IF(doitn)THEN
         j=nj
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=i1,i2
           if((rrv(i,nj+1,k)+rrv(i-1,nj+1,k)).le.0.0)then
@@ -1246,8 +1246,8 @@
     ! 6th-order diffusion-u:
     IF( idiff.ge.1 .and. difforder.eq.6 )THEN
       IF( doubud .and. nrk.eq.nrkmax .and. ud_hediff.ge.1 )THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         DO k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -1256,8 +1256,8 @@
         enddo
         ENDDO
       ENDIF
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector private(i,j,k)
     DO k=1,nk
       do j=1,nj
       do i=1,ni+2
@@ -1305,8 +1305,8 @@
       enddo
     ENDDO
       IF( doubud .and. nrk.eq.nrkmax .and. ud_hediff.ge.1 )THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         DO k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -1326,7 +1326,6 @@
 
   vadvu:  IF(axisymm.eq.0)THEN
 
-    !$acc data copy(dumz)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -1398,7 +1397,6 @@
       endif
 
     ENDIF
-    !$acc end data
 
     IF( do_ib .and. vadvordrv.ge.3 )THEN
       IF( doweno )THEN
@@ -1412,8 +1410,8 @@
 
     IF(terrain_flag)THEN
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do j=1,nj
         do i=i1,i2
           k=1
@@ -1429,8 +1427,8 @@
         enddo
         enddo
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=2,nk-1
         do j=1,nj
         do i=i1,i2
@@ -1444,8 +1442,8 @@
 
     ELSE
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(2) private(i,j,k)
         do j=1,nj
         do i=i1,i2
           k=1
@@ -1455,8 +1453,8 @@
         enddo
         enddo
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=2,nk-1
         do j=1,nj
         do i=i1,i2
@@ -1469,6 +1467,7 @@
         IF( do_ib .and. ( gk00fix.eq.1 .or. gk00fix.eq.3 ) )THEN
           ! apply fix from Gallus and Klemp (2000, MWR, pg 1160)
           ! replace -w du/dz with -w dw/dx
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=1,nj
           do i=i1,i2
@@ -1497,6 +1496,7 @@
         IF( do_ib .and. ( gk00fix.eq.2 .or. gk00fix.eq.3 ) )THEN
           ! apply fix from Gallus and Klemp (2000, MWR, pg 1160)
           ! replace -w du/dz with -w dw/dx
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=1,nj
           do i=i1,i2
@@ -1540,8 +1540,8 @@
 
       ! cm1ib: moved uten
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=i1,i2
@@ -1558,9 +1558,7 @@
     IF( dolsw )THEN
       ! vertical advection from specified large-scale w profile:
 
-      !$acc data copy(dumz,subs)
       call     wsub(ni+1,nj  ,nk  ,u3d,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
-      !$acc end data
 
     ENDIF
 
@@ -1576,8 +1574,8 @@
 
 !------
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do j=1,nj
         do i=2,i2
           k=1
@@ -1591,8 +1589,8 @@
         enddo
         enddo
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=2,nk-1
         do j=1,nj
         do i=2,i2
@@ -1620,8 +1618,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=i1,i2
@@ -1641,8 +1639,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector private(i,k)
         do k=1,nk
         do i=2,i2
           udiag(i,j,k,ud_hadv) = ( advx(i,j,k)                         &
@@ -1658,8 +1656,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=i1,i2
@@ -1679,8 +1677,8 @@
     ENDIF
     !--------
     IF( ud_lsw.ge.1 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -1693,8 +1691,8 @@
     IF( idiff.ge.1 .and. difforder.eq.6 )THEN
     IF( ud_hediff.ge.1 )THEN
       ! subtract-off diffusion from advection:
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -1711,7 +1709,6 @@
       ! step1: get non-diffusive advective fluxes:
       ! buh31a !
     IF( axisymm.eq.0 )THEN
-      !$acc data copy(dumx,dumy)
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     hadv_flx4(  2 ,ni+1,nj,nk,c1,c2,rru,rrv,dumx,dumy,u3d)
       elseif( hadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -1724,7 +1721,6 @@
         print *,' 13951 '
         call stopcm1
       endif
-      !$acc end data
     ELSE
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -1745,8 +1741,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=i1,i2
@@ -1767,8 +1763,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,k,tot,ndiff)
         do k=1,nk
         do i=2,i2
           tot = udiag(i,j,k,ud_hadv)
@@ -1783,8 +1779,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=i1,i2
@@ -1810,7 +1806,6 @@
       ! vert implicit diffusion tendency:
       ! step1: get non-diffusive advective fluxes:
       ! buh32a !
-      !$acc data copy(dumz)
       if(     vadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     vadv_flx4(  2 ,ni+1,nj,nk,c1,c2,rrw,dumz,u3d)
       elseif( vadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -1823,9 +1818,8 @@
         print *,' 13952 '
         call stopcm1
       endif
-      !$acc end data
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop collapse(2) private(i,j)
       do j=1,nj
       do i=i1,i2
         dumz(i,j,1) = 0.0
@@ -1837,8 +1831,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=i1,i2
@@ -1856,8 +1850,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(2) private(i,k,tot,ndiff)
         do k=1,nk
         do i=2,i2
           tot = udiag(i,j,k,ud_vadv)
@@ -1873,8 +1867,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=1,nj
         do i=i1,i2
@@ -1897,8 +1891,8 @@
 !----------------------------------------------------------------
 
     IF( dolsw )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -1966,9 +1960,12 @@
       double precision :: weps
       real :: coef,tot,ndiff
       !$acc declare present(xh,rxh,arh1,arh2,uh,vh) &
-      !$acc present(gz,rgz,mh,rho0,rr0,rf0,rrf0) &
-      !$acc present(rru,rrv,rrw) &
+      !$acc present(gz,rgz,gzv,mh,rho0,rr0,rf0,rrf0) &
+      !$acc present(dumx,dumy,dumz,advx,advy,advz,subs) &
+      !$acc present(divx,rru,rrv,rrw) &
+      !$acc present(vten,vdiag) &
       !$acc present(rdsf,c1,c2,rho) &
+      !$acc present(uf,vf,mf) &
       !$acc present(u3d,v3d,w3d)
 
 !------------------------------------------------------------
@@ -2019,8 +2016,8 @@
       j1 = 1
       j2 = 1
       ! advz stores M
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       do k=1,nk
       do j=1,1
       do i=0,ni+1
@@ -2034,7 +2031,6 @@
 
 !-----------------
 
-    !$acc data copy(dumx,dumy)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -2106,7 +2102,6 @@
       endif
 
     ENDIF
-    !$acc end data
 
     IF( do_ib .and. hadvordrv.ge.3 )THEN
       IF( doweno )THEN
@@ -2123,8 +2118,8 @@
 
       if(doitw)then
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k)
         DO k=1,nk
         do j=j1,j2
           if((rru(i,j,k)+rru(i,j-1,k)).ge.0.0)then
@@ -2136,8 +2131,8 @@
 
       if(doite)then
         i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k)
         DO k=1,nk
         do j=j1,j2
           if((rru(i,j,k)+rru(i,j-1,k)).le.0.0)then
@@ -2150,8 +2145,8 @@
     !-------------------------------------------------------
     !  hadv tendencies:
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=j1,j2
       do i=1,ni
@@ -2167,8 +2162,8 @@
 
       IF(doitw)THEN
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k)
         DO k=1,nk
         do j=j1,j2
           if((rru(1,j,k)+rru(1,j-1,k)).ge.0.0)then
@@ -2182,8 +2177,8 @@
 
       IF(doite)THEN
         i=ni
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k)
         DO k=1,nk
         do j=j1,j2
           if((rru(ni+1,j,k)+rru(ni+1,j-1,k)).le.0.0)then
@@ -2199,8 +2194,8 @@
     ! 6th-order diffusion-v:
     IF( idiff.ge.1 .and. difforder.eq.6 )THEN
       IF( dovbud .and. nrk.eq.nrkmax .and. vd_hediff.ge.1 )THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         DO k=1,nk
         do j=1,nj+1
         do i=1,ni
@@ -2209,8 +2204,8 @@
         enddo
         ENDDO
       ENDIF
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector private(i,j,k)
     DO k=1,nk
       do j=1,nj+1
       do i=1,ni+1
@@ -2258,8 +2253,8 @@
       enddo
     ENDDO
       IF( dovbud .and. nrk.eq.nrkmax .and. vd_hediff.ge.1 )THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         DO k=1,nk
         do j=1,nj+1
         do i=1,ni
@@ -2278,7 +2273,6 @@
 ! Advection in z-direction
 
 
-    !$acc data copy(dumz)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -2350,7 +2344,6 @@
       endif
 
     ENDIF
-    !$acc end data
 
     IF( do_ib .and. vadvordrv.ge.3 )THEN
       !JMD not currently executed
@@ -2367,8 +2360,8 @@
 
     IF(terrain_flag)THEN
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do j=j1,j2
         do i=1,ni
           k=1
@@ -2384,8 +2377,8 @@
         enddo
         enddo
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=2,nk-1
         do j=j1,j2
         do i=1,ni
@@ -2403,8 +2396,8 @@
     IF( axisymm.eq.0 )THEN
       ! Cartesian grid:
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(2) private(i,j,k)
         do j=j1,j2
         do i=1,ni
           k=1
@@ -2414,8 +2407,8 @@
         enddo
         enddo
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=2,nk-1
         do j=j1,j2
         do i=1,ni
@@ -2427,6 +2420,7 @@
           !-----------------------------------------------------------------------------------------------------------
         IF( do_ib .and. ( gk00fix.eq.1 .or. gk00fix.eq.3 ) )THEN
           ! apply fix from Gallus and Klemp (2000, MWR, pg 1160)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,kmaxib
           do j=j1,j2
           do i=1,ni
@@ -2454,6 +2448,7 @@
           !-----------------------------------------------------------------------------------------------------------
         IF( do_ib .and. ( gk00fix.eq.2 .or. gk00fix.eq.3 ) )THEN
           ! apply fix from Gallus and Klemp (2000, MWR, pg 1160)
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=j1,j2
           do i=1,ni
@@ -2492,9 +2487,8 @@
           !-----------------------------------------------------------------------------------------------------------
 
       ! cm1ib: moved vten
-
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=j1,j2
         do i=1,ni
@@ -2508,8 +2502,8 @@
     ELSEIF( axisymm.eq.1 )THEN
       ! axisymmetric grid:
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do j=j1,j2
         do i=1,ni
           k=1
@@ -2523,8 +2517,8 @@
         enddo
         enddo
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=2,nk-1
         do j=j1,j2
         do i=1,ni
@@ -2545,9 +2539,7 @@
     IF( dolsw )THEN
       ! vertical advection from specified large-scale w profile:
 
-      !$acc data copy(dumz,subs)
       call     wsub(ni  ,nj+1,nk  ,v3d,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
-      !$acc end data
 
     ENDIF
 
@@ -2560,8 +2552,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=j1,j2
         do i=1,ni
@@ -2581,8 +2573,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=1,nk
         do i=1,ni
           vdiag(i,j,k,vd_hadv) = ( advx(i,j,k)                         &
@@ -2596,8 +2588,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=1,nk
         do j=j1,j2
         do i=1,ni
@@ -2617,8 +2609,8 @@
     ENDIF
     !--------
     IF( vd_lsw.ge.1 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj+1
       do i=1,ni
@@ -2631,8 +2623,8 @@
     IF( idiff.ge.1 .and. difforder.eq.6 )THEN
     IF( vd_hediff.ge.1 )THEN
       ! subtract-off diffusion from advection:
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       DO k=1,nk
       do j=1,nj+1
       do i=1,ni
@@ -2649,7 +2641,6 @@
       ! step1: get non-diffusive advective fluxes:
       ! buh31a !
     IF( axisymm.eq.0 )THEN
-      !$acc data copy(dumx,dumy)
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     hadv_flx4(  3 ,ni,nj+1,nk,c1,c2,rru,rrv,dumx,dumy,v3d)
       elseif( hadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -2662,7 +2653,6 @@
         print *,' 13961 '
         call stopcm1
       endif
-      !$acc end data
     ELSE
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -2676,9 +2666,8 @@
         print *,' 13981 '
         call stopcm1
       endif
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,1
       do i=0,ni+1
@@ -2695,8 +2684,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=j1,j2
         do i=1,ni
@@ -2717,8 +2706,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,k,tot,ndiff)
         do k=1,nk
         do i=1,ni
           tot = vdiag(i,j,k,vd_hadv)
@@ -2734,8 +2723,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=j1,j2
         do i=1,ni
@@ -2761,7 +2750,6 @@
       ! vert implicit diffusion tendency:
       ! step1: get non-diffusive advective fluxes:
       ! buh32a !
-      !$acc data copy(dumz)
       if(     vadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     vadv_flx4(  3 ,ni,nj+1,nk,c1,c2,rrw,dumz,v3d)
       elseif( vadvordrv.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -2774,9 +2762,8 @@
         print *,' 13962 '
         call stopcm1
       endif
-      !$acc end data
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
       do j=j1,j2
       do i=1,ni
         dumz(i,j,1) = 0.0
@@ -2788,8 +2775,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=j1,j2
         do i=1,ni
@@ -2807,8 +2794,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
         do k=1,nk
         do i=1,ni
           tot = vdiag(i,j,k,vd_vadv)
@@ -2824,8 +2811,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
         do k=1,nk
         do j=j1,j2
         do i=1,ni
@@ -2848,8 +2835,8 @@
 !----------------------------------------------------------------
 
     IF( dolsw )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj+1
       do i=1,ni
@@ -2919,8 +2906,12 @@
       real :: coef,tot,ndiff
       !$acc declare present(xh,rxh,arh1,arh2,uh,vh) &
       !$acc present(gz,rgz,mh,rho0,rr0,rf0,rrf0) &
-      !$acc present(rru,rrv,rrw) &
+      !$acc present(dumx,dumy,dumz,advx,advy,advz,subs) &
+      !$acc present(divx,rru,rrv,rrw) &
+      !$acc present(wten) &
       !$acc present(rdsf,c1,c2,rho) &
+      !$acc present(wdiag) &
+      !$acc present(uf,vf,mf) &
       !$acc present(u3d,v3d,w3d)
 
 !----------------------------------------------------------------
@@ -2951,10 +2942,10 @@
 
 !----------------------------------------------------------------
 
-    hadvsection:  IF(axisymm.eq.1)THEN
+    hadvsection:  IF (axisymm.eq.1) THEN
       call advwaxi(doweno,xh,rxh,arh1,arh2,uh,xf,vh,rho0,rr0,rf0,rrf0,dumx,advx,rru,w3d,c1,c2,hadvorder)
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -2967,7 +2958,6 @@
 !----------------------------------------------------------------
 ! Advection in horizontal directions
 
-    !$acc data copy(dumx,dumy)
     IF( doweno )THEN
       if(     weno_order.eq.3 )then
 
@@ -3038,7 +3028,6 @@
       endif
 
     ENDIF
-    !$acc end data
 
     IF( do_ib .and. hadvorder.ge.3 )THEN
       IF( doweno )THEN
@@ -3055,8 +3044,8 @@
 
       if(doitw)then
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(j,k,ubar,cc1,cc2)
+        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(i-1,j,k)+c2(i,j,k))
@@ -3071,8 +3060,8 @@
 
       if(doite)then
         i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(j,k,ubar,vbar,cc1,cc2)
+        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(i-1,j,k)+c2(i,j,k))
@@ -3087,8 +3076,8 @@
 
       if(doits)then
         j=1
-!$omp parallel do default(shared)   &
-!$omp private(i,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,j-1,k)+c2(i,j,k))
@@ -3103,8 +3092,8 @@
 
       if(doitn)then
         j=nj+1
-!$omp parallel do default(shared)   &
-!$omp private(i,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,j-1,k)+c2(i,j,k))
@@ -3120,8 +3109,9 @@
     !-------------------------------------------------------
     !  hadv tendencies:
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3137,8 +3127,8 @@
 
       IF(doitw)THEN
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(j,k,ubar,cc1,cc2)
+        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(0,j,k)+c2(1,j,k))
@@ -3155,8 +3145,8 @@
 
       IF(doite)THEN
         i=ni
-!$omp parallel do default(shared)   &
-!$omp private(j,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(j,k,ubar,cc1,cc2)
+        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(ni,j,k)+c2(ni+1,j,k))
@@ -3173,8 +3163,8 @@
 
       IF(doits)THEN
         j=1
-!$omp parallel do default(shared)   &
-!$omp private(i,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,0,k)+c2(i,1,k))
@@ -3191,8 +3181,8 @@
 
       IF(doitn)THEN
         j=nj
-!$omp parallel do default(shared)   &
-!$omp private(i,k,ubar,vbar,cc1,cc2)
+        !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,nj,k)+c2(i,nj+1,k))
@@ -3211,8 +3201,8 @@
     ! 6th-order diffusion-w:
     IF( idiff.ge.1 .and. difforder.eq.6 )THEN
       IF( dowbud .and. nrk.eq.nrkmax .and. wd_hediff.ge.1 )THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         DO k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3221,8 +3211,8 @@
         enddo
         ENDDO
       ENDIF
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,cc1,cc2)
+    !$omp parallel do default(shared) private(i,j,k,cc1,cc2)
+    !$acc parallel loop gang vector private(i,j,k,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       do i=1,ni+1
@@ -3276,8 +3266,8 @@
       enddo
     ENDDO
       IF( dowbud .and. nrk.eq.nrkmax .and. wd_hediff.ge.1 )THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         DO k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3296,7 +3286,6 @@
 ! Advection in z-direction
 
 
-    !$acc data copy(dumz)
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -3368,7 +3357,6 @@
       endif
 
     ENDIF
-    !$acc end data
 
     IF( do_ib .and. vadvorder.ge.3 )THEN
       IF( doweno )THEN
@@ -3384,8 +3372,8 @@
 
       IF(terrain_flag)THEN
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3398,8 +3386,8 @@
 
       ELSE
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3410,6 +3398,7 @@
 
         IF( do_ib .and. ( gk00fix.eq.1 .or. gk00fix.eq.3 ) )THEN
           ! apply fix from Gallus and Klemp (2000, MWR, pg 1160)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=2,kmaxib
           do j=1,nj
           do i=1,ni
@@ -3454,8 +3443,8 @@
 
       ! cm1ib: moved wten
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3476,8 +3465,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3497,8 +3486,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector private(i,k)
         do k=2,nk
         do i=1,ni
           wdiag(i,j,k,wd_hadv) = ( advx(i,j,k)                         &
@@ -3514,8 +3503,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3537,8 +3526,8 @@
     IF( idiff.ge.1 .and. difforder.eq.6 )THEN
     IF( wd_hediff.ge.1 )THEN
       ! subtract-off diffusion from advection:
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3555,7 +3544,6 @@
       ! step1: get non-diffusive advective fluxes:
       ! buh31 !
     IF( axisymm.eq.0 )THEN
-      !$acc data copy(dumx,dumy)
       if(     hadvorder.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     hadv_flx4(  4 ,ni,nj,nk+1,c1,c2,rru,rrv,dumx,dumy,w3d)
       elseif( hadvorder.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -3568,7 +3556,6 @@
         print *,' 13971 '
         call stopcm1
       endif
-      !$acc end data
     ELSE
       if(     hadvorder.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -3590,8 +3577,8 @@
     IF(.not.terrain_flag)THEN
       IF( axisymm.eq.0 )THEN
         ! Cartesian grid:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3612,8 +3599,8 @@
       ELSE
         ! axisymmetric grid:
         j=1
-        !$omp parallel do default(shared)   &
-        !$omp private(i,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,k,tot,ndiff)
         do k=2,nk
         do i=1,ni
           tot = wdiag(i,j,k,wd_hadv)
@@ -3628,8 +3615,8 @@
       ENDIF
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3655,7 +3642,6 @@
       ! vert implicit diffusion tendency:
       ! step1: get non-diffusive advective fluxes:
       ! buh32 !
-      !$acc data copy(dumz)
       if(     vadvorder.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         call     vadv_flx4(  4 ,ni,nj,nk+1,c1,c2,rrw,dumz,w3d)
       elseif( vadvorder.eq.5 .or. ( advwenov.ge.1 .and. weno_order.eq.5 ) )then
@@ -3668,13 +3654,12 @@
         print *,' 13972 '
         call stopcm1
       endif
-      !$acc end data
       ! step2: get non-diffusive and diffusive components of advection:
       ! buh42a !
     IF(.not.terrain_flag)THEN
         ! without terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3691,8 +3676,8 @@
         enddo
     ELSE
         ! Cartesian with terrain:
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,tot,ndiff)
+        !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
         do k=2,nk
         do j=1,nj
         do i=1,ni

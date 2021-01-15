@@ -920,9 +920,13 @@
 #endif
 !--------------------------------------------------------------------
 !  advection:
-
-          !$acc data copyin(xh,rxh,arh1,arh2,uh,vh,rdsf,c1,c2,rho,gz,rgz,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0) &
-          !$acc copyin(u3d,v3d,w3d)
+          !$acc data copyin(xh,rxh,arh1,arh2,uh,vh,rdsf,c1,c2,rho,gz,rgz,gzv,gzu,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0) &
+          !$acc copyin(uf,vf,mf) &
+          !$acc copyin(u3d,v3d,w3d,divx) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
+          !$acc copy(vten,uten,wten) &
+          !$acc copy(vdiag,udiag,wdiag)
+          if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
           call advu(nrk   ,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
                      rru,u3d,uten,rrv,rrw,rdsf,c1,c2,rho,dttmp,doubud,udiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,vf,mf,v3d,w3d)
           call advv(nrk   ,xh,rxh,arh1,arh2,uh,xf,vh,vf,gz,rgz,gzv,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
@@ -932,6 +936,7 @@
                       rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       dowbud ,wdiag,hadvordrv,vadvordrv,advwenov,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
           !$acc end data
+          if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
 
 !--------------------------------------------------------------------
 !  Buoyancy
@@ -1104,6 +1109,7 @@
         enddo
         weps = epsilon
         diffit = 0
+        print *,'advs #1'
         !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2) &
         !$acc copyin(rho,rr,gz,rgz,rru,rrv,rrw,ppi,sadv,mh,rmh,rho0,rr0,rf0,rrf0,divx) &
         !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
@@ -1427,6 +1433,7 @@
 
         weps = 10.0*epsilon
         diffit = 0
+        print *,'advs #2'
         if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
         !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2) &
         !$acc copyin(rho,rr,gz,rgz,rru,rrv,rrw,tha,sadv,mh,rmh,rho0,rr0,rf0,rrf0,divx)  &
@@ -1458,7 +1465,15 @@
 !  Moisture:
 
   IF(imoist.eq.1)THEN
-
+    !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2,rho,rr,gz,rgz,rru,rrv,rrw) &
+    !$acc copyin(mh,rmh,rho0,rr0,rf0,rrf0,divx) &
+    !$acc copyin(qa,qten) &
+    !$acc copy(q3d) &
+    !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
+    !$acc copy(flag,qdiag,dumk1,dumk2) &
+    !$acc create(sten)
+    if(timestats.ge.1) time_advs_H2D=time_advs_H2D+mytime()
+    
     DO n=1,numq
 
       ! t33 = dummy
@@ -1466,8 +1481,8 @@
       bflag=0
       if(stat_qsrc.eq.1 .and. nrk.eq.nrkmax) bflag=1
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k) 
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1489,6 +1504,7 @@
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                        ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                        ,reqs_q(1,n) )
+        !$acc update device(q3d(ib:ie,jb:je,kb:ke,n))
       endif
 #endif
 
@@ -1502,13 +1518,8 @@
 
       diffit = 0
       if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
+        print *,'advs #3'
 
-    !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2,rho,rr,gz,rgz,rru,rrv,rrw) &
-    !$acc copyin(qa(ib:ie,jb:je,kb:ke,n),q3d(ib:ie,jb:je,kb:ke,n)) &
-    !$acc copyin(mh,rmh,rho0,rr0,rf0,rrf0,divx) &
-    !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
-    !$acc copy(sten,flag,qdiag,dumk1,dumk2)
-    if(timestats.ge.1) time_advs_H2D=time_advs_H2D+mytime()
     IF( n.eq.nqv )THEN
       call advs(nrk,1,bflag,bsq(n),xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,     &
                  rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
@@ -1524,12 +1535,9 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
     ENDIF
-    !$acc end data
-    if(timestats.ge.1) time_advs_D2H=time_advs_D2H+mytime()
 
-
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1541,7 +1549,8 @@
       if(timestats.ge.1) time_integ=time_integ+mytime()
 
     ENDDO   ! enddo for n loop
-
+    !$acc end data
+    if(timestats.ge.1) time_advs_D2H=time_advs_D2H+mytime()
   ENDIF    ! endif for imoist=1
 
 !--------------------------------------------------------------------
@@ -1757,7 +1766,11 @@
         endif
 
           !$acc data copyin(xh,rxh,arh1,arh2,uh,vh,rdsf,c1,c2,rho,gz,rgz,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0) &
-          !$acc copyin(tke3d,u3d,v3d)
+          !$acc copyin(uf,vf,mf) &
+          !$acc copyin(tke3d,u3d,v3d,divx) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
+          !$acc copy(wten,wdiag)
+          if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
           call   advw(nrk   ,xh,rxh,arh1,arh2,uh,xf,vh,gz,rgz,mh,mf,rho0,rr0,rf0,rrf0,  &
                       dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx,                       &
                       rru,rrv,rrw,tke3d,wten,rds,rdsf,c1,c2,rho,dttmp,               &
@@ -1841,6 +1854,7 @@
         call comm_3s_end(  qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
 #endif
 
+        print *,'advs #4'
         !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2) &
         !$acc copyin(rho,rr,gz,rgz,rru,rrv,rrw,qke,qke3d,mh,rmh,rho0,rr0,rf0,rrf0,divx) &
         !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
@@ -1929,6 +1943,7 @@
 
       weps = 1.0*epsilon
       diffit = 0
+        print *,'advs #5'
       if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
       !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2,rho,rr,gz,rgz,rru,rrv,rrw) &
       !$acc copyin(pta(ib:ie,jb:je,kb:ke,n),pt3d(ib:ie,jb:je,kb:ke,n))  &

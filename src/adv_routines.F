@@ -9552,9 +9552,8 @@
     !$acc declare present(a,c1,c2,mh,rr0,rf0) &
     !$acc present(dumz,subs)
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,div)
-    !$acc parallel loop gang vector private(i,j,k,div)
+    !$omp parallel do default(shared)private(i,j,k)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k)
     DO j=1,jy
       !-----
       do k=2,(nk-1)
@@ -9577,14 +9576,22 @@
           endif
         endif
       enddo
-      !-----
+    ENDDO
+    !-----
+    !$omp parallel do default(shared)private(i,j)
+    !$acc parallel loop gang vector collapse(2) private(i,j)
+    DO j=1,jy
       !dir$ vector always
       do i=1,ix
         dumz(i,j,nk) = rf0(1,1,nk)*wprof(nk)*(c1(i,j,nk)*a(i,j,nk-1)+c2(i,j,nk)*a(i,j,nk))
         dumz(i,j,1) = 0.0
         dumz(i,j,nk+1) = 0.0
       enddo
-      !-----
+    ENDDO
+    !-----
+    !$omp parallel do default(shared)private(i,j,k,div)
+    !$acc parallel loop gang vector collapse(2) private(i,j,k,div)
+    DO j=1,jy
       do k=1,nk
         div = (rf0(1,1,k+1)*wprof(k+1)-rf0(1,1,k)*wprof(k))*rdz*mh(1,1,k)
         !dir$ vector always

@@ -3569,6 +3569,10 @@
       time_sound=0.0
       time_poiss=0.0
       time_advs=0.0
+      time_advs_H2D=0.0
+      time_advs_D2H=0.0
+      time_adv_H2D=0.0
+      time_adv_D2H=0.0
       time_advu=0.0
       time_advv=0.0
       time_advw=0.0
