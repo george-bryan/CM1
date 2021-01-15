@@ -354,6 +354,11 @@
 
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
+      !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,uf,vf,mf,rdsf) &
+      !$acc copyin(mh,rmh,c1,c2,gz,rgz,gzv,gzu) &
+      !$acc copyin(rho0,rr0,rf0,rrf0) &
+      !$acc copy(qdiag) 
+      if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
 
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !CC   Begin RK section   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -920,8 +925,7 @@
 #endif
 !--------------------------------------------------------------------
 !  advection:
-          !$acc data copyin(xh,rxh,arh1,arh2,uh,vh,rdsf,c1,c2,rho,gz,rgz,gzv,gzu,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0) &
-          !$acc copyin(uf,vf,mf) &
+          !$acc data copyin(rho,rru,rrv,rrw) &
           !$acc copyin(u3d,v3d,w3d,divx) &
           !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
           !$acc copy(vten,uten,wten) &
@@ -1110,11 +1114,10 @@
         weps = epsilon
         diffit = 0
         print *,'advs #1'
-        !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2) &
-        !$acc copyin(rho,rr,gz,rgz,rru,rrv,rrw,ppi,sadv,mh,rmh,rho0,rr0,rf0,rrf0,divx) &
+        !$acc data copyin(rho,rr,rru,rrv,rrw,ppi,sadv,divx) &
         !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
         !$acc copy(sten,flag,tdiag,dumk1,dumk2) 
-        if(timestats.ge.1) time_advs_H2D=time_advs_H2D+mytime()
+        if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
         call advs(nrk,0,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,           &
                    rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                    rru,rrv,rrw,ppi,sadv,sten ,0,0,dttmp,weps,                             &
@@ -1122,7 +1125,7 @@
                    .false.,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,1,1,1,              &
                    1,1,1,wprof,dumk1,dumk2,2,2,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
         !$acc end data
-        if(timestats.ge.1) time_advs_D2H=time_advs_D2H+mytime()
+        if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
       endif
 
       ENDIF
@@ -1138,7 +1141,7 @@
 
 
         IF(psolver.eq.1)THEN
-
+          print *,'before call to soundns'
           call   soundns(xh,rxh,arh1,arh2,uh,xf,uf,yh,vh,yf,vf,           &
                          zh,mh,c1,c2,mf,zf,pi0,thv0,rr0,rf0,              &
                          rds,sigma,rdsf,sigmaf,                           &
@@ -1154,6 +1157,7 @@
 
         ELSEIF(psolver.eq.2)THEN
 
+          print *,'before call to sounde'
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1173,6 +1177,7 @@
 
         ELSEIF(psolver.eq.3)THEN
 
+          print *,'before call to sound'
           get_time_avg = .true.
           call   sound( dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1193,6 +1198,7 @@
         ELSEIF(psolver.eq.4.or.psolver.eq.5)THEN
           ! anelastic/incompressible solver:
 
+          print *,'before call to anelp'
           call   anelp(xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,             &
                        zh,mh,rmh,mf,rmf,zf,pi0,thv0,rho0,prs0,rf0,  &
                        rds,sigma,rdsf,sigmaf,                       &
@@ -1208,6 +1214,7 @@
 
         ELSEIF(psolver.eq.6)THEN
 
+          print *,'before call to soundcb'
           get_time_avg = .true.
           call   soundcb(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,    &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1435,11 +1442,10 @@
         diffit = 0
         print *,'advs #2'
         if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
-        !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2) &
-        !$acc copyin(rho,rr,gz,rgz,rru,rrv,rrw,tha,sadv,mh,rmh,rho0,rr0,rf0,rrf0,divx)  &
+        !$acc data copyin(rho,rr,rru,rrv,rrw,tha,sadv,divx)  &
         !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
         !$acc copy(thten,flag,tdiag,dumk1,dumk2)
-        if(timestats.ge.1) time_advs_H2D=time_advs_H2D+mytime()
+        if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
         call advs(nrk,1,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,           &
                    rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                    rru,rrv,rrw,tha,sadv,thten,0,0,dttmp,weps,                             &
@@ -1447,7 +1453,7 @@
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hadv,td_vadv,td_lsw, &
                    td_hidiff,td_vidiff,td_hediff,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
         !$acc end data
-        if(timestats.ge.1) time_advs_D2H=time_advs_D2H+mytime()
+        if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
       do k=1,nk
@@ -1465,14 +1471,12 @@
 !  Moisture:
 
   IF(imoist.eq.1)THEN
-    !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2,rho,rr,gz,rgz,rru,rrv,rrw) &
-    !$acc copyin(mh,rmh,rho0,rr0,rf0,rrf0,divx) &
+    !$acc data copyin(rho,rr,rru,rrv,rrw) &
+    !$acc copyin(divx) &
     !$acc copyin(qa,qten) &
-    !$acc copy(q3d) &
-    !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
-    !$acc copy(flag,qdiag,dumk1,dumk2) &
-    !$acc create(sten)
-    if(timestats.ge.1) time_advs_H2D=time_advs_H2D+mytime()
+    !$acc create(sten,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
+    !$acc copy(q3d,flag,dumk1,dumk2)
+    if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
     
     DO n=1,numq
 
@@ -1550,7 +1554,7 @@
 
     ENDDO   ! enddo for n loop
     !$acc end data
-    if(timestats.ge.1) time_advs_D2H=time_advs_D2H+mytime()
+    if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
   ENDIF    ! endif for imoist=1
 
 !--------------------------------------------------------------------
@@ -1765,8 +1769,7 @@
         endif
         endif
 
-          !$acc data copyin(xh,rxh,arh1,arh2,uh,vh,rdsf,c1,c2,rho,gz,rgz,rru,rrv,rrw,mh,rho0,rr0,rf0,rrf0) &
-          !$acc copyin(uf,vf,mf) &
+          !$acc data copyin(rho,rru,rrv,rrw) &
           !$acc copyin(tke3d,u3d,v3d,divx) &
           !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
           !$acc copy(wten,wdiag)
@@ -1855,11 +1858,10 @@
 #endif
 
         print *,'advs #4'
-        !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2) &
-        !$acc copyin(rho,rr,gz,rgz,rru,rrv,rrw,qke,qke3d,mh,rmh,rho0,rr0,rf0,rrf0,divx) &
+        !$acc data copyin(rho,rr,rru,rrv,rrw,qke,qke3d,divx) &
         !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
-        !$acc copy(qke_adv,flag,qdiag,dumk1,dumk2)
-        if(timestats.ge.1) time_advs_H2D=time_advs_H2D+mytime()
+        !$acc copy(qke_adv,flag,dumk1,dumk2)
+        if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
         weps = 10.0*epsilon
         diffit = 0
         if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
@@ -1870,7 +1872,7 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
         !$acc end data
-        if(timestats.ge.1) time_advs_D2H=time_advs_D2H+mytime()
+        if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
@@ -1945,12 +1947,12 @@
       diffit = 0
         print *,'advs #5'
       if( idiff.eq.1 .and. difforder.eq.6 ) diffit = 1
-      !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,rdsf,c1,c2,rho,rr,gz,rgz,rru,rrv,rrw) &
+      !$acc data copyin(rho,rr,rru,rrv,rrw) &
       !$acc copyin(pta(ib:ie,jb:je,kb:ke,n),pt3d(ib:ie,jb:je,kb:ke,n))  &
-      !$acc copyin(mh,rmh,rho0,rr0,rf0,rrf0,divx) &
+      !$acc copyin(divx) &
       !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
-      !$acc copy(sten,flag,qdiag,dumk1,dumk2)
-      if(timestats.ge.1) time_advs_H2D=time_advs_H2D+mytime()
+      !$acc copy(sten,flag,dumk1,dumk2)
+      if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
       call advs(nrk,1,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,       &
                  rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                  rru,rrv,rrw,pta(ib,jb,kb,n),pt3d(ib,jb,kb,n),sten,pdef,1,dttmp,weps,   &
@@ -1958,7 +1960,7 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
       !$acc end data
-      if(timestats.ge.1) time_advs_D2H=time_advs_D2H+mytime()
+      if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
@@ -2103,6 +2105,8 @@
     ! cm1r20.1:  - moved microphysics to mp_driver (which is called from cm1.F)
     !            - moved message passing and equate to solve_finish.F
 
+    !$acc end data
+    if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
 
       end subroutine solve2
 

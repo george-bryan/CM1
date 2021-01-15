@@ -4014,10 +4014,8 @@
     IF(dowr)THEN
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
-      write(outfile,100) 'advs-H2D',time_advs_H2D,time_advs_H2D/time_solve
-      write(outfile,100) 'advs    ',time_advs,time_advs/time_solve
-      write(outfile,100) 'advs-D2H',time_advs_D2H,time_advs_D2H/time_solve
       write(outfile,100) 'adv-H2D',time_adv_H2D,time_adv_H2D/time_solve
+      write(outfile,100) 'advs    ',time_advs,time_advs/time_solve
       write(outfile,100) 'advu    ',time_advu,time_advu/time_solve
       write(outfile,100) 'advv    ',time_advv,time_advv/time_solve
       write(outfile,100) 'advw    ',time_advw,time_advw/time_solve
