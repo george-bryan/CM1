@@ -268,8 +268,10 @@
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: v3d
 
       integer :: i,j,k
+      !$acc declare present(bndy,kbdy,u3d,v3d) 
 
           ! set u to zero on east/west faces of immersed gridpoints:
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=0,nj+1
           do i=0,ni+1
@@ -284,6 +286,7 @@
           enddo
 
           ! set u to zero on east/west faces of immersed gridpoints:
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=1,nj
           do i=1,ni+1
@@ -293,6 +296,7 @@
           enddo
 
           ! set v to zero on south/north faces of immersed gridpoints:
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=1,nj+1
           do i=1,ni
@@ -315,8 +319,10 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: w3d
 
       integer :: i,j,k
+      !$acc declare present(bndy,kbdy,w3d) 
 
         ! set gridpoints in/on immersed gridpoints to zero:
+        !$acc parallel loop gang vector private(i,j,k)
         do j=1,nj
         do i=1,ni
           do k = 1,kbdy(i,j)
@@ -796,7 +802,7 @@
     logical :: doit
     !$acc declare present(c1,c2) &
     !$acc present(rru,rrv) &
-    !$acc present(dumx,dumy)
+    !$acc present(dumx,dumy,a)
 
 
     doit = .true.
@@ -1569,7 +1575,7 @@
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
     !$acc declare present(c1,c2) &
-    !$acc present(rrw,dumz)
+    !$acc present(rrw,dumz,a,kbdy)
 
   IF( stag.eq.1 )THEN
 
@@ -1748,7 +1754,7 @@
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
     !$acc declare present(c1,c2) &
-    !$acc present(rrw,dumz,a)
+    !$acc present(rrw,dumz,a,kbdy)
 
   IF( stag.eq.1 )THEN
    

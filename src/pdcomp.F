@@ -314,12 +314,12 @@
         enddo
         enddo
 
-        !$acc data copyin(xh,rxh,arh1,arh2,uh,vh,gz,rgz,gzv,gzu,mh,rho0,rr0,rf0,rrf0,rru,rrv,rrw,rdsf,c1,c2,rho) &
+        !$acc data copyin(xh,rxh,arh1,arh2,uh,vh,gz,rgz,gzv,gzu,mh,rho0,rr0,rf0,rrf0,rru,rrv,rrw,rds,rdsf,c1,c2,rho) &
         !$acc copyin(uf,vf,mf) &
         !$acc copyin(uten1,vten1,w3d,divx) &
         !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
         !$acc copy(vten,uten,wten) &
-        !$acc copy(vdiag,udiag,wdiag) 
+        !$acc copy(vdiag,udiag,wdiag,wprof) 
         if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
         call advu(nrkmax,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
                    rru,uten1,uten,rrv,rrw,rdsf,c1,c2,rho, dt  ,.false.,udiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,vf,mf,vten1,w3d)

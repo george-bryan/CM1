@@ -372,10 +372,11 @@
 
       integer :: i,j,k
       real :: term1,term2,term3,term4,umo
+      !$acc declare present(xf,yh,zh,u0,u3d)
 
 !!!      if(myid.eq.0) print *,'    convinitu '
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,term1,term2,term3,term4,umo)
+      !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,umo)
+      !$acc parallel loop gang vector private(i,j,k,term1,term2,term3,term4,umo)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -413,10 +414,11 @@
 
       integer :: i,j,k
       real :: term1,term2,term3,term4,vmo
+      !$acc declare present(xh,yf,zh,v0,v3d)
 
 !!!      if(myid.eq.0) print *,'    convinitv '
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,term1,term2,term3,term4,vmo)
+      !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,vmo)
+      !$acc parallel loop gang vector private(i,j,k,term1,term2,term3,term4,vmo)
       do k=1,nk
       do j=1,nj+1
       do i=1,ni
@@ -455,6 +457,7 @@
 
       integer :: i,j,k
       real :: beta,wmag,gamm,tem
+      !$acc declare present(xh,yh,zf,wa,wndgten)
 
       !  updraft nudging scheme (Naylor and Gilmore, 2012, MWR, pgs 3699-3705)
 
@@ -468,8 +471,8 @@
 
       tem = alpha_wnudge * gamm
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,beta,wmag)
+      !$omp parallel do default(shared) private(i,j,k,beta,wmag)
+      !$acc parallel loop gang vector private(i,j,k,beta,wmag)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3569,8 +3572,8 @@
       time_sound=0.0
       time_poiss=0.0
       time_advs=0.0
-      time_advs_H2D=0.0
-      time_advs_D2H=0.0
+      time_sound_H2D=0.0
+      time_sound_D2H=0.0
       time_adv_H2D=0.0
       time_adv_D2H=0.0
       time_advu=0.0

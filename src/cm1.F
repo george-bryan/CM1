@@ -3714,7 +3714,7 @@
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
-                    time_advs_H2D+time_advs_D2H+time_adv_H2D + time_adv_D2H
+                    time_sound_H2D+time_sound_D2H+time_adv_H2D + time_adv_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -3821,11 +3821,11 @@
         call MPI_REDUCE(time_advs    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_advs = sum/float(numprocs)
         sum = 0.0
-        call MPI_REDUCE(time_advs_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_advs_H2D = sum/float(numprocs)
+        call MPI_REDUCE(time_sound_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_sound_H2D = sum/float(numprocs)
         sum = 0.0
-        call MPI_REDUCE(time_advs_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_advs_D2H = sum/float(numprocs)
+        call MPI_REDUCE(time_sound_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_sound_D2H = sum/float(numprocs)
         sum = 0.0
         call MPI_REDUCE(time_adv_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_adv_H2D = sum/float(numprocs)
@@ -4012,14 +4012,16 @@
       if(time_solve.lt.0.0001) time_solve=1.
 
     IF(dowr)THEN
+      write(outfile,100) ' snd-H2D',time_sound_H2D,time_sound_H2D/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
+      write(outfile,100) ' snd-D2H',time_sound_D2H,time_sound_D2H/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
-      write(outfile,100) 'adv-H2D',time_adv_H2D,time_adv_H2D/time_solve
+      write(outfile,100) ' adv-H2D',time_adv_H2D,time_adv_H2D/time_solve
       write(outfile,100) 'advs    ',time_advs,time_advs/time_solve
       write(outfile,100) 'advu    ',time_advu,time_advu/time_solve
       write(outfile,100) 'advv    ',time_advv,time_advv/time_solve
       write(outfile,100) 'advw    ',time_advw,time_advw/time_solve
-      write(outfile,100) 'adv-D2H',time_adv_D2H,time_adv_D2H/time_solve
+      write(outfile,100) ' adv-D2H',time_adv_D2H,time_adv_D2H/time_solve
       write(outfile,100) 'divx    ',time_divx,time_divx/time_solve
       write(outfile,100) 'buoyan  ',time_buoyan,time_buoyan/time_solve
       write(outfile,100) 'turb    ',time_turb,time_turb/time_solve

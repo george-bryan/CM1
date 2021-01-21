@@ -188,8 +188,7 @@
 !-----------------------------------------------------------------------
 !  west boundary condition
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+    !$omp parallel do default(shared) private(i,j,k)
     DO k=1,nk
 
 #ifndef MPI
@@ -219,9 +218,13 @@
         enddo
         enddo
       endif
+    ENDDO
 
 !-----------------------------------------------------------------------
 !  east boundary condition
+
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
 
 #ifndef MPI
       if(ebc.eq.1)then
@@ -251,8 +254,13 @@
         enddo
       endif
 
+    ENDDO
+
 !-----------------------------------------------------------------------
 !  south boundary condition
+
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
 
 #ifndef MPI
       if(sbc.eq.1)then
@@ -281,9 +289,13 @@
         enddo
         enddo
       endif
+    ENDDO
 
 !-----------------------------------------------------------------------
 !  north boundary condition
+
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
 
 #ifndef MPI
       if(nbc.eq.1)then
@@ -320,6 +332,198 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcs
+
+      subroutine bcs_GPU(s)
+      use input
+      implicit none
+
+      real, dimension(ib:ie,jb:je,kb:ke) :: s
+
+      integer i,j,k
+      !$acc declare present(s)
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+
+#ifndef MPI
+      if(wbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          s(1-i,j,k)=s(ni+1-i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(wbc.eq.2)then
+#else
+      if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1-ngxy,0
+          s(i,j,k)=s(1,j,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+      elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          s(1-i,j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+
+#ifndef MPI
+      if(ebc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          s(ni+i,j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(ebc.eq.2)then
+#else
+      if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=ni+1,ni+ngxy
+          s(i,j,k)=s(ni,j,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+      elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          s(ni+i,j,k)=s(ni+1-i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+
+#ifndef MPI
+      if(sbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,1-j,k)=s(i,nj+1-j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(sbc.eq.2)then
+#else
+      if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=1-ngxy,0
+        do i=0,ni+1
+          s(i,j,k)=s(i,1,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+      elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          s(i,1-j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+
+#ifndef MPI
+      if(nbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,nj+j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(nbc.eq.2)then
+#else
+      if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=nj+1,nj+ngxy
+        do i=0,ni+1
+          s(i,j,k)=s(i,nj,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+      elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          s(i,nj+j,k)=s(i,nj+1-j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcs_GPU
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -825,13 +1029,14 @@
       real, intent(in), dimension(ib:ie+1,jb:je,kb:ke) :: u
       real, intent(in), dimension(ib:ie,jb:je+1,kb:ke) :: v
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: w
+      !$acc declare present(gz,dzdx,dzdy,u,v,w)
 
       integer :: i,j
 
 !-----------------------------------------------------------------------
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector private(i,j)
       do j=0,nj+1
       do i=0,ni+1
         w(i,j,1) = 0.5*( ( u(i,j,1)+u(i+1,j,1) )*dzdx(i,j) &
@@ -1618,15 +1823,16 @@
       use constants
       implicit none
 
-      real, dimension(jb:je,kb:ke) :: radbcw,radbce
-      real, dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(jb:je,kb:ke) :: radbcw,radbce
+      real, intent(in), dimension(ib:ie+1,jb:je,kb:ke) :: ua
  
       integer j,k
       real cbcw,cbce
+      !$acc declare present(radbcw,radbce,ua)
  
       if(ibw.eq.1.and.wbc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(j,k,cbcw)
+        !$omp parallel do default(shared) private(j,k,cbcw)
+        !$acc parallel loop gang vector private(j,k,cbcw)
         do k=1,nk
         do j=1,nj
           cbcw=ua(1,j,k)-cstar
@@ -1640,8 +1846,8 @@
       endif
  
       if(ibe.eq.1.and.ebc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(j,k,cbce)
+        !$omp parallel do default(shared) private(j,k,cbce)
+        !$acc parallel loop gang vector private(j,k,cbce)
         do k=1,nk
         do j=1,nj
           cbce=ua(ni+1,j,k)+cstar
@@ -1671,15 +1877,16 @@
       use constants
       implicit none
 
-      real, dimension(ib:ie,kb:ke) :: radbcs,radbcn
-      real, dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,kb:ke) :: radbcs,radbcn
+      real, intent(in), dimension(ib:ie,jb:je+1,kb:ke) :: va
  
       integer i,k
       real cbcs,cbcn
+      !$acc declare present(radbcs,radbcn,va)
 
       if(ibs.eq.1.and.sbc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(i,k,cbcs)
+        !$omp parallel do default(shared) private(i,k,cbcs)
+        !$acc parallel loop gang vector private(i,k,cbcs)
         do k=1,nk
         do i=1,ni
           cbcs=va(i,1,k)-cstar
@@ -1693,8 +1900,8 @@
       endif
  
       if(ibn.eq.1.and.nbc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(i,k,cbcn)
+        !$omp parallel do default(shared) private(i,k,cbcn)
+        !$acc parallel loop gang vector private(i,k,cbcn)
         do k=1,nk
         do i=1,ni
           cbcn=va(i,nj+1,k)+cstar
@@ -1859,10 +2066,13 @@
 
       integer i,j,k
       double precision :: fluxout,fluxin,tem,u1,t3
+      double precision :: temp1,temp2
       double precision, dimension(nk) :: temout,temin
+      !$acc declare present(rvh,rmh,rho0,u3d)
 
-!$omp parallel do default(shared)   &
-!$omp private(k)
+      !$acc data create(temout,temin)
+      !$omp parallel do default(shared) private(k)
+      !$acc parallel loop gang vector private(k)
       do k=1,nk
         temout(k) = 0.0d0
         temin(k)  = 0.0d0
@@ -1870,31 +2080,51 @@
 
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !$omp parallel do default(shared) private(j,k,temp1,temp2)
+        !$acc parallel loop gang vector private(j,k,temp1,temp2)
         do k=1,nk
-        do j=1,nj
-          temout(k)=temout(k)-min(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
-          temin(k) =temin(k) +max(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
-        enddo
+          temp1 = temout(k)
+          temp2 = temin(k)
+          !$acc loop reduction(+:temp1,temp2)
+          do j=1,nj
+            temp1 = temp1 - min(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
+            temp2 = temp2 + max(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
+          enddo
+          temout(k) = temp1
+          temin(k)  = temp2
         enddo
       endif
 
       if(ebc.eq.2.and.ibe.eq.1)then
         i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !!$omp parallel do default(shared) private(j,k)
+        !do k=1,nk
+        !do j=1,nj
+        !  temout(k)=temout(k)+max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+        !  temin(k) =temin(k) -min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+        !enddo
+        !enddo
+
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k,temp1,temp2)
         do k=1,nk
-        do j=1,nj
-          temout(k)=temout(k)+max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
-          temin(k) =temin(k) -min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+          temp1 = temout(k)
+          temp2 = temin(k)
+          !$acc loop reduction(+:temp1,temp2)
+          do j=1,nj
+            temp1 = temp1 + max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+            temp2 = temp2 - min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+          enddo
+          temout(k) = temp1
+          temin(k)  = temp2
         enddo
-        enddo
+
       endif
 
       fluxout = 0.0d0
       fluxin  = 0.0d0
 
+      !$acc parallel loop reduction(+:fluxout,fluxin)
       do k=1,nk
         fluxout = fluxout + temout(k)
         fluxin  = fluxin  + temin(k)
@@ -1915,8 +2145,8 @@
 
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k,u1)
+        !$omp parallel do default(shared) private(j,k,u1)
+        !$acc parallel loop gang vector private(j,k,u1)
         do k=1,nk
         do j=1,nj
           u1=rho0(1,j,k)*u3d(i,j,k)
@@ -1929,8 +2159,8 @@
 
       if(ebc.eq.2.and.ibe.eq.1)then
         i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k,u1)
+        !$omp parallel do default(shared) private(j,k,u1)
+        !$acc parallel loop gang vector private(j,k,u1)
         do k=1,nk
         do j=1,nj
           u1=rho0(ni,j,k)*u3d(i,j,k)
@@ -1940,6 +2170,7 @@
         enddo
         enddo
       endif
+      !$acc end data
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
@@ -2074,11 +2305,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(uh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzu,gx,radbcw) &
+      !$acc present(dum1,u3d,uten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+            !$omp parallel do default(shared) private(j,k)
+            !$acc parallel loop gang vector private(j,k)
             do k=1,nk
             do j=1,nj
               u3d(1,j,k)=u3d(1,j,k)+dts*( -radbcw(j,k)       &
@@ -2089,8 +2323,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores u at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=1,nj
               ! lowest model level:
               do i=1,2
@@ -2109,8 +2343,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector private(i,j,k)
             do k=1,nk
             do j=1,nj
               u3d(1,j,k)=u3d(1,j,k)+dts*( -radbcw(j,k)*(                            &
@@ -2149,11 +2383,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(uh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzu,gx,radbce) &
+      !$acc present(dum1,u3d,uten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+            !$omp parallel do default(shared) private(j,k)
+            !$acc parallel loop gang vector private(j,k)
             do k=1,nk
             do j=1,nj
               u3d(ni+1,j,k)=u3d(ni+1,j,k)+dts*( -radbce(j,k)           &
@@ -2164,8 +2401,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores u at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=1,nj
               ! lowest model level:
               do i=ni,ni+1
@@ -2184,8 +2421,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector private(i,j,k)
             do k=1,nk
             do j=1,nj
               u3d(ni+1,j,k)=u3d(ni+1,j,k)+dts*( -radbce(j,k)*(                                &
@@ -2224,11 +2461,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(vh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzv,gy,radbcs) &
+      !$acc present(dum1,v3d,vten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+            !$omp parallel do default(shared) private(i,k)
+            !$acc parallel loop gang vector private(i,k)
             do k=1,nk
             do i=1,ni
               v3d(i,1,k)=v3d(i,1,k)+dts*( -radbcs(i,k)      &
@@ -2239,8 +2479,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores v at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=1,2
               ! lowest model level:
               do i=1,ni
@@ -2259,8 +2499,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector private(i,j,k)
             do k=1,nk
             do i=1,ni
               v3d(i,1,k)=v3d(i,1,k)+dts*( -radbcs(i,k)*(                            &
@@ -2299,11 +2539,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(vh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzv,gy,radbcn) &
+      !$acc present(dum1,v3d,vten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+            !$omp parallel do default(shared) private(i,k)
+            !$acc parallel loop gang vector private(i,k)
             do k=1,nk
             do i=1,ni
               v3d(i,nj+1,k)=v3d(i,nj+1,k)+dts*( -radbcn(i,k)        &
@@ -2314,8 +2557,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores v at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=nj,nj+1
               ! lowest model level:
               do i=1,ni
@@ -2334,8 +2577,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector private(i,j,k)
             do k=1,nk
             do i=1,ni
               v3d(i,nj+1,k)=v3d(i,nj+1,k)+dts*( -radbcn(i,k)*(                                &

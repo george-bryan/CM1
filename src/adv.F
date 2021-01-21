@@ -74,7 +74,7 @@
       !$acc present(advx,advy,advz,dumx,dumy,dumz,mass,subs) &
       !$acc present(flag,rdsf,c1,c2) &
       !$acc present(divx,rru,rrv,rrw) &
-      !$acc present(s0,s,sten,rho,ri,diag,dumk1,dumk2)
+      !$acc present(s0,s,sten,rho,ri,diag,wprof,dumk1,dumk2)
 
       !$acc data copyin(dt,sd_hadv,sd_vadv,sd_hidiff) 
 !----------------------------------------------------------------
@@ -1014,11 +1014,11 @@
       logical :: doweno
       double precision :: weps
       real :: coef,tot,ndiff
-      !$acc declare present(arh1,arh2,uh,vh) &
+      !$acc declare present(arh1,arh2,uh,vh,arf1,arf2) &
       !$acc present(gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0) &
       !$acc present(dumx,dumy,dumz,advx,advy,advz,subs) &
       !$acc present(divx,rru,rrv,rrw) &
-      !$acc present(uten,udiag) &
+      !$acc present(uten,udiag,wprof) &
       !$acc present(rdsf,c1,c2,rho) &
       !$acc present(uf,vf,mf) &
       !$acc present(u3d,v3d,w3d)
@@ -1963,7 +1963,7 @@
       !$acc present(gz,rgz,gzv,mh,rho0,rr0,rf0,rrf0) &
       !$acc present(dumx,dumy,dumz,advx,advy,advz,subs) &
       !$acc present(divx,rru,rrv,rrw) &
-      !$acc present(vten,vdiag) &
+      !$acc present(vten,vdiag,wprof) &
       !$acc present(rdsf,c1,c2,rho) &
       !$acc present(uf,vf,mf) &
       !$acc present(u3d,v3d,w3d)

@@ -2473,7 +2473,7 @@
       !dumz=0.0
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-      !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
       do k=3,nk-1
       do j=1,nj
       !dir$ vector always
@@ -2515,7 +2515,7 @@
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=4,nk-2
       do j=1,nj
       !dir$ vector always
@@ -2556,7 +2556,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=4,nk-2
@@ -2594,7 +2594,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k,wbar)
     DO j=j1,j2
 
       do k=4,nk-2
@@ -2619,7 +2619,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k,wbar)
     DO j=1,nj
 
       do k=3,nk-2
@@ -6681,7 +6681,7 @@
       real :: wbar
 
       integer, parameter :: j = 1
-      !$acc declare present(c1,c2) &
+      !$acc declare present(arf1,arf2,c1,c2) &
       !$acc present(rrw,a,dumz)
 
 !----------------------------------------------------------------
@@ -7185,7 +7185,7 @@
       !$acc present(rmh,rho0,rr0,rf0,rrf0) &
       !$acc present(gz,rgz) &
       !$acc present(advx,dum,mass) &
-      !$acc present(rru,s0,s,flag)
+      !$acc present(rru,s0,s,flag,budx)
 
 !!!      budx(k) = 0.0d0
 
@@ -7673,10 +7673,10 @@
 
       IF(pdscheme.eq.1 .and. pdef.eq.1)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
-        !$acc data copyin(dt) copy(advx,dum,mass,flag)
+        !!$acc data copyin(dt) copy(advx,dum,mass,flag)
         call pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
         call pdefx2(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
-        !$acc end data
+        !!$acc end data
       ENDIF
 
 !----------------------------------------------------------------
@@ -9549,7 +9549,7 @@
 
     integer :: i,j,k
     real :: div
-    !$acc declare present(a,c1,c2,mh,rr0,rf0) &
+    !$acc declare present(a,wprof,c1,c2,mh,rr0,rf0) &
     !$acc present(dumz,subs)
 
     !$omp parallel do default(shared)private(i,j,k)

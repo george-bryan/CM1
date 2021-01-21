@@ -354,9 +354,14 @@
 
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
-      !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,vh,rvh,uf,vf,mf,rdsf) &
-      !$acc copyin(mh,rmh,c1,c2,gz,rgz,gzv,gzu) &
-      !$acc copyin(rho0,rr0,rf0,rrf0) &
+      !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh,arf1,arf2) &
+      !$acc copyin(xf,yh,vh,rvh,uf,vf,mf) &
+      !$acc copyin(u0,v0) &
+      !$acc copyin(rds,sigma,rdsf,sigmaf) &
+      !$acc copyin(mh,rmh,zh,c1,c2,wprof) &
+      !$acc copyin(gz,rgz,gzv,gzu,rgzu,rgzv) &
+      !$acc copyin(gxu,gyv,dzdx,dzdy) &
+      !$acc copyin(pi0,rho0,rr0,rf0,rrf0) &
       !$acc copy(qdiag) 
       if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
 
@@ -391,6 +396,8 @@
         IF( imoist.eq.1 )THEN
           ! moist:
 
+          !$acc data copyin(q3d) copy(dum2,dum3)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -400,6 +407,7 @@
           enddo
 
           do n=nql1+1,nql2
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -411,6 +419,7 @@
 
           IF(iice.eq.1)THEN
 
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -420,6 +429,7 @@
             enddo
 
             do n=nqs1+1,nqs2
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -431,6 +441,7 @@
 
           ELSE
 
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -440,9 +451,13 @@
             enddo
 
           ENDIF
+          !$acc end data
 
+          !$acc data copyin(q3d,dum2,dum3,th3d,rth0,qv0,qi0,qc0,th0,pi0,pp3d) &
+          !$acc copy(thterm,dum8,t11,t22)
           IF(eqtset.eq.2)THEN
 
+            !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli,cpli,cpm,cvm)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -463,6 +478,7 @@
 
           ELSEIF(eqtset.eq.1)THEN
 
+            !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -476,10 +492,12 @@
             enddo
 
           ENDIF
+          !$acc end data
 
         ELSE
+          !$acc data copyin(th3d,rth0,th0,pp3d,pi0) copy(dum8,t11,t22)
           ! dry:
-
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -489,7 +507,7 @@
           enddo
           enddo
           enddo
-
+          !$acc end data
         ENDIF
         if(timestats.ge.1) time_buoyan=time_buoyan+mytime()
 
@@ -502,8 +520,9 @@
 !--------------------------------------------------------------------
 !  Set RK tendency arrays:
 
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$acc data copyin(uten1,vten1,wten1) copy(uten,vten,wten)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -513,6 +532,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
 !--------------------------------------------------------------------
@@ -524,6 +544,7 @@
                                vs31,vs32,vn31,vn32,reqs_v)
           call comm_3w_end(w3d,ww31,ww32,we31,we32,   &
                                ws31,ws32,wn31,wn32,reqs_w)
+          !$acc update device(u3d,v3d,w3d)
 #endif
           if(terrain_flag)then
             call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
@@ -537,46 +558,64 @@
     IF(.not.terrain_flag)THEN
       ! without terrain:
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+      !$acc data copyin(u3d,v3d,w3d,rho0,rf0) copy(rru,rrv,rrw,rrw)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       DO k=1,nk
         do j=0,nj+1
         do i=0,ni+2
           rru(i,j,k)=rho0(1,1,k)*u3d(i,j,k)
         enddo
         enddo
+      ENDDO
+
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
         do j=0,nj+2
         do i=0,ni+1
           rrv(i,j,k)=rho0(1,1,k)*v3d(i,j,k)
         enddo
         enddo
-        IF(k.eq.1)THEN
-          do j=0,nj+1
-          do i=0,ni+1
-            rrw(i,j,   1) = 0.0
-            rrw(i,j,nk+1) = 0.0
-          enddo
-          enddo
-        ELSE
-          do j=0,nj+1
-          do i=0,ni+1
-            rrw(i,j,k)=rf0(1,1,k)*w3d(i,j,k)
-          enddo
-          enddo
-        ENDIF
       ENDDO
 
-    ELSE
-      ! with terrain:
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
+      do j=0,nj+1
+      do i=0,ni+1
+        rrw(i,j,   1) = 0.0
+        rrw(i,j,nk+1) = 0.0
+      enddo
+      enddo
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=0,ni+1
+          rrw(i,j,k)=rf0(1,1,k)*w3d(i,j,k)
+        enddo
+        enddo
+      ENDDO
+      !$acc end data
+
+    ELSE
+      !$acc data copyin(rho0,u3d,v3d,w3d,rgzu,rgzv,dzdx,dzdy,gz,sigma,sigmaf,rds,rf0) &
+      !$acc copy(rru,rrv,rrw)
+      ! with terrain:
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       DO k=1,nk
         do j=0,nj+1
         do i=0,ni+2
           rru(i,j,k)=0.5*(rho0(i-1,j,k)+rho0(i,j,k))*u3d(i,j,k)*rgzu(i,j)
         enddo
         enddo
+      ENDDO
+
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
         do j=0,nj+2
         do i=0,ni+1
           rrv(i,j,k)=0.5*(rho0(i,j-1,k)+rho0(i,j,k))*v3d(i,j,k)*rgzv(i,j)
@@ -584,17 +623,18 @@
         enddo
       ENDDO
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,r1,r2)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
+      do j=0,nj+1
+      do i=0,ni+1
+        rrw(i,j,   1) = 0.0
+        rrw(i,j,nk+1) = 0.0
+      enddo
+      enddo
+
+      !$omp parallel do default(shared) private(i,j,k,r1,r2)
+      !$acc parallel loop gang vector private(i,j,k,r1,r2)
       DO k=1,nk
-        IF(k.eq.1)THEN
-          do j=0,nj+1
-          do i=0,ni+1
-            rrw(i,j,   1) = 0.0
-            rrw(i,j,nk+1) = 0.0
-          enddo
-          enddo
-        ELSE
           r2 = (sigmaf(k)-sigma(k-1))*rds(k)
           r1 = 1.0-r2
           r1 = 0.5*r1
@@ -609,8 +649,8 @@
                        )*(sigmaf(k)-zt)*gz(i,j)*rzt
           enddo
           enddo
-        ENDIF
       ENDDO
+      !$acc end data
 
     ENDIF
     if(timestats.ge.1) time_advs=time_advs+mytime()
@@ -618,18 +658,21 @@
         IF(terrain_flag)THEN
           call bcw(rrw,0)
 #ifdef MPI
+          !$acc update self(rrw)
           call comm_1w_start(rrw,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs_w)
           call comm_1w_end(rrw,ww1,ww2,we1,we2,   &
                                ws1,ws2,wn1,wn2,reqs_w)
+          !$acc update device(rrw)
 #endif
         ENDIF
 
+      !$acc data copyin(rru,rrv,rrw) copy(divx)
       IF(.not.terrain_flag)THEN
         IF(axisymm.eq.0)THEN
           ! Cartesian without terrain:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -642,8 +685,8 @@
           enddo
         ELSE
           ! axisymmetric:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -656,8 +699,8 @@
         ENDIF
       ELSE
           ! Cartesian with terrain:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -669,6 +712,7 @@
           enddo
           enddo
       ENDIF
+      !$acc end data 
       if(timestats.ge.1) time_divx=time_divx+mytime()
 
 !--------------------------------------------------------------------
@@ -676,15 +720,15 @@
 
       IF( icor.eq.1 )THEN
 
+        !$acc data copyin(f2d,v3d,u3d) copy(uten,vten)
         IF(axisymm.eq.0)THEN
 
           ! for Cartesian grid:
 
           if( betaplane.eq.0 )then
             ! f plane:
-
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
@@ -698,8 +742,8 @@
 
           elseif( betaplane.eq.1 )then
 
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
@@ -720,9 +764,8 @@
 
             ! for axisymmetric grid:
             ! note for axisymmetric grid: since cm1r18, Coriolis term for v is included in advvaxi
-
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni+1
@@ -732,12 +775,14 @@
             enddo
 
         ENDIF
+        !$acc end data
 
 
-        !........ budget (infrequent) ........!
+          !$acc data copyin(uten,vten,uten1,vten1) copy(udiag,vdiag)
+          !........ budget (infrequent) ........!
           IF( doubud .and. ud_cor.ge.1 .and. nrk.eq.nrkmax )THEN
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni+1
@@ -747,8 +792,8 @@
             enddo
           ENDIF
           IF( dovbud .and. vd_cor.ge.1 .and. nrk.eq.nrkmax )THEN
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj+1
             do i=1,ni
@@ -757,6 +802,7 @@
             enddo
             enddo
           ENDIF
+          !$acc end data
         !........ end budget ........!
 
         if(timestats.ge.1) time_cor=time_cor+mytime()
@@ -767,9 +813,11 @@
 !  U-equation
 
 
+        !$acc data copyin(v3d,u3d) copy(dum1,uten,udiag)
         if( nudgeobc.eq.1 .and. wbc.eq.2 .and. ibw.eq.1 )then
           ! 190315: nudge inflow point back towards base state:
           tem = 1.0/alphobc
+          !$acc parallel loop gang vector collapse(2) private(j,k)
           do k=1,nk
           do j=1,nj
             if( u3d(1,j,k).gt.0.0 )then
@@ -781,6 +829,7 @@
         if( nudgeobc.eq.1 .and. ebc.eq.2 .and. ibe.eq.1 )then
           ! 190315: nudge inflow point back towards base state:
           tem = 1.0/alphobc
+          !$acc parallel loop gang vector collapse(2) private(j,k)
           do k=1,nk
           do j=1,nj
             if( u3d(ni+1,j,k).lt.0.0 )then
@@ -795,8 +844,8 @@
         ! inertial term for axisymmetric grid:
         if(axisymm.eq.1)then
 
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni+1
@@ -806,8 +855,8 @@
           enddo
 
           if(ebc.eq.3)then
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector private(i,j,k)
             do k=1,nk
             do j=1,nj
               dum1(ni+1,j,k) = -dum1(ni,j,k)
@@ -815,8 +864,8 @@
             enddo
           endif
 
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=2,ni+1
@@ -826,8 +875,8 @@
           enddo
 
           IF( doubud .and. nrk.eq.nrkmax )THEN
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=2,ni+1
@@ -840,14 +889,17 @@
           if(timestats.ge.1) time_advu=time_advu+mytime()
 
         endif
+        !$acc end data
 
 !--------------------------------------------------------------------
 !  V-equation
 
 
+        !$acc data copyin(v3d) copy(vten)
         if( nudgeobc.eq.1 .and. sbc.eq.2 .and. ibs.eq.1 )then
           ! 190315: nudge inflow point back towards base state:
           tem = 1.0/alphobc
+          !$acc parallel loop gang vector collapse(2) private(i,k)
           do k=1,nk
           do i=1,ni
             if( v3d(i,1,k).gt.0.0 )then
@@ -859,6 +911,7 @@
         if( nudgeobc.eq.1 .and. nbc.eq.2 .and. ibn.eq.1 )then
           ! 190315: nudge inflow point back towards base state:
           tem = 1.0/alphobc
+          !$acc parallel loop gang vector collapse(2) private(i,k)
           do k=1,nk
           do i=1,ni
             if( v3d(i,nj+1,k).lt.0.0 )then
@@ -867,6 +920,7 @@
           enddo
           enddo
         endif
+        !$acc end data
 
 
 
@@ -889,11 +943,12 @@
 
 
 
+        !$acc data copyin(u3d,v3d) copy(vdiag)
         IF( dovbud )THEN
         IF( axisymm.eq.1 .and. nrk.eq.nrkmax )THEN
           !  Diagnostics for axisymm:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,tem1,tem2)
+          !$omp parallel do default(shared) private(i,j,k,tem1,tem2)
+          !$acc parallel loop gang vector collapse(3)  private(i,j,k,tem1,tem2)
           do k=1,nk
           do j=1,1
           do i=1,ni
@@ -914,11 +969,13 @@
           enddo
         ENDIF
         ENDIF
+        !$acc end data 
 
 !--------------------------------------------------------------------
 #ifdef MPI
         IF(nrk.ge.2)THEN
           call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+          !$acc update device(rho)
           call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
           call bcs2(rho)
         ENDIF
@@ -947,8 +1004,9 @@
 
         ! dum8 stores buoyancy at s pts:
  
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$acc data copyin(dum8) copy(wten)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -956,10 +1014,12 @@
         enddo
         enddo
         enddo
+        !$acc end data
 
         if( dowbud .and. nrk.eq.nrkmax )then
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$acc data copyin(dum8) copy(wdiag)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -967,6 +1027,7 @@
           enddo
           enddo
           enddo
+          !$acc end data
         endif
 
         if(timestats.ge.1) time_buoyan=time_buoyan+mytime()
@@ -977,8 +1038,9 @@
           ! bug fix, 170725
           ! save velocity tendencies before pgrad calculations:
           if( ud_pgrad.ge.1 )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j,k)
+            !$acc data copyin(uten) copy(udiag)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
@@ -986,10 +1048,12 @@
             enddo
             enddo
             enddo
+            !$acc end data
           endif
           if( vd_pgrad.ge.1 )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j,k)
+            !$acc data copyin(vten) copy(vdiag)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
@@ -997,10 +1061,12 @@
             enddo
             enddo
             enddo
+            !$acc end data
           endif
           if( wd_pgrad.ge.1 )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j,k)
+            !$acc data copyin(wten) copy(wdiag)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
@@ -1008,6 +1074,7 @@
             enddo
             enddo
             enddo
+            !$acc end data
           endif
           if(timestats.ge.1) time_misc=time_misc+mytime()
         ENDIF
@@ -1023,26 +1090,34 @@
 
         call bcs(dum6)
 #ifdef MPI
+        !$acc update self(dum6)
         call comm_1s_start(dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
         call comm_1s_end(  dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+        !$acc update device(dum6)
 #endif
-
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
-        do j=0,nj+1
-          do k=2,nk
+  
+        !$acc data copyin(c1,c2,dum6,gxu,gyv) copy(dum1,uten,vten)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+         do j=0,nj+1
           do i=0,ni+1
             dum1(i,j,k) = c1(i,j,k)*dum6(i,j,k-1)+c2(i,j,k)*dum6(i,j,k)
           enddo
           enddo
+        enddo
+
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=0,nj+1
           do i=0,ni+1
             dum1(i,j,1) = 0.0
             dum1(i,j,nk+1) = 0.0
           enddo
         enddo
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
           ! x-dir
           do j=1,nj
@@ -1053,6 +1128,10 @@
                                         )*(gxu(i,j,k)+gxu(i,j,k+1))
           enddo
           enddo
+        enddo
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
           ! y-dir
           do j=1+ibs,nj+1-ibn
           do i=1,ni
@@ -1063,6 +1142,7 @@
           enddo
           enddo
         enddo
+        !$acc end data
 
       ENDIF  termod1
 
@@ -1072,25 +1152,26 @@
 #ifdef MPI
       IF(nrk.ge.2)THEN
         call comm_1s_end(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+        !$acc update device(pp3d)
       ENDIF
 #endif
 
       IF( psolver.le.3 )THEN
 
+        !$acc data copyin(pi0,pp3d) copy(sadv)
         IF(.not.terrain_flag)THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tem)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
-          tem = pi0(1,1,k)
           do j=0,nj+1
           do i=0,ni+1
-            sadv(i,j,k)=tem+pp3d(i,j,k)
+            sadv(i,j,k)=pi0(1,1,k)+pp3d(i,j,k)
           enddo
           enddo
           enddo
         ELSE
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tem)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -1099,11 +1180,13 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
       if( psolver.eq.1 )then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,tem)
+        !$acc data copyin(ppten) copy(sten)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop vector gang private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -1111,6 +1194,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
         weps = epsilon
         diffit = 0
         print *,'advs #1'
@@ -1133,6 +1217,7 @@
 !--------------------------------------------------------------------
 #ifdef MPI
         call comm_1s_end(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+        !$acc update device(t11)
 #endif
 !--------------------------------------------------------------------
 !  call sound
@@ -1178,6 +1263,16 @@
         ELSEIF(psolver.eq.3)THEN
 
           print *,'before call to sound'
+          !$acc data copyin(t11,t22,sadv,bndy,kbdy) &
+          !$acc copyin(dtu,dtu0,dtv,dtv0,ppi,ppten) &
+          !$acc copy(radbcw,radbce,radbcs,radbcn) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5) &
+          !$acc copy(dum7,dum8,t12,t13,t23,dum9) &
+          !$acc copy(rru,ua,u3d,uten) &
+          !$acc copy(rrv,va,v3d,vten) &
+          !$acc copy(rrw,wa,w3d,wten) &
+          !$acc copy(pp3d,ppten,ppx)
+          if(timestats.ge.1) time_sound_H2D=time_sound_H2D+mytime()
           get_time_avg = .true.
           call   sound( dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1186,7 +1281,7 @@
                         dzdx,dzdy,gx,gxu,gy,gyv,                          &
                         radbcw,radbce,radbcs,radbcn,dtu,dtu0,dtv,dtv0,    &
                         dum1,dum2,dum3,dum4,dum5,dum6,                    &
-                        dum7,dum8,t12,t13,t23,dum9 ,                      &
+                        dum7,dum8,t12,t13,t23,dum9,                       &
                         u0,rru,ua,u3d,uten,                               &
                         v0,rrv,va,v3d,vten,                               &
                         rrw,wa,w3d,wten,                                  &
@@ -1194,6 +1289,8 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+          !$acc end data
+          if(timestats.ge.1) time_sound_D2H=time_sound_D2H+mytime()
 
         ELSEIF(psolver.eq.4.or.psolver.eq.5)THEN
           ! anelastic/incompressible solver:
@@ -1239,8 +1336,9 @@
 
         IF(axisymm.eq.1)THEN
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$acc data copyin(va,vten) copy(v3d)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1248,6 +1346,7 @@
           enddo
           enddo
           enddo
+          !$acc end data
           if(timestats.ge.1) time_misc=time_misc+mytime()
 
         ENDIF
@@ -1258,8 +1357,9 @@
       IF( doubud .and. nrk.eq.nrkmax )THEN
         ! pressure gradient accel:
         rdt = 1.0/dt
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$acc data copyin(u3d,ua) copy(udiag)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -1267,13 +1367,15 @@
         enddo
         enddo
         enddo
+        !$acc end data
       ENDIF
 
       IF( dovbud .and. nrk.eq.nrkmax )THEN
         rdt = 1.0/dt
+        !$acc data copyin(v3d,va) copy(vdiag)
         IF( axisymm.eq.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,2
           do i=1,ni
@@ -1283,8 +1385,8 @@
           enddo
           enddo
         ELSE
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj+1
           do i=1,ni
@@ -1294,13 +1396,15 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
       ENDIF
 
       IF( dowbud .and. nrk.eq.nrkmax )THEN
         ! pressure gradient accel:
         rdt = 1.0/dt
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+        !$acc data copyin(w3d,wa) copy(wdiag)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -1308,6 +1412,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
       ENDIF
 
 !--------------------------------------------------------------------
@@ -1351,6 +1456,8 @@
 
       if( iprcl.eq.1 .and. nrk.eq.nrkmax )then
         ! save time-averaged velocities for parcel driver:
+        !$acc data copyin(rru,rrv,rrw) copy(uten1,vten1,wten1)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk+1
         do j=1,nj+1
         do i=1,ni+1
@@ -1360,6 +1467,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
       endif
 
       if( get_time_avg )then
@@ -1375,14 +1483,16 @@
         IF(nrk.ge.2)THEN
           call comm_3s_end(th3d,rw31,rw32,re31,re32,   &
                                 rs31,rs32,rn31,rn32,reqs_y)
+          !$acc update device(th3d)
         ENDIF
 #endif
 
         ! note: t11 stores 3d divergence
 
+        !$acc data copyin(thten1,t11,thterm) copy(thten,tdiag)
         IF( imoist.eq.1 .and. eqtset.eq.2 )THEN
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1391,8 +1501,8 @@
           enddo
           enddo
           if( dotbud .and. td_div.ge.1 )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -1402,8 +1512,8 @@
             enddo
           endif
         ELSE
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1412,21 +1522,22 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
 
+        !$acc data copyin(th0,th3d) copy(sadv)
         IF(.not.terrain_flag)THEN
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k,tem)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
-          tem = th0(1,1,k)-th0r
           do j=jb,je
           do i=ib,ie
-            sadv(i,j,k)=tem+th3d(i,j,k)
+            sadv(i,j,k)=(th0(1,1,k)-th0r)+th3d(i,j,k)
           enddo
           enddo
           enddo
         ELSE
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=jb,je
           do i=ib,ie
@@ -1435,6 +1546,7 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
 
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
@@ -1454,8 +1566,10 @@
                    td_hidiff,td_vidiff,td_hediff,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
         !$acc end data
         if(timestats.ge.1) time_adv_D2H=time_adv_D2H+mytime()
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+
+      !$acc data copyin(tha,thten) copy(th3d)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1464,6 +1578,7 @@
       enddo
       enddo
       enddo
+      !$acc end data
       if(timestats.ge.1) time_integ=time_integ+mytime()
 
 
@@ -1566,8 +1681,9 @@
     pscheck:  &
     IF(psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6)THEN
 
-      !$omp parallel do default(shared)  &
-      !$omp private(i,j,k)
+      !$acc data copyin(prs0,rho0,rr0) copy(prs,rho,rr)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1577,15 +1693,16 @@
       enddo
       enddo
       enddo
+      !$acc end data
+      !HERE
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
-
+      
     ELSE
 
       IF(imoist.eq.1)THEN
 
         IF(nrk.eq.nrkmax.and.eqtset.eq.2)THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1605,8 +1722,7 @@
         ENDIF
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1622,8 +1738,7 @@
       ELSE
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1770,7 +1885,7 @@
         endif
 
           !$acc data copyin(rho,rru,rrv,rrw) &
-          !$acc copyin(tke3d,u3d,v3d,divx) &
+          !$acc copyin(tke3d,u3d,v3d,divx,rds) &
           !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
           !$acc copy(wten,wdiag)
           if(timestats.ge.1) time_adv_H2D=time_adv_H2D+mytime()
