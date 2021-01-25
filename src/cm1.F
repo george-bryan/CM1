@@ -2894,6 +2894,35 @@
         ! end_solve1
 
 
+        !$acc data &
+        !$acc copyin(dtu0,dtv0) &
+        !$acc copyin(xh,rxh,arh1,arh2,uh,ruh,arf1,arf2) &
+        !$acc copyin(xf,yh,vh,rvh,uf,vf,mf) &
+        !$acc copyin(u0,v0) &
+        !$acc copyin(rds,sigma,rdsf,sigmaf) &
+        !$acc copyin(mh,rmh,zh,c1,c2,wprof) &
+        !$acc copyin(gz,rgz,gzv,gzu,rgzu,rgzv) &
+        !$acc copyin(f2d) &
+        !$acc copyin(gxu,gyv,dzdx,dzdy) &
+        !$acc copyin(pi0,rho0,prs0,th0,rth0,qv0,qc0,qi0,rr0,rf0,rrf0) &
+        !$acc copyin(bndy,kbdy) &
+        !$acc copy(dumk1,dumk2) &
+        !$acc copy(radbcw,radbce,radbcs,radbcn,dtu,dtv) &
+        !$acc copy(t11,t12,t13,t22,t23) &
+        !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
+        !$acc copy(divx,rho,rr,prs) &
+        !$acc copy(rru,ua,u3d,uten,uten1) &
+        !$acc copy(rrv,va,v3d,vten,vten1) &
+        !$acc copy(rrw,wa,w3d,wten,wten1) &
+        !$acc copy(ppi,pp3d,ppten,sten,sadv,ppx) &
+        !$acc copy(tha,th3d,thten,thten1,thterm) &
+        !$acc copy(qpten,qtten,qvten,qcten,qa,q3d,qten) &
+        !$acc copy(tkea,tke3d,tketen) &
+        !$acc copy(qke_adv,qke,qke3d) &
+        !$acc copy(pta,pt3d,ptten) &
+        !$acc copy(flag) &
+        !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
+        if(timestats.ge.1) time_slv2_H2D=time_slv2_H2D+mytime()
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -2966,6 +2995,8 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,               &
                    doazimwrite,dorestart)
         ! end_solve2
+        !$acc end data
+        if(timestats.ge.1) time_slv2_D2H=time_slv2_D2H+mytime()
 
 
       IF(imoist.eq.1)THEN
@@ -3714,7 +3745,8 @@
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
-                    time_sound_H2D+time_sound_D2H+time_adv_H2D + time_adv_D2H
+                    time_sound_H2D+time_sound_D2H+time_adv_H2D + time_adv_D2H+ &
+                    time_slv2_H2D + time_slv2_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -3811,6 +3843,12 @@
 #ifdef MPI
       ! for MPI runs without procfiles, average the timestat terms:
       IF(.not.procfiles)THEN
+        sum = 0.0
+        call MPI_REDUCE(time_slv2_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv2_H2D = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_slv2_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv2_D2H = sum/float(numprocs)
         sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
@@ -4012,9 +4050,9 @@
       if(time_solve.lt.0.0001) time_solve=1.
 
     IF(dowr)THEN
-      write(outfile,100) ' snd-H2D',time_sound_H2D,time_sound_H2D/time_solve
+      write(outfile,100) 'slv2-H2D',time_slv2_H2D,time_slv2_H2D/time_solve
+      write(outfile,100) 'slv2-D2H',time_slv2_D2H,time_slv2_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
-      write(outfile,100) ' snd-D2H',time_sound_D2H,time_sound_D2H/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
       write(outfile,100) ' adv-H2D',time_adv_H2D,time_adv_H2D/time_solve
       write(outfile,100) 'advs    ',time_advs,time_advs/time_solve

@@ -1019,6 +1019,7 @@
       !$acc present(dumx,dumy,dumz,advx,advy,advz,subs) &
       !$acc present(divx,rru,rrv,rrw) &
       !$acc present(uten,udiag,wprof) &
+      !$acc present(bndy,kbdy) &
       !$acc present(rdsf,c1,c2,rho) &
       !$acc present(uf,vf,mf) &
       !$acc present(u3d,v3d,w3d)
@@ -1966,6 +1967,7 @@
       !$acc present(vten,vdiag,wprof) &
       !$acc present(rdsf,c1,c2,rho) &
       !$acc present(uf,vf,mf) &
+      !$acc present(bndy,kbdy) &
       !$acc present(u3d,v3d,w3d)
 
 !------------------------------------------------------------
@@ -2909,7 +2911,7 @@
       !$acc present(dumx,dumy,dumz,advx,advy,advz,subs) &
       !$acc present(divx,rru,rrv,rrw) &
       !$acc present(wten) &
-      !$acc present(rdsf,c1,c2,rho) &
+      !$acc present(rds,rdsf,c1,c2,rho) &
       !$acc present(wdiag) &
       !$acc present(uf,vf,mf) &
       !$acc present(u3d,v3d,w3d)

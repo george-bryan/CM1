@@ -802,7 +802,8 @@
     logical :: doit
     !$acc declare present(c1,c2) &
     !$acc present(rru,rrv) &
-    !$acc present(dumx,dumy,a)
+    !$acc present(dumx,dumy,a) &
+    !$acc present(bndy,hflxw,hflxe,hflxs,hflxn)
 
 
     doit = .true.
@@ -1192,7 +1193,8 @@
     logical :: doit
     !$acc declare present(c1,c2) &
     !$acc present(rru,rrv) &
-    !$acc present(dumx,dumy)
+    !$acc present(dumx,dumy,a) &
+    !$acc present(hflxw,hflxe,hflxs,hflxn)
 
     doit = .true.
 !!!    if( doit )then

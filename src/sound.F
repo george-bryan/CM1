@@ -119,8 +119,6 @@
     ELSE
       stop 97392
     ENDIF
-    !!$acc data copy(ppd,pp3d,qk) &
-    !!$acc copy(pk1,pk2,fpk)
 
 !!!      print *,'  nloop,dts,dttmp = ',nloop,dts,nloop*dts
 
@@ -879,7 +877,6 @@
         enddo
         enddo
       ENDIF
-      !!$acc end data
       if(timestats.ge.1) time_sound=time_sound+mytime()
 
 

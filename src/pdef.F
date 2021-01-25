@@ -108,13 +108,10 @@
           enddo
           enddo
         endif
-        !!$acc compare(dum(1:ni,1:nj,1:nk))
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
-        !$acc update self(dum)
-        call bcs(dum)
-        !PCAST
-        !$acc update device(dum)
+        call bcs_GPU(dum)
 #ifdef MPI
+        !$acc update self(dum)
         call comm_2we_start(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
 #endif
 
@@ -284,7 +281,6 @@
         enddo
 
     ENDIF
-    !!$acc compare(advx(1:ni,1:nj,1:nk))
 !----------------------------------------------------------------
 
       if(timestats.ge.1) time_pdef=time_pdef+mytime()
@@ -379,12 +375,10 @@
           enddo
           enddo
         endif
-        !!$acc compare(dum(1:ni,1:nj,1:nk))
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
-        !$acc update self(dum)
-        call bcs(dum)
-        !$acc update device(dum)
+        call bcs_GPU(dum)
 #ifdef MPI
+        !$acc update self(dum)
         call comm_2sn_start(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
 

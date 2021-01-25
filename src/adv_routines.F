@@ -414,7 +414,6 @@
     ENDDO
 
   ENDIF
-  !!$acc end data
 
     end subroutine hadv_weno5
 
@@ -2504,7 +2503,6 @@
       enddo
       enddo
       enddo
-      !!$acc end data 
 
       call     vadv_lwr_weno_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
 
@@ -2528,7 +2526,6 @@
       enddo
       enddo
       enddo
-      !!$acc end data
 
       call     vadv_lwr_weno_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
 
@@ -2572,7 +2569,6 @@
       enddo
 
     ENDDO
-    !!$acc end data
 
 !ccccccccccccccccccccccccccccccccccc
 !  v-staggered variable:
@@ -2610,7 +2606,6 @@
       enddo
 
     ENDDO
-    !!$acc end data
 
 !ccccccccccccccccccccccccccccccccccc
 !  w-staggered variable:
@@ -2635,7 +2630,6 @@
       enddo
 
     ENDDO
-    !!$acc end data
 
 !ccccccccccccccccccccccccccccccccccc
 
@@ -7185,7 +7179,8 @@
       !$acc present(rmh,rho0,rr0,rf0,rrf0) &
       !$acc present(gz,rgz) &
       !$acc present(advx,dum,mass) &
-      !$acc present(rru,s0,s,flag,budx)
+      !$acc present(rru,s0,s,flag) &
+      !$acc create(budx)
 
 !!!      budx(k) = 0.0d0
 
@@ -7673,10 +7668,8 @@
 
       IF(pdscheme.eq.1 .and. pdef.eq.1)THEN
         if(timestats.ge.1) time_advs=time_advs+mytime()
-        !!$acc data copyin(dt) copy(advx,dum,mass,flag)
         call pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
         call pdefx2(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
-        !!$acc end data
       ENDIF
 
 !----------------------------------------------------------------
