@@ -5896,7 +5896,7 @@
       rdx=1.0/dx
       rdy=1.0/dy
       rdz=1.0/dz
-      !$acc enter data copyin(rdx,rdy,rdz)
+      !!$acc enter data copyin(rdx,rdy,rdz)
       rdx2=1.0/(2.0*dx)
       rdy2=1.0/(2.0*dy)
       rdz2=1.0/(2.0*dz)

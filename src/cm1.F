@@ -49,6 +49,9 @@
 #ifdef MPI
       use mpi
 #endif
+#ifdef _OPENACC
+      use openacc
+#endif
       implicit none
 
       integer :: nstep,nstep0
@@ -251,6 +254,9 @@
       double precision :: tstart,tend
       integer, dimension(:), allocatable :: isum,jsum
 #endif
+#ifdef _OPENACC
+      integer :: ndev,idev
+#endif
 
 !----------------------------------------------------------------------
 
@@ -378,6 +384,16 @@
       call MPI_INIT( ierr )
       call MPI_COMM_RANK( MPI_COMM_WORLD, myid, ierr )
       call MPI_COMM_SIZE( MPI_COMM_WORLD, numprocs, ierr )
+#endif
+#ifdef _OPENACC
+      ndev = acc_get_num_devices(acc_device_nvidia)
+      idev = mod(myid,ndev)
+      print *,'myid: ',myid
+      print *,'numprocs: ',numprocs
+      print *,'Total # of GPU: ',ndev 
+      print *,'Using GPU: ',idev 
+      
+      call acc_set_device_num(idev,acc_device_nvidia)
 #endif
 
 !----------------------------------------------------------------------
@@ -2920,6 +2936,19 @@
         !$acc copy(tkea,tke3d,tketen) &
         !$acc copy(qke_adv,qke,qke3d) &
         !$acc copy(pta,pt3d,ptten) &
+        !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
+        !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
+        !$acc copy(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
+        !$acc copy(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
+        !$acc copy(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
+        !$acc copy(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
+        !$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
+        !$acc copy(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
+        !$acc copy(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
+        !$acc copy(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
+        !$acc copy(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
+        !$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
+        !$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
         !$acc copy(flag) &
         !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
         if(timestats.ge.1) time_slv2_H2D=time_slv2_H2D+mytime()

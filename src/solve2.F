@@ -332,7 +332,7 @@
       real :: umod,uref,zref,oldval,newval
 
       double precision :: weps,afoo,bfoo,p0,p2
-      double precision :: tmp1,tmp2
+      real(kind=qp) :: tmp1,tmp2
       real(kind=qp) :: temq1,temq2
 
       logical :: get_time_avg,dopf
@@ -364,6 +364,19 @@
        !$acc present(qke_adv,qke,qke3d) &
        !$acc present(tkea,tke3d,tketen) &
        !$acc present(pta,pt3d,ptten) &
+       !$acc present(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
+       !$acc present(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
+       !$acc present(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
+       !$acc present(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
+       !$acc present(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
+       !$acc present(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
+       !$acc present(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
+       !$acc present(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
+       !$acc present(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
+       !$acc present(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
+       !$acc present(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
+       !$acc present(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
+       !$acc present(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
        !$acc present(flag) &
        !$acc present(tdiag,qdiag,udiag,vdiag,wdiag,kdiag) &
        !$acc present(bndy,kbdy)
@@ -525,8 +538,7 @@
 !--------------------------------------------------------------------
         call bcs_GPU(t11)
 #ifdef MPI
-        !$acc update self(t11)
-        call comm_1s_start(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+        call comm_1s_start_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
 
 !--------------------------------------------------------------------
@@ -548,13 +560,12 @@
 !--------------------------------------------------------------------
         IF(nrk.ge.2)THEN
 #ifdef MPI
-          call comm_3u_end(u3d,uw31,uw32,ue31,ue32,   &
+          call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
                                us31,us32,un31,un32,reqs_u)
-          call comm_3v_end(v3d,vw31,vw32,ve31,ve32,   &
+          call comm_3v_end_GPU(v3d,vw31,vw32,ve31,ve32,   &
                                vs31,vs32,vn31,vn32,reqs_v)
-          call comm_3w_end(w3d,ww31,ww32,we31,we32,   &
+          call comm_3w_end_GPU(w3d,ww31,ww32,we31,we32,   &
                                ws31,ws32,wn31,wn32,reqs_w)
-          !$acc update device(u3d,v3d,w3d)
 #endif
           if(terrain_flag)then
             call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
@@ -663,12 +674,10 @@
         IF(terrain_flag)THEN
           call bcw_GPU(rrw,0)
 #ifdef MPI
-          !$acc update self(rrw)
-          call comm_1w_start(rrw,ww1,ww2,we1,we2,   &
+          call comm_1w_start_GPU(rrw,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs_w)
-          call comm_1w_end(rrw,ww1,ww2,we1,we2,   &
+          call comm_1w_end_GPU(rrw,ww1,ww2,we1,we2,   &
                                ws1,ws2,wn1,wn2,reqs_w)
-          !$acc update device(rrw)
 #endif
         ENDIF
 
@@ -967,8 +976,7 @@
 !--------------------------------------------------------------------
 #ifdef MPI
         IF(nrk.ge.2)THEN
-          call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-          !$acc update device(rho)
+          call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
           call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
           call bcs2_GPU(rho)
         ENDIF
@@ -1065,10 +1073,8 @@
 
         call bcs_GPU(dum6)
 #ifdef MPI
-        !$acc update self(dum6)
-        call comm_1s_start(dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
-        call comm_1s_end(  dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
-        !$acc update device(dum6)
+        call comm_1s_start_GPU(dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+        call comm_1s_end_GPU(  dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
 #endif
   
         !$omp parallel do default(shared) private(i,j,k)
@@ -1124,8 +1130,7 @@
 
 #ifdef MPI
       IF(nrk.ge.2)THEN
-        call comm_1s_end(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
-        !$acc update device(pp3d)
+        call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
       ENDIF
 #endif
 
@@ -1178,8 +1183,7 @@
 
 !--------------------------------------------------------------------
 #ifdef MPI
-        call comm_1s_end(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
-        !$acc update device(t11)
+        call comm_1s_end_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
 !--------------------------------------------------------------------
 !  call sound
@@ -1188,7 +1192,10 @@
 
 
         IF(psolver.eq.1)THEN
-          print *,'before call to soundns'
+
+#ifdef _OPENACC
+          stop 'ERROR: soundns not ported to GPU'
+#endif
           call   soundns(xh,rxh,arh1,arh2,uh,xf,uf,yh,vh,yf,vf,           &
                          zh,mh,c1,c2,mf,zf,pi0,thv0,rr0,rf0,              &
                          rds,sigma,rdsf,sigmaf,                           &
@@ -1204,7 +1211,9 @@
 
         ELSEIF(psolver.eq.2)THEN
 
-          print *,'before call to sounde'
+#ifdef _OPENACC
+          stop 'ERROR: sounde not ported to GPU'
+#endif
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1245,7 +1254,9 @@
         ELSEIF(psolver.eq.4.or.psolver.eq.5)THEN
           ! anelastic/incompressible solver:
 
-          print *,'before call to anelp'
+#ifdef _OPENACC
+          stop 'ERROR: anelp not ported to GPU'
+#endif
           call   anelp(xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,             &
                        zh,mh,rmh,mf,rmf,zf,pi0,thv0,rho0,prs0,rf0,  &
                        rds,sigma,rdsf,sigmaf,                       &
@@ -1261,7 +1272,9 @@
 
         ELSEIF(psolver.eq.6)THEN
 
-          print *,'before call to soundcb'
+#ifdef _OPENACC
+          print *,'ERROR: soundcb not ported to GPU'
+#endif
           get_time_avg = .true.
           call   soundcb(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,    &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1421,9 +1434,8 @@
 
 #ifdef MPI
         IF(nrk.ge.2)THEN
-          call comm_3s_end(th3d,rw31,rw32,re31,re32,   &
+          call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,   &
                                 rs31,rs32,rn31,rn32,reqs_y)
-          !$acc update device(th3d)
         ENDIF
 #endif
 
@@ -1540,11 +1552,10 @@
 
 #ifdef MPI
       if( nrk.ge.2 )then
-        call comm_3s_end(q3d(ib,jb,kb,n)  &
+        call comm_3s_end_GPU(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                        ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                        ,reqs_q(1,n) )
-        !$acc update device(q3d(ib:ie,jb:je,kb:ke,n))
       endif
 #endif
 
@@ -1677,16 +1688,18 @@
         ! cm1r18:  adjust average pressure perturbation to ensure 
         !          conservation of total dry-air mass
 
-        dumk1 = 0.0
-        dumk2 = 0.0
-
+        !$acc parallel loop gang vector private(k)
+        do k=1,nk
+          dumk1(k) = 0.0
+          dumk2(k) = 0.0
+        enddo
         IF( axisymm.eq.0 )THEN
-          !$acc parallel loop gang vector private(i,j,k,tmp1,tmp2) 
+          !$acc parallel private(i,j,k,tmp1,tmp2) 
           do k=1,nk
             tmp1=0;
             tmp2=0;
-            !$omp parallel do default(shared) private(i,j)
-            !$acc loop reduction(+:tmp1,tmp2) 
+            !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
+            !$acc loop gang vector collapse(2) reduction(+:tmp1,tmp2)
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -1696,13 +1709,14 @@
             dumk1(k) = tmp1
             dumk2(k) = tmp2
           enddo
+          !$acc end parallel
         ELSEIF( axisymm.eq.1 )THEN
-          !$acc parallel loop gang vector private(i,j,k,tmp1,tmp2) 
+          !$acc parallel private(i,j,k,tmp1,tmp2) 
           do k=1,nk
             tmp1=0;
             tmp2=0;
-            !$omp parallel do default(shared) private(i,j)
-            !$acc loop reduction(+:tmp1,tmp2)
+            !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2
+            !$acc loop gang vector collapse(2) reduction(+:tmp1,tmp2)
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*pi*(xf(i+1)**2-xf(i)**2)
@@ -1712,13 +1726,13 @@
             dumk1(k) = tmp1
             dumk2(k) = tmp2
           enddo
+          !$acc end parallel
         ENDIF
 
 #ifdef MPI
         !$acc update self(dumk1,dumk2)
         call MPI_IALLREDUCE(mpi_in_place,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
         call MPI_IALLREDUCE(mpi_in_place,dumk2(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
-        !$acc update device(dumk1,dumk2)
 #endif
 
         dopf = .true.
@@ -1734,14 +1748,12 @@
 
       call bcu_GPU(u3d)
 #ifdef MPI
-      !$acc update self(u3d)
-      call comm_3u_start(u3d,uw31,uw32,ue31,ue32,   &
+      call comm_3u_start_GPU(u3d,uw31,uw32,ue31,ue32,   &
                              us31,us32,un31,un32,reqs_u)
 #endif
       call bcv_GPU(v3d)
 #ifdef MPI
-      !$acc update self(v3d)
-      call comm_3v_start(v3d,vw31,vw32,ve31,ve32,   &
+      call comm_3v_start_GPU(v3d,vw31,vw32,ve31,ve32,   &
                              vs31,vs32,vn31,vn32,reqs_v)
 #endif
       call bcw_GPU(w3d,1)
@@ -1749,33 +1761,28 @@
         call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
       endif
 #ifdef MPI
-      !$acc update self(w3d)
-      call comm_3w_start(w3d,ww31,ww32,we31,we32,   &
+      call comm_3w_start_GPU(w3d,ww31,ww32,we31,we32,   &
                              ws31,ws32,wn31,wn32,reqs_w)
 #endif
       IF(nrk.lt.nrkmax)THEN
         call bcs_GPU(rho)
 #ifdef MPI
-        !$acc update self(rh0)
-        call comm_1s_start(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+        call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
         call bcs_GPU(pp3d)
 #ifdef MPI
-        !$acc update self(pp3d)
-        call comm_1s_start(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+        call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
 #endif
         call bcs_GPU(th3d)
 #ifdef MPI
-        !$acc update self(th3d)
-        call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
+        call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
                                 rs31,rs32,rn31,rn32,reqs_y)
 #endif
         IF(imoist.eq.1)THEN
           do n=1,numq
             call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI
-           !$acc update self(q3d(ib:ie,jb:je,kb:ke,n))
-            call comm_3s_start(q3d(ib,jb,kb,n)  &
+            call comm_3s_start_GPU(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                        ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                        ,reqs_q(1,n) )
@@ -1803,9 +1810,8 @@
 
 #ifdef MPI
         IF(nrk.ge.2)THEN
-          call comm_3t_end(tke3d,tkw1,tkw2,tke1,tke2,   &
+          call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                  tks1,tks2,tkn1,tkn2,reqs_tk)
-          !$acc update device(tke3d)
         ENDIF
 #endif
 
@@ -1859,8 +1865,7 @@
 
           call bcw_GPU(tke3d,1)
 #ifdef MPI
-          !$acc update self(tke3d)
-          call comm_3t_start(tke3d,tkw1,tkw2,tke1,tke2,   &
+          call comm_3t_start_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                    tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
 
@@ -1901,10 +1906,8 @@
 
         call bcs_GPU(qke3d)
 #ifdef MPI
-        !$acc update self(qke3d)
-        call comm_3s_start(qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
-        call comm_3s_end(  qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
-        !$acc update device(qke3d)
+        call comm_3s_start_GPU(qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
+        call comm_3s_end_GPU(  qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
 #endif
 
         weps = 10.0*epsilon
@@ -1979,8 +1982,7 @@
 
 #ifdef MPI
           IF(nrk.ge.2)THEN
-            !$acc update self(pt3d(ib:ie,jb:je,kb:ke,n))
-            call comm_3s_end(pt3d(ib,jb,kb,n),                           &
+            call comm_3s_end_GPU(pt3d(ib,jb,kb,n),                           &
                   tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n),   &
                   ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n),   &
                   reqs_t(1,n))
@@ -2011,8 +2013,7 @@
       IF(nrk.le.2)THEN
         call bcs_GPU(pt3d(ib,jb,kb,n))
 #ifdef MPI
-        !$acc update self(pt3d(ib:ie,jb:je,kb:ke,n))
-        call comm_3s_start(pt3d(ib,jb,kb,n)   &
+        call comm_3s_start_GPU(pt3d(ib,jb,kb,n)   &
                      ,tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n)     &
                      ,ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n)     &
                      ,reqs_t(1,n) )
@@ -2032,12 +2033,13 @@
 #ifdef MPI
         call mpi_wait(reqp1,mpi_status_ignore,ierr)
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
+        !$acc update device(dumk1,dumk2)
 #endif
 
         temq1 = 0.0
         temq2 = 0.0
 
-        !$acc parallel loop reduction(+:temq1,temq2) private(k)
+        !$acc parallel loop gang vector reduction(+:temq1,temq2) private(k)
         do k=1,nk
           temq1 = temq1 + dumk1(k)
           temq2 = temq2 + dumk2(k)
@@ -2120,8 +2122,7 @@
         endif
         call bcs_GPU(pt3d(ib,jb,kb,n))
 #ifdef MPI
-        !$acc update self(pt3d(ib:ie,jb:je,kb:ke,n))
-        call comm_3s_start(pt3d(ib,jb,kb,n)   &
+        call comm_3s_start_GPU(pt3d(ib,jb,kb,n)   &
                      ,tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n)     &
                      ,ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n)     &
                      ,reqs_t(1,n) )

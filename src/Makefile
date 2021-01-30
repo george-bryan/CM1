@@ -48,15 +48,24 @@
 #  single processor + GPU, Portland Group compiler
 FC   = pgf90
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
-OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
+DM   = -D_OPENACC
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #DM   = -DMPI
+#-----------------------------------------------------------------------------
+#  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
+#FC   = mpif90
+##OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+##OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#DM   = -DMPI -D_OPENACC
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), Portland Group compiler
 #FC   = pgf90

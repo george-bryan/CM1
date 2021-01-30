@@ -90,7 +90,8 @@
       !$acc present(rrw,wa,w3d,wten) &
       !$acc present(ppi,pp3d,piadv,ppten,ppx) &
       !$acc present(thv,ppterm) &
-      !$acc present(bndy,kbdy)
+      !$acc present(bndy,kbdy) &
+      !$acc present(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2)
 
 !---------------------------------------------------------------------
       ! beta = backward weight
@@ -140,9 +141,10 @@
         ! "s" velocities ARE NOT coupled with reference density
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tem,tem1,r1,r2,c1a,c1b,c2a,c2b)
-        !$acc parallel loop gang vector collapse(2) private(i,j,k,tem,tem1,r1,r2,c1a,c1b,c2a,c2b)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tem,tem1,r1,r2,c1a,c1b,c2a,c2b)
         do k=1,nk
           do j=1,nj
+          do i=1,ni
           tem = dts*rdz*mh(1,1,k)
           r2 = dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)
           r1 = dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)
@@ -151,7 +153,6 @@
           c1b = c1(1,1,k+1)
           c2a = c2(1,1,k  )
           c2b = c2(1,1,k+1)
-          do i=1,ni
             qk(i,j,k) = tem*ppterm(i,j,k)
             pk2(i,j,k) = r2*( -c2b*piadv(i,j,k+1)+(1.0-c1b)*piadv(i,j,k) )
             pk1(i,j,k) = r1*( +c1a*piadv(i,j,k-1)+(c2a-1.0)*piadv(i,j,k) )
@@ -326,9 +327,8 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          call comm_1p_end(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
-          !$acc update device(ppd)
         endif
 #endif
 
@@ -708,10 +708,12 @@
         enddo
         enddo
 
-
+        !$acc parallel private(i,j,k,aa,bb,cc,dd,fwk,r1)
         do k=3,(nk-1)
         !$omp parallel do default(shared) private(i,j,aa,bb,cc,dd,fwk,r1)
-        !$acc parallel loop gang vector collapse(2) private(i,j,aa,bb,cc,dd,fwk,r1)
+        !!$acc parallel loop gang vector collapse(2) private(i,j,aa,bb,cc,dd,fwk,r1)
+        !!$acc loop gang vector collapse(2) private(i,j,aa,bb,cc,dd,fwk,r1)
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           aa =      -asq*( +mm(i,j,k)*( pk1(i,j,k-1)+qk(i,j,k-1) ) )
@@ -729,6 +731,7 @@
         enddo
 
         enddo
+        !$acc end parallel
 
         k = nk
 
@@ -748,10 +751,11 @@
         enddo
         enddo
 
+        !$acc parallel private(i,j,k)
         do k=(nk-1),2,-1
 
         !$omp parallel do default(shared) private(i,j)
-        !$acc parallel loop gang vector collapse(2) private(i,j)
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           w3d(i,j,k)=dum1(i,j,k)*w3d(i,j,k+1)+dum2(i,j,k)
@@ -759,6 +763,7 @@
         enddo
 
         enddo
+        !$acc end parallel
 
       IF( do_ib )THEN
           call zero_out_w(bndy,kbdy,w3d)
@@ -822,8 +827,7 @@
           if(timestats.ge.1) time_sound=time_sound+mytime()
           call bcs_GPU(ppd)
 #ifdef MPI
-          !$acc update self(ppd)
-          call comm_1s_start(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif
         ENDIF

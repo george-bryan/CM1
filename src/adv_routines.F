@@ -1574,9 +1574,9 @@
         i2=ni+1
       endif
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel private(i,j,k,ubar,vbar)
+    !$omp parallel do default(shared) private(i,j,k,ubar)
+    !$acc loop gang vector collapse(3)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1585,6 +1585,11 @@
         dumx(i,j,k) = ubar*flx6(a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
+    ENDDO
+
+    !$omp parallel do default(shared) private(i,j,k,vbar)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -1593,6 +1598,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -9583,12 +9589,12 @@
     ENDDO
     !-----
     !$omp parallel do default(shared)private(i,j,k,div)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,div)
-    DO j=1,jy
-      do k=1,nk
-        div = (rf0(1,1,k+1)*wprof(k+1)-rf0(1,1,k)*wprof(k))*rdz*mh(1,1,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k,div)
+    do k=1,nk
+      DO j=1,jy
         !dir$ vector always
         do i=1,ix
+          div = (rf0(1,1,k+1)*wprof(k+1)-rf0(1,1,k)*wprof(k))*rdz*mh(1,1,k)
           subs(i,j,k) = ( -(dumz(i,j,k+1)-dumz(i,j,k))*rdz*mh(1,1,k)   &
                           +a(i,j,k)*div )*rr0(1,1,k)
         enddo

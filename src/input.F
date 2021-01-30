@@ -227,9 +227,9 @@
            time_azimavg,time_hifrq,time_ercyl
       integer count_last
 
-!$acc declare copyin(ni,nj,nk)
-!$acc declare copyin(rdx,rdy,rdz)
-!$acc declare copyin(smeps)
+!!$acc declare copyin(ni,nj,nk)
+!!$acc declare copyin(rdx,rdy,rdz)
+!!$acc declare copyin(smeps)
 !-----------------------------------------------------------------------
 
       namelist /param0/ nx,ny,nz,ppnode,                                &

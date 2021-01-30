@@ -2718,54 +2718,55 @@
  
       integer :: i,j,k
       real :: dtdx,dtdy,dtdz,fmax,wsp,tem
-      real, dimension(nk) :: cfl
-      !$acc declare present(uh,vh,mh,ua,va,wa) &
-      !$acc create(cfl)
+      !$acc declare present(uh,vh,mh,ua,va,wa)
  
       dtdx=0.5*dt*rdx
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
 
-      cfl = 0.0
+      fmax=-99999999.
 
-      !$omp parallel do default(shared) private(i,j,k,wsp,tem)
-      !$acc parallel loop gang vector private(i,j,k,wsp,tem)
-      do k=1,nk
       if(nx.gt.1.and.ny.gt.1)then
-        do j=1,nj
-        do i=1,ni
+        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        do k=1,nk
+          do j=1,nj
+          do i=1,ni
           wsp = sqrt( ( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
                        +((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2 )   &
                        +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          cfl(k) = max( cfl(k) , wsp )
+          fmax = max(fmax,wsp)
 !!!          if( wsp.ge.1.30 ) print *,'  cfl,myid,i,j,k = ',wsp,myid,i,j,k
-        enddo
+          enddo
+          enddo
         enddo
       elseif(nx.gt.1)then
-        do j=1,nj
-        do i=1,ni
+        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        do k=1,nk
+          do j=1,nj
+          do i=1,ni
           wsp = sqrt( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          cfl(k) = max( cfl(k) , wsp )
+          fmax = max(fmax,wsp )
 !!!          if( wsp.ge.1.30 ) print *,'  cfl,myid,i,j,k = ',wsp,myid,i,j,k
-        enddo
+          enddo
+          enddo
         enddo
       elseif(axisymm.eq.0.and.ny.gt.1)then
-        do j=1,nj
-        do i=1,ni
+        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        do k=1,nk
+          do j=1,nj
+          do i=1,ni
           wsp = sqrt( ((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          cfl(k) = max( cfl(k) , wsp )
+          fmax = max( fmax , wsp )
 !!!          if( wsp.ge.1.30 ) print *,'  cfl,myid,i,j,k = ',wsp,myid,i,j,k
-        enddo
+          enddo
+          enddo
         enddo
       endif
-      enddo
-
-      fmax=-99999999.
-      do k=1,nk
-        fmax = max( fmax , cfl(k) )
-      enddo
 
       cflmax = fmax
 
@@ -2774,6 +2775,7 @@
 #endif
 
 !!!      if(cflmax.ge.1.50) stopit=.true.
+
 
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
  

@@ -611,7 +611,7 @@
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
       !LOOP13b
-      !$acc parallel loop gang vector collapse(2) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=2,nk-1
       do j=1,nj
       do i=1,ni
@@ -629,7 +629,7 @@
     IF( dobud .and. nrk.eq.nrkmax )THEN
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k)
-      !$acc parallel loop gang collapse(3) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -645,7 +645,7 @@
       call     wsub(ni  ,nj  ,nk  ,s  ,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -695,7 +695,7 @@
 
       !LOOP17 generates convergence error in satadj2
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1199,7 +1199,7 @@
     !  hadv tendencies:
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector collapse(2) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=i1,i2
