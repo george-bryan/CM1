@@ -41,17 +41,17 @@
 #OMP  = -DOPENMP
 #-----------------------------------------------------------------------------
 #  single processor, Portland Group compiler
-#FC   = pgf90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mnofma
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+FC   = pgf90
+OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mnofma
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
-FC   = pgf90
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
+#FC   = pgf90
+##OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
-DM   = -D_OPENACC
+##OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
+#DM   = -D_OPENACC
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
