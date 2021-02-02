@@ -1197,9 +1197,18 @@
                      kmw,v1b,v2pt,dovbud,vdiag)
           if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
           !$acc end data
+
+          !$acc data copyin(xh,rxh,arh1,arh2,uh,xf,vh) &
+          !$acc copyin(mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma) &
+          !$acc copyin(wa,m13,m23,m33,m22,kmh) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6) &
+          !$acc copy(wten1,wdiag)
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbw(dt,xh,rxh,arh1,arh2,uh,xf,vh,mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma,   &
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,m13,m23,m33,m22,kmh,  &
                      dowbud,wdiag)
+          !$acc end data
+          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         else
           ! all other sgs turbulence models:
@@ -1231,9 +1240,17 @@
                      kmw,v1b,v2pt,dovbud,vdiag)
           if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
           !$acc end data
+          !$acc data copyin(xh,rxh,arh1,arh2,uh,xf,vh) &
+          !$acc copyin(mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma) &
+          !$acc copyin(wa,t13,t23,t33,t22,kmh) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6) &
+          !$acc copy(wten1,wdiag)
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbw(dt,xh,rxh,arh1,arh2,uh,xf,vh,mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma,   &
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,t13,t23,t33,t22,kmh,  &
                      dowbud,wdiag)
+          !$acc end data
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
 
         endif
 
