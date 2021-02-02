@@ -1293,12 +1293,34 @@
           enddo
           enddo
         ENDIF
+        print *,'turbs #1'
+        !$acc data copyin(xh,rxh,arh1,arh2,uh) &
+        !$acc copyin(xf,arf1,arf2,uf,vh,vf) &
+        !$acc copyin(thflux, rds,sigma,rdsf,sigmaf,mh,mf) &
+        !$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
+        !$acc copyin(gx,gxu,gy,gyv) &
+        !$acc copyin(rho,rr,rf,sadv,khh,khv,dum7,dum8) &
+        !$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
+        !$acc copy(thten1,tdiag)
+        if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbs(1,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,thflux,   &
                    rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                    dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,sadv,thten1,khh,khv,dum7,dum8, &
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hturb,td_vturb)
+        !$acc end data
+        if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         IF( imoist.eq.1 )THEN
+          print *,'turbs #2'
+          !$acc data copyin(xh,rxh,arh1,arh2,uh) &
+          !$acc copyin(xf,arf1,arf2,uf,vh,vf) &
+          !$acc copyin(qvflux, rds,sigma,rdsf,sigmaf,mh,mf) &
+          !$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
+          !$acc copyin(gx,gxu,gy,gyv) &
+          !$acc copyin(rho,rr,rf,qa,khh,khv,dum7,dum8) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
+          !$acc copy(qten,qdiag)
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           ! moisture:
           do n=1,numq
             if( n.eq.nqv )then
@@ -1313,16 +1335,30 @@
                          .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
             endif
           enddo
+          !$acc end data
+          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
         ENDIF
 
         IF(iptra.eq.1)THEN
           ! passive tracers:
+          print *,'turbs #4'
+          !$acc data copyin(xh,rxh,arh1,arh2,uh) &
+          !$acc copyin(xf,arf1,arf2,uf,vh,vf) &
+          !$acc copyin(qvflux, rds,sigma,rdsf,sigmaf,mh,mf) &
+          !$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
+          !$acc copyin(gx,gxu,gy,gyv) &
+          !$acc copyin(rho,rr,rf,khh,khv,dum7,dum8) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
+          !$acc copy(pta,qdiag)
           do n=1,npt
+            if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
             call turbs(0,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,qvflux,   &
                        rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                        dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,pta(ib,jb,kb,n),ptten(ib,jb,kb,n),khh,khv,dum7,dum8, &
                        .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
           enddo
+          !$acc end data
+          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
         ENDIF
 
       ENDIF  doturb

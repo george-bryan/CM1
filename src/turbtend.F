@@ -48,6 +48,14 @@
       integer :: i,j,k,k1,k2
       real :: rdt,tema,temb,temc
       real :: tem,r1,r2,cfa,cfb,cfc,cfd,kappa,ptcb,ptct
+      !$acc declare present(xh,rxh,arh1,arh2,uh) &
+      !$acc present(xf,arf1,arf2,uf,vh,vf) &
+      !$acc present(sflux, rds,sigma,rdsf,sigmaf,mh,mf) &
+      !$acc present(gz,rgz,gzu,rgzu,gzv,rgzv) &
+      !$acc present(gx,gxu,gy,gyv) &
+      !$acc present(turbx,turby,turbz) &
+      !$acc present(sten) &
+      !$acc present(rho,rr,rf,s,khh,khv,dum7,dum8)
 
 !---------------------------------------------------------------
 
@@ -59,8 +67,8 @@
     IF(axisymm.eq.0)THEN
       ! Cartesian without terrain:
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       do k=1,nk
 
         do j=1,nj+1
@@ -77,28 +85,49 @@
                             *(    s(i,j,k)-   s(i,j-1,k) )*rdy*vf(j)
         enddo
         enddo
+      enddo
 
         IF( wbc.eq.2 .and. ibw.eq.1 )THEN
+      !$omp parallel do default(shared) private(j,k)
+      !$acc parallel loop gang vector default(present) private(j,k)
+      do k=1,nk
           do j=1,nj
             dumx(1,j,k) = dumx(2,j,k)
           enddo
+      enddo
         ENDIF
         IF( ebc.eq.2 .and. ibe.eq.1 )THEN
+      !$omp parallel do default(shared) private(j,k)
+      !$acc parallel loop gang vector default(present) private(j,k)
+      do k=1,nk
           do j=1,nj
             dumx(ni+1,j,k) = dumx(ni,j,k)
           enddo
+      enddo
         ENDIF
 
         IF( sbc.eq.2 .and. ibs.eq.1 )THEN
+      !$omp parallel do default(shared) private(i,k)
+      !$acc parallel loop gang vector default(present) private(i,k)
+      do k=1,nk
           do i=1,ni
             dumy(i,1,k) = dumy(i,2,k)
           enddo
+      enddo
         ENDIF
         IF( nbc.eq.2 .and. ibn.eq.1 )THEN
+      !$omp parallel do default(shared) private(i,k)
+      !$acc parallel loop gang vector default(present) private(i,k)
+      do k=1,nk
           do i=1,ni
             dumy(i,nj+1,k) = dumy(i,nj,k)
           enddo
+      enddo
         ENDIF
+
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
+      do k=1,nk
 
         do j=1,nj
         do i=1,ni
@@ -112,11 +141,10 @@
     ELSE
       ! axisymmetric:
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       do k=1,nk
       do j=1,nj
-
         do i=1,ni+1
           dumx(i,j,k)= -0.125*( rho(i,j,k)+rho(i-1,j,k) )           &
                              *(  (khh(i,j,k  )+ khh(i-1,j,k  ))     &
@@ -155,8 +183,8 @@
       ! Cartesian with terrain:
 
       ! use turbz as a temporary array for s at w-pts:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+      !$omp parallel do default(shared) private(i,j,k,r1,r2)
+      !$acc parallel loop gang vector default(present) private(i,j,k,r1,r2)
       do j=0,nj+1
 
         ! lowest model level:
@@ -180,8 +208,8 @@
 
       enddo
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       do k=1,nk
 
         ! x-flux
@@ -215,8 +243,8 @@
       enddo
 
       ! use turbz,dumz as temporary arrays for fluxes at w-pts:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+      !$omp parallel do default(shared) private(i,j,k,r1,r2)
+      !$acc parallel loop gang vector default(present) private(i,j,k,r1,r2)
       do j=1,nj+1
         ! lowest model level:
         do i=1,ni+1
@@ -241,8 +269,8 @@
         enddo
       enddo
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       do k=1,nk
 
         ! x-tendency
@@ -275,8 +303,8 @@
 !  open boundary conditions:
 
     IF( wbc.eq.2 .or. ebc.eq.2 .or. sbc.eq.2 .or. nbc.eq.2 )THEN
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       DO k=1,nk
 
         IF( wbc.eq.2 .and. ibw.eq.1 )THEN
@@ -306,8 +334,8 @@
 
   ELSE  dohoriz
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -335,8 +363,8 @@
   IF( doimpl.eq.0 )THEN
       ! explicit vertical turbulence:
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       DO j=1,nj
 
         do k=2,nk
@@ -344,30 +372,43 @@
           dumz(i,j,k)= -khv(i,j,k)*(s(i,j,k)-s(i,j,k-1))*rdz*mf(i,j,k)*rf(i,j,k)
         enddo
         enddo
+      ENDDO
 
         IF( cm1setup.eq.1 .or. cm1setup.eq.2 )THEN
           ! LES or mesoscale modeling:
 
           IF(bcturbs.eq.1)THEN
  
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector default(present) private(i,j)
+      DO j=1,nj
             do i=1,ni
               dumz(i,j,1)=0.0
               dumz(i,j,nk+1)=0.0
             enddo
+      ENDDO
 
           ELSEIF(bcturbs.eq.2)THEN
  
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector default(present) private(i,j)
+      DO j=1,nj
             do i=1,ni
               dumz(i,j,1)=dumz(i,j,2)
               dumz(i,j,nk+1)=dumz(i,j,nk)
             enddo
+      ENDDO
 
           ENDIF
 
           if(iflux.eq.1 .and. dosfcflx)then
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector default(present) private(i,j)
+      DO j=1,nj
             do i=1,ni
               dumz(i,j,1) = sflux(i,j)*rf(i,j,1)
             enddo
+      ENDDO
           endif
 
         ELSEIF( cm1setup.eq.3 )THEN
@@ -375,18 +416,26 @@
           if(bc_temp.eq.1)then
             ! specified theta at boundary
 
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector default(present) private(i,j)
+      DO j=1,nj
             do i=1,ni
               dumz(i,j,1) = -kappa*2.0*(s(i,j,1)-ptcb)*rdz*mf(i,j,1)*rf(i,j,1)
               dumz(i,j,nk+1) = -kappa*2.0*(ptct-s(i,j,nk))*rdz*mf(i,j,nk+1)*rf(i,j,nk+1)
             enddo
+      ENDDO
 
           elseif(bc_temp.eq.2)then
             ! specified flux at boundary
 
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector default(present) private(i,j)
+      DO j=1,nj
             do i=1,ni
               dumz(i,j,1) = kappa*ptc_bot*rf(i,j,1)
               dumz(i,j,nk+1) = kappa*ptc_top*rf(i,j,nk+1)
             enddo
+      ENDDO
 
           endif
 
@@ -397,6 +446,9 @@
 
         ENDIF
 
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
+      DO j=1,nj
         do k=1,nk
         do i=1,ni
           turbz(i,j,k) = -(dumz(i,j,k+1)-dumz(i,j,k))*rdz*mh(i,j,k)
@@ -419,8 +471,8 @@
       IF( cm1setup.eq.1 .or. cm1setup.eq.2 )THEN
         ! LES or mesoscale modeling:
         IF(bcturbs.eq.1)THEN
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dumz(i,j,1)=0.0
@@ -428,8 +480,8 @@
           enddo
           enddo
         ELSEIF(bcturbs.eq.2)THEN
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dumz(i,j,1) = -khv(i,j,2)*(s(i,j,2)-s(i,j,1))*rdz*mf(i,j,2)*rf(i,j,2)
@@ -439,8 +491,8 @@
         ENDIF
         if(iflux.eq.1 .and. dosfcflx)then
           ! surface heat/moisture flux:
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dumz(i,j,1)=sflux(i,j)*rf(i,j,1)
@@ -451,8 +503,8 @@
         ! DNS bc:
         if(bc_temp.eq.1)then
           ! specified theta at boundary
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dumz(i,j,1) = -kappa*2.0*(s(i,j,1)-ptcb)*rdz*mf(i,j,1)*rf(i,j,1)
@@ -461,8 +513,8 @@
           enddo
         elseif(bc_temp.eq.2)then
           ! specified flux at boundary
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dumz(i,j,1) = kappa*ptc_bot*rf(i,j,1)
@@ -474,8 +526,8 @@
 
       k = 1
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+      !$omp parallel do default(shared) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+      !$acc parallel loop gang vector default(present) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
       do j=1,nj
       DO i=1,ni
           r2 = dum8(i,j,k)
@@ -491,8 +543,8 @@
 
         do k=2,nk-1
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+        !$omp parallel do default(shared) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+        !$acc parallel loop gang vector default(present) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
         do j=1,nj
         do i=1,ni
           r1 = dum7(i,j,k)
@@ -512,8 +564,8 @@
       IF( axisymm.eq.0 )THEN
 
         k = nk
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+        !$omp parallel do default(shared) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+        !$acc parallel loop gang vector default(present) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
         do j=1,nj
         do i=1,ni
           r1 = dum7(i,j,k)
@@ -530,8 +582,8 @@
 
         do k=nk-1,1,-1
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector default(present) private(i,j)
         do j=1,nj
         DO i=1,ni
           dumz(i,j,k)=dumx(i,j,k)*dumz(i,j,k+1)+dumy(i,j,k)
@@ -545,8 +597,8 @@
       ELSE
 
         k = nk
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+        !$omp parallel do default(shared) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
+        !$acc parallel loop gang vector default(present) private(i,j,r1,r2,cfa,cfb,cfc,cfd,tem)
         do j=1,nj
         do i=1,ni
           r1 = dum7(i,j,k)
@@ -563,8 +615,8 @@
 
         do k=nk-1,1,-1
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector default(present) private(i,j)
         do j=1,nj
         DO i=1,ni
           dumz(i,j,k)=dumx(i,j,k)*dumz(i,j,k+1)+dumy(i,j,k)
@@ -581,8 +633,8 @@
 
   ELSE  dovert
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -599,8 +651,8 @@
 
       IF( dobud )THEN
         if( axisymm.eq.0 )then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -610,8 +662,8 @@
           enddo
           enddo
         else
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
