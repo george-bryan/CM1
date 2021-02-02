@@ -421,9 +421,18 @@
           enddo
         endif
 
+        !$acc data copyin(xh,rxh,uh,xf,uf,vh,vf) &
+        !$acc copyin(mh,mf,rho,rr,rf,rds,sigma) &
+        !$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
+        !$acc copyin(tkea,kmh,kmv) &
+        !$acc copyin(dum1,dum2,dum3,dum4,dum5,sten) &
+        !$acc copy(tketen)
+        if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
                    rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,        &
                    dum1,dum2,dum3,dum4,dum5,sten,tkea,tketen,kmh,kmv)
+        !$acc end data
+        if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         if( dotdwrite .and. kd_turb.ge.1 )then
           !$omp parallel do default(shared)  &
@@ -1158,17 +1167,36 @@
       doturb:  &
       IF( dohturb .or. dovturb )THEN
 
+
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
           ! NBA sgs turbulence models:
-
+          !$acc data copyin(xh,ruh,xf,rxf,arf1,arf2,uf,vh) & 
+          !$acc copyin(mh,mf,rmf,rho,rf,zs, gz,rgz,gzu,gzv) &
+          !$acc copyin(rds,sigma,rdsf,sigmaf,gxu) &
+          !$acc copyin(ua,wa,m11,m12,m13,m22) &
+          !$acc copyin(t11,t12,t13,t22,kmv,kmw,u1b) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
+          !$acc copy(uten1,u2pt,udiag)
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
                      zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gxu,     &
                      dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,ua,uten1,wa,m11,m12,m13,m22,kmv, &
                      kmw,u1b,u2pt,doubud,udiag)
+          !$acc end data
+          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
+          !$acc data copyin(xh,rxh,arh1,arh2,uh,xf,rvh,vf) &
+          !$acc copyin(mh,mf,rho,rr,rf,zs,gz,rgz,gzu,gzv) &
+          !$acc copyin(rds,sigma,rdsf,sigmaf,gyv) &
+          !$acc copyin(va,wa,m12,m22,m23,kmv,kmw,v1b) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
+          !$acc copy(vten1,v2pt,vdiag)
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbv(dt,xh,rxh,arh1,arh2,uh,xf,rvh,vf,mh,mf,rho,rr,rf,   &
                      zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gyv,  &
                      dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,va,vten1,wa,m12,m22,m23,kmv, &
                      kmw,v1b,v2pt,dovbud,vdiag)
+          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
+          !$acc end data
           call turbw(dt,xh,rxh,arh1,arh2,uh,xf,vh,mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma,   &
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,m13,m23,m33,m22,kmh,  &
                      dowbud,wdiag)
@@ -1176,14 +1204,33 @@
         else
           ! all other sgs turbulence models:
 
+          !$acc data copyin(xh,ruh,xf,rxf,arf1,arf2,uf,vh) & 
+          !$acc copyin(mh,mf,rmf,rho,rf,zs, gz,rgz,gzu,gzv) &
+          !$acc copyin(rds,sigma,rdsf,sigmaf,gxu) &
+          !$acc copyin(ua,wa,m11,m12,m13,m22) &
+          !$acc copyin(t11,t12,t13,t22,kmv,kmw,u1b) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
+          !$acc copy(uten1,u2pt,udiag)
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
                      zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gxu,     &
                      dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,ua,uten1,wa,t11,t12,t13,t22,kmv, &
                      kmw,u1b,u2pt,doubud,udiag)
+          !$acc end data
+          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
+          !$acc data copyin(xh,rxh,arh1,arh2,uh,xf,rvh,vf) &
+          !$acc copyin(mh,mf,rho,rr,rf,zs,gz,rgz,gzu,gzv) &
+          !$acc copyin(rds,sigma,rdsf,sigmaf,gyv) &
+          !$acc copyin(va,wa,t12,t22,t23,kmv,kmw,v1b) &
+          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
+          !$acc copy(vten1,v2pt,vdiag)
+          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbv(dt,xh,rxh,arh1,arh2,uh,xf,rvh,vf,mh,mf,rho,rr,rf,   &
                      zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gyv,  &
                      dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,va,vten1,wa,t12,t22,t23,kmv, &
                      kmw,v1b,v2pt,dovbud,vdiag)
+          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
+          !$acc end data
           call turbw(dt,xh,rxh,arh1,arh2,uh,xf,vh,mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma,   &
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,t13,t23,t33,t22,kmh,  &
                      dowbud,wdiag)

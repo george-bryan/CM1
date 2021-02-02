@@ -217,6 +217,7 @@
            time_sfcphys,time_dbz,time_last,                          &
            time_advs,time_advu,time_advv,time_advw,                  &
            time_slv2_H2D,time_slv2_D2H,                              &
+           time_slv1_H2D,time_slv1_D2H,                              &
            time_sound_H2D,time_sound_D2H,time_adv_H2D,time_adv_D2H,  &
            time_mpu1,time_mpv1,time_mpw1,time_mpp1,                  &
            time_mpu2,time_mpv2,time_mpw2,time_mpp2,                  &

@@ -3775,7 +3775,7 @@
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
                     time_sound_H2D+time_sound_D2H+time_adv_H2D + time_adv_D2H+ &
-                    time_slv2_H2D + time_slv2_D2H
+                    time_slv2_H2D + time_slv2_D2H + time_slv1_H2D + time_slv1_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -3873,11 +3873,20 @@
       ! for MPI runs without procfiles, average the timestat terms:
       IF(.not.procfiles)THEN
         sum = 0.0
+        call MPI_REDUCE(time_slv1_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv1_H2D = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_slv1_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv1_D2H = sum/float(numprocs)
+
+        sum = 0.0
         call MPI_REDUCE(time_slv2_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_slv2_H2D = sum/float(numprocs)
         sum = 0.0
         call MPI_REDUCE(time_slv2_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_slv2_D2H = sum/float(numprocs)
+
+
         sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
@@ -4079,6 +4088,8 @@
       if(time_solve.lt.0.0001) time_solve=1.
 
     IF(dowr)THEN
+      write(outfile,100) 'slv1-H2D',time_slv1_H2D,time_slv1_H2D/time_solve
+      write(outfile,100) 'slv1-D2H',time_slv1_D2H,time_slv1_D2H/time_solve
       write(outfile,100) 'slv2-H2D',time_slv2_H2D,time_slv2_H2D/time_solve
       write(outfile,100) 'slv2-D2H',time_slv2_D2H,time_slv2_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve

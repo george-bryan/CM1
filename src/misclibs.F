@@ -3679,6 +3679,8 @@
       time_sound_D2H=0.0
       time_adv_H2D=0.0
       time_adv_D2H=0.0
+      time_slv1_H2D=0.0
+      time_slv1_D2H=0.0
       time_slv2_H2D=0.0
       time_slv2_D2H=0.0
       time_advu=0.0
