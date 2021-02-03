@@ -343,7 +343,7 @@
       !$acc copyin(yh,vh,rvh) &
       !$acc copyin(yf,vf,rvf) &
       !$acc copyin(rds,sigma,rdsf,sigmaf) &
-      !$acc copyin(mh,rmh) &
+      !$acc copyin(zh,mh,rmh) &
       !$acc copyin(mf,rmf) &
       !$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
       !$acc copyin(gx,gxu,gy,gyv)
@@ -489,9 +489,10 @@
 !--------------------------------------------------------------------
 !  Rayleigh damping and set tendency arrays:
 
+      !$acc data copyin(tauh,ua,va,u0,v0,tauf,taus,wa,tha) copy(uten1,vten1,wten1,thten1)
       IF( irdamp.eq.1 .or. hrdamp.eq.1 )THEN
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -503,8 +504,8 @@
         enddo
         enddo
       ELSEIF( irdamp.eq.2 .or. hrdamp.eq.2 )THEN
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -516,8 +517,8 @@
         enddo
         enddo
       ELSE
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -529,13 +530,15 @@
         enddo
         enddo
       ENDIF
+      !$acc end data
       if(timestats.ge.1) time_rdamp=time_rdamp+mytime()
 
       IF( imoist.eq.1 )THEN
         ! moisture:
+        !$acc data copy(qten)
+        !$omp parallel do default(shared) private(i,j,k,n)
+        !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
         do n=1,numq
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -544,14 +547,16 @@
           enddo
           enddo
         enddo
+        !$acc end data
         if(timestats.ge.1) time_misc=time_misc+mytime()
       ENDIF
 
       IF(iptra.eq.1)THEN
+        !$acc data copy(ptten)
         ! passive tracers:
+        !$omp parallel do default(shared) private(i,j,k,n)
+        !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
         do n=1,npt
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -560,13 +565,16 @@
           enddo
           enddo
         enddo
+        !$acc end data
       ENDIF
 
     ! Diagnostics (infrequent):
 
+      
+      !$acc data copyin(uten1,vten1,wten1,thten1) copy(udiag,vdiag,wdiag,tdiag)
       if( doubud .and. ud_rdamp.ge.1 )then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -576,8 +584,8 @@
         enddo
       endif
       if( dovbud .and. vd_rdamp.ge.1 )then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni
@@ -587,8 +595,8 @@
         enddo
       endif
       if( dowbud .and. wd_rdamp.ge.1 )then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -598,8 +606,8 @@
         enddo
       endif
       if( dotbud .and. td_rdamp.ge.1 )then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -608,6 +616,7 @@
         enddo
         enddo
       endif
+      !$acc end data
       if(timestats.ge.1) time_rdamp=time_rdamp+mytime()
 
 !--------------------------------------------------------------------
@@ -670,12 +679,13 @@
           ulspg = 0.0
           vlspg = 0.0
 
+          !$acc data copyin(v0,u0) copy(uten1,vten1)
           !---------------------------------------------------------------!
           ! Large-scale pressure gradient based on geostropic balance,
           ! using base-state wind profiles:
           !---------------------------------------------------------------!
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj+1
           do i=1,ni+1
@@ -688,6 +698,7 @@
           enddo
           enddo
           enddo
+          !$acc end data
 
         elseif( lspgrad.eq.2 )then
 
@@ -695,8 +706,8 @@
           ! Large-scale pressure gradient based on geostropic balance,
           ! using ug,vg arrays:
           !---------------------------------------------------------------!
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           do k=1,nk
             ulspg(k) = -fcor*(vg(k)+vmove)
             vlspg(k) =  fcor*(ug(k)+umove)
@@ -715,8 +726,8 @@
           ! (Bryan et al, 2017, BLM, eqn 10)
           ! using base-state wind profiles:
           !---------------------------------------------------------------!
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tem)
+          !$omp parallel do default(shared) private(i,j,k,tem)
+          !$acc parallel loop gang vector default(present) private(i,j,k,tem)
           do k=1,nk
             ulspg(k) = -fcor*v0(1,1,k)-v0(1,1,k)*v0(1,1,k)/hurr_rad
             vlspg(k) =  0.0
@@ -733,8 +744,8 @@
           ! Specified large-scale pressure gradient:
           ! (user must set ulspg and vlspg in base.F)
           !---------------------------------------------------------------!
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
@@ -815,8 +826,8 @@
         ! store cvm in dum1:
         ! store ql  in dum2:
         ! store qi  in dum3:
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,n)
+        !$omp parallel do default(shared) private(i,j,k,n)
+        !$acc parallel loop gang vector default(present) private(i,j,k,n)
         DO k=1,nk
           do j=1,nj
           do i=1,ni
@@ -857,8 +868,9 @@
           enddo
         ENDDO
       ELSE
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,n)
+        !$acc data copy(dum1)
+        !$omp parallel do default(shared) private(i,j,k,n)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
         DO k=1,nk
           do j=1,nj
           do i=1,ni
@@ -866,14 +878,15 @@
           enddo
           enddo
         ENDDO
+        !$acc end data
       ENDIF
 
       !----- store appropriate rho for budget calculations in dum2 -----!
-
+      !$acc data copyin(rho) copy(dum2)
       IF(axisymm.eq.1)THEN
        ! for axisymmetric grid:
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -883,8 +896,8 @@
         enddo
       ELSE
        ! for Cartesian grid:
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -893,14 +906,14 @@
         enddo
         enddo
       ENDIF
+      !$acc end data
 
       !-------------------------------------------------------------
 
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
         tem0 = dt*dx*dy*dz
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,delpi,delth,delqv,delt,n)
+        !$omp parallel do default(shared) private(i,j,k,delpi,delth,delqv,delt,n)
         do j=1,nj
         bud2(j) = 0.0d0
         do i=1,ni
@@ -937,8 +950,8 @@
 
       IF(idiss.eq.1)THEN
         IF( dotbud .and. td_diss.ge.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -955,8 +968,8 @@
         endif
         if(imoist.eq.1.and.eqtset.eq.2)then
           ! moist, new equations:
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,epsd,dheat)
+          !$omp parallel do default(shared) private(i,j,k,epsd,dheat)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,epsd,dheat)
           do k=k1,nk
           do j=1,nj
           do i=1,ni
@@ -968,8 +981,8 @@
           enddo
           if( bbc.eq.3 )then
             k = 1
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,dz1,epsd,dheat)
+            !$omp parallel do default(shared) private(i,j,dz1,epsd,dheat)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j,dz1,epsd,dheat)
             do j=1,nj
             do i=1,ni
               dz1 = zf(i,j,2)-zf(i,j,1)
@@ -981,8 +994,8 @@
           endif
         else
           ! traditional cloud-modeling equations (also dry equations):
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,epsd,dheat)
+          !$omp parallel do default(shared) private(i,j,k,dz1,epsd,dheat)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,dz1,epsd,dheat)
           do k=k1,nk
           do j=1,nj
           do i=1,ni
@@ -994,8 +1007,8 @@
           enddo
           if( bbc.eq.3 )then
             k = 1
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,dz1,epsd,dheat)
+            !$omp parallel do default(shared) private(i,j,dz1,epsd,dheat)
+            !$acc parallel loop gang vector default(present) private(i,j,dz1,epsd,dheat)
             do j=1,nj
             do i=1,ni
               dz1 = zf(i,j,2)-zf(i,j,1)
@@ -1007,8 +1020,8 @@
           endif
         endif
         IF( dotbud .and. td_diss.ge.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1024,8 +1037,8 @@
 
       IF(rterm.eq.1)THEN
         if( dotbud .and. td_rad.ge.1 )then
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1035,8 +1048,8 @@
           enddo
         endif
         tem0 = dt*dx*dy*dz
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,thrad,prad)
+        !$omp parallel do default(shared) private(i,j,k,thrad,prad)
+        !$acc parallel loop gang vector default(present) private(i,j,k,thrad,prad)
         do k=1,nk
         bud(k)=0.0d0
         do j=1,nj
@@ -1059,8 +1072,8 @@
           qbudget(10) = qbudget(10) + tem0*bud(k)
         enddo
         if( dotbud .and. td_rad.ge.1 )then
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1080,8 +1093,8 @@
         ! TEMPERATURE tendencies from radiation scheme
         ! are stored in lwten and swten
 
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=0,nj+1
         do i=0,ni+1
@@ -1091,8 +1104,8 @@
         enddo
 
         if( dotbud .and. td_rad.ge.1 )then
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1103,8 +1116,8 @@
         endif
         IF( eqtset.eq.1 )THEN
           ! traditional equation set:
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1116,8 +1129,8 @@
         ELSEIF( eqtset.eq.2 )THEN
           ! Bryan-Fritsch equation set:
           rdt = 1.0/dt
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tnew,pnew,thnew)
+          !$omp parallel do default(shared) private(i,j,k,tnew,pnew,thnew)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tnew,pnew,thnew)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1132,8 +1145,8 @@
           enddo
         ENDIF
         if( dotbud .and. td_rad.ge.1 )then
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1148,8 +1161,8 @@
       IF( use_pbl )THEN
         ! PBL tendencies:
 
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -1158,8 +1171,8 @@
         enddo
         enddo
         if( dotbud .and. td_pbl.ge.1 )then
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1171,7 +1184,6 @@
         if(timestats.ge.1) time_pbl=time_pbl+mytime()
 
       ENDIF
-
 
 !--------------------------------------------------------------------
 !  subgrid turbulence tendencies:
@@ -1233,10 +1245,11 @@
         endif
 
         if( doimpl.eq.1 .and. dovturb )then
+          !$acc data copyin(rr,rf,khv) copy(dum7,dum8)
           !  Arrays for vimpl turbs:
           !    NOTE:  do not change dum7,dum8 from here to RK loop
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1245,24 +1258,25 @@
           enddo
           enddo
           enddo
+          !$acc end data
         endif
 
         ! cm1r18: subtract th0r from theta (as in advection scheme)
         !         (reduces roundoff error)
+        !$acc data copyin(th0,tha) copy(sadv)
         IF(.not.terrain_flag)THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tem)
+          !$omp parallel do default(shared) private(i,j,k,tem)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
-          tem = th0(1,1,k)-th0r
           do j=0,nj+1
           do i=0,ni+1
-            sadv(i,j,k)=tem+tha(i,j,k)
+            sadv(i,j,k)=(th0(1,1,k)-th0r)+tha(i,j,k)
           enddo
           enddo
           enddo
         ELSE
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tem)
+          !$omp parallel do default(shared) private(i,j,k,tem)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -1271,6 +1285,7 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
         !$acc data copyin(thflux) &
         !$acc copyin(rho,rr,rf,sadv,khh,khv,dum7,dum8) &
         !$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
@@ -1326,6 +1341,7 @@
 
       ENDIF  doturb
 
+     !TOP
 !--------------------------------------------------------------------
 !  U-equation
 
@@ -1337,8 +1353,8 @@
           gamm = 1.0+(0.0-1.0)*(mtime-t1_uforce)/(t2_uforce-t1_uforce)
         endif
         if(myid.eq.0) print *,'  mtime,gamm = ',mtime,gamm
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,aiu)
+        !$omp parallel do default(shared) private(i,j,k,aiu)
+        !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,aiu)
         do k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -1359,8 +1375,8 @@
         else
           ip = 1
         endif
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=ip,ni+1
@@ -1369,8 +1385,8 @@
         enddo
         enddo
         IF( doubud .and. ud_pbl.ge.1 )then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=ip,ni+1
@@ -1386,8 +1402,8 @@
 !  V-equation
 
       if( use_pbl )then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni
@@ -1396,8 +1412,8 @@
         enddo
         enddo
         IF( dovbud .and. vd_pbl.ge.1 )then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj+1
           do i=1,ni
@@ -1414,8 +1430,8 @@
 
       if(imoist.eq.1)then
             if( use_pbl )then
-              !$omp parallel do default(shared)   &
-              !$omp private(i,j,k)
+              !$omp parallel do default(shared) private(i,j,k)
+              !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
               do k=1,nk
               do j=1,nj
               do i=1,ni
@@ -1424,8 +1440,8 @@
               enddo
               enddo
               if( doqbud .and. qd_pbl.ge.1 )then
-                !$omp parallel do default(shared)   &
-                !$omp private(i,j,k)
+                !$omp parallel do default(shared) private(i,j,k)
+                !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
                 do k=1,nk
                 do j=1,nj
                 do i=1,ni
@@ -1438,8 +1454,8 @@
             endif
         IF( use_pbl )THEN
         if(nqc.ge.1)then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1449,8 +1465,8 @@
           enddo
         endif
         if(nqi.ge.1)then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1460,8 +1476,8 @@
           enddo
         endif
         if(nnci.ge.1)then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1471,8 +1487,8 @@
           enddo
         endif
         if(nncc.ge.1)then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1679,9 +1695,10 @@
     IF( psolver.le.3 )THEN
 
       IF(eqtset.eq.1)THEN
+        !$acc data copy(ppten)
         ! traditional cloud modeling:
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -1689,13 +1706,15 @@
         enddo
         enddo
         enddo
+        !$acc end data
       ELSE
+        !!$acc data copyin(thten1,qten,tha,qa,rho,th0,pi0,ppi,qpten,qtten,qvten,qcten) copy(ppten)
         ! mass-conserving pressure eqt:  different sections for moist/dry cases:
         rdt = 1.0/dt
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
+          !$omp parallel do default(shared) private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1721,8 +1740,8 @@
           enddo
           enddo
         ELSE
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
+          !$omp parallel do default(shared) private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
+          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1741,6 +1760,7 @@
           enddo
           enddo
         ENDIF  ! endif for moist/dry
+        !!$acc end data
       ENDIF    ! endif for eqtset 1/2
 
     ENDIF  ps6
