@@ -4068,10 +4068,11 @@
 #ifdef MPI
                   time_mpu1+time_mpv1+time_mpw1+time_mpp1+                &
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
-                  time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
-                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
+                  time_mps1+time_mps3+time_mpq1+time_mptk1+               &
+                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+      &
 #endif
-                  time_advs+time_advu+time_advv+time_advw
+                  time_advs+time_advu+time_advv+time_advw+                &
+                  time_slv1_H2D+time_slv1_D2H+time_slv2_H2D+time_slv2_D2H 
       time_solve0 = time_solve
 
 #ifdef MPI
