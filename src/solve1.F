@@ -346,7 +346,21 @@
       !$acc copyin(zh,mh,rmh) &
       !$acc copyin(zf,mf,rmf) &
       !$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
-      !$acc copyin(gx,gxu,gy,gyv)
+      !$acc copyin(gx,gxu,gy,gyv) &
+      !$acc copyin(pi0,rho0,th0,rr0,rf0) &
+      !$acc copyin(u0,v0) &
+      !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
+      !$acc copy(rr,rf) &
+      !$acc copy(ua,uten1) &
+      !$acc copy(va,vten1) &
+      !$acc copy(wa,wten1) &
+      !$acc copy(rho) &
+      !$acc copy(ppi,ppten,sten) &
+      !$acc copy(tha,thten,thten1) &
+      !$acc copy(qa,qten) &
+      !$acc copy(kmh,kmv,khh,khv,tkea,tketen) &
+      !$acc copy(pta,ptten) &
+      !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
       if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
 
 #ifdef MPI
@@ -405,7 +419,7 @@
 
       IF( cm1setup.eq.1 .and. iusetke )THEN
 
-        !$acc data copyin(khv,nm,dissten,epst) copy(tketen,kdiag)
+        !$acc data copyin(nm,dissten,epst)
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         DO k=2,nk
@@ -433,19 +447,13 @@
         endif
         !$acc end data
 
-        !$acc data copyin(rho,rr,rf) &
-        !$acc copyin(tkea,kmh,kmv) &
-        !$acc copyin(dum1,dum2,dum3,dum4,dum5,sten) &
-        !$acc copy(tketen)
         if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
                    rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,        &
                    dum1,dum2,dum3,dum4,dum5,sten,tkea,tketen,kmh,kmv)
-        !$acc end data
         if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         if( dotdwrite .and. kd_turb.ge.1 )then
-          !$acc data copyin(tketen) copy(kdiag)
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk+1
@@ -455,7 +463,6 @@
           enddo
           enddo
           enddo
-          !$acc end data
         endif
 
       ENDIF
@@ -481,7 +488,7 @@
 !  radbc
  
       if(irbc.eq.1)then
-        !$acc data copyin(ua,va) copy(radbcw,radbce,radbcs,radbcn)
+        !$acc data copy(radbcw,radbce,radbcs,radbcn)
         if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,ua)
  
         if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,va)
@@ -491,7 +498,7 @@
 !--------------------------------------------------------------------
 !  Rayleigh damping and set tendency arrays:
 
-      !$acc data copyin(tauh,ua,va,u0,v0,tauf,taus,wa,tha) copy(uten1,vten1,wten1,thten1)
+      !$acc data copyin(tauh,tauf,taus)
       IF( irdamp.eq.1 .or. hrdamp.eq.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -537,7 +544,6 @@
 
       IF( imoist.eq.1 )THEN
         ! moisture:
-        !$acc data copy(qten)
         !$omp parallel do default(shared) private(i,j,k,n)
         !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
         do n=1,numq
@@ -549,12 +555,10 @@
           enddo
           enddo
         enddo
-        !$acc end data
         if(timestats.ge.1) time_misc=time_misc+mytime()
       ENDIF
 
       IF(iptra.eq.1)THEN
-        !$acc data copy(ptten)
         ! passive tracers:
         !$omp parallel do default(shared) private(i,j,k,n)
         !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
@@ -567,13 +571,11 @@
           enddo
           enddo
         enddo
-        !$acc end data
       ENDIF
 
     ! Diagnostics (infrequent):
 
       
-      !$acc data copyin(uten1,vten1,wten1,thten1) copy(udiag,vdiag,wdiag,tdiag)
       if( doubud .and. ud_rdamp.ge.1 )then
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -618,7 +620,6 @@
         enddo
         enddo
       endif
-      !$acc end data
       if(timestats.ge.1) time_rdamp=time_rdamp+mytime()
 
 !--------------------------------------------------------------------
@@ -684,7 +685,6 @@
           ulspg = 0.0
           vlspg = 0.0
 
-          !$acc data copyin(v0,u0) copy(uten1,vten1)
           !---------------------------------------------------------------!
           ! Large-scale pressure gradient based on geostropic balance,
           ! using base-state wind profiles:
@@ -703,7 +703,6 @@
           enddo
           enddo
           enddo
-          !$acc end data
 
         elseif( lspgrad.eq.2 )then
 
@@ -875,7 +874,6 @@
           enddo
         ENDDO
       ELSE
-        !$acc data copy(dum1)
         !$omp parallel do default(shared) private(i,j,k,n)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
         DO k=1,nk
@@ -885,11 +883,9 @@
           enddo
           enddo
         ENDDO
-        !$acc end data
       ENDIF
 
       !----- store appropriate rho for budget calculations in dum2 -----!
-      !$acc data copyin(rho) copy(dum2)
       IF(axisymm.eq.1)THEN
        ! for axisymmetric grid:
         !$omp parallel do default(shared) private(i,j,k)
@@ -913,14 +909,13 @@
         enddo
         enddo
       ENDIF
-      !$acc end data
 
       !-------------------------------------------------------------
 
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
         tem0 = dt*dx*dy*dz
-        !$acc data copyin(thflux,qvflux,rf0,rr0,ppi,pi0,th0,tha,qa,dum2) copy(bud2,qbudget)
+        !$acc data copyin(thflux,qvflux) copy(bud2,qbudget)
         !$omp parallel do default(shared) private(i,j,k,delpi,delth,delqv,delt,n)
         !$acc parallel loop gang vector default(present) private(i,j,k,delpi,delth,delqv,delt,n)
         do j=1,nj
@@ -1205,11 +1200,9 @@
 
 
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
-          !$acc data copyin(rho,rr,rf) &
-          !$acc copyin(ua,va,wa,m11,m12,m13,m22,m23) &
-          !$acc copyin(uten1,vten1,wten1,u2pt,v2pt,udiag,vdiag,wdiag) &
-          !$acc copyin(kmv,kmw,u1b,v1b) &
-          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7)
+          !$acc data copyin(m11,m12,m13,m22,m23) &
+          !$acc copyin(u2pt,v2pt) &
+          !$acc copyin(kmw,u1b,v1b)
           ! NBA sgs turbulence models:
           if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
@@ -1230,12 +1223,9 @@
         else
           ! all other sgs turbulence models:
 
-          !$acc data copyin(rho,rr,rf) &
-          !$acc copyin(ua,va,wa,t11,t12,t13,t22,t23,t33) &
-          !$acc copyin(kmv,kmw,kmh,u1b,v1b) &
-          !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7) &
-          !$acc copy(uten1,vten1,wten1,u2pt,v2pt) &
-          !$acc copy(udiag,vdiag,wdiag)
+          !$acc data copyin(t11,t12,t13,t22,t23,t33) &
+          !$acc copyin(kmw,u1b,v1b) &
+          !$acc copy(u2pt,v2pt)
 
           if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
@@ -1257,7 +1247,6 @@
         endif
 
         if( doimpl.eq.1 .and. dovturb )then
-          !$acc data copyin(rr,rf,khv) copy(dum7,dum8)
           !  Arrays for vimpl turbs:
           !    NOTE:  do not change dum7,dum8 from here to RK loop
           !$omp parallel do default(shared) private(i,j,k)
@@ -1270,12 +1259,11 @@
           enddo
           enddo
           enddo
-          !$acc end data
         endif
 
         ! cm1r18: subtract th0r from theta (as in advection scheme)
         !         (reduces roundoff error)
-        !$acc data copyin(th0,tha) copy(sadv)
+        !$acc data copy(sadv)
         IF(.not.terrain_flag)THEN
           !$omp parallel do default(shared) private(i,j,k,tem)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -1299,9 +1287,7 @@
         ENDIF
         !$acc end data
         !$acc data copyin(thflux) &
-        !$acc copyin(rho,rr,rf,sadv,khh,khv,dum7,dum8) &
-        !$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
-        !$acc copy(thten1,tdiag)
+        !$acc copyin(sadv)
         if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbs(1,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,thflux,   &
                    rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
@@ -1311,10 +1297,7 @@
         if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         IF( imoist.eq.1 )THEN
-          !$acc data copyin(qvflux) &
-          !$acc copyin(rho,rr,rf,qa,khh,khv,dum7,dum8) &
-          !$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
-          !$acc copy(qten,qdiag)
+          !$acc data copyin(qvflux)
           if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           ! moisture:
           do n=1,numq
@@ -1336,10 +1319,7 @@
 
         IF(iptra.eq.1)THEN
           ! passive tracers:
-          !$acc data copyin(qvflux) &
-          !$acc copyin(rho,rr,rf,khh,khv,dum7,dum8) &
-          !$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
-          !$acc copy(pta,qdiag)
+          !$acc data copyin(qvflux)
           do n=1,npt
             if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
             call turbs(0,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,qvflux,   &
@@ -1613,11 +1593,8 @@
 !    (new for cm1r19)
 
       IF( testcase.ge.1 )THEN
-        !$acc data copyin(rho0,zh,zf,qa) &
-        !$acc copyin(thfrc,qvfrc) &
+        !$acc data copyin(thfrc,qvfrc) &
         !$acc copy(ufrc,vfrc) &
-        !$acc copy(dum1,dum2,dum3,dum4) &
-        !$acc copy(uten1,vten1,thten1,qten) &
         !$acc copy(o30,zir)
         if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call     testcase_simple_phys(mh,rho0,rr0,rf0,th0,u0,v0,     &
@@ -1726,7 +1703,6 @@
     IF( psolver.le.3 )THEN
 
       IF(eqtset.eq.1)THEN
-        !$acc data copy(ppten)
         ! traditional cloud modeling:
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -1737,14 +1713,12 @@
         enddo
         enddo
         enddo
-        !$acc end data
       ELSE
         ! mass-conserving pressure eqt:  different sections for moist/dry cases:
         rdt = 1.0/dt
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
           !non-B4B due to the use of PWR function 
-          !$acc data copyin(ppi,tha,qa,th0,pi0,rho,thten1,qten) copy(ppten)
           !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew,qvnew)
           do k=1,nk
@@ -1765,9 +1739,8 @@
           enddo
           enddo
           enddo
-          !$acc end data
 
-          !$acc data copyin(qpten,qtten,qvten,qcten) copy(qten,ppten,thten,thten1)
+          !$acc data copyin(qpten,qtten,qvten,qcten)
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
