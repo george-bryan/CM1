@@ -344,7 +344,7 @@
       !$acc copyin(yf,vf,rvf) &
       !$acc copyin(rds,sigma,rdsf,sigmaf) &
       !$acc copyin(zh,mh,rmh) &
-      !$acc copyin(mf,rmf) &
+      !$acc copyin(zf,mf,rmf) &
       !$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
       !$acc copyin(gx,gxu,gy,gyv)
       if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
@@ -467,7 +467,7 @@
 
     IF( irdamp.eq.2 .or. hrdamp.eq.2 .or. tqnudge .or. do_lsnudge )THEN
 #ifdef _OPENACC
-      print *,'WARNING: get_avg_{uvtq,uvt} not ported to GPU'
+      print *,'WARNING: solve1: get_avg_{uvtq,uvt} not ported to GPU'
 #endif
       if( imoist.eq.1 )then
         call     get_avg_uvtq(uavg,vavg,thavg,qavg,cavg,th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
@@ -626,7 +626,7 @@
 
       IF( lspgrad.ge.1 )THEN
 #ifdef _OPENACC
-        print *,'WARNING: lspgrad if branch not ported to GPU'
+        print *,'WARNING: solve1: lspgrad if branch not ported to GPU'
 #endif
 
         ! Include a large-scale pressure gradient:
@@ -770,7 +770,7 @@
 
       IF( difforder.eq.2 )THEN
 #ifdef _OPENACC
-        print *,'WARNING: diffusion operator not ported to GPU'
+        print *,'WARNING: solve1: diffusion operator not ported to GPU'
 #endif
         idiffge1:  &
         if(idiff.ge.1)then
@@ -1079,6 +1079,7 @@
         enddo
         enddo
         enddo
+        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           qbudget(10) = qbudget(10) + tem0*bud(k)
         enddo
@@ -1517,6 +1518,7 @@
 
       if( imoist.eq.0 .and. td_nudge.ge.1   &
           .and. dotbud )then
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1526,6 +1528,7 @@
         enddo
       elseif( imoist.eq.1 .and. td_nudge.ge.1   &
           .and. dotbud .and. doqbud .and. qd_nudge.ge.1 )then
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1550,6 +1553,7 @@
         if( myid.eq.0 ) print *,'  nudging with nudgefac,taunudge = ',nudgefac,taunudge
         tem = nudgefac/taunudge
         if( imoist.eq.0 )then
+          !$acc parallel loop gang vector default(present) private(i,j,k,tn)
           do k=1,nk
             tn = -(thavg(k)-th0(1,1,k))*tem
             do j=1,nj+1
@@ -1559,6 +1563,7 @@
             enddo
           enddo
         else
+          !$acc parallel loop gang vector default(present) private(i,j,k,tn,qn)
           do k=1,nk
             tn = -(thavg(k)-th0(1,1,k))*tem
             qn = -(qavg(k,nqv)-qv0(1,1,k))*tem
@@ -1576,6 +1581,7 @@
 
       if( imoist.eq.0 .and. td_nudge.ge.1   &
           .and. dotbud )then
+        !$acc parallel loop gang vector default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1585,6 +1591,7 @@
         enddo
       elseif( imoist.eq.1 .and. td_nudge.ge.1   &
           .and. dotbud .and. doqbud .and. qd_nudge.ge.1 )then
+        !$acc parallel loop gang vector default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1606,9 +1613,13 @@
 !    (new for cm1r19)
 
       IF( testcase.ge.1 )THEN
-#ifdef _OPENACC
-        print *,'WARNING: testcase_simplge_phys code not ported to GPU'
-#endif
+        !$acc data copyin(rho0,zh,zf,qa) &
+        !$acc copyin(thfrc,qvfrc) &
+        !$acc copy(ufrc,vfrc) &
+        !$acc copy(dum1,dum2,dum3,dum4) &
+        !$acc copy(uten1,vten1,thten1,qten) &
+        !$acc copy(o30,zir)
+        if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call     testcase_simple_phys(mh,rho0,rr0,rf0,th0,u0,v0,     &
                    zh,zf,dum1,dum2,dum3,dum4,dum5,dum6,              &
                    ufrc,vfrc,thfrc,qvfrc,ug,vg,dvdr,                 &
@@ -1616,6 +1627,8 @@
                    ua,va,tha,qa,uten1,vten1,thten1,qten,             &
                    o30 ,zir,ruh,ruf,rvh,rvf)
         if(timestats.ge.1) time_misc=time_misc+mytime()
+        !$acc end data 
+        if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
       ENDIF
 
@@ -1625,7 +1638,7 @@
       doeddyrec:  &
       IF( do_recycle )THEN
 #ifdef _OPENACC
-        print *,'WARNING: do_eddy_{recyr,recys} code not ported to GPU'
+        print *,'WARNING: solve1: do_eddy_{recyr,recys} code not ported to GPU'
 #endif
         if( do_recycle_w )then
           call   do_eddy_recyw(dt,xh,xf,yh,yf,zh,zf,u3d,v3d,w3d,uten1,vten1,wten1,urecyw,vrecyw,wrecyw,trecyw,out3d)
@@ -1646,6 +1659,7 @@
       if( donudge .and. do_lsnudge_u )then
         if( myid.eq.0 ) print *,'  applying large-scale nudging of u, lsnudge_count = ',lsnudge_count
         rdt = 1.0/dt
+        !$acc parallel loop gang vector default(present) private(i,j,k,tem1)
         do k=1,nk
           tem1 = -lsnudgefac*( (umove+uavg(k))-lsnudge_u(k,lsnudge_count) )/(lsnudge_tau)
           ! apply nudging tendency:
@@ -1659,6 +1673,7 @@
       if( donudge .and. do_lsnudge_v )then
         if( myid.eq.0 ) print *,'  applying large-scale nudging of v, lsnudge_count = ',lsnudge_count
         rdt = 1.0/dt
+        !$acc parallel loop gang vector default(present) private(i,j,k,tem2)
         do k=1,nk
           tem2 = -lsnudgefac*( (vmove+vavg(k))-lsnudge_v(k,lsnudge_count) )/(lsnudge_tau)
           ! apply nudging tendency:
@@ -1672,6 +1687,7 @@
       if( donudge .and. do_lsnudge_th )then
         if( myid.eq.0 ) print *,'  applying large-scale nudging of theta, lsnudge_count = ',lsnudge_count
         rdt = 1.0/dt
+        !$acc parallel loop gang vector default(present) private(i,j,k,tem1)
         do k=1,nk
           tem1 = -lsnudgefac*( thavg(k)-lsnudge_th(k,lsnudge_count) )/(lsnudge_tau)
           ! apply nudging tendency:
@@ -1685,6 +1701,7 @@
       if( donudge .and. do_lsnudge_qv .and. imoist.eq.1 )then
         if( myid.eq.0 ) print *,'  applying large-scale nudging of qv, lsnudge_count = ',lsnudge_count
         rdt = 1.0/dt
+        !$acc parallel loop gang vector default(present) private(i,j,k,tem1)
         do k=1,nk
           tem1 = -lsnudgefac*( qavg(k,nqv)-lsnudge_qv(k,lsnudge_count) )/(lsnudge_tau)
           ! apply nudging tendency:
@@ -1727,9 +1744,9 @@
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
           !non-B4B due to the use of PWR function 
-          !!$acc data copyin(ppi,tha,qa,th0,pi0,rho,thten1,qten) copy(ppten)
+          !$acc data copyin(ppi,tha,qa,th0,pi0,rho,thten1,qten) copy(ppten)
           !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
-          !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew,qvnew)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew,qvnew)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1748,7 +1765,7 @@
           enddo
           enddo
           enddo
-          !!$acc end data
+          !$acc end data
 
           !$acc data copyin(qpten,qtten,qvten,qcten) copy(qten,ppten,thten,thten1)
           !$omp parallel do default(shared) private(i,j,k)

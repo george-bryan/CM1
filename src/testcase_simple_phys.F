@@ -64,8 +64,10 @@
 
       integer :: i,j,k,n
       real :: tem
-      !!$acc declare present(mh)
-
+      !$acc declare present(rho0,zh,zf,qa) &
+      !$acc present(ufrc,vfrc,thfrc,qvfrc) &
+      !$acc present(dum1,dum2,dum3,dum4,frad,zir) &
+      !$acc present(uten1,vten1,thten1,qten)
 
 !-----------------------------------------------------------------------
 !     nonprecipitating stratoCu  (Stevens et al, 2005, MWR)
@@ -77,7 +79,7 @@
         call     simplerad(rho0,zh,zf,dum1,dum2,dum3,dum4,qa,frad,zir)
 
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -94,6 +96,9 @@
 
       IF( testcase.eq.6 .or. testcase.eq.10 )THEN
 
+#ifdef _OPENACC
+        print *,'WARNING: testcase_simple_phys: testcase={6 or 10} not supported'
+#endif
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
 
@@ -118,10 +123,8 @@
 
     IF( testcase.ge.1 )THEN
 
-      !!$acc data copyin(ufrc,vfrc,thfrc,qvfrc) &
-      !!$acc copy(uten1,vten1,thten1,qten)
       !$omp parallel do default(shared) private(i,j,k)
-      !!$acc parallel loop gang vector default(present) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k)
       DO k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -146,7 +149,6 @@
           enddo
         ENDIF
       ENDDO
-      !!$acc end data
 
     ENDIF
 
@@ -313,8 +315,12 @@
       integer :: i,j,k,n
       real :: fr1,fr2,fr3
       integer, dimension(ni,nj) :: kzi
+      !$acc declare &
+      !$acc create(kzi) &
+      !$acc present(rho0,zh,zf,qa) &
+      !$acc present(dum1,dum2,ql,qt,zir,frad)
 
-      !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,1) = 0.0
@@ -323,7 +329,7 @@
       enddo
       enddo
 
-      !!$acc parallel loop gang vector default(present) private(i,j,k)
+      !$acc parallel loop gang vector default(present) private(i,j,k,n)
       do k=1,nk
         ! qt = total water mixing ratio
         ! ql = liquid water mixing ratio
@@ -353,7 +359,7 @@
       enddo
 
       ! interpolate:
-      !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k)
       do j=1,nj
       do i=1,ni
         k = kzi(i,j)
@@ -374,7 +380,7 @@
 !!!      endif
 
       !non-B4B
-      !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,fr1,fr2,fr3)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,fr1,fr2,fr3)
       do k=nk+1,1,-1
       do j=1,nj
       do i=1,ni
