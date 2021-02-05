@@ -349,17 +349,26 @@
       !$acc copyin(gx,gxu,gy,gyv) &
       !$acc copyin(pi0,rho0,th0,rr0,rf0) &
       !$acc copyin(u0,v0) &
+      !$acc copyin(m11,m12,m13,m22,m23,m33) &
+      !$acc copyin(kmw,u1b,v1b) &
+      !$acc copyin(tauh,tauf,taus) &
+      !$acc copy(bud2,qbudget) &
+      !$acc copy(ufrc,vfrc,thfrc,qvfrc) &
+      !$acc copy(t11,t12,t13,t22,t23,t33) &
+      !$acc copy(thflux,qvflux) &
+      !$acc copy(radbcw,radbce,radbcs,radbcn) &
       !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
-      !$acc copy(rr,rf) &
+      !$acc copy(rho,rr,rf) &
       !$acc copy(ua,uten1) &
       !$acc copy(va,vten1) &
       !$acc copy(wa,wten1) &
-      !$acc copy(rho) &
-      !$acc copy(ppi,ppten,sten) &
+      !$acc copy(o30,zir) &
+      !$acc copy(ppi,ppten,sten,sadv) &
       !$acc copy(tha,thten,thten1) &
+      !$acc copy(qpten,qtten,qvten,qcten) &
       !$acc copy(qa,qten) &
-      !$acc copy(kmh,kmv,khh,khv,tkea,tketen) &
-      !$acc copy(pta,ptten) &
+      !$acc copy(kmh,kmv,khh,khv,tkea,tketen,nm,dissten,epst) &
+      !$acc copy(pta,ptten,u2pt,v2pt) &
       !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
       if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
 
@@ -419,7 +428,6 @@
 
       IF( cm1setup.eq.1 .and. iusetke )THEN
 
-        !$acc data copyin(nm,dissten,epst)
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         DO k=2,nk
@@ -445,7 +453,6 @@
           enddo
           enddo
         endif
-        !$acc end data
 
         if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
@@ -488,17 +495,14 @@
 !  radbc
  
       if(irbc.eq.1)then
-        !$acc data copy(radbcw,radbce,radbcs,radbcn)
         if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,ua)
  
         if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,va)
-        !$acc end data
       endif
 
 !--------------------------------------------------------------------
 !  Rayleigh damping and set tendency arrays:
 
-      !$acc data copyin(tauh,tauf,taus)
       IF( irdamp.eq.1 .or. hrdamp.eq.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -539,7 +543,6 @@
         enddo
         enddo
       ENDIF
-      !$acc end data
       if(timestats.ge.1) time_rdamp=time_rdamp+mytime()
 
       IF( imoist.eq.1 )THEN
@@ -915,7 +918,6 @@
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
         tem0 = dt*dx*dy*dz
-        !$acc data copyin(thflux,qvflux) copy(bud2,qbudget)
         !$omp parallel do default(shared) private(i,j,k,delpi,delth,delqv,delt,n)
         !$acc parallel loop gang vector default(present) private(i,j,k,delpi,delth,delqv,delt,n)
         do j=1,nj
@@ -948,7 +950,6 @@
         do j=1,nj
           qbudget(9) = qbudget(9) + tem0*bud2(j)
         enddo
-        !$acc end data
         if(timestats.ge.1) time_misc=time_misc+mytime()
       endif
 
@@ -1200,9 +1201,6 @@
 
 
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
-          !$acc data copyin(m11,m12,m13,m22,m23) &
-          !$acc copyin(u2pt,v2pt) &
-          !$acc copyin(kmw,u1b,v1b)
           ! NBA sgs turbulence models:
           if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
@@ -1217,15 +1215,10 @@
           call turbw(dt,xh,rxh,arh1,arh2,uh,xf,vh,mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma,   &
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,m13,m23,m33,m22,kmh,  &
                      dowbud,wdiag)
-          !$acc end data 
           if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         else
           ! all other sgs turbulence models:
-
-          !$acc data copyin(t11,t12,t13,t22,t23,t33) &
-          !$acc copyin(kmw,u1b,v1b) &
-          !$acc copy(u2pt,v2pt)
 
           if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
@@ -1241,7 +1234,6 @@
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,t13,t23,t33,t22,kmh,  &
                      dowbud,wdiag)
 
-          !$acc end data
           if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         endif
@@ -1263,7 +1255,6 @@
 
         ! cm1r18: subtract th0r from theta (as in advection scheme)
         !         (reduces roundoff error)
-        !$acc data copy(sadv)
         IF(.not.terrain_flag)THEN
           !$omp parallel do default(shared) private(i,j,k,tem)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -1285,19 +1276,14 @@
           enddo
           enddo
         ENDIF
-        !$acc end data
-        !$acc data copyin(thflux) &
-        !$acc copyin(sadv)
         if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbs(1,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,thflux,   &
                    rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                    dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,sadv,thten1,khh,khv,dum7,dum8, &
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hturb,td_vturb)
-        !$acc end data
         if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         IF( imoist.eq.1 )THEN
-          !$acc data copyin(qvflux)
           if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           ! moisture:
           do n=1,numq
@@ -1313,13 +1299,11 @@
                          .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
             endif
           enddo
-          !$acc end data
           if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
         ENDIF
 
         IF(iptra.eq.1)THEN
           ! passive tracers:
-          !$acc data copyin(qvflux)
           do n=1,npt
             if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
             call turbs(0,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,qvflux,   &
@@ -1327,7 +1311,6 @@
                        dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,pta(ib,jb,kb,n),ptten(ib,jb,kb,n),khh,khv,dum7,dum8, &
                        .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
           enddo
-          !$acc end data
           if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
         ENDIF
 
@@ -1593,9 +1576,6 @@
 !    (new for cm1r19)
 
       IF( testcase.ge.1 )THEN
-        !$acc data copyin(thfrc,qvfrc) &
-        !$acc copy(ufrc,vfrc) &
-        !$acc copy(o30,zir)
         if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call     testcase_simple_phys(mh,rho0,rr0,rf0,th0,u0,v0,     &
                    zh,zf,dum1,dum2,dum3,dum4,dum5,dum6,              &
@@ -1604,7 +1584,6 @@
                    ua,va,tha,qa,uten1,vten1,thten1,qten,             &
                    o30 ,zir,ruh,ruf,rvh,rvf)
         if(timestats.ge.1) time_misc=time_misc+mytime()
-        !$acc end data 
         if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
       ENDIF
@@ -1740,7 +1719,6 @@
           enddo
           enddo
 
-          !$acc data copyin(qpten,qtten,qvten,qcten)
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
@@ -1755,7 +1733,6 @@
           enddo
           enddo
           enddo
-          !$acc end data
         ELSE
           !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew)
