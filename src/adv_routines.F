@@ -9547,6 +9547,7 @@
     real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: dumz,subs
 
     integer :: i,j,k
+    integer :: k1,k2,k3
     real :: div
     !$acc declare present(a,wprof,c1,c2,mh,rr0,rf0) &
     !$acc present(dumz,subs)
@@ -9571,26 +9572,24 @@
     endif
 
     !$omp parallel do default(shared)private(i,j,k)
-    !$acc parallel private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k,k1,k2,k3)
     !-----
     DO k=2,(nk-1)
-      if( wprof(k).le.0.0 )then
-        !$acc loop gang vector collapse(2) 
         do j=1,jy
           !dir$ vector always
           do i=1,ix
-            dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),weps)
+            if( wprof(k).le.0.0 )then
+              k1=k+1
+              k2=k
+              k3=k-1
+            else
+              k1=k-2
+              k2=k-1
+              k3=k
+            endif
+            dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k1),a(i,j,k2),a(i,j,k3),weps)
           enddo
         enddo
-      else
-        !$acc loop gang vector collapse(2) 
-        do j=1,jy
-          !dir$ vector always
-          do i=1,ix
-            dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),weps)
-          enddo
-        enddo
-      endif
     ENDDO
     !$acc end parallel
     !-----
