@@ -9551,31 +9551,48 @@
     !$acc declare present(a,wprof,c1,c2,mh,rr0,rf0) &
     !$acc present(dumz,subs)
 
+    k=2
+    if(wprof(k).le.0.0) then 
+      !$acc parallel loop gang vector collapse(2) private(i,j)
+      do j=1,jy
+        !dir$ vector always
+        do i=1,ix
+          dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),weps)
+        enddo
+      enddo
+    else
+      !$acc parallel loop gang vector collapse(2) private(i,j)
+      do j=1,jy
+        !dir$ vector always
+        do i=1,ix
+          dumz(i,j,k) = rf0(1,1,k)*wprof(k)*(c1(i,j,k)*a(i,j,k-1)+c2(i,j,k)*a(i,j,k))
+        enddo
+      enddo
+    endif
+
     !$omp parallel do default(shared)private(i,j,k)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k)
-    DO j=1,jy
-      !-----
-      do k=2,(nk-1)
-        if( wprof(k).le.0.0 )then
+    !$acc parallel private(i,j,k)
+    !-----
+    DO k=2,(nk-1)
+      if( wprof(k).le.0.0 )then
+        !$acc loop gang vector collapse(2) 
+        do j=1,jy
           !dir$ vector always
           do i=1,ix
             dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),weps)
           enddo
-        else
-          if( k.eq.2 )then
-            !dir$ vector always
-            do i=1,ix
-              dumz(i,j,k) = rf0(1,1,k)*wprof(k)*(c1(i,j,k)*a(i,j,k-1)+c2(i,j,k)*a(i,j,k))
-            enddo
-          else
-            !dir$ vector always
-            do i=1,ix
-              dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),weps)
-            enddo
-          endif
-        endif
-      enddo
+        enddo
+      else
+        !$acc loop gang vector collapse(2) 
+        do j=1,jy
+          !dir$ vector always
+          do i=1,ix
+            dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),weps)
+          enddo
+        enddo
+      endif
     ENDDO
+    !$acc end parallel
     !-----
     !$omp parallel do default(shared)private(i,j)
     !$acc parallel loop gang vector collapse(2) private(i,j)

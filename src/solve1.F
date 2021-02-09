@@ -336,40 +336,73 @@
 #ifdef MPI
       integer :: reqp1,reqp2
 #endif
+      !$acc declare &
+      !$acc present(xh,rxh,arh1,arh2,uh,ruh) &
+      !$acc present(xf,rxf,arf1,arf2,uf,ruf) &
+      !$acc present(yh,vh,rvh) &
+      !$acc present(yf,vf,rvf) &
+      !$acc present(rds,sigma,rdsf,sigmaf) &
+      !$acc present(zh,mh,rmh) &
+      !$acc present(zf,mf,rmf) &
+      !$acc present(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
+      !$acc present(gx,gxu,gy,gyv) &
+      !$acc present(pi0,rho0,th0,rr0,rf0) &
+      !$acc present(u0,v0) &
+      !$acc present(m11,m12,m13,m22,m23,m33) &
+      !$acc present(kmw,u1b,v1b) &
+      !$acc present(tauh,tauf,taus) &
+      !$acc present(bud2,qbudget) &
+      !$acc present(ufrc,vfrc,thfrc,qvfrc) &
+      !$acc present(t11,t12,t13,t22,t23,t33) &
+      !$acc present(thflux,qvflux) &
+      !$acc present(radbcw,radbce,radbcs,radbcn) &
+      !$acc present(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
+      !$acc present(rho,rr,rf) &
+      !$acc present(ua,uten1) &
+      !$acc present(va,vten1) &
+      !$acc present(wa,wten1) &
+      !$acc present(o30,zir) &
+      !$acc present(ppi,ppten,sten,sadv) &
+      !$acc present(tha,thten,thten1) &
+      !$acc present(qpten,qtten,qvten,qcten) &
+      !$acc present(qa,qten) &
+      !$acc present(kmh,kmv,khh,khv,tkea,tketen,nm,dissten,epst) &
+      !$acc present(pta,ptten,u2pt,v2pt) &
+      !$acc present(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
 
 !--------------------------------------------------------------------
-      !$acc data copyin(xh,rxh,arh1,arh2,uh,ruh) &
-      !$acc copyin(xf,rxf,arf1,arf2,uf,ruf) &
-      !$acc copyin(yh,vh,rvh) &
-      !$acc copyin(yf,vf,rvf) &
-      !$acc copyin(rds,sigma,rdsf,sigmaf) &
-      !$acc copyin(zh,mh,rmh) &
-      !$acc copyin(zf,mf,rmf) &
-      !$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
-      !$acc copyin(gx,gxu,gy,gyv) &
-      !$acc copyin(pi0,rho0,th0,rr0,rf0) &
-      !$acc copyin(u0,v0) &
-      !$acc copyin(m11,m12,m13,m22,m23,m33) &
-      !$acc copyin(kmw,u1b,v1b) &
-      !$acc copyin(tauh,tauf,taus) &
-      !$acc copy(bud2,qbudget) &
-      !$acc copy(ufrc,vfrc,thfrc,qvfrc) &
-      !$acc copy(t11,t12,t13,t22,t23,t33) &
-      !$acc copy(thflux,qvflux) &
-      !$acc copy(radbcw,radbce,radbcs,radbcn) &
-      !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
-      !$acc copy(rho,rr,rf) &
-      !$acc copy(ua,uten1) &
-      !$acc copy(va,vten1) &
-      !$acc copy(wa,wten1) &
-      !$acc copy(o30,zir) &
-      !$acc copy(ppi,ppten,sten,sadv) &
-      !$acc copy(tha,thten,thten1) &
-      !$acc copy(qpten,qtten,qvten,qcten) &
-      !$acc copy(qa,qten) &
-      !$acc copy(kmh,kmv,khh,khv,tkea,tketen,nm,dissten,epst) &
-      !$acc copy(pta,ptten,u2pt,v2pt) &
-      !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
+      !!$acc data copyin(xh,rxh,arh1,arh2,uh,ruh) &
+      !!$acc copyin(xf,rxf,arf1,arf2,uf,ruf) &
+      !!$acc copyin(yh,vh,rvh) &
+      !!$acc copyin(yf,vf,rvf) &
+      !!$acc copyin(rds,sigma,rdsf,sigmaf) &
+      !!$acc copyin(zh,mh,rmh) &
+      !!$acc copyin(zf,mf,rmf) &
+      !!$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
+      !!$acc copyin(gx,gxu,gy,gyv) &
+      !!$acc copyin(pi0,rho0,th0,rr0,rf0) &
+      !!$acc copyin(u0,v0) &
+      !!$acc copyin(m11,m12,m13,m22,m23,m33) &
+      !!$acc copyin(kmw,u1b,v1b) &
+      !!$acc copyin(tauh,tauf,taus) &
+      !!$acc copy(bud2,qbudget) &
+      !!$acc copy(ufrc,vfrc,thfrc,qvfrc) &
+      !!$acc copy(t11,t12,t13,t22,t23,t33) &
+      !!$acc copy(thflux,qvflux) &
+      !!$acc copy(radbcw,radbce,radbcs,radbcn) &
+      !!$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
+      !!$acc copy(rho,rr,rf) &
+      !!$acc copy(ua,uten1) &
+      !!$acc copy(va,vten1) &
+      !!$acc copy(wa,wten1) &
+      !!$acc copy(o30,zir) &
+      !!$acc copy(ppi,ppten,sten,sadv) &
+      !!$acc copy(tha,thten,thten1) &
+      !!$acc copy(qpten,qtten,qvten,qcten) &
+      !!$acc copy(qa,qten) &
+      !!$acc copy(kmh,kmv,khh,khv,tkea,tketen,nm,dissten,epst) &
+      !!$acc copy(pta,ptten,u2pt,v2pt)
+      !!$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
       if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
 
 #ifdef MPI
@@ -454,11 +487,9 @@
           enddo
         endif
 
-        if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
                    rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,        &
                    dum1,dum2,dum3,dum4,dum5,sten,tkea,tketen,kmh,kmv)
-        if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         if( dotdwrite .and. kd_turb.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)
@@ -1202,7 +1233,6 @@
 
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
           ! NBA sgs turbulence models:
-          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
                      zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gxu,     &
                      dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,ua,uten1,wa,m11,m12,m13,m22,kmv, &
@@ -1215,12 +1245,10 @@
           call turbw(dt,xh,rxh,arh1,arh2,uh,xf,vh,mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma,   &
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,m13,m23,m33,m22,kmh,  &
                      dowbud,wdiag)
-          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         else
           ! all other sgs turbulence models:
 
-          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           call turbu(dt,xh,ruh,xf,rxf,arf1,arf2,uf,vh,mh,mf,rmf,rho,rf,  &
                      zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gxu,     &
                      dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,ua,uten1,wa,t11,t12,t13,t22,kmv, &
@@ -1234,7 +1262,6 @@
                      dum1,dum2,dum3,dum4,dum5,dum6,wa,wten1,t13,t23,t33,t22,kmh,  &
                      dowbud,wdiag)
 
-          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         endif
 
@@ -1276,15 +1303,12 @@
           enddo
           enddo
         ENDIF
-        if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call turbs(1,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,thflux,   &
                    rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                    dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,sadv,thten1,khh,khv,dum7,dum8, &
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hturb,td_vturb)
-        if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
         IF( imoist.eq.1 )THEN
-          if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
           ! moisture:
           do n=1,numq
             if( n.eq.nqv )then
@@ -1299,19 +1323,16 @@
                          .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
             endif
           enddo
-          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
         ENDIF
 
         IF(iptra.eq.1)THEN
           ! passive tracers:
           do n=1,npt
-            if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
             call turbs(0,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,qvflux,   &
                        rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                        dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,pta(ib,jb,kb,n),ptten(ib,jb,kb,n),khh,khv,dum7,dum8, &
                        .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
           enddo
-          if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
         ENDIF
 
       ENDIF  doturb
@@ -1576,7 +1597,6 @@
 !    (new for cm1r19)
 
       IF( testcase.ge.1 )THEN
-        if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
         call     testcase_simple_phys(mh,rho0,rr0,rf0,th0,u0,v0,     &
                    zh,zf,dum1,dum2,dum3,dum4,dum5,dum6,              &
                    ufrc,vfrc,thfrc,qvfrc,ug,vg,dvdr,                 &
@@ -1584,7 +1604,6 @@
                    ua,va,tha,qa,uten1,vten1,thten1,qten,             &
                    o30 ,zir,ruh,ruf,rvh,rvf)
         if(timestats.ge.1) time_misc=time_misc+mytime()
-        if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
 
       ENDIF
 
@@ -1768,7 +1787,7 @@
     !            - moved message passing and equate to solve_finish.F
 
 
-      !$acc end data
+      !!$acc end data
       if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
       end subroutine solve1
 

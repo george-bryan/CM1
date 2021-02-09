@@ -24,6 +24,7 @@
     real, parameter :: alphaz  =  1.0
     real, parameter :: rhoi    =  1.12
 
+
   CONTAINS
 
       subroutine testcase_simple_phys(mh,rho0,rr0,rf0,th0,u0,v0,     &
@@ -124,31 +125,44 @@
     IF( testcase.ge.1 )THEN
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector default(present) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       DO k=1,nk
         do j=1,nj
         do i=1,ni+1
           uten1(i,j,k) = uten1(i,j,k) + ufrc(k)
         enddo
         enddo
+      ENDDO
+      !
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      DO k=1,nk
         do j=1,nj+1
         do i=1,ni
           vten1(i,j,k) = vten1(i,j,k) + vfrc(k)
         enddo
         enddo
+      ENDDO
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      DO k=1,nk
         do j=1,nj
         do i=1,ni
           thten1(i,j,k) = thten1(i,j,k) + thfrc(k)
         enddo
         enddo
-        IF( imoist.eq.1 )THEN
+      ENDDO
+      IF( imoist.eq.1 )THEN
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        DO k=1,nk
           do j=1,nj
           do i=1,ni
             qten(i,j,k,nqv) = qten(i,j,k,nqv) + qvfrc(k)
           enddo
           enddo
-        ENDIF
-      ENDDO
+        ENDDO
+      ENDIF
 
     ENDIF
 
@@ -183,17 +197,25 @@
       integer :: i,j,k,n
       real :: tem
       double precision :: temd
+      !double precision :: tmp1,tmp2,tmp3
+      !!$acc declare present(uavg,vavg,thavg,cavg) &
+      !!$acc present(th0,ua,va,tha,ruh,ruf,rvh,rvf)
 
       ! 180612:  area-weighted average
       tem = dx*dy
 
       ! Get domain-averages:
+      !!$acc parallel default(present) private(i,j,k,tmp1,tmp2,tmp3) reduction(+:tmp1,tmp2,tmp3)
       do k=1,nk
         !----
         do n=1,3
           cavg(k,n) = 0.0
         enddo
+        !tmp1=0.0
+        !tmp2=0.0
+        !tmp3=0.0
         !----
+        !!$acc loop gang vector collapse(2) reduction(+:tmp1,tmp2,tmp3)
         do j=1,nj
         do i=1,ni
           cavg(k,1) = cavg(k,1) + ua(i,j,k)*tem*ruf(i)*rvh(j)
@@ -201,15 +223,21 @@
           cavg(k,3) = cavg(k,3) + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
         enddo
         enddo
+        !cavg(k,1) = tmp1
+        !cavg(k,2) = tmp2
+        !cavg(k,3) = tmp3
         !----
       enddo
+      !!$acc end parallel
 
 #ifdef MPI
+      !!$acc update self(cavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*3       ,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
+      !!$acc parallel loop gang vector private(k)
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
@@ -315,8 +343,7 @@
       integer :: i,j,k,n
       real :: fr1,fr2,fr3
       integer, dimension(ni,nj) :: kzi
-      !$acc declare &
-      !$acc create(kzi) &
+      !$acc declare create(kzi) &
       !$acc present(rho0,zh,zf,qa) &
       !$acc present(dum1,dum2,ql,qt,zir,frad)
 
@@ -329,7 +356,7 @@
       enddo
       enddo
 
-      !$acc parallel loop gang vector default(present) private(i,j,k,n)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
       do k=1,nk
         ! qt = total water mixing ratio
         ! ql = liquid water mixing ratio
@@ -340,14 +367,23 @@
         enddo
         enddo
         !----
-        do n=nql1,nql2
+      enddo
+      !$acc parallel default(present) private(i,j,k)
+      do n=nql1,nql2
+      !$acc loop gang vector collapse(3)
+      do k=1,nk
         do j=1,nj
         do i=1,ni
           ql(i,j,k) = ql(i,j,k)+qa(i,j,k,n)
         enddo
         enddo
         enddo
-        !----
+      enddo
+      !$acc end parallel
+      !----
+      !$acc parallel default(present) private(i,j,k)
+      do k=1,nk
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           qt(i,j,k) = qa(i,j,k,nqv)+ql(i,j,k)
@@ -355,8 +391,10 @@
           dum2(i,j,k+1) = dum2(i,j,k) + kappa*rho0(i,j,k)*ql(i,j,k)*(zf(i,j,k+1)-zf(i,j,k))
         enddo
         enddo
-        !----
       enddo
+      !$acc end parallel
+      !----
+
 
       ! interpolate:
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k)
@@ -364,10 +402,12 @@
       do i=1,ni
         k = kzi(i,j)
         zir(i,j) = zh(i,j,k) +(zh(i,j,k+1)-zh(i,j,k))  &
-                             *(      qcrit-qt(i,j,k))  &
+                             *(      0.0-qt(i,j,k))  &
                              /(qt(i,j,k+1)-qt(i,j,k))
+  !                           *(      qcrit-qt(i,j,k))  &
       enddo
       enddo
+      !$acc compare(zir)
 
 !!!      if( myid.eq.0 )then
 !!!        i = 1
@@ -379,9 +419,10 @@
 !!!        print *
 !!!      endif
 
-      !non-B4B
-      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,fr1,fr2,fr3)
+      !non-B4B due to EXP and PWR functions
+      !$acc parallel default(present) private(i,j,k,fr1,fr2,fr3)
       do k=nk+1,1,-1
+      !$acc loop gang vector collapse(2)
       do j=1,nj
       do i=1,ni
         dum1(i,j,k) = dum1(i,j,min(nk+1,k+1))  &
@@ -398,6 +439,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
       end subroutine simplerad
 

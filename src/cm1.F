@@ -2695,6 +2695,7 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
 
+    if(timestats.ge.1) time_slv_H2D=time_slv_H2D+mytime()
     !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
     timeloop:  &
     DO WHILE( mtime.lt.timax )
@@ -2835,6 +2836,58 @@
 
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
+        !$acc data  &
+        !$acc copyin(xh,rxh,arh1,arh2,uh,ruh) &
+        !$acc copyin(xf,rxf,arf1,arf2,uf,ruf) &
+        !$acc copyin(yh,vh,rvh) &
+        !$acc copyin(yf,vf,rvf) &
+        !$acc copyin(rds,sigma,rdsf,sigmaf) &
+        !$acc copyin(zh,mh,rmh) &
+        !$acc copyin(zf,mf,rmf) &
+        !$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
+        !$acc copyin(dzdx,dzdy,gx,gxu,gy,gyv) &
+        !$acc copyin(pi0,rho0,prs0,th0,rth0,qv0,qc0,qi0,rr0,rf0,rrf0) &
+        !$acc copyin(dtu0,dtv0,u0,v0) &
+        !$acc copyin(c1,c2,wprof,f2d) &
+        !$acc copyin(m11,m12,m13,m22,m23,m33) &
+        !$acc copyin(kmw,u1b,v1b) &
+        !$acc copyin(tauh,tauf,taus) &
+        !$acc copyin(bndy,kbdy) &
+        !$acc copy(bud2,qbudget) &
+        !$acc copy(ufrc,vfrc,thfrc,qvfrc) &
+        !$acc copy(t11,t12,t13,t22,t23,t33) &
+        !$acc copy(thflux,qvflux) &
+        !$acc copy(radbcw,radbce,radbcs,radbcn,dtu,dtv) &
+        !$acc copy(dumk1,dumk2) &
+        !$acc copy(divx,rho,rr,rf,prs) &
+        !$acc copy(o30,zir) &
+        !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
+        !$acc copy(rru,ua,u3d,uten,uten1) &
+        !$acc copy(rrv,va,v3d,vten,vten1) &
+        !$acc copy(rrw,wa,w3d,wten,wten1) &
+        !$acc copy(ppi,pp3d,ppten,sten,sadv,ppx) &
+        !$acc copy(tha,th3d,thten,thten1,thterm) &
+        !$acc copy(qpten,qtten,qvten,qcten,qa,q3d,qten) &
+        !$acc copy(kmh,kmv,khh,khv,tkea,tke3d,tketen,nm,dissten,epst) &
+        !$acc copy(pta,pt3d,ptten,u2pt,v2pt) &
+        !$acc copy(qke_adv,qke,qke3d) &
+        !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
+        !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
+        !$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
+        !$acc copy(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
+        !$acc copy(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
+        !$acc copy(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
+        !$acc copy(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
+        !$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
+        !$acc copy(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
+        !$acc copy(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
+        !$acc copy(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
+        !$acc copy(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
+        !$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
+        !$acc copy(flag) &
+        !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
+
+        if(timestats.ge.1) time_slv_H2D=time_slv_H2D+mytime()
 
         ! solve1: pre-RK terms
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
@@ -2910,47 +2963,6 @@
         ! end_solve1
 
 
-        !$acc data &
-        !$acc copyin(dtu0,dtv0) &
-        !$acc copyin(xh,rxh,arh1,arh2,uh,ruh,arf1,arf2) &
-        !$acc copyin(xf,yh,vh,rvh,uf,vf,mf) &
-        !$acc copyin(u0,v0) &
-        !$acc copyin(rds,sigma,rdsf,sigmaf) &
-        !$acc copyin(mh,rmh,zh,c1,c2,wprof) &
-        !$acc copyin(gz,rgz,gzv,gzu,rgzu,rgzv) &
-        !$acc copyin(f2d) &
-        !$acc copyin(gxu,gyv,dzdx,dzdy) &
-        !$acc copyin(pi0,rho0,prs0,th0,rth0,qv0,qc0,qi0,rr0,rf0,rrf0) &
-        !$acc copyin(bndy,kbdy) &
-        !$acc copy(dumk1,dumk2) &
-        !$acc copy(radbcw,radbce,radbcs,radbcn,dtu,dtv) &
-        !$acc copy(t11,t12,t13,t22,t23) &
-        !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
-        !$acc copy(divx,rho,rr,prs) &
-        !$acc copy(rru,ua,u3d,uten,uten1) &
-        !$acc copy(rrv,va,v3d,vten,vten1) &
-        !$acc copy(rrw,wa,w3d,wten,wten1) &
-        !$acc copy(ppi,pp3d,ppten,sten,sadv,ppx) &
-        !$acc copy(tha,th3d,thten,thten1,thterm) &
-        !$acc copy(qpten,qtten,qvten,qcten,qa,q3d,qten) &
-        !$acc copy(tkea,tke3d,tketen) &
-        !$acc copy(qke_adv,qke,qke3d) &
-        !$acc copy(pta,pt3d,ptten) &
-        !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
-        !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
-        !$acc copy(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
-        !$acc copy(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
-        !$acc copy(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
-        !$acc copy(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-        !$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
-        !$acc copy(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
-        !$acc copy(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
-        !$acc copy(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
-        !$acc copy(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
-        !$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
-        !$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
-        !$acc copy(flag) &
-        !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
         if(timestats.ge.1) time_slv2_H2D=time_slv2_H2D+mytime()
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
@@ -3025,8 +3037,7 @@
                    doazimwrite,dorestart)
         ! end_solve2
         !$acc end data
-        if(timestats.ge.1) time_slv2_D2H=time_slv2_D2H+mytime()
-
+        if(timestats.ge.1) time_slv_D2H=time_slv_D2H+mytime()
 
       IF(imoist.eq.1)THEN
 
@@ -3775,7 +3786,7 @@
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
                     time_sound_H2D+time_sound_D2H+time_adv_H2D + time_adv_D2H+ &
-                    time_slv2_H2D + time_slv2_D2H + time_slv1_H2D + time_slv1_D2H
+                    time_slv_H2D + time_slv_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -3872,6 +3883,13 @@
 #ifdef MPI
       ! for MPI runs without procfiles, average the timestat terms:
       IF(.not.procfiles)THEN
+        sum = 0.0
+        call MPI_REDUCE(time_slv_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv_H2D = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_slv_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv_D2H = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_slv1_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_slv1_H2D = sum/float(numprocs)
@@ -4072,7 +4090,7 @@
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+      &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
-                  time_slv1_H2D+time_slv1_D2H+time_slv2_H2D+time_slv2_D2H 
+                  time_slv_H2D+time_slv_D2H 
       time_solve0 = time_solve
 
 #ifdef MPI
@@ -4089,6 +4107,8 @@
       if(time_solve.lt.0.0001) time_solve=1.
 
     IF(dowr)THEN
+      write(outfile,100) 'slv-H2D',time_slv_H2D,time_slv_H2D/time_solve
+      write(outfile,100) 'slv-D2H',time_slv_D2H,time_slv_D2H/time_solve
       write(outfile,100) 'slv1-H2D',time_slv1_H2D,time_slv1_H2D/time_solve
       write(outfile,100) 'slv1-D2H',time_slv1_D2H,time_slv1_D2H/time_solve
       write(outfile,100) 'slv2-H2D',time_slv2_H2D,time_slv2_H2D/time_solve
