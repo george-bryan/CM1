@@ -59,6 +59,8 @@
 
       real, parameter :: grads_undef  =  -999999.9
 
+!$acc declare copyin(eps)
+
   CONTAINS
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

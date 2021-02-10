@@ -158,6 +158,7 @@
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk
 
+!$acc declare copyin(ptype)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
