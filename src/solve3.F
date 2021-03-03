@@ -358,8 +358,9 @@
 #endif
 
 
-      !$omp parallel do default(shared)  &
-      !$omp private(i,j,k)
+        !$acc data copyin(rho,c1,c2) copy(rr,rf)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -368,6 +369,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
 
 

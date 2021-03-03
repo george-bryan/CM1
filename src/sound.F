@@ -777,7 +777,6 @@
 
       IF(.not.terrain_flag)THEN
         ! without terrain:
-
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
         DO k=1,nk

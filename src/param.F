@@ -557,6 +557,7 @@
       call MPI_BCAST(ioldlimiter,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       ENDIF
 #endif
+!$acc update device(alph,kdiv)
 
 !-----------------------------------------------------------------------
 !  Set constants:

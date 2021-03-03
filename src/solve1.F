@@ -325,10 +325,15 @@
       real :: gamm,aiu
       real :: qv,qli,cpli,cpm,cvm,qmax
       real :: tn,qn,nudgefac,taunudge,timenudge
+      real :: qtmpreal
 
       real :: umod,uref,zref,oldval,newval
 
       double precision :: weps,afoo,bfoo,p0,p2
+      double precision :: budtmp
+      double precision :: qtmp
+
+      double precision :: budarray(1:ni,1:nj)
 
       logical :: get_time_avg,tqnudge,dopf
       logical :: do_adapt_lspg
@@ -371,38 +376,6 @@
       !$acc present(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
 
 !--------------------------------------------------------------------
-      !!$acc data copyin(xh,rxh,arh1,arh2,uh,ruh) &
-      !!$acc copyin(xf,rxf,arf1,arf2,uf,ruf) &
-      !!$acc copyin(yh,vh,rvh) &
-      !!$acc copyin(yf,vf,rvf) &
-      !!$acc copyin(rds,sigma,rdsf,sigmaf) &
-      !!$acc copyin(zh,mh,rmh) &
-      !!$acc copyin(zf,mf,rmf) &
-      !!$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
-      !!$acc copyin(gx,gxu,gy,gyv) &
-      !!$acc copyin(pi0,rho0,th0,rr0,rf0) &
-      !!$acc copyin(u0,v0) &
-      !!$acc copyin(m11,m12,m13,m22,m23,m33) &
-      !!$acc copyin(kmw,u1b,v1b) &
-      !!$acc copyin(tauh,tauf,taus) &
-      !!$acc copy(bud2,qbudget) &
-      !!$acc copy(ufrc,vfrc,thfrc,qvfrc) &
-      !!$acc copy(t11,t12,t13,t22,t23,t33) &
-      !!$acc copy(thflux,qvflux) &
-      !!$acc copy(radbcw,radbce,radbcs,radbcn) &
-      !!$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8) &
-      !!$acc copy(rho,rr,rf) &
-      !!$acc copy(ua,uten1) &
-      !!$acc copy(va,vten1) &
-      !!$acc copy(wa,wten1) &
-      !!$acc copy(o30,zir) &
-      !!$acc copy(ppi,ppten,sten,sadv) &
-      !!$acc copy(tha,thten,thten1) &
-      !!$acc copy(qpten,qtten,qvten,qcten) &
-      !!$acc copy(qa,qten) &
-      !!$acc copy(kmh,kmv,khh,khv,tkea,tketen,nm,dissten,epst) &
-      !!$acc copy(pta,ptten,u2pt,v2pt)
-      !!$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
       if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
 
 #ifdef MPI
@@ -660,9 +633,6 @@
 !  large-scale pressure gradient:
 
       IF( lspgrad.ge.1 )THEN
-#ifdef _OPENACC
-        print *,'WARNING: solve1: lspgrad if branch not ported to GPU'
-#endif
 
         ! Include a large-scale pressure gradient:
 
@@ -673,6 +643,9 @@
 
           if( mtime.gt.1800.0 .and. mod(mtime,300.0).lt.0.01 )then
 
+#ifdef _OPENACC
+        print *,'WARNING: solve1: get_avg_uvt not ported to GPU'
+#endif
             call get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
 
             ! 200529: modify lspg to match reference wind
@@ -945,44 +918,62 @@
       ENDIF
 
       !-------------------------------------------------------------
-
+      
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
+        !$acc data create(budarray)
         tem0 = dt*dx*dy*dz
-        !$omp parallel do default(shared) private(i,j,k,delpi,delth,delqv,delt,n)
-        !$acc parallel loop gang vector default(present) private(i,j,k,delpi,delth,delqv,delt,n)
+        !$omp parallel do default(shared) private(i,j,delpi,delth,delqv,delt,n)
+        !$acc parallel loop gang vector collapse(2) default(present) &
+        !$acc private(i,j,delpi,delth,delqv,delt,n)
         do j=1,nj
-        bud2(j) = 0.0d0
         do i=1,ni
-          k = 1
           delth = rf0(i,j,1)*rr0(i,j,1)*rdz*mh(i,j,1)*thflux(i,j)
           delqv = rf0(i,j,1)*rr0(i,j,1)*rdz*mh(i,j,1)*qvflux(i,j)
           delpi = rddcv*(pi0(i,j,1)+ppi(i,j,1))*(           &
-                                delqv/(eps+qa(i,j,1,nqv))   &
+                               delqv/( eps+qa(i,j,1,nqv)) &
                                +delth/(th0(i,j,1)+tha(i,j,1))  )
-          delt = (pi0(i,j,k)+ppi(i,j,k))*delth   &
-                +(th0(i,j,k)+tha(i,j,k))*delpi
-          bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*(        &
-                  cv*delt                                                   &
-                + cvv*qa(i,j,k,nqv)*delt                                    &
-                + cvv*(pi0(i,j,k)+ppi(i,j,k))*(th0(i,j,k)+tha(i,j,k))*delqv &
-                + g*zh(i,j,k)*delqv   )
+          delt = (pi0(i,j,1)+ppi(i,j,1))*delth   &
+                +(th0(i,j,1)+tha(i,j,1))*delpi
+          budarray(i,j) = dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*(           &
+                   cv*delt                                                   &
+                 + cvv*qa(i,j,1,nqv)*delt                                    &
+                 + cvv*(pi0(i,j,1)+ppi(i,j,1))*(th0(i,j,1)+tha(i,j,1))*delqv &
+                 + g*zh(i,j,1)*delqv   )
+
+          !$acc loop reduction(+:budtmp)
           do n=nql1,nql2
-            bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpl*qa(i,j,k,n)*delt
+            budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpl*qa(i,j,1,n)*delt
           enddo
           if(iice.eq.1)then
+            !$acc loop reduction(+:budtmp)
             do n=nqs1,nqs2
-              bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpi*qa(i,j,k,n)*delt
+              !bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpi*qa(i,j,k,n)*delt
+              budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpi*qa(i,j,1,n)*delt
             enddo
           endif
         enddo
         enddo
-        !$acc parallel loop gang vector default(present) private(j)
+        !$acc parallel loop default(present) reduction(+:budtmp)
         do j=1,nj
-          qbudget(9) = qbudget(9) + tem0*bud2(j)
+          budtmp=0.0
+          !$acc loop reduction(+:budtmp)
+          do i=1,ni
+            budtmp = budtmp + budarray(i,j) 
+          enddo
+          bud2(j)=budtmp
         enddo
+        !$acc end data
+        !$acc parallel loop gang vector default(present) private(j) reduction(+:qtmp)
+        do j=1,nj
+          !qbudget(9) = qbudget(9) + tem0*bud2(j)
+          qtmp = qtmp + tem0*bud2(j)
+        enddo
+        qbudget(9) = qtmp;
+        !$acc update device(qbudget)
         if(timestats.ge.1) time_misc=time_misc+mytime()
       endif
+      !!stop 'solve1: after bud2 calculation'
 
       !---- Dissipative heating term:
 
@@ -1729,7 +1720,11 @@
                 abs(dt*qten(i,j,k,nqv)).gt.qsmall )THEN
               thnew = tha(i,j,k)+dt*thten1(i,j,k)
               qvnew = qa(i,j,k,nqv)+dt*qten(i,j,k,nqv)
+#ifdef _FORCEB4B
+              pinew = (rho(i,j,k)*(th0(i,j,k)+thnew)*(rd+rv*qvnew)*rp00)**2 - pi0(i,j,k)
+#else
               pinew = (rho(i,j,k)*(th0(i,j,k)+thnew)*(rd+rv*qvnew)*rp00)**rddcv - pi0(i,j,k)
+#endif
               ppten(i,j,k) = (pinew-ppi(i,j,k))*rdt
             ELSE
               ppten(i,j,k) = 0.0

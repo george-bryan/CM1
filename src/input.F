@@ -192,7 +192,7 @@
            rad_solcon,rad_jday,rad_zenangle,rad_declin,rad_hrang,             &
            adapt_move_frq
 
-
+!$acc declare create(alph,kdiv)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

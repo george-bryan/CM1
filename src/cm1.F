@@ -51,6 +51,7 @@
 #endif
 #ifdef _OPENACC
       use openacc
+      use nvtx_mod
 #endif
       implicit none
 
@@ -246,6 +247,7 @@
 
       double precision :: adaptmovetim
       integer :: mvrec,nwritemv
+      integer id
 
 #ifdef MPI
       integer :: reqs,rc,ii,jj,id,itmp1,itmp2,jtmp1,jtmp2
@@ -2836,6 +2838,9 @@
 
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
+#ifdef _OPENACC
+        call nvtxStartRange("H2D ",id=1)
+#endif
         !$acc data  &
         !$acc copyin(xh,rxh,arh1,arh2,uh,ruh) &
         !$acc copyin(xf,rxf,arf1,arf2,uf,ruf) &
@@ -2853,24 +2858,13 @@
         !$acc copyin(kmw,u1b,v1b) &
         !$acc copyin(tauh,tauf,taus) &
         !$acc copyin(bndy,kbdy) &
-        !$acc copy(bud2,qbudget) &
-        !$acc copy(ufrc,vfrc,thfrc,qvfrc) &
-        !$acc copy(t11,t12,t13,t22,t23,t33) &
-        !$acc copy(thflux,qvflux) &
-        !$acc copy(radbcw,radbce,radbcs,radbcn,dtu,dtv) &
-        !$acc copy(dumk1,dumk2) &
-        !$acc copy(divx,rho,rr,rf,prs) &
-        !$acc copy(o30,zir) &
-        !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
-        !$acc copy(rru,ua,u3d,uten,uten1) &
-        !$acc copy(rrv,va,v3d,vten,vten1) &
-        !$acc copy(rrw,wa,w3d,wten,wten1) &
-        !$acc copy(ppi,pp3d,ppten,sten,sadv,ppx) &
-        !$acc copy(tha,th3d,thten,thten1,thterm) &
-        !$acc copy(qpten,qtten,qvten,qcten,qa,q3d,qten) &
-        !$acc copy(kmh,kmv,khh,khv,tkea,tke3d,tketen,nm,dissten,epst) &
-        !$acc copy(pta,pt3d,ptten,u2pt,v2pt) &
-        !$acc copy(qke_adv,qke,qke3d) &
+        !$acc copy(bud2,qbudget,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
+        !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
+        !$acc      rho,rr,rf,prs,o30,zir,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9, &
+        !$acc      rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1, &
+        !$acc      ppi,pp3d,ppten,sten,sadv,ppx,tha,th3d,thten,thten1,thterm, &
+        !$acc      qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen, &
+        !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
         !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
         !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
         !$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
@@ -2886,9 +2880,16 @@
         !$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
         !$acc copy(flag) &
         !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
 
         if(timestats.ge.1) time_slv_H2D=time_slv_H2D+mytime()
+ 
 
+#ifdef _OPENACC
+        call nvtxStartRange("solve1 ",id=3)
+#endif
         ! solve1: pre-RK terms
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
         call     solve1(nstep,rbufsz,num_soil_layers,                  &
@@ -2961,8 +2962,14 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve1
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
 
 
+#ifdef _OPENACC
+        call nvtxStartRange("solve2"//char(0),id=4)
+#endif
         if(timestats.ge.1) time_slv2_H2D=time_slv2_H2D+mytime()
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
@@ -3036,7 +3043,16 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,               &
                    doazimwrite,dorestart)
         ! end_solve2
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
+#ifdef _OPENACC
+        call nvtxStartRange("D2H",id=1)
+#endif
         !$acc end data
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
         if(timestats.ge.1) time_slv_D2H=time_slv_D2H+mytime()
 
       IF(imoist.eq.1)THEN
@@ -3044,6 +3060,9 @@
         ! microphysics:
 
         ! cm1r20:  move calls to microphysics scheme into mp_driver.F
+#ifdef _OPENACC
+        call nvtxStartRange("mp_driver",id=5)
+#endif
 
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
@@ -3054,10 +3073,16 @@
                          tdiag,qdiag,out2d,out3d,  &
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
 
       ENDIF
 
 
+#ifdef _OPENACC
+        call nvtxStartRange("solve3",id=6)
+#endif
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
@@ -3128,6 +3153,9 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve3
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
 
 
         !--------------------------------
@@ -3180,6 +3208,9 @@
 
       IF( radopt.ge.1 .and. dorad )THEN
 
+#ifdef _OPENACC
+        call nvtxStartRange("radiation_driver",id=7)
+#endif
         call     radiation_driver(mtime,radtim,dt,rbufsz,xh,yh,xf,yf,zf,rmh,c1,c2,     &
                    swten,lwten,swtenc,lwtenc,cldfra,o30,                               &
                    radsw,rnflx,radswnet,radlwin,dsr,olr,rad2d,                         &
@@ -3201,6 +3232,9 @@
           endif
         enddo
         if(timestats.ge.1) time_rad=time_rad+mytime()
+#ifdef _OPENACC
+        call nvtxEndRange()
+#endif
 
       ENDIF
 
@@ -3222,6 +3256,9 @@
       update_sfc = .true.
       if( startup .or. restarted ) update_sfc = .false.
 
+#ifdef _OPENACC
+        call nvtxStartRange("srf_and_turb",id=8)
+#endif
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
@@ -3273,6 +3310,13 @@
                    flag  ,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
+#ifdef _OPENACC
+        call nvtxEndRange
+        !print *,'nstep: ',nstep
+        !if(nstep == 5032) then 
+        !   stop 'after call to surf_and_turb'
+        !endif
+#endif
 
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
@@ -3528,6 +3572,9 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
+#ifdef _OPENACC
+        call nvtxStartRange("domaindiag",id=9)
+#endif
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3581,6 +3628,9 @@
         endif
         if(myid.eq.0) print *,'  next diagtim = ',diagtim
         if(timestats.ge.1) time_diag = time_diag+mytime()
+#ifdef _OPENACC
+        call nvtxEndRange()
+#endif
 
       endif
     ENDIF

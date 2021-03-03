@@ -1654,7 +1654,11 @@
           do k=1,nk
           do j=1,nj
           do i=1,ni
+#ifdef _FORCEB4B
+            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
+#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
+#endif
             rho(i,j,k)=prs(i,j,k)                         &
                /( (th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))     &
                  *(rd+max(0.0,q3d(i,j,k,nqv))*rv) )
@@ -1671,7 +1675,11 @@
           do k=1,nk
           do j=1,nj
           do i=1,ni
+#ifdef _FORCEB4B
+            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
+#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
+#endif
             rho(i,j,k)=prs(i,j,k)   &
                /(rd*(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k)))
           enddo
@@ -2059,7 +2067,11 @@
           do j=1,nj
           do i=1,ni
             pp3d(i,j,k) = pp3d(i,j,k) + tem
+#ifdef _FORCEB4B
+            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
+#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
+#endif
             rho(i,j,k)=prs(i,j,k)                         &
                /( (th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))     &
                  *(rd+max(0.0,q3d(i,j,k,nqv))*rv) )
@@ -2073,7 +2085,11 @@
           do j=1,nj
           do i=1,ni
             pp3d(i,j,k) = pp3d(i,j,k) + tem
+#ifdef _FORCEB4B
+            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
+#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
+#endif
             rho(i,j,k)=prs(i,j,k)   &
                /(rd*(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k)))
           enddo

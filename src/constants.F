@@ -8,6 +8,7 @@
             cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1,       &
             cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2,  &
             rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo
+!$acc declare create(eps)
 
       !----------------
 
@@ -59,7 +60,6 @@
 
       real, parameter :: grads_undef  =  -999999.9
 
-!$acc declare copyin(eps)
 
   CONTAINS
 
@@ -134,6 +134,7 @@
       cvdrd  = cv/rd
       cpdrd  = cp/rd
       eps    = rd/rv
+!$acc update device(eps)
       reps   = rv/rd
       repsm1 = rv/rd-1.0
       cpt    = (cpv/cp)-1.0

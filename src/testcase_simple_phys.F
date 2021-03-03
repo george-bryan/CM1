@@ -200,7 +200,7 @@
       !double precision :: tmp1,tmp2,tmp3
       !!$acc declare present(uavg,vavg,thavg,cavg) &
       !!$acc present(th0,ua,va,tha,ruh,ruf,rvh,rvf)
-
+      print *,'get_avg_uvt: Entered subroutine'
       ! 180612:  area-weighted average
       tem = dx*dy
 
@@ -407,7 +407,6 @@
   !                           *(      qcrit-qt(i,j,k))  &
       enddo
       enddo
-      !$acc compare(zir)
 
 !!!      if( myid.eq.0 )then
 !!!        i = 1
@@ -427,13 +426,23 @@
       do i=1,ni
         dum1(i,j,k) = dum1(i,j,min(nk+1,k+1))  &
                 + kappa*rho0(i,j,k)*ql(i,j,k)*(zf(i,j,k+1)-zf(i,j,k))
+#ifdef _FORCEB4B
+        fr1 = f0*(-dum1(i,j,k))
+        fr2 = f1*(-dum2(i,j,k))
+#else
         fr1 = f0*exp(-dum1(i,j,k))
         fr2 = f1*exp(-dum2(i,j,k))
+#endif
         if( zf(i,j,k).lt.zir(i,j) )then
           fr3 = 0.0
         else
+#ifdef _FORCEB4B
+          fr3 = rhoi*cp*bigd*alphaz*( 0.25*((zf(i,j,k)-zir(i,j))**2)  &
+                                 +zir(i,j)*((zf(i,j,k)-zir(i,j))**2)  )
+#else
           fr3 = rhoi*cp*bigd*alphaz*( 0.25*((zf(i,j,k)-zir(i,j))**1.333333)  &
                                  +zir(i,j)*((zf(i,j,k)-zir(i,j))**0.333333)  )
+#endif
         endif
         frad(i,j,k) = fr1+fr2+fr3
       enddo

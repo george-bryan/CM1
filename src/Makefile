@@ -48,10 +48,15 @@
 #  single processor + GPU, Portland Group compiler
 FC   = pgf90
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
+#OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
+# flipping the next two for debugging
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline=calcnm,flx5,simplerad -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
 OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
+#DM   = -D_OPENACC -D_FORCEB4B
 DM   = -D_OPENACC
+LINKOPTS = -lnvToolsExt
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
@@ -218,7 +223,10 @@ SRC   = constants.F \
 	module_bl_myjpbl.F \
 	module_sf_myjsfc.F
 
+SRC_OPENACC = nvtx_mod.F
+
 OBJS = $(addsuffix .o, $(basename $(SRC)))
+OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_OPENACC)))
 
 FFLAGS  =  $(OPTS)
 AR      = ar cru
@@ -228,8 +236,9 @@ AR      = ar cru
 
 all : cm1
 
+#			$(FC) $(OBJS) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) $(LINKOPTS) -o ../run/cm1.exe
 cm1:			$(OBJS)
-			$(FC) $(OBJS) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) $(LINKOPTS) -o ../run/cm1.exe
+			$(FC) $(LINKOPTS) $(OBJS) $(OBJS_OPENACC) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) -o ../run/cm1.exe
 			$(AR) onefile.F $(SRC)
 			mv onefile.F ../run
 
@@ -252,7 +261,7 @@ anelp.o: constants.o input.o misclibs.o bc.o poiss.o
 azimavg.o: input.o constants.o cm1libs.o writeout_nc.o comm.o bc.o
 base.o: constants.o input.o bc.o comm.o goddard.o cm1libs.o getcape.o turb.o
 bc.o: constants.o input.o
-cm1.o: constants.o input.o param.o base.o init3d.o misclibs.o solve1.o solve2.o solve3.o diff2.o turb.o statpack.o writeout.o restart.o radiation_driver.o radtrns3d.o domaindiag.o azimavg.o hifrq.o parcel.o init_physics.o init_surface.o mp_driver.o ib_module.o eddy_recycle.o lsnudge.o
+cm1.o: constants.o input.o param.o base.o init3d.o misclibs.o solve1.o solve2.o solve3.o diff2.o turb.o statpack.o writeout.o restart.o radiation_driver.o radtrns3d.o domaindiag.o azimavg.o hifrq.o parcel.o init_physics.o init_surface.o mp_driver.o ib_module.o eddy_recycle.o lsnudge.o nvtx_mod.o
 cm1libs.o: input.o constants.o
 comm.o: input.o bc.o
 diff2.o: constants.o input.o
