@@ -452,8 +452,6 @@
 !  get divergence:
 
 
-        
-        print *,'soundcb: before call to getdiv'
         call     getdiv(arh1,arh2,uh,vh,mh,u3d,v3d,w3d,dum1,dum2,dum3,dum4,  &
                         rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
 

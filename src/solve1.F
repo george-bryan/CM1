@@ -376,7 +376,6 @@
       !$acc present(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
 
 !--------------------------------------------------------------------
-      if(timestats.ge.1) time_slv1_H2D=time_slv1_H2D+mytime()
 
 #ifdef MPI
       nf=0
@@ -1782,8 +1781,6 @@
     !            - moved message passing and equate to solve_finish.F
 
 
-      !!$acc end data
-      if(timestats.ge.1) time_slv1_D2H=time_slv1_D2H+mytime()
       end subroutine solve1
 
 

@@ -2313,7 +2313,6 @@
 
 !------------------------------------------------------------------
 !  Get length scales:
-    !print *,'subroutine: tkekm: tconfig:',tconfig 
     !  get grid scale
     IF(tconfig.eq.1)THEN
 
@@ -2535,7 +2534,6 @@
 !--------------------------------------------------------------
 !  lower surface:
 
-      !print *,'subroutine: tkebc'
       IF( bbc.eq.2 .or. bbc.eq.3 )THEN
         ! no slip (fix/check this later)
         ! semi-slip
@@ -2580,17 +2578,17 @@
         !-----
         call comm_1s2d_end(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                            kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-        !$acc update device(tkea(ibt:iet,jbt:jet,1))
         call bcs2_2d(tkea(ibt,jbt,1))
+        !$acc update device(tkea(ibt:iet,jbt:jet,1))
         call comm_1s2d_end(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        !$acc update device(kmh(ibc:iec,jbc:jec,1))
         
         call bcs2_2d(kmh(ibc,jbc,1))
         !-----
         call comm_2d_corner(tkea(ibt,jbt,1))
         call comm_2d_corner(kmh(ibc,jbc,1))
         !-----
+        !$acc update device(kmh(ibc:iec,jbc:jec,1))
 #endif
 
         !$omp parallel do default(shared) private(i,j)
@@ -2638,16 +2636,16 @@
         !-----
         call comm_1s2d_end(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                               kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-        !$acc update device(tkea(ibt:iet,jbt:jet,nk+1))
         call bcs2_2d(tkea(ibt,jbt,nk+1))
         call comm_1s2d_end(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                              khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        !$acc update device(kmh(ibc:iec,jbc:jec,nk+1))
         call bcs2_2d(kmh(ibc,jbc,nk+1))
         !-----
         call comm_2d_corner(tkea(ibt,jbt,nk+1))
         call comm_2d_corner(kmh(ibc,jbc,nk+1))
         !-----
+        !$acc update device(tkea(ibt:iet,jbt:jet,nk+1))
+        !$acc update device(kmh(ibc:iec,jbc:jec,nk+1))
 #endif
 
         !$omp parallel do default(shared) private(i,j)
@@ -2726,7 +2724,6 @@
 
 !-----------------------------------------------------------------------
 
-      !print *,'subroutine: turbsmag'
       temx = 0.125*dx*dx/dt
       temy = 0.125*dy*dy/dt
 
@@ -2978,7 +2975,6 @@
 !--------------------------------------------------------------
 !  Interior:
 
-  !print *,'subroutine: turbparam_horiz'
   lhcheck:  &
   IF( l_h.gt.1.0e-12 .or. lhref1.gt.1.0e-12 .or. lhref2.gt.1.0e-12 )THEN
 
@@ -3138,7 +3134,6 @@
 !--------------------------------------------------------------
 !  Interior:
 
-  !print *,'subroutine: turbparam_vert'
   linfcheck:  &
   IF( l_inf.gt.1.0e-12 )THEN
 
@@ -3713,7 +3708,6 @@
     !$acc present(ugr,vgr) &
     !$acc present(stau,dum1,dum2,t13,t23)
 
-    !print *,'subroutine: sfcstress'
     IF(bbc.eq.1)THEN
       ! free slip:
 
@@ -3931,7 +3925,6 @@
 !----------------------------------------------------------------------
 
 
-  !print *,'subroutine: calcdef'
   IF(.not.terrain_flag)THEN
 
   IF( axisymm.eq.0 )THEN
@@ -4600,10 +4593,8 @@
 !----------------------------------------------------------------------
 !  Dry nm
 
-    !print *,'subroutine: calcnm ib:ie, jb:je, kb:ke+1: ',ib,ie,jb,je,kb,ke+1
     IF(imoist.eq.0)then
 
-      !print *,'subroutine: calcnm point #1'
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=2,nk
@@ -4629,7 +4620,6 @@
 
     ELSE
 
-      !print *,'subroutine: calcnm point #2'
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
@@ -4686,8 +4676,6 @@
     icecheck:  &
     IF( iice.eq.1 )THEN
 
-      !BIG MESS
-      !print *,'point #3'
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=2,nk
       do j=1,nj
@@ -4699,7 +4687,6 @@
       enddo
       enddo
       !$acc end parallel
-      !!$acc compare(thv)
 
       !$acc parallel loop gang vector collapse(3) default(present) &
       !$acc private(i,j,k,pavg,tavg,qtavg,qvciavg) &
@@ -4781,11 +4768,9 @@
       enddo
       enddo
       enddo
-      !stop 'calcnm: after big loop'
 
     ELSE  icecheck
 
-      print *,'point #4'
       ! liquid only:
       !$acc parallel loop gang vector default(present) &
       !$acc private(pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
@@ -4837,7 +4822,6 @@
 !----------------------------------------------------------------------
 
     if(timestats.ge.1) time_turb=time_turb+mytime()
-    !stop 'end of calcnm'
 
       return
       end subroutine calcnm
@@ -4906,7 +4890,6 @@
       double precision, dimension(kb:ke) :: shravg
 
     !-------------------------------------------
-    !print *,'subroutine: t2psmm'
     doingt2p:  &
     if( t2pfac.ge.0.001 )then
 
@@ -5253,7 +5236,6 @@
 
     !-------------------------------------------
 
-      !print *,'subroutine: t2pcode'
       kmw = 0.0
       l2p = 0.0
       wspa = 0.0
@@ -5484,7 +5466,6 @@
 
     !-------------------------------------------
 
-      !print *,'subroutine: getgamk'
       u1b = 0.0
       v1b = 0.0
       savg = 0.0
@@ -5696,7 +5677,6 @@
       real, parameter :: onedtwelve = 1.0/12.0
       real, parameter :: onedsixty  = 1.0/60.0
 
-    !print *,'subroutine: getepsd'
     IF(.not.terrain_flag)THEN
       ! without terrain:
 
@@ -6239,19 +6219,12 @@
       integer :: i,j,k
       real :: rrf,tem
 
-    !!$acc data copyin(uh,vh,uf,vf) &
-    !!$acc copyin(mh,c1,c2,mf) &
-    !!$acc copyin(t11,t12,t13,t22,t23,t33,rf) &
-    !!$acc copyin(ua,va,wa) &
-    !!$acc copy(dum1,dum2) &
-    !!$acc copy(epst,epstp,epstn)
-
-    !$acc declare present(uh,vh,uf,vf) &
-    !$acc present(mh,c1,c2,mf) &
-    !$acc present(t11,t12,t13,t22,t23,t33,rf) &
-    !$acc present(ua,va,wa) &
-    !$acc present(dum1,dum2) &
-    !$acc present(epst,epstp,epstn)
+      !$acc declare present(uh,vh,uf,vf) &
+      !$acc present(mh,c1,c2,mf) &
+      !$acc present(t11,t12,t13,t22,t23,t33,rf) &
+      !$acc present(ua,va,wa) &
+      !$acc present(dum1,dum2) &
+      !$acc present(epst,epstp,epstn)
 !--------------------------------------------------------------
 !  horizontal terms, Cartesian grid:
 
@@ -6259,7 +6232,6 @@
 !  u-x:
 !  v-y:
 
-    !print *,'subroutine: getepst'
     !$omp parallel do default(shared) private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
@@ -6433,7 +6405,6 @@
     endif
 
 
-    !!$acc end data
 !--------------------------------------------------------------
 !  finished
 

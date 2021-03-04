@@ -402,9 +402,8 @@
       do i=1,ni
         k = kzi(i,j)
         zir(i,j) = zh(i,j,k) +(zh(i,j,k+1)-zh(i,j,k))  &
-                             *(      0.0-qt(i,j,k))  &
+                             *(      qcrit-qt(i,j,k))  &
                              /(qt(i,j,k+1)-qt(i,j,k))
-  !                           *(      qcrit-qt(i,j,k))  &
       enddo
       enddo
 

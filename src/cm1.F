@@ -2968,9 +2968,8 @@
 
 
 #ifdef _OPENACC
-        call nvtxStartRange("solve2"//char(0),id=4)
+        call nvtxStartRange("solve2",id=4)
 #endif
-        if(timestats.ge.1) time_slv2_H2D=time_slv2_H2D+mytime()
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -3835,8 +3834,7 @@
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
-                    time_sound_H2D+time_sound_D2H+time_adv_H2D + time_adv_D2H+ &
-                    time_slv_H2D + time_slv_D2H
+                    time_adv_H2D + time_adv_D2H+time_slv_H2D + time_slv_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -3941,21 +3939,6 @@
         time_slv_D2H = sum/float(numprocs)
 
         sum = 0.0
-        call MPI_REDUCE(time_slv1_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_slv1_H2D = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_slv1_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_slv1_D2H = sum/float(numprocs)
-
-        sum = 0.0
-        call MPI_REDUCE(time_slv2_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_slv2_H2D = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_slv2_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_slv2_D2H = sum/float(numprocs)
-
-
-        sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
         sum = 0.0
@@ -3964,12 +3947,6 @@
         sum = 0.0
         call MPI_REDUCE(time_advs    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_advs = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_sound_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_sound_H2D = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_sound_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_sound_D2H = sum/float(numprocs)
         sum = 0.0
         call MPI_REDUCE(time_adv_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_adv_H2D = sum/float(numprocs)
@@ -4159,10 +4136,6 @@
     IF(dowr)THEN
       write(outfile,100) 'slv-H2D',time_slv_H2D,time_slv_H2D/time_solve
       write(outfile,100) 'slv-D2H',time_slv_D2H,time_slv_D2H/time_solve
-      write(outfile,100) 'slv1-H2D',time_slv1_H2D,time_slv1_H2D/time_solve
-      write(outfile,100) 'slv1-D2H',time_slv1_D2H,time_slv1_D2H/time_solve
-      write(outfile,100) 'slv2-H2D',time_slv2_H2D,time_slv2_H2D/time_solve
-      write(outfile,100) 'slv2-D2H',time_slv2_D2H,time_slv2_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
       write(outfile,100) ' adv-H2D',time_adv_H2D,time_adv_H2D/time_solve

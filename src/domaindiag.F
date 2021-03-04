@@ -9924,10 +9924,6 @@
     do k=1,nk
     do j=1,nj
     do i=1,ni
-         !print *,'rtkeb: ',rtkeb(i,j,k)
-         !print *,'wtk: ',wtk(i,j,k)
-         !print *,'wdiag: ',wdiag(i,j,k,wdn)
-         !print *,'wavg: ',wavg(k)
 !!!      rtkeb(i,j,k) = rtkeb(i,j,k) + wtk(i,j,k)*(wdiag(i,j,k,wdn)-savg(k))
 !!!      rtkeb(i,j,k) = rtkeb(i,j,k) + 0.5*( wtk(i,j,k  )*(wdiag(i,j,k  ,wdn)-savg(k  )) &
 !!!                                         +wtk(i,j,k+1)*(wdiag(i,j,k+1,wdn)-savg(k+1)) )

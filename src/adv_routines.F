@@ -2474,8 +2474,6 @@
 
   pdefs:  &
   if( pdefweno.eq.1 )then
-      !PCAST
-      !dumz=0.0
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
       !$acc parallel loop gang vector collapse(3) private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
@@ -7125,7 +7123,7 @@
       enddo
     ENDIF
     IF( vadvordrv.eq.10 .or. vadvordrv.eq.8 .or. vadvordrv.eq.6 .or. vadvordrv.eq.4 )THEN
-      !JMD !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector private(i,k,wbar)
       do k=2,nk,(nk-2)
       !dir$ vector always
       do i=2,i2
