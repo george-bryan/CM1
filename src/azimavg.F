@@ -2574,7 +2574,8 @@
     ELSEIF( output_format.eq.2 )THEN  of1
       ! netcdf format:
 
-      call       writecenter_nc(nwritea,ncid,mtime,icenter,jcenter,xcenter,ycenter,vmax,rmax,zmax)
+    ! 210203: bug fix
+      call       writecenter_nc(nwritea,ncid,mtime,icenter,jcenter,xcenter,ycenter,mostmax,mostr,mostz)
 
 !-----------------------------------------------------------------------
 #endif
