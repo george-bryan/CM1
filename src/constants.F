@@ -60,7 +60,6 @@
 
       real, parameter :: grads_undef  =  -999999.9
 
-
   CONTAINS
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

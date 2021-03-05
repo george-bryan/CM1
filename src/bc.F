@@ -8,6 +8,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+
       subroutine bc2d(s)
       use input
       implicit none
@@ -169,9 +170,6 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bc2d
-
-
-
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -340,6 +338,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+
       subroutine bcu(u)
       use input
       implicit none
@@ -485,9 +484,6 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
  
       end subroutine bcu
-
-
-
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -830,13 +826,6 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
       subroutine bcwsfc(gz,dzdx,dzdy,u,v,w)
       use input
       implicit none
@@ -900,6 +889,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
 
       subroutine bcs2(s)
       use input
