@@ -1201,14 +1201,15 @@
       sgsoption:  &
       IF( sgsmodel.eq.1 .or. sgsmodel.eq.3 .or. sgsmodel.eq.4 .or. sgsmodel.eq.5 )THEN
 
+        !$acc data &
+        !$acc copyin(zntmp,ust,ustt,kbdy) &
+        !$acc copy(tke3d,tkea,kmh,kmv,khh,khv) 
 
 
          ! Deardorff TKE:
         !$acc data &
-        !$acc copyin(zntmp,ust,ustt,kbdy) &
         !$acc copyin(ruh,rvh,rmf,csz,nm,cmz,ce1z,ce2z) &
-        !$acc copy(dum1,dum4,dum5,lenscl,dissten) &
-        !$acc copy(tke3d,tkea,kmh,kmv,khh,khv) 
+        !$acc copy(dum1,dum4,dum5,lenscl,dissten)
         call tkekm(nstep,rtime,dt,ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z, &
                    nm,defv,defh,dum1,dum2,dum3,dum4,dum5,             &
                    kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d,         &
@@ -1224,7 +1225,7 @@
         !$acc end data
 
         if( do_ib )then
-          !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=0,nj+2
           do i=0,ni+2
             if( kbdy(i,j).gt.1 )then
@@ -1244,13 +1245,14 @@
                        ks1(1,1,2),ks2(1,1,2),kn1(1,1,2),kn2(1,1,2))
 
        
-        !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=0,nj+1
         do i=0,ni+1
           tke3d(i,j,1) = tkea(i,j,1)
           tke3d(i,j,nk+1) = tkea(i,j,nk+1)
         enddo
         enddo
+        !$acc end data
 
         IF( sgsmodel.eq.5 )THEN
           ! Nonlinear Backscatter and Anisotropy (NBA) model:
@@ -2525,9 +2527,9 @@
 #ifdef MPI
       integer, dimension(8) :: reqs_khc,reqs_kvc
 #endif
-     !!$acc declare &
-     !!$acc present(tkea,kmh,kmv,khh,khv) &
-     !!$acc present(zntmp,ust,ustt)
+     !$acc declare &
+     !$acc present(tkea,kmh,kmv,khh,khv) &
+     !$acc present(zntmp,ust,ustt)
 
 !--------------------------------------------------------------
 !  lower surface:
@@ -2536,7 +2538,7 @@
         ! no slip (fix/check this later)
         ! semi-slip
         !$omp parallel do default(shared) private(i,j)
-        !!$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           ! Pope, pg 288:
@@ -2549,7 +2551,7 @@
         ! free slip
  
         !$omp parallel do default(shared) private(i,j)
-        !!$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           tkea(i,j,1) = 0.0
@@ -2562,15 +2564,15 @@
         if(timestats.ge.1) time_turb=time_turb+mytime()
 
         !-----
-        !call bc2d_GPU(tkea(ibt,jbt,1))
-        call bc2d(tkea(ibt,jbt,1))
+        call bc2d_GPU(tkea(ibt,jbt,1))
+        !call bc2d(tkea(ibt,jbt,1))
 #ifdef MPI
         !!$acc update host(tkea(ibt:iet,jbt:jet,1))
         call comm_1s2d_start(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                              kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
 #endif
-        !call bc2d_GPU(kmh(ibc,jbc,1))
-        call bc2d(kmh(ibc,jbc,1))
+        call bc2d_GPU(kmh(ibc,jbc,1))
+        !call bc2d(kmh(ibc,jbc,1))
 #ifdef MPI
         !!$acc update host(kmh(ibc:iec,jbc:jec,1))
         call comm_1s2d_start(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
@@ -2592,7 +2594,7 @@
 #endif
 
         !$omp parallel do default(shared) private(i,j)
-        !!$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector default(present) private(i,j)
         do j=0,nj+1
         do i=0,ni+1
           kmv(i,j,1) = kmh(i,j,1)
@@ -2609,7 +2611,7 @@
       IF( tbc.eq.3 )THEN
 
         !$omp parallel do default(shared) private(i,j)
-        !!$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           ! Pope, pg 288:
@@ -2622,15 +2624,15 @@
         if(timestats.ge.1) time_turb=time_turb+mytime()
 
         !-----
-        !call bc2d_GPU(tkea(ibt,jbt,nk+1))
-        call bc2d(tkea(ibt,jbt,nk+1))
+        call bc2d_GPU(tkea(ibt,jbt,nk+1))
+        !call bc2d(tkea(ibt,jbt,nk+1))
 #ifdef MPI
         !!$acc update host(tkea(ibt:iet,jbt:jet,nk+1))
         call comm_1s2d_start(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                                 kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
 #endif
-        !call bc2d_GPU(kmh(ibc,jbc,nk+1))
-        call bc2d(kmh(ibc,jbc,nk+1))
+        call bc2d_GPU(kmh(ibc,jbc,nk+1))
+        !call bc2d(kmh(ibc,jbc,nk+1))
 #ifdef MPI
         !!$acc update host(kmh(ibc:iec,jbc:jec,nk+1))
         call comm_1s2d_start(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
@@ -2651,7 +2653,7 @@
 #endif
 
         !$omp parallel do default(shared) private(i,j)
-        !!$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector default(present) private(i,j)
         do j=0,nj+1
         do i=0,ni+1
           kmv(i,j,nk+1) = kmh(i,j,nk+1)
