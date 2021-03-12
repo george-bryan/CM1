@@ -711,8 +711,6 @@
         !$acc parallel private(i,j,k,aa,bb,cc,dd,fwk,r1)
         do k=3,(nk-1)
         !$omp parallel do default(shared) private(i,j,aa,bb,cc,dd,fwk,r1)
-        !!$acc parallel loop gang vector collapse(2) private(i,j,aa,bb,cc,dd,fwk,r1)
-        !!$acc loop gang vector collapse(2) private(i,j,aa,bb,cc,dd,fwk,r1)
         !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni

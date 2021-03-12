@@ -920,8 +920,8 @@
       
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
-        !$acc data create(budarray)
         tem0 = dt*dx*dy*dz
+        !$acc data copyin(tem0) create(budtmp,budarray)
         !$omp parallel do default(shared) private(i,j,delpi,delth,delqv,delt,n)
         !$acc parallel loop gang vector collapse(2) default(present) &
         !$acc private(i,j,delpi,delth,delqv,delt,n)
@@ -940,12 +940,10 @@
                  + cvv*(pi0(i,j,1)+ppi(i,j,1))*(th0(i,j,1)+tha(i,j,1))*delqv &
                  + g*zh(i,j,1)*delqv   )
 
-          !$acc loop reduction(+:budtmp)
           do n=nql1,nql2
             budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpl*qa(i,j,1,n)*delt
           enddo
           if(iice.eq.1)then
-            !$acc loop reduction(+:budtmp)
             do n=nqs1,nqs2
               !bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpi*qa(i,j,k,n)*delt
               budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpi*qa(i,j,1,n)*delt
@@ -953,7 +951,8 @@
           endif
         enddo
         enddo
-        !$acc parallel loop default(present) reduction(+:budtmp)
+        qtmp =0.0
+        !$acc parallel loop default(present) private(i,j) reduction(+:budtmp,qtmp)
         do j=1,nj
           budtmp=0.0
           !$acc loop reduction(+:budtmp)
@@ -961,18 +960,12 @@
             budtmp = budtmp + budarray(i,j) 
           enddo
           bud2(j)=budtmp
-        enddo
-        !$acc end data
-        !$acc parallel loop gang vector default(present) private(j) reduction(+:qtmp)
-        do j=1,nj
-          !qbudget(9) = qbudget(9) + tem0*bud2(j)
           qtmp = qtmp + tem0*bud2(j)
         enddo
         qbudget(9) = qtmp;
-        !$acc update device(qbudget)
+        !$acc end data
         if(timestats.ge.1) time_misc=time_misc+mytime()
       endif
-      !!stop 'solve1: after bud2 calculation'
 
       !---- Dissipative heating term:
 
@@ -1719,11 +1712,7 @@
                 abs(dt*qten(i,j,k,nqv)).gt.qsmall )THEN
               thnew = tha(i,j,k)+dt*thten1(i,j,k)
               qvnew = qa(i,j,k,nqv)+dt*qten(i,j,k,nqv)
-#ifdef _FORCEB4B
-              pinew = (rho(i,j,k)*(th0(i,j,k)+thnew)*(rd+rv*qvnew)*rp00)**2 - pi0(i,j,k)
-#else
               pinew = (rho(i,j,k)*(th0(i,j,k)+thnew)*(rd+rv*qvnew)*rp00)**rddcv - pi0(i,j,k)
-#endif
               ppten(i,j,k) = (pinew-ppi(i,j,k))*rdt
             ELSE
               ppten(i,j,k) = 0.0
@@ -1747,6 +1736,7 @@
           enddo
           enddo
         ELSE
+          !non-B4B
           !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew)
           do k=1,nk

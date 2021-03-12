@@ -50,9 +50,9 @@ FC   = pgf90
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
 #OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
 # flipping the next two for debugging
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline=calcnm,flx5,simplerad -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline=calcnm -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
 #DM   = -D_OPENACC -D_FORCEB4B
 DM   = -D_OPENACC
@@ -71,6 +71,7 @@ LINKOPTS = -lnvToolsExt
 ##OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #DM   = -DMPI -D_OPENACC
+#LINKOPTS = -lnvToolsExt
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), Portland Group compiler
 #FC   = pgf90
@@ -224,6 +225,7 @@ SRC   = constants.F \
 	module_sf_myjsfc.F
 
 SRC_OPENACC = nvtx_mod.F
+#SRC_OPENACC = 
 
 OBJS = $(addsuffix .o, $(basename $(SRC)))
 OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_OPENACC)))

@@ -478,11 +478,11 @@
       real :: ep1
 
 
-      !$acc data &
-      !$acc copyin(psfc,tsk,th0,tha,qa,tsk,znt,za) &
-      !$acc copyin(dsxy,s1,thflux,qvflux,rf,cd,hpbl) &
-      !$acc copy(qsfc,gz1oz0,wspd,br,hfx,qfx) &
-      !$acc copy(cda,psim,psih,zol,mol,fm,fh,th2,q2,t2)
+      !!$acc data &
+      !!$acc copyin(psfc,tsk,th0,tha,qa,tsk,znt,za) &
+      !!$acc copyin(dsxy,s1,thflux,qvflux,rf,cd,hpbl) &
+      !!$acc copy(qsfc,gz1oz0,wspd,br,hfx,qfx) &
+      !!$acc copy(cda,psim,psih,zol,mol,fm,fh,th2,q2,t2)
       EP1 = rv/rd - 1.0
 
       ! surface layer diagnostics:
@@ -490,9 +490,9 @@
       !$omp parallel do default(shared)   &
       !$omp private(i,j,pisfc,thgb,thx,thvx,tskv,govrth,dthvdz,vconv,vsgd,   &
       !$omp dthvm,val,fluxc,rznt)
-      !$acc parallel loop gang vector default(present)   &
-      !$acc private(i,j,pisfc,thgb,thx,thvx,tskv,govrth,dthvdz,vconv,vsgd,   &
-      !$acc dthvm,val,fluxc,rznt)
+      !!$acc parallel loop gang vector default(present)   &
+      !!$acc private(i,j,pisfc,thgb,thx,thvx,tskv,govrth,dthvdz,vconv,vsgd,   &
+      !!$acc dthvm,val,fluxc,rznt)
       do j=1,nj
       do i=1,ni
         pisfc = (psfc(i,j)*rp00)**rovcp
@@ -541,7 +541,7 @@
         t2(i,j) = th2(i,j)*pisfc
       enddo
       enddo
-      !$acc end data 
+      !!$acc end data 
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
       end subroutine sfcdiags

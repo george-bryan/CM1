@@ -3291,28 +3291,28 @@
           if(timestats.ge.1) time_diag = time_diag+mytime()
           if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
               ! use mij:
-            !$acc data copyin(uh,vh,uf,vf) &
-            !$acc copyin(mh,c1,c2,mf) &
-            !$acc copyin(m11,m12,m13,m22,m23,m33,rf) &
-            !$acc copyin(u3d,v3d,w3d) &
-            !$acc copy(dum1,dum2) &
-            !$acc copy(rrw,wtk,wtmp)
+            !!$acc data copyin(uh,vh,uf,vf) &
+            !!$acc copyin(mh,c1,c2,mf) &
+            !!$acc copyin(m11,m12,m13,m22,m23,m33,rf) &
+            !!$acc copyin(u3d,v3d,w3d) &
+            !!$acc copy(dum1,dum2) &
+            !!$acc copy(rrw,wtk,wtmp)
             call getepst(xh,rxh,uh,xf,rxf,uf,vh,vf,mh,c1,c2,mf,u3d,v3d,w3d,  &
                          m11,m12,m13,m22,m23,m33,rf,                         &
                          dum1,dum2,rrw,wtk,wtmp)
-            !$acc end data
+            !!$acc end data
           else
               ! use tij:
-            !$acc data copyin(uh,vh,uf,vf) &
-            !$acc copyin(mh,c1,c2,mf) &
-            !$acc copyin(t11,t12,t13,t22,t23,t33,rf) &
-            !$acc copyin(u3d,v3d,w3d) &
-            !$acc copy(dum1,dum2) &
-            !$acc copy(rrw,wtk,wtmp)
+            !!$acc data copyin(uh,vh,uf,vf) &
+            !!$acc copyin(mh,c1,c2,mf) &
+            !!$acc copyin(t11,t12,t13,t22,t23,t33,rf) &
+            !!$acc copyin(u3d,v3d,w3d) &
+            !!$acc copy(dum1,dum2) &
+            !!$acc copy(rrw,wtk,wtmp)
             call getepst(xh,rxh,uh,xf,rxf,uf,vh,vf,mh,c1,c2,mf,u3d,v3d,w3d,  &
                          t11,t12,t13,t22,t23,t33,rf,                         &
                          dum1,dum2,rrw,wtk,wtmp)
-            !$acc end data
+            !!$acc end data
           endif
 
       !...............

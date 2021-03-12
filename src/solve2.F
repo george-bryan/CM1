@@ -1649,16 +1649,14 @@
         ENDIF
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
+            
+          !non-B4B01
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
-#ifdef _FORCEB4B
-            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
-#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
-#endif
             rho(i,j,k)=prs(i,j,k)                         &
                /( (th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))     &
                  *(rd+max(0.0,q3d(i,j,k,nqv))*rv) )
@@ -1670,16 +1668,13 @@
       ELSE
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
+          !non-B4B02
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
-#ifdef _FORCEB4B
-            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
-#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
-#endif
             rho(i,j,k)=prs(i,j,k)   &
                /(rd*(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k)))
           enddo
@@ -2061,17 +2056,14 @@
 !!!        if( myid.eq.0 ) print *,'  temd,tem = ',temd,tem
 
         IF( imoist.eq.1 )THEN
+          !non-B4B03
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
             pp3d(i,j,k) = pp3d(i,j,k) + tem
-#ifdef _FORCEB4B
-            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
-#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
-#endif
             rho(i,j,k)=prs(i,j,k)                         &
                /( (th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))     &
                  *(rd+max(0.0,q3d(i,j,k,nqv))*rv) )
@@ -2079,17 +2071,14 @@
           enddo
           enddo
         ELSE
+          !non-B4B04
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3)  private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
             pp3d(i,j,k) = pp3d(i,j,k) + tem
-#ifdef _FORCEB4B
-            prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**2)
-#else
             prs(i,j,k)=p00*((pi0(i,j,k)+pp3d(i,j,k))**cpdrd)
-#endif
             rho(i,j,k)=prs(i,j,k)   &
                /(rd*(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k)))
           enddo
