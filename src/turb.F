@@ -1157,16 +1157,16 @@
 
       IF( cm1setup.ge.1 .or. output_def.eq.1 .or. ipbl.ge.1 .or. horizturb.eq.1 )THEN
         ! deformation:
-        !!$acc data copyin(uh,xf,uf,vh,vf) &
-        !!$acc copyin(mh,c1,c2,mf) &
-        !!$acc copyin(ua,va,wa) &
-        !!$acc copyin(gx,gy,rho,rr,rf) &
-        !!$acc copy(defv,defh) &
-        !!$acc copy(t11,t12,t13,t22,t23,t33)
+        !$acc data copyin(uh,xf,uf,vh,vf) &
+        !$acc copyin(mh,c1,c2,mf) &
+        !$acc copyin(ua,va,wa) &
+        !$acc copyin(gx,gy,rho,rr,rf) &
+        !$acc copy(defv,defh) &
+        !$acc copy(t11,t12,t13,t22,t23,t33)
         call calcdef(    rds,sigma,rdsf,sigmaf,zs,gz,rgz,gzu,rgzu,gzv,rgzv,                &
                      xh,rxh,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,vf,mh,c1,c2,mf,defv,defh,  &
                      dum1,dum2,ua,va,wa,t11,t12,t13,t22,t23,t33,gx,gy,rho,rr,rf)
-        !!$acc end data
+        !$acc end data
 
       ENDIF
 
@@ -1201,15 +1201,14 @@
       sgsoption:  &
       IF( sgsmodel.eq.1 .or. sgsmodel.eq.3 .or. sgsmodel.eq.4 .or. sgsmodel.eq.5 )THEN
 
-        !!$acc data &
-        !!$acc copyin(zntmp,ust,ustt,kbdy) &
-        !!$acc copy(tke3d,tkea,kmh,kmv,khh,khv) 
 
 
          ! Deardorff TKE:
-        !!$acc data &
-        !!$acc copyin(ruh,rvh,rmf,csz,nm,cmz,ce1z,ce2z) &
-        !!$acc copy(dum1,dum4,dum5,lenscl,dissten)
+        !$acc data &
+        !$acc copyin(zntmp,ust,ustt,kbdy) &
+        !$acc copyin(ruh,rvh,rmf,csz,nm,cmz,ce1z,ce2z) &
+        !$acc copy(dum1,dum4,dum5,lenscl,dissten) &
+        !$acc copy(tke3d,tkea,kmh,kmv,khh,khv) 
         call tkekm(nstep,rtime,dt,ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z, &
                    nm,defv,defh,dum1,dum2,dum3,dum4,dum5,             &
                    kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d,         &
@@ -1222,7 +1221,7 @@
                    ks1(1,1,3),ks2(1,1,3),kn1(1,1,3),kn2(1,1,3),       &
                    kw1(1,1,4),kw2(1,1,4),ke1(1,1,4),ke2(1,1,4),       &
                    ks1(1,1,4),ks2(1,1,4),kn1(1,1,4),kn2(1,1,4))
-        !!$acc end data
+        !$acc end data
 
         if( do_ib )then
           !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1252,7 +1251,6 @@
           tke3d(i,j,nk+1) = tkea(i,j,nk+1)
         enddo
         enddo
-        !!$acc end data
 
         IF( sgsmodel.eq.5 )THEN
           ! Nonlinear Backscatter and Anisotropy (NBA) model:
@@ -2307,9 +2305,9 @@
       integer reqs_khd(8)
       integer reqs_kvd(8)
 #endif
-    !!$acc declare &
-    !!$acc present(ruh,rvh,rmf,csz,tkea,nm,tk,cmz,ce1z,ce2z) &
-    !!$acc present(grdscl,rgrdscl,tk,lenscl,dissten,kmh,kmv,khh,khv)
+    !$acc declare &
+    !$acc present(ruh,rvh,rmf,csz,tkea,nm,tk,cmz,ce1z,ce2z) &
+    !$acc present(grdscl,rgrdscl,tk,lenscl,dissten,kmh,kmv,khh,khv)
 
 !------------------------------------------------------------------
 !  Get length scales:
@@ -2320,7 +2318,7 @@
 
       !non-B4B: due to use of PWR function 
       !$omp parallel do default(shared) private(i,j,k,prinv,rcs)
-      !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -2375,7 +2373,7 @@
       ! two length scales:  one for horizontal, one for vertical
 
       !$omp parallel do default(shared) private(i,j,k,prinv,rcs)
-      !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -2445,32 +2443,32 @@
 !------------------------------------------------------------
 ! Set values at boundaries, start comms:
 
-      !call bcw_GPU(kmh,1)
-      call bcw(kmh,1)
+      call bcw_GPU(kmh,1)
+      !call bcw(kmh,1)
 #ifdef MPI
       !!$acc update host(kmh)
       call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
 #endif
 
-      !call bcw_GPU(kmv,1)
-      call bcw(kmv,1)
+      call bcw_GPU(kmv,1)
+      !call bcw(kmv,1)
 #ifdef MPI
       !!$acc update host(kmv)
       call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
 #endif
 
-      !call bcw_GPU(khh,1)
-      call bcw(khh,1)
+      call bcw_GPU(khh,1)
+      !call bcw(khh,1)
 #ifdef MPI
       !!$acc update host(khh)
       call comm_1t_start(khh,khdw1,khdw2,khde1,khde2,   &
                              khds1,khds2,khdn1,khdn2,reqs_khd)
 #endif
 
-      !call bcw_GPU(khv,1)
-      call bcw(khv,1)
+      call bcw_GPU(khv,1)
+      !call bcw(khv,1)
 #ifdef MPI
       !!$acc update host(khv)
       call comm_1t_start(khv,kvdw1,kvdw2,kvde1,kvde2,   &
@@ -3897,12 +3895,12 @@
       real :: r1,r2,r3,r4
       real :: tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,rrf
       real :: temz
-      !!$acc declare present(uh,xf,uf,vh,vf) &
-      !!$acc present(mh,c1,c2,mf) &
-      !!$acc present(ua,va,wa) &
-      !!$acc present(gx,gy,rho,rr,rf) &
-      !!$acc present(defv,defh) &
-      !!$acc present(s11,s12,s13,s22,s23,s33)
+      !$acc declare present(uh,xf,uf,vh,vf) &
+      !$acc present(mh,c1,c2,mf) &
+      !$acc present(ua,va,wa) &
+      !$acc present(gx,gy,rho,rr,rf) &
+      !$acc present(defv,defh) &
+      !$acc present(s11,s12,s13,s22,s23,s33)
 
 !----------------------------------------------------------------------
 !
@@ -3935,7 +3933,7 @@
     ! Cartesian without terrain:
 
     !$omp parallel do default(shared) private(i,j,k,temz)
-    !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,temz)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,temz)
     DO k=1,nk
       do j=0,nj+1
       do i=0,ni+1 
@@ -3955,7 +3953,7 @@
           ! lateral boundary conditions:
           if(wbc.eq.3.and.ibw.eq.1)then
             ! free slip b.c.
-            !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
             do k=1,nk
             do j=1,nj+1
               s12(1,j,k) = s12(2,j,k)
@@ -3964,7 +3962,7 @@
           elseif(wbc.eq.4.and.ibw.eq.1)then
             ! no slip b.c.
             i = 1
-            !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
             do k=1,nk
             do j=1,nj+1
               s12(1,j,k) = 2.0*va(1,j,k)*rdx*uf(1)   &
@@ -3974,7 +3972,7 @@
           endif
           if(ebc.eq.3.and.ibe.eq.1)then
             ! free slip b.c.
-            !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
             do k=1,nk
             do j=1,nj+1
               s12(ni+1,j,k) = s12(ni,j,k)
@@ -3983,7 +3981,7 @@
           elseif(ebc.eq.4.and.ibe.eq.1)then
             ! no slip b.c.
             i = ni+1
-            !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
             do k=1,nk
             do j=1,nj+1
               s12(ni+1,j,k) = -2.0*va(ni,j,k)*rdx*uf(ni+1)   &
@@ -3995,7 +3993,7 @@
           !-----
           if(sbc.eq.3.and.ibs.eq.1)then
             ! free slip b.c.
-            !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
             do k=1,nk
             do i=1,ni+1
               s12(i,1,k) = s12(i,2,k)
@@ -4004,7 +4002,7 @@
           elseif(sbc.eq.4.and.ibs.eq.1)then
             ! no slip b.c.
             j = 1
-            !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
             do k=1,nk
             do i=1,ni+1
               s12(i,1,k) = 2.0*ua(i,1,k)*rdy*vf(1)   &
@@ -4014,7 +4012,7 @@
           endif
           if(nbc.eq.3.and.ibn.eq.1)then
             ! free slip b.c.
-            !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
             do k=1,nk
             do i=1,ni+1
               s12(i,nj+1,k) = s12(i,nj,k)
@@ -4023,7 +4021,7 @@
           elseif(nbc.eq.4.and.ibn.eq.1)then
             ! no slip b.c.
             j = nj+1
-            !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+            !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
             do k=1,nk
             do i=1,ni+1
               s12(i,nj+1,k) = -2.0*ua(i,nj,k)*rdy*vf(nj+1)   &
@@ -4034,7 +4032,7 @@
           !-----
 
     !$omp parallel do default(shared) private(i,j,k)
-    !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     DO k=2,nk
 
       do j=1,nj+1
@@ -4054,7 +4052,7 @@
     ! lateral boundary conditions:
     if(wbc.eq.3.and.ibw.eq.1)then
       ! free slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
       do k=2,nk
       do j=1,nj
         s13(1,j,k) = s13(2,j,k)
@@ -4062,7 +4060,7 @@
       enddo
     elseif(wbc.eq.4.and.ibw.eq.1)then
       ! no slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
       do k=2,nk
       do j=1,nj
         s13(1,j,k) = 2.0*wa(1,j,k)*rdx*uf(1)
@@ -4071,7 +4069,7 @@
     endif
     if(ebc.eq.3.and.ibe.eq.1)then
       ! free slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
       do k=2,nk
       do j=1,nj
         s13(ni+1,j,k) = s13(ni,j,k)
@@ -4079,7 +4077,7 @@
       enddo
     elseif(ebc.eq.4.and.ibe.eq.1)then
       ! no slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
       do k=2,nk
       do j=1,nj
         s13(ni+1,j,k) = -2.0*wa(ni,j,k)*rdx*uf(ni+1)
@@ -4091,7 +4089,7 @@
     !-----
     if(sbc.eq.3.and.ibs.eq.1)then
       ! free slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
       do k=2,nk
       do i=1,ni
         s23(i,1,k) = s23(i,2,k)
@@ -4099,7 +4097,7 @@
       enddo
     elseif(sbc.eq.4.and.ibs.eq.1)then
       ! no slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
       do k=2,nk
       do i=1,ni
         s23(i,1,k) = 2.0*wa(i,1,k)*rdy*vf(1)
@@ -4108,7 +4106,7 @@
     endif
     if(nbc.eq.3.and.ibn.eq.1)then
       ! free slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
       do k=2,nk
       do i=1,ni
         s23(i,nj+1,k) = s23(i,nj,k)
@@ -4116,7 +4114,7 @@
       enddo
     elseif(nbc.eq.4.and.ibn.eq.1)then
       ! no slip b.c.
-      !!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+      !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
       do k=2,nk
       do i=1,ni
         s23(i,nj+1,k) = -2.0*wa(i,nj,k)*rdy*vf(nj+1)
@@ -4131,7 +4129,7 @@
     ! axisymmetric:
 
     !$omp parallel do default(shared) private(i,j,k)
-    !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     DO k=1,nk
 
       do j=1,nj
@@ -4151,7 +4149,7 @@
     j = 1
     if(wbc.eq.3)then
       ! free slip b.c.
-      !!$acc parallel loop gang vector default(present) private(k)
+      !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
 !!!              s12(1,j,k) = s12(2,j,k)
          s12(1,j,k) = 0.0
@@ -4159,7 +4157,7 @@
     elseif(wbc.eq.4)then
       ! no slip b.c.
       i = 1
-      !!$acc parallel loop gang vector default(present) private(k)
+      !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         s12(1,j,k) = 2.0*va(1,j,k)*rdx*uf(1)   &
                     *0.5*(arf1(i)*rho(i-1,j,k)+arf2(i)*rho(i,j,k))
@@ -4167,14 +4165,14 @@
     endif
     if(ebc.eq.3)then
       ! free slip b.c.
-      !!$acc parallel loop gang vector default(present) private(k)
+      !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         s12(ni+1,j,k) = s12(ni,j,k)
       enddo
     elseif(ebc.eq.4)then
       ! no slip b.c.
       i = ni+1
-      !!$acc parallel loop gang vector default(present) private(k)
+      !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         s12(ni+1,j,k) = -2.0*va(ni,j,k)*rdx*uf(ni+1)   &
                         *0.5*(arf1(i)*rho(i-1,j,k)+arf2(i)*rho(i,j,k))
@@ -4183,7 +4181,7 @@
     !-----
 
     !$omp parallel do default(shared) private(i,j,k)
-    !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     DO k=2,nk
 
       do j=1,nj
@@ -4208,7 +4206,7 @@
     ! dum1 stores u at w-pts:
     ! dum2 stores v at w-pts:
     !$omp parallel do default(shared) private(i,j,k,r1,r2)
-    !!$acc parallel loop gang vector default(present) private(i,j,k,r1,r2)
+    !$acc parallel loop gang vector default(present) private(i,j,k,r1,r2)
     do j=0,nj+2
       ! lowest model level:
       do i=0,ni+2
@@ -4234,7 +4232,7 @@
     enddo
 
     !$omp parallel do default(shared) private(i,j,k,r1)
-    !!$acc parallel loop gang vector default(present) private(i,j,k,r1)
+    !$acc parallel loop gang vector default(present) private(i,j,k,r1)
     DO k=1,nk
       do j=0,nj+1
       do i=0,ni+1 
@@ -4273,7 +4271,7 @@
 
     ! now, dum1 stores w at scalar-pts:
     !$omp parallel do default(shared) private(i,j,k)
-    !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     DO k=1,nk
       do j=0,nj+1
       do i=0,ni+1
@@ -4282,7 +4280,7 @@
       enddo
     ENDDO
     !$omp parallel do default(shared) private(i,j,k)
-    !!$acc parallel loop gang vector default(present) private(i,j,k)
+    !$acc parallel loop gang vector default(present) private(i,j,k)
     DO k=2,nk
       do j=1,nj
       do i=1,ni+1
@@ -4316,7 +4314,7 @@
     IF( wbc.eq.2 .or. ebc.eq.2 .or. sbc.eq.2 .or. nbc.eq.2 )THEN
       !-----
       IF( wbc.eq.2 .and. ibw.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         DO k=1,nk
           do j=0,nj+1
             s11(0,j,k) = s11(1,j,k)
@@ -4324,7 +4322,7 @@
         ENDDO
       ENDIF
       IF( ebc.eq.2 .and. ibe.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         DO k=1,nk
           do j=0,nj+1
             s11(ni+1,j,k) = s11(ni,j,k)
@@ -4335,7 +4333,7 @@
       !ccccc
       !-----
       IF( sbc.eq.2 .and. ibs.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         DO k=1,nk
           do i=0,ni+1
             s22(i,0,k) = s22(i,1,k)
@@ -4343,7 +4341,7 @@
         ENDDO
       ENDIF
       IF( nbc.eq.2 .and. ibn.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         DO k=1,nk
           do i=0,ni+1
             s22(i,nj+1,k) = s22(i,nj,k)
@@ -4354,7 +4352,7 @@
       !ccccc
       !-----
       IF( wbc.eq.2 .and. ibw.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         DO k=1,nk
           do j=1,nj+1
             s12(1,j,k) = s12(2,j,k)
@@ -4362,7 +4360,7 @@
         ENDDO
       ENDIF
       IF( ebc.eq.2 .and. ibe.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         DO k=1,nk
           do j=1,nj+1
             s12(ni+1,j,k) = s12(ni,j,k)
@@ -4371,7 +4369,7 @@
       ENDIF
       !-----
       IF( sbc.eq.2 .and. ibs.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         DO k=1,nk
           do i=1,ni+1
             s12(i,1,k) = s12(i,2,k)
@@ -4379,7 +4377,7 @@
         ENDDO
       ENDIF
       IF( nbc.eq.2 .and. ibn.eq.1 )THEN
-        !!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         DO k=1,nk
           do i=1,ni+1
             s12(i,nj+1,k) = s12(i,nj,k)
@@ -4391,28 +4389,28 @@
       !-----
       IF( sbc.eq.2 .and. ibs.eq.1 .and. &
           wbc.eq.2 .and. ibw.eq.1 )THEN
-        !!$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel loop gang vector default(present) private(k)
         DO k=1,nk
           s12(1,1,k) = s12(2,2,k)
         ENDDO
       ENDIF
       IF( sbc.eq.2 .and. ibs.eq.1 .and. &
           ebc.eq.2 .and. ibe.eq.1 )THEN
-        !!$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel loop gang vector default(present) private(k)
         DO k=1,nk
           s12(ni+1,1,k) = s12(ni,2,k)
         ENDDO
       ENDIF
       IF( nbc.eq.2 .and. ibn.eq.1 .and. &
             wbc.eq.2 .and. ibw.eq.1 )THEN
-        !!$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel loop gang vector default(present) private(k)
         DO k=1,nk
           s12(1,nj+1,k) = s12(2,nj,k)
         ENDDO
       ENDIF
       IF( nbc.eq.2 .and. ibn.eq.1 .and. &
           ebc.eq.2 .and. ibe.eq.1 )THEN
-        !!$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel loop gang vector default(present) private(k)
         DO k=1,nk
           s12(ni+1,nj+1,k) = s12(ni,nj,k)
         ENDDO
@@ -4461,7 +4459,7 @@
     IF( axisymm.eq.1 )THEN
       ! lateral boundary condition:
       !$omp parallel do default(shared) private(k)
-      !!$acc parallel loop gang vector default(present) private(k)
+      !$acc parallel loop gang vector default(present) private(k)
       do k=0,nk+1
         s13(1,1,k)=0.0
       enddo
@@ -4484,8 +4482,8 @@
       !       + 4.0*( S12*S12 + S13*S13 + S23*S23 )
       !$omp parallel do default(shared) &
       !$omp private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,rrf)
-      !!$acc parallel loop gang vector collapse(3) default(present) &
-      !!$acc private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,rrf)
+      !$acc parallel loop gang vector collapse(3) default(present) &
+      !$acc private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,rrf)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -4519,8 +4517,8 @@
 
       !$omp parallel do default(shared) &
       !$omp private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,rrf)
-      !!$acc parallel loop gang vector collapse(3) default(present) &
-      !!$acc private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,rrf)
+      !$acc parallel loop gang vector collapse(3) default(present) &
+      !$acc private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,rrf)
       do k=2,nk
       do j=1,nj
       do i=1,ni
