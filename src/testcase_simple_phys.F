@@ -1,3 +1,6 @@
+#ifdef _B4B
+#define _B4B01
+#endif
   MODULE simple_phys_module
 
   implicit none
@@ -417,10 +420,16 @@
 !!!        print *
 !!!      endif
 
+#ifdef _B4B01
+      !$acc update host(dum1,dum2,rho0,ql,zf,zir)
+#else
       !non-B4B due to EXP and PWR functions
       !$acc parallel default(present) private(i,j,k,fr1,fr2,fr3)
+#endif
       do k=nk+1,1,-1
+#ifndef _B4B01
       !$acc loop gang vector collapse(2)
+#endif
       do j=1,nj
       do i=1,ni
         dum1(i,j,k) = dum1(i,j,min(nk+1,k+1))  &
@@ -437,7 +446,11 @@
       enddo
       enddo
       enddo
+#ifdef _B4B01
+      !$acc update device(frad,dum1) 
+#else
       !$acc end parallel
+#endif
 
       end subroutine simplerad
 

@@ -1,3 +1,7 @@
+#ifdef _B4B
+#define _B4B01
+#define _B4B02
+#endif
   MODULE solve1_module
 
         ! solve1: pre-RK terms
@@ -1699,9 +1703,14 @@
         rdt = 1.0/dt
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
+#ifdef _B4B01
+          !$acc update host(thten1,qten,tha,qa,rho,th0,pi0,ppi)
+#else
+          !$acc data copyin(tem,qsmall,dt,nqv,rd,rv,rddcv,rdt)
           !non-B4B due to the use of PWR function 
-          !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew,qvnew)
+#endif
+          !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1720,6 +1729,11 @@
           enddo
           enddo
           enddo
+#ifdef _B4B01
+          !$acc update device(ppten)
+#else
+          !$acc end data
+#endif
 
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -1736,9 +1750,14 @@
           enddo
           enddo
         ELSE
+#ifdef _B4B02
+          !$acc update host(thten1,tha,rho,th0,pi0,ppi)
+#else
+          !$acc data copyin(tem,dt,rd,rp00,rddcv,rdt)
           !non-B4B
-          !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew)
+#endif
+          !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1756,6 +1775,11 @@
           enddo
           enddo
           enddo
+#ifdef _B4B02
+          !$acc update device(ppten)
+#else
+          !$acc end data
+#endif
         ENDIF  ! endif for moist/dry
       ENDIF    ! endif for eqtset 1/2
 
