@@ -246,10 +246,10 @@
     ENDIF  facheck
 
       IF( cm1setup.ge.1 .or. ipbl.ge.1 .or. horizturb.eq.1 .or. idiss.eq.1 .or. output_dissten.eq.1 )THEN
-
+        !$acc data copy(dissten)
         ! cm1r17:  dissten is defined on w (full) levels:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -257,18 +257,23 @@
         enddo
         enddo
         enddo
+        !$acc end data
 
       ENDIF
 
+      !$acc data copyin(prs) copy(psfc)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         psfc(i,j) = cgs1*prs(i,j,1)+cgs2*prs(i,j,2)+cgs3*prs(i,j,3)
       enddo
       enddo
+      !$acc end data
 
       IF( imove.eq.1 )THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$acc data copyin(ua,va) copy(ugr,vgr)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=jb,je
         do i=ib,ie
@@ -278,10 +283,12 @@
         enddo
         enddo
         enddo
+        !$acc end data
       ELSE
+        !$acc data copyin(ua,va,u0,v0) copy(ugr,vgr)
         IF( pertflx.eq.1 )THEN
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=jb,je
           do i=ib,ie
@@ -291,8 +298,8 @@
           enddo
           enddo
         ELSE
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=jb,je
           do i=ib,ie
@@ -302,6 +309,7 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
       ENDIF
 
 
@@ -316,8 +324,9 @@
           k2 = 1
         endif
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$acc data copyin(ugr,vgr,th0,tha,pi0,ppi) copy(dum1,dum2,dum3,dum4,dum7,thten1)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         DO j=1,nj
           do k=1,k2
           do i=1,ni
@@ -330,21 +339,39 @@
             thten1(i,j,k)=dum7(i,j,k)
           enddo
           enddo
+        ENDDO
+        !$acc end data
           if( sfcmodel.eq.6 )then
           if( imoist.eq.1 )then
+        !$acc data copyin(qa) copy(sten)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do j=1,nj
             do k=1,k2
             do i=1,ni
               sten(i,j,k) = qa(i,j,k,nqc)
             enddo
             enddo
+        ENDDO
+        !$acc end data
           else
+        !$acc data copy(sten)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do j=1,nj
             do k=1,k2
             do i=1,ni
               sten(i,j,k) = 0.0
             enddo
             enddo
+        ENDDO
+        !$acc end data
           endif
           endif
+        !$acc data copyin(rmh,c1,c2,prs,psfc) copy(dum5,dum6)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector default(present) private(i,j,k)
+        do j=1,nj
           do k=1,2
           do i=1,ni
             dum5(i,j,k) = dz*rmh(i,j,k)
@@ -359,6 +386,7 @@
             dum6(i,j,1) = psfc(i,j)
           enddo
         ENDDO
+        !$acc end data
 
         ! dum1 = u at scalars
         ! dum2 = v at scalars
@@ -380,10 +408,11 @@
         ep2 = rd/rv
         rovg = rd/g
 
+        !$acc data copyin(radswnet,radlwin) copy(gsw,glw)
         ! note:  for RRTMG (radopt=2) gsw and glw arrays are already filled !
         IF( radopt.eq.1 )THEN
-!$omp parallel do default(shared)   &
-!$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             gsw(i,j)=radswnet(i,j)
@@ -391,8 +420,8 @@
           enddo
           enddo
         ELSEIF( radopt.eq.0 )THEN
-!$omp parallel do default(shared)   &
-!$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             gsw(i,j)=0.0
@@ -400,6 +429,7 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
 
       ENDIF
 
@@ -408,9 +438,10 @@
       ! now, divx stores qv
       !      dum7 stores ql+qi
 
+      !$acc data copyin(qa,dum7) copy(divx,dum7)
       IF(imoist.eq.1)THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,n)
+        !$omp parallel do default(shared) private(i,j,k,n)
+        !$acc parallel loop gang vector default(present) private(i,j,k,n)
           DO j=1,nj
             do k=1,nk
             do i=1,ni
@@ -432,8 +463,8 @@
             ENDIF
           ENDDO
       ELSE
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,n)
+          !$omp parallel do default(shared) private(i,j,k,n)
+          !$acc parallel loop gang vector default(present) private(i,j,k,n)
           DO j=1,nj
             do k=1,nk
             do i=1,ni
@@ -443,6 +474,7 @@
             enddo
           ENDDO
       ENDIF
+      !$acc end data
 
 !-----------------------------------------------------------------------
 !  hwrf parameters:
@@ -497,8 +529,9 @@
 
         kval = 1
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j)
+          !$acc data copyin(ugr,vgr,th0,tha,zh) copy(u1,v1,s1,t1,ppten)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             ! use ground-relative winds:
@@ -509,15 +542,18 @@
             ppten(i,j,1) = zh(i,j,kval)
           enddo
           enddo
+          !$acc end data
 
           IF( terrain_flag )THEN
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j)
+            !$acc data copyin(zh,zs) copy(ppten)
+            !$omp parallel do default(shared) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               ppten(i,j,1) = zh(i,j,kval)-zs(i,j)
             enddo
             enddo
+            !$acc end data
           ENDIF
 
         !-------------------------------
@@ -530,8 +566,9 @@
 
           ! max gradient method (for simple LES simulations only):
 
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k,dtdz)
+          !$acc data copyin(th0,tha,divx,dum7,mf,zf) copy(dum8,hpbl)
+          !$omp parallel do default(shared) private(i,j,k,dtdz)
+          !$acc parallel loop gang vector default(present) private(i,j,k,dtdz)
           DO j=1,nj
 
             do i=1,ni
@@ -550,6 +587,7 @@
             enddo
 
           ENDDO
+          !$acc end data
 
         ELSE
 
@@ -567,13 +605,15 @@
 
 
         IF( terrain_flag )THEN
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j)
+          !$acc data copyin(zs) copy(hpbl)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             hpbl(i,j) = hpbl(i,j)-zs(i,j)
           enddo
           enddo
+          !$acc end data
          ENDIF
 
         IF( use_avg_sfc .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )THEN
@@ -591,6 +631,12 @@
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
 
           if( tbc.eq.3 )then
+#ifdef _B4B
+            !!$acc update host(ugr,vgr,zf,zh) 
+#else
+            !$acc data copyin(ugr,vgr,zf,zh) copy(ut,vt,st,ustt)
+            !$acc parallel loop gang vector collapse(2) default(present) 
+#endif
             do j=1,nj
             do i=1,ni
               ut(i,j) = 0.5*( ugr(i,j,nk) + ugr(i+1,j,nk) )
@@ -599,7 +645,13 @@
               ustt(i,j) = max( st(i,j)*karman/alog((zf(i,j,nk+1)-zh(i,j,nk))/cnst_znt) , 1.0e-6 )
             enddo
             enddo
+#ifdef _B4B
+            !!$acc update device(ut,vt,set,ustt)
+#else
+            !$acc end data
+#endif
           endif
+
 
           if(isfcflx.eq.1)then
             !$acc data &
@@ -623,8 +675,9 @@
                         zs,ppten(ib,jb,1),pi0s,pi0,th0,ppi,tha,rho,rf,divx)
           !$acc end data
           if( use_pbl )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j)
+            !$acc data copyin(divx,thflux,qvflux,rf) copy(CPMM,hfx,qfx)
+            !$omp parallel do default(shared) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               CPMM(i,j)=CP*(1.0+0.8*divx(i,j,1))                                   
@@ -632,6 +685,7 @@
               qfx(i,j) = qvflux(i,j)*rf(i,j,1)
             enddo
             enddo
+            !$acc end data
           endif
 
         ENDIF
@@ -869,8 +923,9 @@
 
           ! put WRF parameters into CM1 arrays:
           if( sfcmodel.eq.2 .or. sfcmodel.eq.3 .or. sfcmodel.eq.6 .or. sfcmodel.eq.7 )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j)
+            !$acc data copyin(chs2,cqs2,u10,v10) copy(ch,cq,s10)
+            !$omp parallel do default(shared) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               ch(i,j) = chs2(i,j)
@@ -878,8 +933,10 @@
               s10(i,j) = sqrt( u10(i,j)**2 + v10(i,j)**2 )
             enddo
             enddo
+            !$acc end data
           endif
           if( sfcmodel.eq.4 )then
+            !HERE
             do j=1,nj
             do i=1,ni
               cd(i,j) = cd_out(i,j)
@@ -1569,8 +1626,11 @@
 
             ! Cartesian grid:
 
+            !$acc data copyin(c1,c2,t11,t12,t13,t22,t23,t33,rf) copy(dissten)
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23)
+            !$acc parallel loop gang vector collapse(3) default(present) &
+            !$acc private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23)
             DO j=1,nj
               do k=2,nk
               do i=1,ni
@@ -1588,13 +1648,17 @@
               enddo
               enddo
             ENDDO
+            !$acc end data
 
           elseif( axisymm.eq.1 )then
 
             ! axisymmetric grid:
 
+            !$acc data copyin(c1,c2,t11,t12,t13,t23,t33,rf) copy(dissten)
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23)
+            !$acc parallel loop gang vector collapse(3) default(present) &
+            !$acc private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23)
             do k=2,nk
             do j=1,nj
             do i=1,ni
@@ -1609,6 +1673,7 @@
             enddo
             enddo
             enddo
+            !$acc end data
 
           endif
 
