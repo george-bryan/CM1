@@ -1638,11 +1638,12 @@
       endif
 
           IF( dodomaindiag .and. dotdwrite )then
-#ifdef _OPENACC
-            print *,'WARNING: call to getepsd not supported in OpenACC'
-#endif
+            !$acc data copyin(uh,vh,uf,vf,mh,c1,c2,mf,rho0,rf0,rrf0) &
+            !$acc copy(ua,va,wa,dum1,dum2) &
+            !$acc copy(epsd1,epsd2,rru,rrv,rrw)
             call getepsd(xh,rxh,uh,xf,rxf,uf,vh,vf,mh,c1,c2,mf,ua ,va ,wa ,  &
                          dum1,dum2,epsd1,epsd2,rho0,rf0,rrf0,rru,rrv,rrw,dt)
+            !$acc end data
           ENDIF
 
     ENDIF
@@ -5887,11 +5888,17 @@
       real, parameter :: onedtwelve = 1.0/12.0
       real, parameter :: onedsixty  = 1.0/60.0
 
+      !$acc declare &
+      !$acc present(uh,vh,uf,vf,mh,c1,c2,mf,rho0,rf0,rrf0) &
+      !$acc present(ua,va,wa,dum1,dum2) &
+      !$acc present(epsd1,epsd2,rru,rrv,rrw)
+    
+
     IF(.not.terrain_flag)THEN
       ! without terrain:
 
-      !$omp parallel do default(shared)  &
-      !$omp private(i,j,k,tem)
+      !$omp parallel do default(shared) private(i,j,k,tem)
+      !$acc parallel loop gang vector default(present) private(i,j,k,tem)
       DO k=1,nk
         tem = rho0(1,1,k)
         do j=0,nj+2
@@ -5933,6 +5940,7 @@
 !  v-y:
 
   IF( hadvordrv.eq.5 )THEN
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,ubar,vbar)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -5953,6 +5961,7 @@
     enddo
   ELSEIF( idiff.ge.1 .and. difforder.eq.6 )THEN
     coef = kdiff6/64.0/dt
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -5968,10 +5977,18 @@
     enddo
     enddo
   ELSE
-    dum1 = 0.0
-    dum2 = 0.0
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    do k=1,nk
+    do j=1,nj
+    do i=1,ni
+      dum1(i,j,k) = 0.0
+      dum2(i,j,k) = 0.0
+    enddo
+    enddo
+    enddo
   ENDIF
 
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -5988,6 +6005,7 @@
 !  v-x:
 
   IF( hadvordrv.eq.5 )THEN
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,vbar,ubar)
     do k=1,nk
     do j=1,nj+1
     do i=1,ni+1
@@ -6008,6 +6026,7 @@
     enddo
   ELSEIF( idiff.ge.1 .and. difforder.eq.6 )THEN
     coef = kdiff6/64.0/dt
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,vbar,ubar)
     do k=1,nk
     do j=1,nj+1
     do i=1,ni+1
@@ -6023,10 +6042,18 @@
     enddo
     enddo
   ELSE
-    dum1 = 0.0
-    dum2 = 0.0
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    do k=1,nk
+    do j=1,nj
+    do i=1,ni
+      dum1(i,j,k) = 0.0
+      dum2(i,j,k) = 0.0
+    enddo
+    enddo
+    enddo
   ENDIF
 
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,vbar,ubar)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -6043,6 +6070,7 @@
 !  w-x:
 
   IF( hadvordrv.eq.5 )THEN
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,ubar)
     do k=2,nk
     do j=1,nj
     do i=1,ni+1
@@ -6057,6 +6085,7 @@
     enddo
   ELSEIF( idiff.ge.1 .and. difforder.eq.6 )THEN
     coef = kdiff6/64.0/dt
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
     do i=1,ni+1
@@ -6068,13 +6097,21 @@
     enddo
     enddo
   ELSE
-    dum1 = 0.0
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    do k=1,nk
+    do j=1,nj
+    do i=1,ni
+      dum1(i,j,k) = 0.0
+    enddo
+    enddo
+    enddo
   ENDIF
 
 !----------
 !  w-y:
 
   IF( hadvordrv.eq.5 )THEN
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,vbar)
     do k=2,nk
     do j=1,nj+1
     do i=1,ni
@@ -6089,6 +6126,7 @@
     enddo
   ELSEIF( idiff.ge.1 .and. difforder.eq.6 )THEN
     coef = kdiff6/64.0/dt
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj+1
     do i=1,ni
@@ -6100,7 +6138,14 @@
     enddo
     enddo
   ELSE
-    dum2 = 0.0
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    do k=1,nk
+    do j=1,nj
+    do i=1,ni
+      dum2(i,j,k) = 0.0
+    enddo
+    enddo
+    enddo
   ENDIF
 
 !----------
@@ -6119,6 +6164,7 @@
 !----------
 ! u-z:
 
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wbar)
     do k=4,nk-2
     do j=1,nj
     do i=1,ni+1
@@ -6137,6 +6183,7 @@
     enddo
 
     k = 3
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni+1
       wbar = 0.5*(rrw(i-1,j,k)+rrw(i,j,k))
@@ -6153,6 +6200,7 @@
     enddo
 
     k = nk-1
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni+1
       wbar = 0.5*(rrw(i-1,j,k)+rrw(i,j,k))
@@ -6169,6 +6217,7 @@
     enddo
 
     k = 2
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni+1
       wbar = 0.5*(rrw(i-1,j,k)+rrw(i,j,k))
@@ -6183,6 +6232,7 @@
     enddo
 
     k = nk
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni+1
       wbar = 0.5*(rrw(i-1,j,k)+rrw(i,j,k))
@@ -6199,6 +6249,7 @@
 !----------
 ! v-z:
 
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wbar)
     do k=4,nk-2
     do j=1,nj+1
     do i=1,ni
@@ -6217,6 +6268,7 @@
     enddo
 
     k = 3
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj+1
     do i=1,ni
       wbar = 0.5*(rrw(i,j-1,k)+rrw(i,j,k))
@@ -6233,6 +6285,7 @@
     enddo
 
     k = nk-1
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj+1
     do i=1,ni
       wbar = 0.5*(rrw(i,j-1,k)+rrw(i,j,k))
@@ -6249,6 +6302,7 @@
     enddo
 
     k = 2
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj+1
     do i=1,ni
       wbar = 0.5*(rrw(i,j-1,k)+rrw(i,j,k))
@@ -6263,6 +6317,7 @@
     enddo
 
     k = nk
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj+1
     do i=1,ni
       wbar = 0.5*(rrw(i,j-1,k)+rrw(i,j,k))
@@ -6277,7 +6332,7 @@
     enddo
 
 !----------
-
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -6294,6 +6349,7 @@
 
   acheck2:  IF( axisymm.eq.0 )THEN
 
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wbar)
     do k=3,nk-2
     do j=1,nj
     do i=1,ni
@@ -6312,6 +6368,7 @@
     enddo
 
     k = 2
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni
       wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -6328,6 +6385,7 @@
     enddo
 
     k = nk-1
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni
       wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -6344,6 +6402,7 @@
     enddo
 
     k = 1
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni
       wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -6358,6 +6417,7 @@
     enddo
 
     k = nk
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     do j=1,nj
     do i=1,ni
       wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -6373,12 +6433,20 @@
 
   ELSE
 
-    dum1 = 0.0
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    do k=1,nk
+    do j=1,nj
+    do i=1,ni
+      dum1(i,j,k) = 0.0
+    enddo
+    enddo
+    enddo
 
   ENDIF   acheck2
 
 !----------
 
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem)
     do k=2,nk
     do j=1,nj
     do i=1,ni
