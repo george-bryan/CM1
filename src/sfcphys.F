@@ -33,7 +33,13 @@
 
       integer :: i,j,i1,i2,j1,j2,n,nmax
       real :: wsp,wlast,var,rznt,usave,vsave,ssave
+      logical :: convergeFail
 
+      !$acc declare &
+      !$acc present(xh,za,xland) &
+      !$acc present(u1,v1,s1) &
+      !$acc present(u10,v10,s10) &
+      !$acc present(znt,ust,cd,ch,cq)
 !-----------------------------------------------------------------------
 !
 !  This subroutine determines several important variables at the surface
@@ -70,9 +76,14 @@
       vsave = v1(1,1)
       ssave = s1(1,1)
 
-      u1(1,1) = avgsfcu
-      v1(1,1) = avgsfcv
-      s1(1,1) = avgsfcs
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      do j=j1,j2
+      do i=i1,i2
+        u1(i,j) = avgsfcu
+        v1(i,j) = avgsfcv
+        s1(i,j) = avgsfcs
+      enddo
+      enddo
 
     endif
 
@@ -84,8 +95,8 @@
     ! specify z0 (roughness length):
     ! note:  set znt array in "init_surface.F"
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,wlast,n,var,rznt)
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
+    !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
       rznt = 1.0/znt(i,j)
@@ -101,9 +112,12 @@
 
   ELSEIF( set_ust.eq.1 )THEN  sfc_options
       ! specify ustar (friction velocity):
-
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,wlast,n,var,rznt)
+#ifdef _B4B
+    !$acc update host(za,u1,v1,s1)
+#else
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
+#endif
+    !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
       ust(i,j) = cnst_ust
@@ -116,12 +130,15 @@
       s10(i,j) = s1(i,j)*var
     enddo
     enddo
+#ifdef _B4B
+    !$acc update device(znt,cd,u10,v10,s10,ust)
+#endif
 
   ELSEIF( cecd.eq.1 )THEN  sfc_options
     ! specify Cd (drag coefficient):
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,wlast,n,var,rznt)
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
+    !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
       cd(i,j) = max(1.0e-10,cnstcd)
@@ -137,9 +154,9 @@
 
   ELSE  sfc_options
     ! Cd,z0,ust are functions of 10-m windspeed over water ... need to iterate:
-
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,wlast,n,var,rznt)
+    convergeFail = .false.
+    !$omp parallel do default(shared) private(i,j,wlast,n,var,rznt)
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wlast,n,var,rznt)
     do j=j1,j2
     do i=i1,i2
       IF(xland(i,j).gt.1.5)THEN
@@ -151,7 +168,7 @@
         s10(i,j) = s1(i,j)*var
         wlast = -1000.0
         n = 0
-        do while( abs(s10(i,j)-wlast).gt.0.001 )
+        do while( (abs(s10(i,j)-wlast).gt.0.001) .or. n<=20 )
           n = n + 1
           wlast = s10(i,j)
           IF(cecd.eq.2)THEN
@@ -168,9 +185,10 @@
           rznt = 1.0/znt(i,j)
           var = alog((10.0+znt(i,j))*rznt)/alog((za(i,j)+znt(i,j))*rznt)
           s10(i,j) = s1(i,j)*var
-          if(n.gt.10) print *,'  getcecd:  myid,n,s10 = ',myid,n,s10(i,j)
+          !JMD if(n.gt.10) print *,'  getcecd:  myid,n,s10 = ',myid,n,s10(i,j)
           if(n.gt.20)then
-            call stopcm1
+            convergeFail = .true.
+            !call stopcm1
           endif
         enddo
 !!!        nmax = max(nmax,n)
@@ -191,6 +209,9 @@
       ust(i,j) = max( s1(i,j)*karman/alog((za(i,j)+znt(i,j))*rznt) , 1.0e-6 )
     enddo
     enddo
+    if(convergeFail) then 
+      call stopcm1
+    endif
 
   ENDIF  sfc_options
 
@@ -200,8 +221,8 @@
     IF(isfcflx.eq.1)THEN
       ! surface fluxes of heat/moisture are included ... get exchange coefficients:
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wlast,n,var,rznt)
+      !$omp parallel do default(shared) private(i,j,wlast,n,var,rznt)
+      !$acc parallel loop gang vector default(present) private(i,j)
       do j=j1,j2
       do i=i1,i2
         IF(xland(i,j).gt.1.5)THEN
@@ -239,6 +260,7 @@
 
     if( use_avg_sfc )then
 
+      !$acc parallel loop gang vector default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         u10(i,j) = u10(1,1)

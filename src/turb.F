@@ -624,11 +624,14 @@
         ENDIF
 
         IF( sfcmodel.eq.1 )THEN
-#ifdef _OPENACC
-          print *,'WARNING: call to getcecd not supported in OpenACC'
-#endif
 
+          !$acc data &
+          !$acc copyin(xh,ppten(ib:ie,jb:je,1),xland) &
+          !$acc copy(u1,v1,s1) &
+          !$acc copy(u10,v10,s10) &
+          !$acc copy(znt,ust,cd,ch,cq)
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+          !$acc end data
 
           if( tbc.eq.3 )then
 #ifdef _B4B
@@ -936,7 +939,8 @@
             !$acc end data
           endif
           if( sfcmodel.eq.4 )then
-            !HERE
+            !$acc data copyin(cd_out,ch_out,u10,v10,mol) copy(cd,ch,cq,s10,rmol)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               cd(i,j) = cd_out(i,j)
@@ -950,20 +954,24 @@
               endif
             enddo
             enddo
+            !$acc end data
           endif
           if( sfcmodel.eq.6 )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j)
+            !$acc data copyin(ck) copy(ch,cq)
+            !$omp parallel do default(shared) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               ch(i,j) = ck(i,j)
               cq(i,j) = ck(i,j)
             enddo
             enddo
+            !$acc end data
           endif
           if( sfcmodel.eq.7 )then
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j)
+            !$acc data copyin(ust,dum1,dum2,rmol,fm,s10) copy(ustm,wspd,mol,cd)
+            !$omp parallel do default(shared) private(i,j,tem)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j,tem)
             do j=1,nj
             do i=1,ni
               ustm(i,j) = ust(i,j)
@@ -984,16 +992,19 @@
               cd(i,j) = ust(i,j)*ust(i,j)/max(1.0e-20,s10(i,j)*s10(i,j))
             enddo
             enddo
+            !$acc end data
           endif
           IF( dosfcflx .or. output_sfcflx.eq.1 )THEN
-            !$omp parallel do default(shared)   &
-            !$omp private(i,j)
+            !$acc data copyin(hfx,qfx,CPMM,rf) copy(thflux,qvflux)
+            !$omp parallel do default(shared) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               thflux(i,j) = hfx(i,j)/(CPMM(i,j)*rf(i,j,1))
               qvflux(i,j) = qfx(i,j)/rf(i,j,1)
             enddo
             enddo
+            !$acc end data
           ENDIF
 
         ENDIF
@@ -1089,20 +1100,25 @@
   endif
     !-------------!
 #endif
-
     ! account for annoying GFDL naming convention:
     IF( sfcmodel.eq.4 )THEN
+      !$acc data copyin(mznt) copy(zntmp)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=0,nj+1
       do i=0,ni+1
         zntmp(i,j) = mznt(i,j)
       enddo
       enddo
+      !$acc end data
     ELSE
+      !$acc data copyin(znt) copy(zntmp)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=0,nj+1
       do i=0,ni+1
         zntmp(i,j) = znt(i,j)
       enddo
       enddo
+      !$acc end data
     ENDIF
     if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
 
@@ -1254,12 +1270,15 @@
                          avgsfcu,avgsfcv,avgsfcs,                                              &
                          sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
         ! update turbulence model "constants":
+        !$acc data copyin(gamk) copy(cmz,ce1z,ce2z,csz)
+        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           cmz(k) = gamk(k)*c_m
           ce1z(k) = cmz(k) * c_l * c_l * ( 1.0 / ri_c - 1.0 )
           ce2z(k) = max( 0.0 , cmz(k) * pi * pi - ce1z(k) )
           csz(k) = ( cmz(k) * cmz(k) * cmz(k) / ( ce1z(k) + ce2z(k) ) )**0.25   ! Smagorinsky constant
         enddo
+        !$acc end data
       ENDIF
 
       sgsoption:  &
@@ -1371,8 +1390,9 @@
         ! for LES modeling without a subgrid turbulence model:
         ! (sometimes called implicit les, or ILES)
 
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$acc data copy(t11,t22,t33,t12,t13,t23)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector default(present) private(i,j,k)
         do k=2,nk+1
         do j=0,nj+1
         do i=0,ni+1
@@ -1385,6 +1405,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
 
       ELSE
 
@@ -1392,6 +1413,7 @@
         call stopcm1
 
       ENDIF  sgsoption
+
 
       !-------------
 
@@ -1481,8 +1503,9 @@
 
         tem = viscosity/pr_num
 
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$acc data copy(kmh,kmv,khh,khv)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=0,nj+1
         do i=0,ni+1
@@ -1493,6 +1516,7 @@
         enddo
         enddo
         enddo
+        !$acc end data
 
       ENDIF
 
@@ -1543,31 +1567,40 @@
         endif
 
       IF( sgsmodel.eq.5 .or. sgsmodel.eq.6 )THEN
+        !$acc data copy(m13,m23) 
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj+1
         do i=1,ni+1
           m13(i,j,nk+1) = m13(i,j,nk)
           m23(i,j,nk+1) = m23(i,j,nk)
         enddo
         enddo
+        !$acc end data
       ENDIF
 
       IF( bbc.eq.3 .and. ( sgsmodel.eq.5 .or. sgsmodel.eq.6 ) )THEN
           ! for NBA scheme, set m13 and m23 at boundaries:
+        !$acc data copyin(t13,t23) copy(m13,m23) 
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj+1
         do i=1,ni+1
           m13(i,j,1) = t13(i,j,1)
           m23(i,j,1) = t23(i,j,1)
         enddo
         enddo
+        !$acc end data
       ENDIF
       IF( tbc.eq.3 .and. ( sgsmodel.eq.5 .or. sgsmodel.eq.6 ) )THEN
           ! for NBA scheme, set m13 and m23 at boundaries:
+        !$acc data copyin(t13,t23) copy(m13,m23) 
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj+1
         do i=1,ni+1
           m13(i,j,nk+1) = t13(i,j,nk+1)
           m23(i,j,nk+1) = t23(i,j,nk+1)
         enddo
         enddo
+        !$acc end data
       ENDIF
 
     ENDIF  tau
@@ -1695,8 +1728,9 @@
       pblopt:  &
       if( use_pbl )then
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$acc data copyin(qa) copy(dum8,thten1,thten)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector default(present) private(i,j,k)
         DO k=1,nk
           ! store qi in dum8:
           if( nqi.ge.1 )then
@@ -1721,12 +1755,13 @@
             enddo
           ENDIF
         ENDDO
-
+        !$acc end data
         ! here, ppten stores qc:
 
+        !$acc data copyin(qa) copy(ppten)
         if( nqc.ge.1 )then
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           DO k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1735,8 +1770,8 @@
           enddo
           ENDDO
         else
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           DO k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1745,9 +1780,12 @@
           enddo
           ENDDO
         endif
+        !$acc end data
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
+        !$acc data copyin(ugr,vgr,th0,pi0,tha,ppi,rmh,c1,c2,prs,psfc) &
+        !$acc      copy(dum1,dum2,dum3,dum4,dum5,dum6)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector default(present) private(i,j,k)
         DO j=1,nj
           do k=1,nk
           do i=1,ni
@@ -1778,6 +1816,7 @@
             dum6(i,j,nk+1)= cgt1*prs(i,j,nk)+cgt2*prs(i,j,nk-1)+cgt3*prs(i,j,nk-2)
           enddo
         ENDDO
+        !$acc end data
 
         ! dum1 = u at scalars
         ! dum2 = v at scalars
@@ -1788,11 +1827,14 @@
         ! dum7 = pi
 
         if( sfcmodel.eq.4 )then
+          !$acc data copyin(swspd) copy(wspd)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             wspd(i,j) = swspd(i,j)
           enddo
           enddo
+          !$acc end data
         endif
 
         if( iice.eq.1 )then
@@ -1807,7 +1849,9 @@
 
         ysu_topdown_pblmix = 0
         if( ysu_topdown_pblmix .eq. 1 )then
+          !$acc data copyin(lwten,swten) copy(t33)
           if( radopt.ge.1 )then
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -1816,6 +1860,7 @@
             enddo
             enddo
           else
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -1824,6 +1869,7 @@
             enddo
             enddo
           endif
+          !$acc end data
         endif
 #ifdef _OPENACC
         print *,'WARNING: call to ysu not supported in OpenACC'
@@ -1851,8 +1897,9 @@
                   regime=regime)
 
         IF( output_km.eq.1 .or. output_kh.eq.1 .or. dodomaindiag )THEN
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+          !$acc data copyin(thten1,thten) copy(khv,kmv)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk+1
           do j=1,nj
           do i=1,ni
@@ -1861,6 +1908,7 @@
           enddo
           enddo
           enddo
+          !$acc end data
         ENDIF
 
       endif  doysu
@@ -1871,7 +1919,10 @@
       if( ipbl.eq.3 )then
         ! HWRF PBL  (aka, GFS-EDMF)
 
+        !$acc data copyin(lwten,swten) copy(t33)
         if( radopt.ge.1 )then
+      
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1880,6 +1931,7 @@
           enddo
           enddo
         else
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1888,24 +1940,32 @@
           enddo
           enddo
         endif
+        !$acc end data
 
         ep1 = rv/rd - 1.0
         ep2 = rd/rv
         rovg = rd/g
 
+        !$acc data copyin(zh,zf) copy(zh1d,zf1d)
+        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           zh1d(k) = zh(1,1,k)
         enddo
+        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           zf1d(k) = zf(1,1,k)
         enddo
+        !$acc end data
 
         if( sfcmodel.ne.4 )then
+          !$acc data copyin(znt) copy(mznt)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             mznt(i,j) = znt(i,j)
           enddo
           enddo
+          !$acc end data
         endif
 #ifdef _OPENACC
         print *,'WARNING: call to BL_GFSEDMF not supported in OpenACC'
@@ -1935,8 +1995,9 @@
                   ims=ib ,ime=ie   , jms=jb ,jme=je   , kms=kb ,kme=ke ,            &
                   its=1  ,ite=ni   , jts=1  ,jte=nj   , kts=1  ,kte=nk              )
         IF( dotbud .and. td_diss.ge.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$acc data copyin(thten) copy(tdiag)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1945,10 +2006,12 @@
           enddo
           enddo
           enddo
+          !$acc end data
         ENDIF
         IF( dotbud .and. td_pbl.ge.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$acc data copyin(thpten,thten) copy(tdiag)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1957,17 +2020,19 @@
           enddo
           enddo
           enddo
+          !$acc end data
         ENDIF
 
       endif  dogfsedmf
 
       !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
-
       domynn:  &
       if( ipbl.eq.4 .or. ipbl.eq.5 )then
         ! MYNN PBL:
 
+        !$acc data copyin(lwten,swten) copy(t33)
         if( radopt.ge.1 )then
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1976,6 +2041,7 @@
           enddo
           enddo
         else
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1984,7 +2050,10 @@
           enddo
           enddo
         endif
+        !$acc end data
 
+        !$acc data copyin(wa) copy(thten)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -1992,9 +2061,12 @@
         enddo
         enddo
         enddo
+        !$acc end data
 
         IF( imoist.eq.1 )THEN
+          !$acc data copyin(qa) copy(sadv)
           if( nnci.ge.1 )then
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -2003,6 +2075,7 @@
             enddo
             enddo
           else
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -2011,7 +2084,10 @@
             enddo
             enddo
           endif
+          !$acc end data
+          !$acc data copyin(qa) copy(thterm)
           if( nncc.ge.1 )then
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -2020,6 +2096,7 @@
             enddo
             enddo
           else
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -2028,7 +2105,10 @@
             enddo
             enddo
           endif
+          !$acc end data
         ELSE
+          !$acc data copy(sadv,thterm)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2037,6 +2117,7 @@
           enddo
           enddo
           enddo
+          !$acc end data
         ENDIF
 
         FLAG_QC = .true.
@@ -2103,11 +2184,11 @@
                  ,ids=1  ,ide=ni+1 , jds= 1 ,jde=nj+1 , kds=1  ,kde=nk+1 ,           &
                   ims=ib ,ime=ie   , jms=jb ,jme=je   , kms=kb ,kme=ke ,             &
                   its=1  ,ite=ni   , jts=1  ,jte=nj   , kts=1  ,kte=nk )
-
       ! Diagnostics !
+        !$acc data copyin(thten1,thpten) copy(tdiag)
         IF( dotbud .and. td_diss.ge.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2118,8 +2199,8 @@
           enddo
         ENDIF
         IF( dotbud .and. td_pbl.ge.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2129,6 +2210,7 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
       ! Diagnostics !
 
       endif  domynn
@@ -2154,9 +2236,14 @@
         ! thten1 = exch_h
         ! thten  = exch_m
 
-
       myjloop:  &
       do j=1,nj
+        !$acc data &
+        !$acc copyin(tke_myj,el_myj,dum5,prs,dum3,dum4,dum7,divx,ppten, &
+        !$acc        dum8,dum1,dum2,rho,upten,vpten,thpten,qvpten,qcpten,qipten, &
+        !$acc        qspten,qrpten,qgpten,dum6) &
+        !$acc copy(tmp_myj) 
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
           tmp_myj(i,k, 1) = 0.0
@@ -2186,6 +2273,8 @@
           tmp_myj(i,k,27) = qgpten(i,j,k)
         enddo
         enddo
+
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk+1
         do i=1,ni
           tmp_myj(i,k, 8) = dum6(i,j,k)
@@ -2193,6 +2282,7 @@
           tmp_myj(i,k,28) = 0.0
         enddo
         enddo
+        !$acc end data
 #ifdef _OPENACC
         print *,'WARNING: call to MYJPBL not supported in OpenACC'
 #endif
@@ -2207,6 +2297,10 @@
                   ids=1  ,ide=ni+1 , jds=1  ,jde=1    , kds=1  ,kde=nk+1 ,          &
                   ims=ibmyj ,ime=iemyj   , jms=1  ,jme=1    , kms=kbmyj ,kme=kemyj ,            &
                   its=1  ,ite=ni   , jts=1  ,jte=1    , kts=1  ,kte=nk )
+        !$acc data copyin(tmp_myj) & 
+        !$acc copy(tke_myj,el_myj,xkzh,xkzm) &
+        !$acc copy(upten,vpten,thpten,qvpten,qcpten,qipten,qspten,qrpten,qgpten)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=1,ni
           tke_myj(i,j,k) = tmp_myj(i,k,4)
@@ -2224,6 +2318,7 @@
           qgpten(i,j,k) = tmp_myj(i,k,27)
         enddo
         enddo
+        !$acc end data 
       enddo  myjloop
 
 
@@ -2248,9 +2343,10 @@
       if( ipbl.eq.1 )then
         ! Dissipative heating from ysu scheme:
 
+        !$acc data copyin(rmh,mf,upten,vpten,dum1,dum2) copy(dum3,dum4,dissten)
         IF( idiss.eq.1 .or. output_dissten.eq.1 )THEN
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             ! assume t13,t23 are zero at top of domain:
@@ -2260,8 +2356,9 @@
             dum4(i,j,nk+1) = 0.0
           enddo
           enddo
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k,tem1,tem2)
+
+          !$omp parallel do default(shared) private(i,j,k,tem1,tem2)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,tem1,tem2)
           do k=nk,2,-1
           do j=1,nj
           do i=1,ni
@@ -2279,6 +2376,7 @@
           enddo
 
         ENDIF
+        !$acc end data
 
       endif  ysudiss
 
@@ -2297,8 +2395,9 @@
 #endif
         IF( axisymm.eq.1 )THEN
           ! cm1r19 bug fix:
-          !$omp parallel do default(shared)   &
-          !$omp private(i,k)
+          !$acc data copy(upten,vpten)
+          !$omp parallel do default(shared) private(i,k)
+          !$acc parallel loop gang vector default(present) private(i,k)
           do k=1,nk
             upten(0,1,k) = -upten(1,1,k)
             upten(ni+1,1,k) = upten(ni,1,k)
@@ -2307,6 +2406,7 @@
               vpten(i,2,k) = vpten(i,1,k)
             enddo
           enddo
+          !$acc end data
         ENDIF
 #ifdef MPI
         call comm_1s_end(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
@@ -4630,7 +4730,6 @@
 !  finished
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
-     !HERE 
 
       return
       end subroutine calcdef
