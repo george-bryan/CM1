@@ -210,23 +210,30 @@
       real, dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: RQNWFABLTEN,RQNIFABLTEN
       logical :: FLAG_QC,FLAG_QNC,FLAG_QNI,FLAG_QNWFA,FLAG_QNIFA
 
-    !$acc data &
-    !$acc copyin(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
+    !$acc declare &
+    !$acc present(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
     !$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0)                      &
-    !$acc copy(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
-    !$acc      ustt,ut,vt, &
-    !$acc      st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,rho,rr,rf,    &
-    !$acc      prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru,rrv,rrw, &
-    !$acc      ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,thterm,qa) &
-    !$acc copy(kmh,kmv,khh,khv,tkea,tke3d) &
-    !$acc copy(nm,defv,defh,lenscl,dissten,epst,epsd1,epsd2) &
-    !$acc copy(thpten,upten,vpten) &
-    !$acc copy(psfc,u10,v10,s10,hfx,qfx,hpbl,wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc) &
-    !$acc copy(dsxy) &
-    !$acc copy(cda,psim,psih,fm,fh,th2,q2,t2) &
-    !$acc copy(gamk,cmz,csz,ce1z,ce2z,iamsat)
-!-----------------------------------------------------------------------
-    !BEGINcopy
+    !$acc present(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
+    !$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,   &
+    !$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
+    !$acc      rrv,rrw,ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,     &
+    !$acc      thterm,qa,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten,  &
+    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
+    !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih,  &
+    !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
+
+    !!$acc data &
+    !!$acc copyin(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
+    !!$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0)                      &
+    !!$acc copy(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
+    !!$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,   &
+    !!$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
+    !!$acc      rrv,rrw,ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,     &
+    !!$acc      thterm,qa,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten,  &
+    !!$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
+    !!$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih,  &
+    !!$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
+!-----------------------------------------------------------------------------------
       turbfac = 1.0
       t2pfac = 1.0
 
@@ -242,7 +249,6 @@
         if(myid.eq.0.and.turbfac.lt.0.999) print *,'  turbfac = ',turbfac
 
         ! update turbulence model "constants":
-        !!$acc data copy(cmz,ce1z,ce2z,csz)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           cmz(k) = max( 0.001 , turbfac*c_m )
@@ -250,7 +256,6 @@
           ce2z(k) = max( 0.0 , cmz(k) * pi * pi - ce1z(k) )
           csz(k) = ( cmz(k) * cmz(k) * cmz(k) / ( ce1z(k) + ce2z(k) ) )**0.25   ! Smagorinsky constant
         enddo
-        !!$acc end data
       endif
 
       if( dot2p )then
@@ -277,14 +282,12 @@
 
       ENDIF
 
-      !!$acc data copy(psfc)
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         psfc(i,j) = cgs1*prs(i,j,1)+cgs2*prs(i,j,2)+cgs3*prs(i,j,3)
       enddo
       enddo
-      !!$acc end data
 
       IF( imove.eq.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
@@ -363,7 +366,6 @@
             enddo
         ENDDO
           else
-        !!$acc data copy(sten)
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do j=1,nj
@@ -373,10 +375,8 @@
             enddo
             enddo
         ENDDO
-        !!$acc end data
           endif
           endif
-        !!$acc data copyin(psfc)
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector default(present) private(i,j,k)
         do j=1,nj
@@ -394,7 +394,6 @@
             dum6(i,j,1) = psfc(i,j)
           enddo
         ENDDO
-        !!$acc end data
 
         ! dum1 = u at scalars
         ! dum2 = v at scalars
@@ -416,7 +415,6 @@
         ep2 = rd/rv
         rovg = rd/g
 
-        !!$acc data copyin(radswnet,radlwin) copy(gsw,glw)
         ! note:  for RRTMG (radopt=2) gsw and glw arrays are already filled !
         IF( radopt.eq.1 )THEN
           !$omp parallel do default(shared) private(i,j)
@@ -437,7 +435,6 @@
           enddo
           enddo
         ENDIF
-        !!$acc end data
 
       ENDIF
 
@@ -447,6 +444,7 @@
       !      dum7 stores ql+qi
 
       IF(imoist.eq.1)THEN
+        !BUG
         !$omp parallel do default(shared) private(i,j,k,n)
         !$acc parallel loop gang vector default(present) private(i,j,k,n)
           DO j=1,nj
@@ -472,8 +470,8 @@
       ELSE
           !$omp parallel do default(shared) private(i,j,k,n)
           !$acc parallel loop gang vector default(present) private(i,j,k,n)
-          DO j=1,nj
-            do k=1,nk
+          DO k=1,nk
+            do j=1,nj
             do i=1,ni
               divx(i,j,k) = 0.0
               dum7(i,j,k) = 0.0
@@ -568,15 +566,18 @@
 
           ! max gradient method (for simple LES simulations only):
 
-          !$omp parallel do default(shared) private(i,j,k,dtdz)
-          !$acc parallel loop gang vector default(present) private(i,j,k,dtdz)
+          !$omp parallel do default(shared) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           DO j=1,nj
-
             do i=1,ni
               dum8(i,j,1) = -1.0e30
             enddo
+          ENDDO
 
-            do k=nk,2,-1
+          !$omp parallel do default(shared) private(i,j,k,dtdz)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,dtdz)
+          DO k=nk,2,-1
+            do j=1,nj
             do i=1,ni
               dtdz = ( (th0(i,j,k  )+tha(i,j,k  ))*(1.0+repsm1*divx(i,j,k  )-dum7(i,j,k  ))  &
                       -(th0(i,j,k-1)+tha(i,j,k-1))*(1.0+repsm1*divx(i,j,k-1)-dum7(i,j,k-1)) )*rdz*mf(i,j,k)
@@ -605,7 +606,6 @@
 
 
         IF( terrain_flag )THEN
-          !!$acc data copy(hpbl)
           !$omp parallel do default(shared) private(i,j)
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
@@ -613,7 +613,6 @@
             hpbl(i,j) = hpbl(i,j)-zs(i,j)
           enddo
           enddo
-          !!$acc end data
          ENDIF
 
         IF( use_avg_sfc .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )THEN
@@ -625,14 +624,11 @@
 
         IF( sfcmodel.eq.1 )THEN
 
-          !!$acc data &
-          !!$acc copy(u10,v10,s10)
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
-          !!$acc end data
 
           if( tbc.eq.3 )then
 #ifdef _B4B
-            !!$acc update host(ugr,vgr,zf,zh) 
+            !$acc update host(ugr,vgr,zf,zh) 
 #else
             !$acc parallel loop gang vector collapse(2) default(present) 
 #endif
@@ -645,34 +641,23 @@
             enddo
             enddo
 #ifdef _B4B
-            !!$acc update device(ut,vt,set,ustt)
+            !$acc update device(ut,vt,st,ustt)
 #endif
           endif
 
 
           if(isfcflx.eq.1)then
-            !!$acc data &
-            !!$acc     copyin(mavail,rf,tha,s10) &
-            !!$acc     copy(qbudget(8),qsfc)
             call sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail, &
                          rho,rf,u1,v1,s1,ppi,tha,divx, &
                          qbudget(8),psfc,u10,v10,s10,qsfc,znt,rtime)
-            !!$acc end data
           endif
 
           ! get sfc diagnostics needed by pbl scheme:
-          !!$acc copyin(psfc,tha,znt) &
-          !!$acc copyin(dsxy,rf,hpbl) &
-          !!$acc copy(qsfc,gz1oz0,br,hfx,qfx) &
-          !!$acc data &
-          !!$acc copy(cda,psim,psih,fm,fh,th2,q2,t2)
           call sfcdiags(tsk,thflux,qvflux,cd,ch,cq,u1,v1,s1,wspd,        &
                         xland,psfc,qsfc,u10,v10,hfx,qfx,cda,znt,gz1oz0,  &
                         psim,psih,br,zol,mol,hpbl,dsxy,th2,t2,q2,fm,fh,  &
                         zs,ppten(ib,jb,1),pi0s,pi0,th0,ppi,tha,rho,rf,divx)
-          !!$acc end data
           if( use_pbl )then
-            !!$acc data copy(CPMM,hfx,qfx)
             !$omp parallel do default(shared) private(i,j)
             !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
@@ -682,7 +667,6 @@
               qfx(i,j) = qvflux(i,j)*rf(i,j,1)
             enddo
             enddo
-            !!$acc end data
           endif
 
         ENDIF
@@ -877,9 +861,8 @@
                      ims=ib ,ime=ie   , jms= 1 ,jme= 1   , kms=kb ,kme=ke ,                                     &
                      its=1  ,ite=ni   , jts= 1 ,jte= 1   , kts=1  ,kte=nk  )
 #ifdef _B4B
-          !!$acc update host(br,ppten,znt)
+          !$acc update host(br,ppten,znt)
 #else
-          !!$acc data copy(br,gz1oz0)
           !$acc parallel loop gang vector default(present) private(i)
 #endif
           do i=1,ni
@@ -888,9 +871,7 @@
             gz1oz0(I,J)=ALOG(ppten(i,j,1)/znt(i,j))
           enddo
 #ifdef _B4B
-          !!$acc update device(br,gz1oz0)
-#else
-          !!$end data
+          !$acc update device(br,gz1oz0)
 #endif
 
         enddo
@@ -920,7 +901,6 @@
         if( sfcmodel.ne.7 )then
           ! dont update tsk, but diagnose qsfc:
           !  ?  ... should this be land pts only? !
-          !!$acc data copyin(qfx,flqc,mavail) copy(qsfc,chklowq)
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j,qx)
           do j=1,nj
           do i=1,ni
@@ -933,13 +913,11 @@
             CHKLOWQ(i,j)=MAVAIL(i,j)
           enddo
           enddo
-          !!$acc end data
         endif
         ENDIF
 
           ! put WRF parameters into CM1 arrays:
           if( sfcmodel.eq.2 .or. sfcmodel.eq.3 .or. sfcmodel.eq.6 .or. sfcmodel.eq.7 )then
-            !!$acc data copyin(chs2,cqs2,u10,v10) copy(s10)
             !$omp parallel do default(shared) private(i,j)
             !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
@@ -949,10 +927,8 @@
               s10(i,j) = sqrt( u10(i,j)**2 + v10(i,j)**2 )
             enddo
             enddo
-            !!$acc end data
           endif
           if( sfcmodel.eq.4 )then
-            !!$acc data copyin(cd_out,ch_out,u10,v10,mol) copy(s10,rmol)
             !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
@@ -967,10 +943,8 @@
               endif
             enddo
             enddo
-            !!$acc end data
           endif
           if( sfcmodel.eq.6 )then
-            !!$acc data copyin(ck)
             !$omp parallel do default(shared) private(i,j)
             !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
@@ -979,7 +953,6 @@
               cq(i,j) = ck(i,j)
             enddo
             enddo
-            !!$acc end data
           endif
           if( sfcmodel.eq.7 )then
             !$omp parallel do default(shared) private(i,j,tem)
@@ -1006,7 +979,6 @@
             enddo
           endif
           IF( dosfcflx .or. output_sfcflx.eq.1 )THEN
-            !!$acc data copyin(hfx,qfx,CPMM)
             !$omp parallel do default(shared) private(i,j)
             !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
@@ -1015,7 +987,6 @@
               qvflux(i,j) = qfx(i,j)/rf(i,j,1)
             enddo
             enddo
-            !!$acc end data
           ENDIF
 
         ENDIF
@@ -1039,32 +1010,38 @@
     !-------------!
     call bc2d_GPU(ust)
 #ifdef MPI
+    !$acc update host(ust)
     call comm_1s2d_start(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                              us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
 #endif
     call bc2d_GPU(u1)
 #ifdef MPI
+    !$acc update host(u1)
     call comm_1s2d_start(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                              us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
 #endif
     call bc2d_GPU(v1)
 #ifdef MPI
+    !$acc update host(v1)
     call comm_1s2d_start(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                              us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
 #endif
     call bc2d_GPU(s1)
 #ifdef MPI
+    !$acc update host(s1)
     call comm_1s2d_start(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                              us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
 #endif
     call bc2d_GPU(znt)
 #ifdef MPI
+    !$acc update host(znt)
     call comm_1s2d_start(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
                              us31(1,1,5),us32(1,1,5),un31(1,1,5),un32(1,1,5),reqs_p)
 #endif
   if( sfcmodel.eq.4 )then
     call bc2d_GPU(mznt)
 #ifdef MPI
+    !$acc update host(mznt)
     call comm_1s2d_start(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
                               us31(1,1,6),us32(1,1,6),un31(1,1,6),un32(1,1,6),reqs_x)
 #endif
@@ -1110,6 +1087,7 @@
     call comm_2d_corner(mznt)
   endif
     !-------------!
+    !$acc update device(ust,u1,v1,st,znt,mznt)
 #endif
     ! account for annoying GFDL naming convention:
     IF( sfcmodel.eq.4 )THEN
@@ -1138,21 +1116,25 @@
     !-------------!
     call bc2d_GPU(ustt)
 #ifdef MPI
+    !$acc update host(ustt)
     call comm_1s2d_start(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                               us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
 #endif
     call bc2d_GPU(ut)
 #ifdef MPI
+    !$acc update host(ut)
     call comm_1s2d_start(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                              us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
 #endif
     call bc2d_GPU(vt)
 #ifdef MPI
+    !$acc update host(vt)
     call comm_1s2d_start(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                              us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
 #endif
     call bc2d_GPU(st)
 #ifdef MPI
+    !$acc update host(st)
     call comm_1s2d_start(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                              us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
 #endif
@@ -1184,6 +1166,7 @@
     call comm_2d_corner(vt)
     call comm_2d_corner(st)
     !-------------!
+    !$acc update device(ustt,ut,vt,st)
 #endif
 
   ENDIF  tbc3b
@@ -1219,8 +1202,6 @@
       IF( sgsmodel.ge.1 .or. output_nm.eq.1 .or. ipbl.ge.1 )THEN
         ! squared Brunt-Vaisala frequency:
 
-        !!$acc data &
-        !!$acc copy(iamsat)
 
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=kb,ke
@@ -1234,17 +1215,13 @@
 
         call calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,dum1,dum2,dum3,dum4,dum5,dum6,   &
                     prs,ppi,tha,qa,iamsat)
-        !!$acc end data
       ENDIF
 
       IF( cm1setup.ge.1 .or. output_def.eq.1 .or. ipbl.ge.1 .or. horizturb.eq.1 )THEN
         ! deformation:
-        !!$acc data &
-        !!$acc copy(defv,defh)
         call calcdef(    rds,sigma,rdsf,sigmaf,zs,gz,rgz,gzu,rgzu,gzv,rgzv,                &
                      xh,rxh,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,vf,mh,c1,c2,mf,defv,defh,  &
                      dum1,dum2,ua,va,wa,t11,t12,t13,t22,t23,t33,gx,gy,rho,rr,rf)
-        !!$acc end data
 
       ENDIF
 
@@ -1268,7 +1245,6 @@
                          avgsfcu,avgsfcv,avgsfcs,                                              &
                          sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
         ! update turbulence model "constants":
-        !!$acc data copyin(gamk)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           cmz(k) = gamk(k)*c_m
@@ -1276,19 +1252,14 @@
           ce2z(k) = max( 0.0 , cmz(k) * pi * pi - ce1z(k) )
           csz(k) = ( cmz(k) * cmz(k) * cmz(k) / ( ce1z(k) + ce2z(k) ) )**0.25   ! Smagorinsky constant
         enddo
-        !!$acc end data
       ENDIF
 
       sgsoption:  &
       IF( sgsmodel.eq.1 .or. sgsmodel.eq.3 .or. sgsmodel.eq.4 .or. sgsmodel.eq.5 )THEN
 
-        !!$acc data &
-        !!$acc copyin(kbdy)
 
 
          ! Deardorff TKE:
-        !!$acc data &
-        !!$acc copyin(csz,nm,cmz,ce1z,ce2z)
         call tkekm(nstep,rtime,dt,ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z, &
                    nm,defv,defh,dum1,dum2,dum3,dum4,dum5,             &
                    kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d,         &
@@ -1301,7 +1272,6 @@
                    ks1(1,1,3),ks2(1,1,3),kn1(1,1,3),kn2(1,1,3),       &
                    kw1(1,1,4),kw2(1,1,4),ke1(1,1,4),ke2(1,1,4),       &
                    ks1(1,1,4),ks2(1,1,4),kn1(1,1,4),kn2(1,1,4))
-        !!$acc end data
 
         if( do_ib )then
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1331,7 +1301,6 @@
           tke3d(i,j,nk+1) = tkea(i,j,nk+1)
         enddo
         enddo
-        !!$acc end data
 
         IF( sgsmodel.eq.5 )THEN
           ! Nonlinear Backscatter and Anisotropy (NBA) model:
@@ -1529,21 +1498,20 @@
 
       if( do_ib )then
 #ifdef MPI
+        !$acc update host(ua,va,wa)
         call getcorneru(ua,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcu2(ua)
         call getcornerv(va,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcv2(va)
         call getcornerw(wa,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcw2(wa)
+        !$acc update device(ua,va,wa)
 #endif
       endif
 
-        !!$acc data &
-        !!$acc copyin(stau)
         !  now, get turbulent stresses:
         call     gettau(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,ustt,ut,vt,st,rf,mf,dum1,dum2,dum3,dum4,dum5,dum6, &
                         kmh,kmv,t11,t12,t13,t22,t23,t33,ua,ugr,va,vgr,wa,avgsfcu,avgsfcv,avgsfcs,bndy,kbdy)
-        !!$acc end data
 
         if( do_ib )then
 #ifdef _OPENACC
@@ -1604,11 +1572,8 @@
       endif
 
           IF( dodomaindiag .and. dotdwrite )then
-            !!$acc data &
-            !!$acc copy(epsd1,epsd2)
             call getepsd(xh,rxh,uh,xf,rxf,uf,vh,vf,mh,c1,c2,mf,ua ,va ,wa ,  &
                          dum1,dum2,epsd1,epsd2,rho0,rf0,rrf0,rru,rrv,rrw,dt)
-            !!$acc end data
           ENDIF
 
     ENDIF
@@ -1740,7 +1705,6 @@
           ENDDO
         endif
 
-        !!$acc data copyin(tha,psfc)
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector default(present) private(i,j,k)
         DO j=1,nj
@@ -1773,7 +1737,6 @@
             dum6(i,j,nk+1)= cgt1*prs(i,j,nk)+cgt2*prs(i,j,nk-1)+cgt3*prs(i,j,nk-2)
           enddo
         ENDDO
-        !!$acc end data
 
         ! dum1 = u at scalars
         ! dum2 = v at scalars
@@ -1784,14 +1747,12 @@
         ! dum7 = pi
 
         if( sfcmodel.eq.4 )then
-          !!$acc data copyin(swspd) copy(wspd)
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             wspd(i,j) = swspd(i,j)
           enddo
           enddo
-          !!$acc end data
         endif
 
         if( iice.eq.1 )then
@@ -1806,7 +1767,6 @@
 
         ysu_topdown_pblmix = 0
         if( ysu_topdown_pblmix .eq. 1 )then
-          !!$acc data copyin(lwten,swten)
           if( radopt.ge.1 )then
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
@@ -1826,7 +1786,6 @@
             enddo
             enddo
           endif
-          !!$acc end data
         endif
 #ifdef _OPENACC
         stop 'ERROR: call to ysu not supported in OpenACC'
@@ -1854,7 +1813,6 @@
                   regime=regime)
 
         IF( output_km.eq.1 .or. output_kh.eq.1 .or. dodomaindiag )THEN
-          !!$acc data copy(khv,kmv)
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk+1
@@ -1865,7 +1823,6 @@
           enddo
           enddo
           enddo
-          !!$acc end data
         ENDIF
 
       endif  doysu
@@ -1876,7 +1833,6 @@
       if( ipbl.eq.3 )then
         ! HWRF PBL  (aka, GFS-EDMF)
 
-        !!$acc data copyin(lwten,swten)
         if( radopt.ge.1 )then
       
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -1897,13 +1853,11 @@
           enddo
           enddo
         endif
-        !!$acc end data
 
         ep1 = rv/rd - 1.0
         ep2 = rd/rv
         rovg = rd/g
 
-        !!$acc data copy(zh1d,zf1d)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           zh1d(k) = zh(1,1,k)
@@ -1912,7 +1866,6 @@
         do k=1,nk+1
           zf1d(k) = zf(1,1,k)
         enddo
-        !!$acc end data
 
         if( sfcmodel.ne.4 )then
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1950,7 +1903,6 @@
                   ims=ib ,ime=ie   , jms=jb ,jme=je   , kms=kb ,kme=ke ,            &
                   its=1  ,ite=ni   , jts=1  ,jte=nj   , kts=1  ,kte=nk              )
         IF( dotbud .and. td_diss.ge.1 )THEN
-          !!$acc data copy(tdiag)
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
@@ -1961,10 +1913,8 @@
           enddo
           enddo
           enddo
-          !!$acc end data
         ENDIF
         IF( dotbud .and. td_pbl.ge.1 )THEN
-          !!$acc data copyin(thpten) copy(tdiag)
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
@@ -1975,7 +1925,6 @@
           enddo
           enddo
           enddo
-          !!$acc end data
         ENDIF
 
       endif  dogfsedmf
@@ -1985,7 +1934,6 @@
       if( ipbl.eq.4 .or. ipbl.eq.5 )then
         ! MYNN PBL:
 
-        !!$acc data copyin(lwten,swten)
         if( radopt.ge.1 )then
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
@@ -2005,7 +1953,6 @@
           enddo
           enddo
         endif
-        !!$acc end data
 
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
@@ -2132,7 +2079,6 @@
                   ims=ib ,ime=ie   , jms=jb ,jme=je   , kms=kb ,kme=ke ,             &
                   its=1  ,ite=ni   , jts=1  ,jte=nj   , kts=1  ,kte=nk )
       ! Diagnostics !
-        !!$acc data copy(tdiag)
         IF( dotbud .and. td_diss.ge.1 )THEN
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector default(present) private(i,j,k)
@@ -2157,7 +2103,6 @@
           enddo
           enddo
         ENDIF
-        !!$acc end data
       ! Diagnostics !
 
       endif  domynn
@@ -2185,9 +2130,6 @@
 
       myjloop:  &
       do j=1,nj
-        !!$acc data &
-        !!$acc copyin(rho,upten,vpten,thpten,qvpten,qcpten,qipten, &
-        !!$acc        qspten,qrpten,qgpten)
         !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
@@ -2227,7 +2169,6 @@
           tmp_myj(i,k,28) = 0.0
         enddo
         enddo
-        !!$acc end data
 #ifdef _OPENACC
         stop 'ERROR: call to MYJPBL not supported in OpenACC'
 #endif
@@ -2242,9 +2183,6 @@
                   ids=1  ,ide=ni+1 , jds=1  ,jde=1    , kds=1  ,kde=nk+1 ,          &
                   ims=ibmyj ,ime=iemyj   , jms=1  ,jme=1    , kms=kbmyj ,kme=kemyj ,            &
                   its=1  ,ite=ni   , jts=1  ,jte=1    , kts=1  ,kte=nk )
-        !!$acc data copyin(tmp_myj) & 
-        !!$acc copy(tke_myj,el_myj,xkzh,xkzm) &
-        !!$acc copy(upten,vpten,thpten,qvpten,qcpten,qipten,qspten,qrpten,qgpten)
         !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=1,ni
@@ -2263,7 +2201,6 @@
           qgpten(i,j,k) = tmp_myj(i,k,27)
         enddo
         enddo
-        !!$acc end data 
       enddo  myjloop
 
 
@@ -2288,7 +2225,6 @@
       if( ipbl.eq.1 )then
         ! Dissipative heating from ysu scheme:
 
-        !!$acc data copyin(upten,vpten)
         IF( idiss.eq.1 .or. output_dissten.eq.1 )THEN
           !$omp parallel do default(shared) private(i,j)
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -2321,7 +2257,6 @@
           enddo
 
         ENDIF
-        !!$acc end data
 
       endif  ysudiss
 
@@ -2330,21 +2265,18 @@
       !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
 
       if( use_pbl )then
-        !!$acc data copy(upten)
         call bcs_GPU(upten)
-        !!$acc end data
 #ifdef MPI
+        !$acc update host(upten)
         call comm_1s_start(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
-        !!$acc data copy(vpten)
         call bcs_GPU(vpten)
-        !!$acc end data
 #ifdef MPI
+        !$acc update host(vpten)
         call comm_1s_start(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
 #endif
         IF( axisymm.eq.1 )THEN
           ! cm1r19 bug fix:
-          !!$acc data copy(upten,vpten)
           !$omp parallel do default(shared) private(i,k)
           !$acc parallel loop gang vector default(present) private(i,k)
           do k=1,nk
@@ -2355,11 +2287,11 @@
               vpten(i,2,k) = vpten(i,1,k)
             enddo
           enddo
-          !!$acc end data
         ENDIF
 #ifdef MPI
         call comm_1s_end(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
         call comm_1s_end(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
+        !$acc update device(upten,vpten)
 #endif
       endif
 
@@ -2367,8 +2299,8 @@
 
 !-------------------------------------------------------------------
 
-    !$acc end data
-    !ENDcopy
+    !!$acc end data
+    !!ENDcopy
 
       end subroutine sfc_and_turb
 
@@ -2578,7 +2510,7 @@
       call bcw_GPU(kmh,1)
       !call bcw(kmh,1)
 #ifdef MPI
-      !!$acc update host(kmh)
+      !$acc update host(kmh)
       call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
 #endif
@@ -2586,7 +2518,7 @@
       call bcw_GPU(kmv,1)
       !call bcw(kmv,1)
 #ifdef MPI
-      !!$acc update host(kmv)
+      !$acc update host(kmv)
       call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
 #endif
@@ -2594,7 +2526,7 @@
       call bcw_GPU(khh,1)
       !call bcw(khh,1)
 #ifdef MPI
-      !!$acc update host(khh)
+      !$acc update host(khh)
       call comm_1t_start(khh,khdw1,khdw2,khde1,khde2,   &
                              khds1,khds2,khdn1,khdn2,reqs_khd)
 #endif
@@ -2602,7 +2534,7 @@
       call bcw_GPU(khv,1)
       !call bcw(khv,1)
 #ifdef MPI
-      !!$acc update host(khv)
+      !$acc update host(khv)
       call comm_1t_start(khv,kvdw1,kvdw2,kvde1,kvde2,   &
                              kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
 #endif
@@ -2622,6 +2554,7 @@
                            kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
       call getcornert(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call getcornert(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      !$acc update device(kmh,kmv,khh,khv)
 #endif
 
 !--------------------------------------------------------------
@@ -2697,21 +2630,20 @@
         call bc2d_GPU(tkea(ibt,jbt,1))
         !call bc2d(tkea(ibt,jbt,1))
 #ifdef MPI
-        !!$acc update host(tkea(ibt:iet,jbt:jet,1))
+        !$acc update host(tkea(ibt:iet,jbt:jet,1))
         call comm_1s2d_start(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                              kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
 #endif
         call bc2d_GPU(kmh(ibc,jbc,1))
         !call bc2d(kmh(ibc,jbc,1))
 #ifdef MPI
-        !!$acc update host(kmh(ibc:iec,jbc:jec,1))
+        !$acc update host(kmh(ibc:iec,jbc:jec,1))
         call comm_1s2d_start(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         !-----
         call comm_1s2d_end(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                            kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
         call bcs2_2d(tkea(ibt,jbt,1))
-        !!$acc update device(tkea(ibt:iet,jbt:jet,1))
         call comm_1s2d_end(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         
@@ -2720,7 +2652,8 @@
         call comm_2d_corner(tkea(ibt,jbt,1))
         call comm_2d_corner(kmh(ibc,jbc,1))
         !-----
-        !!$acc update device(kmh(ibc:iec,jbc:jec,1))
+        !$acc update device(tkea(ibt:iet,jbt:jet,1))
+        !$acc update device(kmh(ibc:iec,jbc:jec,1))
 #endif
 
         !$omp parallel do default(shared) private(i,j)
@@ -2757,14 +2690,14 @@
         call bc2d_GPU(tkea(ibt,jbt,nk+1))
         !call bc2d(tkea(ibt,jbt,nk+1))
 #ifdef MPI
-        !!$acc update host(tkea(ibt:iet,jbt:jet,nk+1))
+        !$acc update host(tkea(ibt:iet,jbt:jet,nk+1))
         call comm_1s2d_start(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                                 kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
 #endif
         call bc2d_GPU(kmh(ibc,jbc,nk+1))
         !call bc2d(kmh(ibc,jbc,nk+1))
 #ifdef MPI
-        !!$acc update host(kmh(ibc:iec,jbc:jec,nk+1))
+        !$acc update host(kmh(ibc:iec,jbc:jec,nk+1))
         call comm_1s2d_start(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                                khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         !-----
@@ -2778,8 +2711,8 @@
         call comm_2d_corner(tkea(ibt,jbt,nk+1))
         call comm_2d_corner(kmh(ibc,jbc,nk+1))
         !-----
-        !!$acc update device(tkea(ibt:iet,jbt:jet,nk+1))
-        !!$acc update device(kmh(ibc:iec,jbc:jec,nk+1))
+        !$acc update device(tkea(ibt:iet,jbt:jet,nk+1))
+        !$acc update device(kmh(ibc:iec,jbc:jec,nk+1))
 #endif
 
         !$omp parallel do default(shared) private(i,j)
@@ -5846,31 +5779,33 @@
     IF(.not.terrain_flag)THEN
       ! without terrain:
 
-      !$omp parallel do default(shared) private(i,j,k,tem)
-      !$acc parallel loop gang vector default(present) private(i,j,k,tem)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       DO k=1,nk
-        tem = rho0(1,1,k)
         do j=0,nj+2
         do i=0,ni+2
-          rru(i,j,k)=tem*ua(i,j,k)
-          rrv(i,j,k)=tem*va(i,j,k)
+          rru(i,j,k)=rho0(1,1,k)*ua(i,j,k)
+          rrv(i,j,k)=rho0(1,1,k)*va(i,j,k)
         enddo
         enddo
-        IF(k.eq.1)THEN
+      ENDDO
+
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      do j=0,nj+1
+        do i=0,ni+1
+          rrw(i,j,   1) = 0.0
+          rrw(i,j,nk+1) = 0.0
+        enddo
+      enddo
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      DO k=1,nk
           do j=0,nj+1
           do i=0,ni+1
-            rrw(i,j,   1) = 0.0
-            rrw(i,j,nk+1) = 0.0
+            rrw(i,j,k)=rf0(1,1,k)*wa(i,j,k)
           enddo
           enddo
-        ELSE
-          tem = rf0(1,1,k)
-          do j=0,nj+1
-          do i=0,ni+1
-            rrw(i,j,k)=tem*wa(i,j,k)
-          enddo
-          enddo
-        ENDIF
       ENDDO
 
     ELSE

@@ -3256,6 +3256,25 @@
       if( startup .or. restarted ) update_sfc = .false.
 
 #ifdef _OPENACC
+        call nvtxStartRange("H2D ",id=1)
+#endif
+    !$acc data &
+    !$acc copyin(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf, &
+    !$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0) &
+    !$acc copy(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
+    !$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx, &
+    !$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
+    !$acc      rrv,rrw,u3d,v3d,w3d,uten,vten,pp3d,ppten,sten,sadv,th3d,thten,thten1, &
+    !$acc      thterm,q3d,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten, &
+    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
+    !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih, &
+    !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,flag)
+#ifdef _OPENACC
+    call nvtxEndRange
+#endif
+    if(timestats.ge.1) time_sfc_H2D=time_sfc_H2D+mytime()
+
+#ifdef _OPENACC
         call nvtxStartRange("srf_and_turb",id=8)
 #endif
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
@@ -3310,12 +3329,20 @@
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
 #ifdef _OPENACC
-        call nvtxEndRange
-        !print *,'nstep: ',nstep
-        !if(nstep == 5033) then 
-        !   stop 'after call to surf_and_turb'
-        !endif
+    call nvtxEndRange
+    !print *,'nstep: ',nstep
+    !if(nstep == 5033) then 
+    !   stop 'after call to surf_and_turb'
+    !endif
 #endif
+#ifdef _OPENACC
+    call nvtxStartRange("D2H",id=1)
+#endif
+    !$acc end data
+#ifdef _OPENACC
+    call nvtxEndRange
+#endif
+    if(timestats.ge.1) time_sfc_D2H=time_sfc_D2H+mytime()
 
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
@@ -3365,10 +3392,11 @@
           if(dowr) write(outfile,*) '  initial conditions:'
           if(dowr) write(outfile,*)
         endif
+        !$acc data copyin(rho,xf) copy(ppten)
         IF(axisymm.eq.0)THEN
           ! for Cartesian grid:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -3378,8 +3406,8 @@
           enddo
         ELSE
           ! for axisymmetric grid:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -3388,6 +3416,7 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3939,6 +3968,13 @@
         time_slv_D2H = sum/float(numprocs)
 
         sum = 0.0
+        call MPI_REDUCE(time_sfc_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_sfc_H2D = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_sfc_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_sfc_D2H = sum/float(numprocs)
+
+        sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
         sum = 0.0
@@ -4117,7 +4153,7 @@
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
-                  time_slv_H2D+time_slv_D2H 
+                  time_slv_H2D+time_slv_D2H+time_sfc_H2D+time_sfc_D2H 
       time_solve0 = time_solve
 
 #ifdef MPI
@@ -4136,6 +4172,8 @@
     IF(dowr)THEN
       write(outfile,100) 'slv-H2D',time_slv_H2D,time_slv_H2D/time_solve
       write(outfile,100) 'slv-D2H',time_slv_D2H,time_slv_D2H/time_solve
+      write(outfile,100) 'sfc-H2D',time_sfc_H2D,time_sfc_H2D/time_solve
+      write(outfile,100) 'sfc-D2H',time_sfc_D2H,time_sfc_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
       write(outfile,100) ' adv-H2D',time_adv_H2D,time_adv_H2D/time_solve

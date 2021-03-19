@@ -219,6 +219,7 @@
            time_advs,time_advu,time_advv,time_advw,                  &
            time_slv_H2D,time_slv_D2H,                                &
            time_adv_H2D,time_adv_D2H,  &
+           time_sfc_H2D,time_sfc_D2H,  &
            time_mpu1,time_mpv1,time_mpw1,time_mpp1,                  &
            time_mpu2,time_mpv2,time_mpw2,time_mpp2,                  &
            time_mps1,time_mps3,time_mpq1,time_mptk1,                 &

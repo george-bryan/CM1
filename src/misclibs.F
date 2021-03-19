@@ -3679,6 +3679,8 @@
       time_adv_D2H=0.0
       time_slv_H2D=0.0
       time_slv_D2H=0.0
+      time_sfc_H2D=0.0
+      time_sfc_D2H=0.0
       time_advu=0.0
       time_advv=0.0
       time_advw=0.0

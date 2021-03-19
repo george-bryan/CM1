@@ -509,6 +509,7 @@
 #ifdef _B4B
       !$acc update host(qvflux,ruh,rvh,rf) 
 #else
+      !$acc data create(bud1)
       !$acc parallel loop gang vector default(present) private(i,j) reduction(+:budtmp,qbsfc)
 #endif
       !$omp parallel do default(shared) private(i,j)
@@ -524,6 +525,8 @@
       enddo
 #ifdef _B4B
       !$acc update device(qbsfc)
+#else
+      !$acc end data
 #endif
     ENDIF
 
