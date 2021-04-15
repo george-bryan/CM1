@@ -1,3 +1,11 @@
+#ifdef _B4B
+#define _B4B01
+#define _B4B02
+#define _B4B03
+#define _B4B04
+#define _B4B05
+#define _B4B06
+#endif
   MODULE turb_module
 
   implicit none
@@ -444,32 +452,47 @@
       !      dum7 stores ql+qi
 
       IF(imoist.eq.1)THEN
-        !BUG
-        !$omp parallel do default(shared) private(i,j,k,n)
-        !$acc parallel loop gang vector default(present) private(i,j,k,n)
-          DO j=1,nj
-            do k=1,nk
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        DO k=1,nk
+          do j=1,nj
+          do i=1,ni
+            divx(i,j,k) = qa(i,j,k,nqv)
+            dum7(i,j,k) = 0.0
+          enddo
+          enddo
+        ENDDO
+        !$acc parallel default(present) private(n,i,j,k)
+        do n=nql1,nql2
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc loop gang vector collapse(3)
+        DO k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
+          enddo
+          enddo
+        ENDDO
+        enddo
+        !$acc end parallel 
+        IF(iice.eq.1)THEN
+          !$acc parallel default(present) private(n,i,j,k)
+          do n=nqs1,nqs2
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc loop gang vector collapse(3)
+          DO k=1,nk
+          do j=1,nj
             do i=1,ni
-              divx(i,j,k) = qa(i,j,k,nqv)
-              dum7(i,j,k) = 0.0
+              dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
             enddo
-            enddo
-            do n=nql1,nql2
-              do i=1,ni
-                dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
-              enddo
-            enddo
-            IF(iice.eq.1)THEN
-              do n=nqs1,nqs2
-                do i=1,ni
-                  dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
-                enddo
-              enddo
-            ENDIF
+          enddo
           ENDDO
+          enddo
+          !$acc end parallel
+        ENDIF
       ELSE
           !$omp parallel do default(shared) private(i,j,k,n)
-          !$acc parallel loop gang vector default(present) private(i,j,k,n)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
           DO k=1,nk
             do j=1,nj
             do i=1,ni
@@ -627,7 +650,7 @@
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
 
           if( tbc.eq.3 )then
-#ifdef _B4B
+#ifdef _B4B01
             !$acc update host(ugr,vgr,zf,zh) 
 #else
             !$acc parallel loop gang vector collapse(2) default(present) 
@@ -640,7 +663,7 @@
               ustt(i,j) = max( st(i,j)*karman/alog((zf(i,j,nk+1)-zh(i,j,nk))/cnst_znt) , 1.0e-6 )
             enddo
             enddo
-#ifdef _B4B
+#ifdef _B4B01
             !$acc update device(ut,vt,st,ustt)
 #endif
           endif
@@ -860,7 +883,7 @@
                      ids=1  ,ide=ni+1 , jds= 1 ,jde= 1   , kds=1  ,kde=nk+1 ,                                   &
                      ims=ib ,ime=ie   , jms= 1 ,jme= 1   , kms=kb ,kme=ke ,                                     &
                      its=1  ,ite=ni   , jts= 1 ,jte= 1   , kts=1  ,kte=nk  )
-#ifdef _B4B
+#ifdef _B4B02
           !$acc update host(br,ppten,znt)
 #else
           !$acc parallel loop gang vector default(present) private(i)
@@ -870,7 +893,7 @@
             br(i,j) = min(  10.0 , br(i,j) )
             gz1oz0(I,J)=ALOG(ppten(i,j,1)/znt(i,j))
           enddo
-#ifdef _B4B
+#ifdef _B4B02
           !$acc update device(br,gz1oz0)
 #endif
 
@@ -2373,7 +2396,7 @@
 
       ! single length scale:  appropriate if dx,dy are nearly the same as dz
 
-#ifdef _B4B 
+#ifdef _B4B03
       !$acc update host(csz,ruh,rvh,rmf,tkea,nm,dissten,ce1z,ce2z,cmz,kmh,khh)
 #else
       !non-B4B: due to use of PWR function 
@@ -2428,7 +2451,7 @@
       enddo
       enddo
       enddo
-#ifdef _B4B
+#ifdef _B4B03
       !$acc update device(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
 #endif
 
@@ -4663,7 +4686,7 @@
 
     IF(imoist.eq.0)then
 
-#ifdef _B4B
+#ifdef _B4B04
       !$acc update host(th0,th,mf)
 #else
       !non-B4B
@@ -4678,7 +4701,7 @@
       enddo
       enddo
       enddo
-#ifdef _B4B
+#ifdef _B4B04
       !$acc update device(nm)
 #endif
 
@@ -4763,7 +4786,7 @@
       enddo
       enddo
 
-#ifdef _B4B
+#ifdef _B4B05
       !$acc update host(thv,mf,c1,c2,prs,t,qt,qvci,qt)
 #else
       !non-B4B
@@ -4850,14 +4873,14 @@
       enddo
       enddo
       enddo
-#ifdef _B4B
+#ifdef _B4B05
       !$acc update device(nm,iamsat)
 #endif
 
     ELSE  icecheck
 
       ! liquid only:
-#ifdef _B4B
+#ifdef _B4B06
       !$acc update host(th0,th,pi0,pp,qa,qt,mf,c1,c2,prs,t,qt,qvci)
 #else
       !non-B4B
@@ -4895,7 +4918,7 @@
       enddo
       enddo
       enddo
-#ifdef _B4B
+#ifdef _B4B06
     !$acc update device(t,thv,nm,iamsat)
 #endif
 

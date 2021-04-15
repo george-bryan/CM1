@@ -169,6 +169,7 @@
 
       integer, intent(in) :: nstep
       integer, intent(in) :: rbufsz,num_soil_layers
+!      integer :: jmd
       real, intent(inout) :: dt,dtlast
       double precision, intent(in   ) :: mtime
       double precision, intent(inout) :: dbldt
@@ -315,6 +316,7 @@
 
       logical, intent(in) :: dowriteout,dorad,dotdwrite,doazimwrite,dorestart
       logical, intent(inout) :: getdbz,getvt,dotbud,doqbud,doubud,dovbud,dowbud,donudge
+
 
 !-----------------------------------------------------------------------
 ! Arrays and variables defined inside solve
@@ -1703,6 +1705,7 @@
         rdt = 1.0/dt
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
+          print *,'ib,ie,jb,je,kb,ke: ',ib,ie,jb,je,kb,ke
 #ifdef _B4B01
           !$acc update host(thten1,qten,tha,qa,rho,th0,pi0,ppi)
 #else
@@ -1717,6 +1720,7 @@
             !-----
             ! cm1r17:
             ! note:  nothing in pre-RK section should modify rho
+            !jmd  = (k-kb)*((ie-ib+1)*(je-jb+1)) + (j-jb)*(ie-ib+1) + (i-ib)
             IF( abs(dt*thten1(i,j,k)).gt.tem .or.  &
                 abs(dt*qten(i,j,k,nqv)).gt.qsmall )THEN
               thnew = tha(i,j,k)+dt*thten1(i,j,k)
@@ -1733,6 +1737,7 @@
           !$acc update device(ppten)
 #else
           !$acc end data
+!          !$acc compare(ppten,val)
 #endif
 
           !$omp parallel do default(shared) private(i,j,k)
@@ -1794,6 +1799,7 @@
     ! cm1r20.1:  - moved microphysics to mp_driver (which is called from cm1.F)
     !            - moved message passing and equate to solve_finish.F
 
+      !!$acc end data
 
       end subroutine solve1
 
