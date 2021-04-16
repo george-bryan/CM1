@@ -5,9 +5,9 @@ Note that this particular version of CM1 has been partially ported  to the GPU.
 
 program cm1
   
-  MPI_INIT()
-  MPI_COMM_RANK()
-  MPMI_COMM_SIZE()
+    MPI_INIT()
+    MPI_COMM_RANK()
+    MPMI_COMM_SIZE()
 
   wenocheck()
   allocate()
