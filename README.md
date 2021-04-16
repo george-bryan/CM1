@@ -3,7 +3,8 @@ Cloud Model 1 (CM1) is a numerical model for idealized studies of the atmosphere
 
 Note that this particular version of CM1 has been partially ported  to the GPU.  
 
-**program cm1**
+```Fortran
+program cm1
   
     MPI_INIT()
     MPI_COMM_RANK()
@@ -51,4 +52,5 @@ Note that this particular version of CM1 has been partially ported  to the GPU.
     write_restart()        !  CPU
     mtime = mtime + dbldt
     enddo
+```
 
