@@ -3,7 +3,7 @@ Cloud Model 1 (CM1) is a numerical model for idealized studies of the atmosphere
 
 Note that this particular version of CM1 has been partially ported  to the GPU.  
 
-program cm1
+**program cm1**
   
     MPI_INIT()
     MPI_COMM_RANK()
@@ -26,10 +26,10 @@ program cm1
     getnewdt()
     ...
     do while (mtime.lt.timax)
-      ** !$acc copyto(GPU) **
+   **!$acc copyto(GPU) **
       solve1()               ! GPU resident
       solve2()               ! GPU resident
-    !$acc copyto(HOST)
+   **!$acc copyto(HOST)**
     mp_driver()            !  CPU
     !$acc copyto(GPU)
       solve3()               ! GPU resident
