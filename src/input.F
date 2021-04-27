@@ -158,6 +158,7 @@
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk
 
+!$acc declare copyin(ptype)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -191,6 +192,7 @@
            rad_solcon,rad_jday,rad_zenangle,rad_declin,rad_hrang,             &
            adapt_move_frq
 
+!$acc declare create(alph,kdiv)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
@@ -215,6 +217,9 @@
            time_ttend,time_cor,time_fall,time_satadj,                &
            time_sfcphys,time_dbz,time_last,                          &
            time_advs,time_advu,time_advv,time_advw,                  &
+           time_slv_H2D,time_slv_D2H,                                &
+           time_adv_H2D,time_adv_D2H,  &
+           time_sfc_H2D,time_sfc_D2H,  &
            time_mpu1,time_mpv1,time_mpw1,time_mpp1,                  &
            time_mpu2,time_mpv2,time_mpw2,time_mpp2,                  &
            time_mps1,time_mps3,time_mpq1,time_mptk1,                 &
@@ -300,6 +305,7 @@
               dodomaindiag,diagfrq
       namelist /param15/                                                      &
               doazimavg,azimavgfrq,rlen,do_adapt_move,adapt_move_frq
+
 
     CONTAINS
 

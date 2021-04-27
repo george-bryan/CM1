@@ -49,6 +49,10 @@
 #ifdef MPI
       use mpi
 #endif
+#ifdef _OPENACC
+      use openacc
+      use nvtx_mod
+#endif
       implicit none
 
       integer :: nstep,nstep0
@@ -243,6 +247,7 @@
 
       double precision :: adaptmovetim
       integer :: mvrec,nwritemv
+      integer id
 
 #ifdef MPI
       integer :: reqs,rc,ii,jj,id,itmp1,itmp2,jtmp1,jtmp2
@@ -250,6 +255,9 @@
       real :: mp_total,minval,temx,temy,temni,temnj
       double precision :: tstart,tend
       integer, dimension(:), allocatable :: isum,jsum
+#endif
+#ifdef _OPENACC
+      integer :: ndev,idev
 #endif
 
 !----------------------------------------------------------------------
@@ -378,6 +386,16 @@
       call MPI_INIT( ierr )
       call MPI_COMM_RANK( MPI_COMM_WORLD, myid, ierr )
       call MPI_COMM_SIZE( MPI_COMM_WORLD, numprocs, ierr )
+#endif
+#ifdef _OPENACC
+      ndev = acc_get_num_devices(acc_device_nvidia)
+      idev = mod(myid,ndev)
+      print *,'myid: ',myid
+      print *,'numprocs: ',numprocs
+      print *,'Total # of GPU: ',ndev 
+      print *,'Using GPU: ',idev 
+      
+      call acc_set_device_num(idev,acc_device_nvidia)
 #endif
 
 !----------------------------------------------------------------------
@@ -2679,6 +2697,7 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
 
+    if(timestats.ge.1) time_slv_H2D=time_slv_H2D+mytime()
     !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
     timeloop:  &
     DO WHILE( mtime.lt.timax )
@@ -2819,7 +2838,58 @@
 
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
+#ifdef _OPENACC
+        call nvtxStartRange("H2D ",id=1)
+#endif
+        !$acc data  &
+        !$acc copyin(xh,rxh,arh1,arh2,uh,ruh) &
+        !$acc copyin(xf,rxf,arf1,arf2,uf,ruf) &
+        !$acc copyin(yh,vh,rvh) &
+        !$acc copyin(yf,vf,rvf) &
+        !$acc copyin(rds,sigma,rdsf,sigmaf) &
+        !$acc copyin(zh,mh,rmh) &
+        !$acc copyin(zf,mf,rmf) &
+        !$acc copyin(zs,gz,rgz,gzu,rgzu,gzv,rgzv) &
+        !$acc copyin(dzdx,dzdy,gx,gxu,gy,gyv) &
+        !$acc copyin(pi0,rho0,prs0,th0,rth0,qv0,qc0,qi0,rr0,rf0,rrf0) &
+        !$acc copyin(dtu0,dtv0,u0,v0) &
+        !$acc copyin(c1,c2,wprof,f2d) &
+        !$acc copyin(m11,m12,m13,m22,m23,m33) &
+        !$acc copyin(kmw,u1b,v1b) &
+        !$acc copyin(tauh,tauf,taus) &
+        !$acc copyin(bndy,kbdy) &
+        !$acc copy(bud2,qbudget,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
+        !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
+        !$acc      rho,rr,rf,prs,o30,zir,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9, &
+        !$acc      rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1, &
+        !$acc      ppi,pp3d,ppten,sten,sadv,ppx,tha,th3d,thten,thten1,thterm, &
+        !$acc      qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen, &
+        !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
+        !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
+        !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
+        !$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
+        !$acc copy(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
+        !$acc copy(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
+        !$acc copy(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
+        !$acc copy(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
+        !$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
+        !$acc copy(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
+        !$acc copy(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
+        !$acc copy(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
+        !$acc copy(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
+        !$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
+        !$acc copy(flag) &
+        !$acc copy(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
 
+        if(timestats.ge.1) time_slv_H2D=time_slv_H2D+mytime()
+ 
+
+#ifdef _OPENACC
+        call nvtxStartRange("solve1 ",id=3)
+#endif
         ! solve1: pre-RK terms
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
         call     solve1(nstep,rbufsz,num_soil_layers,                  &
@@ -2892,8 +2962,14 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve1
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
 
 
+#ifdef _OPENACC
+        call nvtxStartRange("solve2",id=4)
+#endif
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -2966,13 +3042,26 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,               &
                    doazimwrite,dorestart)
         ! end_solve2
-
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
+#ifdef _OPENACC
+        call nvtxStartRange("D2H",id=1)
+#endif
+        !$acc end data
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
+        if(timestats.ge.1) time_slv_D2H=time_slv_D2H+mytime()
 
       IF(imoist.eq.1)THEN
 
         ! microphysics:
 
         ! cm1r20:  move calls to microphysics scheme into mp_driver.F
+#ifdef _OPENACC
+        call nvtxStartRange("mp_driver",id=5)
+#endif
 
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
@@ -2983,10 +3072,16 @@
                          tdiag,qdiag,out2d,out3d,  &
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
 
       ENDIF
 
 
+#ifdef _OPENACC
+        call nvtxStartRange("solve3",id=6)
+#endif
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
 
@@ -3091,6 +3186,10 @@
                    doazimwrite,dorestart)
         ! end_solve3
         !$acc end data
+#ifdef _OPENACC
+        call nvtxEndRange
+#endif
+
 
         !--------------------------------
         ! Step model time forward one dt
@@ -3142,6 +3241,9 @@
 
       IF( radopt.ge.1 .and. dorad )THEN
 
+#ifdef _OPENACC
+        call nvtxStartRange("radiation_driver",id=7)
+#endif
         call     radiation_driver(mtime,radtim,dt,rbufsz,xh,yh,xf,yf,zf,rmh,c1,c2,     &
                    swten,lwten,swtenc,lwtenc,cldfra,o30,                               &
                    radsw,rnflx,radswnet,radlwin,dsr,olr,rad2d,                         &
@@ -3163,6 +3265,9 @@
           endif
         enddo
         if(timestats.ge.1) time_rad=time_rad+mytime()
+#ifdef _OPENACC
+        call nvtxEndRange()
+#endif
 
       ENDIF
 
@@ -3184,6 +3289,28 @@
       update_sfc = .true.
       if( startup .or. restarted ) update_sfc = .false.
 
+#ifdef _OPENACC
+        call nvtxStartRange("H2D ",id=1)
+#endif
+    !$acc data &
+    !$acc copyin(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf, &
+    !$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0) &
+    !$acc copy(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
+    !$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx, &
+    !$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
+    !$acc      rrv,rrw,u3d,v3d,w3d,uten,vten,pp3d,ppten,sten,sadv,th3d,thten,thten1, &
+    !$acc      thterm,q3d,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten, &
+    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
+    !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih, &
+    !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,flag)
+#ifdef _OPENACC
+    call nvtxEndRange
+#endif
+    if(timestats.ge.1) time_sfc_H2D=time_sfc_H2D+mytime()
+
+#ifdef _OPENACC
+        call nvtxStartRange("srf_and_turb",id=8)
+#endif
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
@@ -3235,6 +3362,21 @@
                    flag  ,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
+#ifdef _OPENACC
+    call nvtxEndRange
+    !print *,'nstep: ',nstep
+    !if(nstep == 5033) then 
+    !   stop 'after call to surf_and_turb'
+    !endif
+#endif
+#ifdef _OPENACC
+    call nvtxStartRange("D2H",id=1)
+#endif
+    !$acc end data
+#ifdef _OPENACC
+    call nvtxEndRange
+#endif
+    if(timestats.ge.1) time_sfc_D2H=time_sfc_D2H+mytime()
 
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
@@ -3284,10 +3426,11 @@
           if(dowr) write(outfile,*) '  initial conditions:'
           if(dowr) write(outfile,*)
         endif
+        !$acc data copyin(rho,xf) copy(ppten)
         IF(axisymm.eq.0)THEN
           ! for Cartesian grid:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -3297,8 +3440,8 @@
           enddo
         ELSE
           ! for axisymmetric grid:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -3307,6 +3450,7 @@
           enddo
           enddo
         ENDIF
+        !$acc end data
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3490,6 +3634,9 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
+#ifdef _OPENACC
+        call nvtxStartRange("domaindiag",id=9)
+#endif
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3543,6 +3690,9 @@
         endif
         if(myid.eq.0) print *,'  next diagtim = ',diagtim
         if(timestats.ge.1) time_diag = time_diag+mytime()
+#ifdef _OPENACC
+        call nvtxEndRange()
+#endif
 
       endif
     ENDIF
@@ -3746,7 +3896,8 @@
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
 #endif
-                    time_advs+time_advu+time_advv+time_advw
+                    time_advs+time_advu+time_advv+time_advw+                &
+                    time_adv_H2D + time_adv_D2H+time_slv_H2D + time_slv_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -3844,6 +3995,20 @@
       ! for MPI runs without procfiles, average the timestat terms:
       IF(.not.procfiles)THEN
         sum = 0.0
+        call MPI_REDUCE(time_slv_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv_H2D = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_slv_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_slv_D2H = sum/float(numprocs)
+
+        sum = 0.0
+        call MPI_REDUCE(time_sfc_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_sfc_H2D = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_sfc_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_sfc_D2H = sum/float(numprocs)
+
+        sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
         sum = 0.0
@@ -3852,6 +4017,12 @@
         sum = 0.0
         call MPI_REDUCE(time_advs    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_advs = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_adv_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_adv_H2D = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_adv_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_adv_D2H = sum/float(numprocs)
         sum = 0.0
         call MPI_REDUCE(time_advu    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_advu = sum/float(numprocs)
@@ -4012,10 +4183,11 @@
 #ifdef MPI
                   time_mpu1+time_mpv1+time_mpw1+time_mpp1+                &
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
-                  time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
-                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
+                  time_mps1+time_mps3+time_mpq1+time_mptk1+                     &
+                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
 #endif
-                  time_advs+time_advu+time_advv+time_advw
+                  time_advs+time_advu+time_advv+time_advw+                &
+                  time_slv_H2D+time_slv_D2H+time_sfc_H2D+time_sfc_D2H 
       time_solve0 = time_solve
 
 #ifdef MPI
@@ -4032,12 +4204,18 @@
       if(time_solve.lt.0.0001) time_solve=1.
 
     IF(dowr)THEN
+      write(outfile,100) 'slv-H2D',time_slv_H2D,time_slv_H2D/time_solve
+      write(outfile,100) 'slv-D2H',time_slv_D2H,time_slv_D2H/time_solve
+      write(outfile,100) 'sfc-H2D',time_sfc_H2D,time_sfc_H2D/time_solve
+      write(outfile,100) 'sfc-D2H',time_sfc_D2H,time_sfc_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
+      write(outfile,100) ' adv-H2D',time_adv_H2D,time_adv_H2D/time_solve
       write(outfile,100) 'advs    ',time_advs,time_advs/time_solve
       write(outfile,100) 'advu    ',time_advu,time_advu/time_solve
       write(outfile,100) 'advv    ',time_advv,time_advv/time_solve
       write(outfile,100) 'advw    ',time_advw,time_advw/time_solve
+      write(outfile,100) ' adv-D2H',time_adv_D2H,time_adv_D2H/time_solve
       write(outfile,100) 'divx    ',time_divx,time_divx/time_solve
       write(outfile,100) 'buoyan  ',time_buoyan,time_buoyan/time_solve
       write(outfile,100) 'turb    ',time_turb,time_turb/time_solve

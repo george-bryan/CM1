@@ -8,6 +8,10 @@
             cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1,       &
             cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2,  &
             rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo
+!$acc declare create(g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp) &
+!$acc create(cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1) &
+!$acc create(cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2) &
+!$acc create(rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo)
 
       !----------------
 
@@ -160,6 +164,11 @@
       c_e2 = max( 0.0 , c_m * pi * pi - c_e1 )
       c_s = ( c_m * c_m * c_m / ( c_e1 + c_e2 ) )**0.25   ! Smagorinsky constant
       rcs = 1.0/c_s
+
+!$acc update device(g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp) &
+!$acc device(cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1) &
+!$acc device(cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2) &
+!$acc device(rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo)
 
 
       end subroutine set_constants

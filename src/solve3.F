@@ -360,6 +360,7 @@
 
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         !$omp parallel do default(shared) private(i,j,k)
+
         do k=1,nk
         do j=1,nj
         do i=1,ni

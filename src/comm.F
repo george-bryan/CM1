@@ -1168,6 +1168,8 @@
 
       integer i,j,k,nr
       integer tag1,tag2
+      !$acc declare present(s) &
+      !$acc present(west,newwest,east,neweast) 
 
 !------------------------------------------------
 
@@ -1179,8 +1181,15 @@
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(neweast)
         call mpi_irecv(neweast,cs2we,MPI_REAL,myeast,tag1,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
+        !$acc end host_data
+#else
+        call mpi_irecv(neweast,cs2we,MPI_REAL,myeast,tag1,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+#endif
       endif
 
 !----------
@@ -1191,8 +1200,15 @@
       ! receive west
       if(ibw.eq.0)then
         nr = nr + 1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(newwest)
         call mpi_irecv(newwest,cs2we,MPI_REAL,mywest,tag2,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
+        !$acc end host_data
+#else
+        call mpi_irecv(newwest,cs2we,MPI_REAL,mywest,tag2,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+#endif
       endif
 
 !------------------------------------------------
@@ -1201,8 +1217,8 @@
 
       ! send west
       if(ibw.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,2
@@ -1211,16 +1227,24 @@
         enddo
         enddo
         nr = nr+1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(west)
         call mpi_isend(west,cs2we,MPI_REAL,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
+        !$acc end host_data
+#else
+        !$acc update self(west)
+        call mpi_isend(west,cs2we,MPI_REAL,mywest,tag1,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+#endif
       endif
 
 !----------
 
       ! send east
       if(ibe.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,2
@@ -1229,8 +1253,16 @@
         enddo
         enddo
         nr = nr+1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(east)
         call mpi_isend(east,cs2we,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
+        !$acc end host_data
+#else
+        !$acc update self(east)
+        call mpi_isend(east,cs2we,MPI_REAL,myeast,tag2,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+#endif
       endif
 
 !----------
@@ -1258,6 +1290,8 @@
       integer i,j,k,nn,nr,index
       integer :: index_east,index_west
       integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(s) &
+      !$acc present(west,newwest,east,neweast) 
 
 !-------------------------------------------------------------------
 
@@ -1280,8 +1314,11 @@
         nn = nn + 1
 
       if(index.eq.index_east)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+#ifndef _GPUDIRECT
+        !$acc update device(neweast)
+#endif
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,2
@@ -1290,8 +1327,11 @@
         enddo
         enddo
       elseif(index.eq.index_west)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+#ifndef _GPUDIRECT
+        !$acc update device(newwest)
+#endif
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,2
@@ -1340,6 +1380,8 @@
 
       integer i,j,k,nr
       integer tag3,tag4
+      !$acc declare present(s) &
+      !$acc present(south,newsouth,north,newnorth)
 
 !----------
 
@@ -1373,8 +1415,8 @@
 
       ! send north
       if(ibn.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,ni
@@ -1383,6 +1425,7 @@
         enddo
         enddo
         nr = nr+1
+        !$acc update self(north)
         call mpi_isend(north,cs2sn,MPI_REAL,mynorth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
       endif
@@ -1391,8 +1434,8 @@
 
       ! send south
       if(ibs.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,ni
@@ -1401,6 +1444,7 @@
         enddo
         enddo
         nr = nr+1
+        !$acc update self(south)
         call mpi_isend(south,cs2sn,MPI_REAL,mysouth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
       endif
@@ -1430,6 +1474,8 @@
       integer i,j,k,nn,nr,index
       integer :: index_south,index_north
       integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(s) &
+      !$acc present(south,newsouth,north,newnorth)
 
 !----------
 
@@ -1452,8 +1498,9 @@
         nn = nn + 1
 
       if(index.eq.index_south)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,ni
@@ -1462,8 +1509,9 @@
         enddo
         enddo
       elseif(index.eq.index_north)then
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,ni
@@ -1498,7 +1546,6 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
 
       subroutine comm_3s_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
@@ -1651,6 +1698,167 @@
 
       end subroutine comm_3s_start
 
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine comm_3s_start_GPU(s,west,newwest,east,neweast,   &
+                                 south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real s(ib:ie,jb:je,kb:ke)
+      real west(cmp,nj,nk),newwest(cmp,nj,nk)
+      real east(cmp,nj,nk),neweast(cmp,nj,nk)
+      real south(ni,cmp,nk),newsouth(ni,cmp,nk)
+      real north(ni,cmp,nk),newnorth(ni,cmp,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nr
+      integer tag1,tag2,tag3,tag4
+      !$acc declare present(s) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+ 
+!------------------------------------------------
+
+      nr = 0
+
+      nf=nf+1
+      tag1=nf
+
+      ! receive east
+      if(ibe.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(neweast,cs3we,MPI_REAL,myeast,tag1,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nf=nf+1
+      tag2=nf
+
+      ! receive west
+      if(ibw.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newwest,cs3we,MPI_REAL,mywest,tag2,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nf=nf+1
+      tag3=nf
+
+      ! receive south
+      if(ibs.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newsouth,cs3sn,MPI_REAL,mysouth,tag3,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nf=nf+1
+      tag4=nf
+
+      ! receive north
+      if(ibn.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newnorth,cs3sn,MPI_REAL,mynorth,tag4,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!------------------------------------------------
+!------------------------------------------------
+!------------------------------------------------
+
+      nr = 4
+
+      ! send west
+      if(ibw.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          west(i,j,k)=s(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(west) 
+        call mpi_isend(west,cs3we,MPI_REAL,mywest,tag1,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+ 
+      ! send east
+      if(ibe.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          east(i,j,k)=s(ni-cmp+i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(east) 
+        call mpi_isend(east,cs3we,MPI_REAL,myeast,tag2,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+ 
+      ! send north
+      if(ibn.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          north(i,j,k)=s(i,nj-cmp+j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(north) 
+        call mpi_isend(north,cs3sn,MPI_REAL,mynorth,tag3,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+ 
+      ! send south
+      if(ibs.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          south(i,j,k)=s(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(south) 
+        call mpi_isend(south,cs3sn,MPI_REAL,mysouth,tag4,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+ 
+      if(timestats.ge.1) time_mps1=time_mps1+mytime()
+
+      end subroutine comm_3s_start_GPU
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1874,6 +2082,233 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+ 
+      subroutine comm_3s_end_GPU(s,west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real s(ib:ie,jb:je,kb:ke)
+      real west(cmp,nj,nk),newwest(cmp,nj,nk)
+      real east(cmp,nj,nk),neweast(cmp,nj,nk)
+      real south(ni,cmp,nk),newsouth(ni,cmp,nk)
+      real north(ni,cmp,nk),newnorth(ni,cmp,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(s) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+
+!-------------------------------------------------------------------
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+
+    nn = 1
+    do while( nn .le. nr )
+      call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+      nn = nn + 1
+ 
+      if(index.eq.index_east)then
+        !$acc update device(neweast)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          s(ni+i,j,k)=neweast(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(newwest)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          s(i-cmp,j,k)=newwest(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          s(i,j-cmp,k)=newsouth(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          s(i,nj+j,k)=newnorth(i,j,k)
+        enddo
+        enddo
+        enddo
+      endif
+
+    enddo
+
+      if(timestats.ge.1) time_mps2=time_mps2+mytime()
+ 
+!----------
+!  patch for corner
+ 
+      if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
+ 
+        if(ibw.eq.1)then
+
+          if(p2tchsww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,0,k)=s(1,0,k)
+            enddo
+          endif
+
+          if(p2tchnww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,nj+1,k)=s(1,nj+1,k)
+            enddo
+          endif
+
+        endif
+
+        if(ibe.eq.1)then
+ 
+          if(p2tchsee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,0,k)=s(ni,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,nj+1,k)=s(ni,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
+ 
+        if(ibs.eq.1)then
+ 
+          if(p2tchsws)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,0,k)=s(0,1,k)
+            enddo
+          endif
+ 
+          if(p2tchses)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,0,k)=s(ni+1,1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibn.eq.1)then
+ 
+          if(p2tchnwn)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,nj+1,k)=s(0,nj,k)
+            enddo
+          endif
+ 
+          if(p2tchnen)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,nj+1,k)=s(ni+1,nj,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+!----------
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mps2=time_mps2+mytime()
+
+!-----------------------------------------------------------
+ 
+      end subroutine comm_3s_end_GPU
+
+
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
       ! tk1
@@ -2024,6 +2459,167 @@
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
 
       end subroutine comm_3t_start
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      ! tk1
+      subroutine comm_3t_start_GPU(t,west,newwest,east,neweast,   &
+                                 south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+
+      real t(ib:ie,jb:je,kb:ke+1)
+      real west(cmp,nj,nk+1),newwest(cmp,nj,nk+1)
+      real east(cmp,nj,nk+1),neweast(cmp,nj,nk+1)
+      real south(ni,cmp,nk+1),newsouth(ni,cmp,nk+1)
+      real north(ni,cmp,nk+1),newnorth(ni,cmp,nk+1)
+      integer reqs(8)
+
+      integer i,j,k,nr
+      integer tag1,tag2,tag3,tag4
+      !$acc declare present(t) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+
+!------------------------------------------------
+
+      nr = 0
+
+      nf=nf+1
+      tag1=nf
+
+      ! receive east
+      if(ibe.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(neweast,ct3we,MPI_REAL,myeast,tag1,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      nf=nf+1
+      tag2=nf
+
+      ! receive west
+      if(ibw.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newwest,ct3we,MPI_REAL,mywest,tag2,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      nf=nf+1
+      tag3=nf
+
+      ! receive south
+      if(ibs.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newsouth,ct3sn,MPI_REAL,mysouth,tag3,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      nf=nf+1
+      tag4=nf
+
+      ! receive north
+      if(ibn.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newnorth,ct3sn,MPI_REAL,mynorth,tag4,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!------------------------------------------------
+!------------------------------------------------
+!------------------------------------------------
+
+      nr = 4
+
+      ! send west
+      if(ibw.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,nj
+        do i=1,cmp
+          west(i,j,k)=t(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(west)
+        call mpi_isend(west,ct3we,MPI_REAL,mywest,tag1,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      ! send east
+      if(ibe.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,nj
+        do i=1,cmp
+          east(i,j,k)=t(ni-cmp+i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(east)
+        call mpi_isend(east,ct3we,MPI_REAL,myeast,tag2,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      ! send north
+      if(ibn.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,cmp
+        do i=1,ni
+          north(i,j,k)=t(i,nj-cmp+j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(north)
+        call mpi_isend(north,ct3sn,MPI_REAL,mynorth,tag3,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      ! send south
+      if(ibs.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,cmp
+        do i=1,ni
+          south(i,j,k)=t(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(south)
+        call mpi_isend(south,ct3sn,MPI_REAL,mysouth,tag4,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      if(timestats.ge.1) time_mps1=time_mps1+mytime()
+
+      end subroutine comm_3t_start_GPU
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2241,6 +2837,229 @@
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
 
       end subroutine comm_3t_end
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine comm_3t_end_GPU(t,west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+
+      real t(ib:ie,jb:je,kb:ke+1)
+      real west(cmp,nj,nk+1),newwest(cmp,nj,nk+1)
+      real east(cmp,nj,nk+1),neweast(cmp,nj,nk+1)
+      real south(ni,cmp,nk+1),newsouth(ni,cmp,nk+1)
+      real north(ni,cmp,nk+1),newnorth(ni,cmp,nk+1)
+      integer reqs(8)
+
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(t) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+
+!-------------------------------------------------------------------
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+
+      nn = 1
+      do while( nn .le. nr )
+        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+        nn = nn + 1
+
+      if(index.eq.index_east)then
+        !$acc update device(neweast)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,nj
+        do i=1,cmp
+          t(ni+i,j,k)=neweast(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(newwest)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,nj
+        do i=1,cmp
+          t(i-cmp,j,k)=newwest(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,cmp
+        do i=1,ni
+          t(i,j-cmp,k)=newsouth(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nkp1
+        do j=1,cmp
+        do i=1,ni
+          t(i,nj+j,k)=newnorth(i,j,k)
+        enddo
+        enddo
+        enddo
+      endif
+
+      enddo
+
+      if(timestats.ge.1) time_mps2=time_mps2+mytime()
+
+!----------
+!  patch for corner
+
+     if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
+
+        if(ibw.eq.1)then
+
+          if(p2tchsww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(0,0,k)=t(1,0,k)
+            enddo
+          endif
+
+          if(p2tchnww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(0,nj+1,k)=t(1,nj+1,k)
+            enddo
+          endif
+
+        endif
+
+        if(ibe.eq.1)then
+
+          if(p2tchsee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(ni+1,0,k)=t(ni,0,k)
+            enddo
+          endif
+
+          if(p2tchnee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(ni+1,nj+1,k)=t(ni,nj+1,k)
+            enddo
+          endif
+
+        endif
+
+      endif
+
+      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
+
+        if(ibs.eq.1)then
+
+          if(p2tchsws)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(0,0,k)=t(0,1,k)
+            enddo
+          endif
+
+          if(p2tchses)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(ni+1,0,k)=t(ni+1,1,k)
+            enddo
+          endif
+
+        endif
+
+        if(ibn.eq.1)then
+
+          if(p2tchnwn)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(0,nj+1,k)=t(0,nj,k)
+            enddo
+          endif
+
+          if(p2tchnen)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nkp1
+              t(ni+1,nj+1,k)=t(ni+1,nj,k)
+            enddo
+          endif
+
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+!----------
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mps2=time_mps2+mytime()
+
+      end subroutine comm_3t_end_GPU
+
       ! tk2
 
 
@@ -2396,6 +3215,166 @@
       if(timestats.ge.1) time_mpu1=time_mpu1+mytime()
  
       end subroutine comm_3u_start
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+ 
+      subroutine comm_3u_start_GPU(u,west,newwest,east,neweast,   &
+                                 south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real u(ib:ie+1,jb:je,kb:ke)
+      real west(cmp,nj,nk),newwest(cmp,nj,nk)
+      real east(cmp,nj,nk),neweast(cmp,nj,nk)
+      real south(ni+1,cmp,nk),newsouth(ni+1,cmp,nk)
+      real north(ni+1,cmp,nk),newnorth(ni+1,cmp,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nr
+      integer tag1,tag2,tag3,tag4
+      !$acc declare present(u) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+ 
+!------------------------------------------------
+
+      nr = 0
+
+      nu=nu+1
+      tag1=1000+nu
+
+      ! receive east
+      if(ibe.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(neweast,cs3we,MPI_REAL,myeast,tag1,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nu=nu+1
+      tag2=1000+nu
+ 
+      ! receive west
+      if(ibw.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newwest,cs3we,MPI_REAL,mywest,tag2,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nu=nu+1
+      tag3=1000+nu
+
+      ! receive north
+      if(ibn.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newnorth,cu3sn,MPI_REAL,mynorth,tag3,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nu=nu+1
+      tag4=1000+nu
+
+      ! receive south
+      if(ibs.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newsouth,cu3sn,MPI_REAL,mysouth,tag4,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!------------------------------------------------
+!------------------------------------------------
+!------------------------------------------------
+
+      nr = 4
+ 
+      ! send west
+      if(ibw.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          west(i,j,k)=u(i+1,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(west)
+        call mpi_isend(west,cs3we,MPI_REAL,mywest,tag1,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      ! send east
+      if(ibe.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          east(i,j,k)=u(ni-cmp+i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(east)
+        call mpi_isend(east,cs3we,MPI_REAL,myeast,tag2,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+ 
+      ! send south
+      if(ibs.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni+1
+          south(i,j,k)=u(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(south)
+        call mpi_isend(south,cu3sn,MPI_REAL,mysouth,tag3,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      ! send north
+      if(ibn.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni+1
+          north(i,j,k)=u(i,nj-cmp+j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(north)
+        call mpi_isend(north,cu3sn,MPI_REAL,mynorth,tag4,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      if(timestats.ge.1) time_mpu1=time_mpu1+mytime()
+ 
+      end subroutine comm_3u_start_GPU
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2616,6 +3595,231 @@
  
       end subroutine comm_3u_end
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+ 
+      subroutine comm_3u_end_GPU(u,west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real u(ib:ie+1,jb:je,kb:ke)
+      real west(cmp,nj,nk),newwest(cmp,nj,nk)
+      real east(cmp,nj,nk),neweast(cmp,nj,nk)
+      real south(ni+1,cmp,nk),newsouth(ni+1,cmp,nk)
+      real north(ni+1,cmp,nk),newnorth(ni+1,cmp,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(u) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+
+!----------
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+
+      nn = 1
+      do while( nn .le. nr )
+        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+        nn = nn + 1
+ 
+      if(index.eq.index_east)then
+        !$acc update device(neweast)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          u(ni+1+i,j,k)=neweast(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(newwest)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+        do i=1,cmp
+          u(i-cmp,j,k)=newwest(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni+1
+          u(i,nj+j,k)=newnorth(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni+1
+          u(i,j-cmp,k)=newsouth(i,j,k)
+        enddo
+        enddo
+        enddo
+      endif
+
+      enddo
+
+      if(timestats.ge.1) time_mpu2=time_mpu2+mytime()
+
+!----------
+!  patch for corner
+ 
+      if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
+ 
+        if(ibw.eq.1)then
+ 
+          if(p2tchsww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(0,0,k)=u(1,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(0,nj+1,k)=u(1,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibe.eq.1)then
+ 
+          if(p2tchsee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(ni+2,0,k)=u(ni+1,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(ni+2,nj+1,k)=u(ni+1,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
+ 
+        if(ibs.eq.1)then
+ 
+          if(p2tchsws)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(0,0,k)=u(0,1,k)
+            enddo
+          endif
+ 
+          if(p2tchses)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(ni+2,0,k)=u(ni+2,1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibn.eq.1)then
+ 
+          if(p2tchnwn)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(0,nj+1,k)=u(0,nj,k)
+            enddo
+          endif
+ 
+          if(p2tchnen)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              u(ni+2,nj+1,k)=u(ni+2,nj,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+!----------
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mpu2=time_mpu2+mytime()
+ 
+!----------
+ 
+      end subroutine comm_3u_end_GPU
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2773,6 +3977,164 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
+ 
+      subroutine comm_3v_start_GPU(v,west,newwest,east,neweast,   &
+                                 south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real v(ib:ie,jb:je+1,kb:ke)
+      real west(cmp,nj+1,nk),newwest(cmp,nj+1,nk)
+      real east(cmp,nj+1,nk),neweast(cmp,nj+1,nk)
+      real south(ni,cmp,nk),newsouth(ni,cmp,nk)
+      real north(ni,cmp,nk),newnorth(ni,cmp,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nr
+      integer tag1,tag2,tag3,tag4
+      !$acc declare present(v) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+ 
+!------------------------------------------------
+
+      nr = 0
+
+      nv=nv+1
+      tag1=2000+nv
+
+      ! receive east
+      if(ibe.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(neweast,cv3we,MPI_REAL,myeast,tag1,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nv=nv+1
+      tag2=2000+nv
+ 
+      ! receive west
+      if(ibw.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newwest,cv3we,MPI_REAL,mywest,tag2,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nv=nv+1
+      tag3=2000+nv
+ 
+      ! receive north
+      if(ibn.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newnorth,cs3sn,MPI_REAL,mynorth,tag3,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nv=nv+1
+      tag4=2000+nv
+ 
+      ! receive south
+      if(ibs.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newsouth,cs3sn,MPI_REAL,mysouth,tag4,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!------------------------------------------------
+!------------------------------------------------
+!------------------------------------------------
+
+      nr = 4
+ 
+      ! send west
+      if(ibw.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj+1
+        do i=1,cmp
+          west(i,j,k)=v(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(west)
+        call mpi_isend(west,cv3we,MPI_REAL,mywest,tag1,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      if(ibe.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj+1
+        do i=1,cmp
+          east(i,j,k)=v(ni-cmp+i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(east)
+        call mpi_isend(east,cv3we,MPI_REAL,myeast,tag2,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      ! send south
+      if(ibs.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          south(i,j,k)=v(i,j+1,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(south)
+        call mpi_isend(south,cs3sn,MPI_REAL,mysouth,tag3,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      ! send north
+      if(ibn.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          north(i,j,k)=v(i,nj-cmp+j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(north)
+        call mpi_isend(north,cs3sn,MPI_REAL,mynorth,tag4,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      if(timestats.ge.1) time_mpv1=time_mpv1+mytime()
+ 
+      end subroutine comm_3v_start_GPU
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
       subroutine comm_3v_end(v,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
@@ -2992,6 +4354,235 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+      subroutine comm_3v_end_GPU(v,west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real v(ib:ie,jb:je+1,kb:ke)
+      real west(cmp,nj+1,nk),newwest(cmp,nj+1,nk)
+      real east(cmp,nj+1,nk),neweast(cmp,nj+1,nk)
+      real south(ni,cmp,nk),newsouth(ni,cmp,nk)
+      real north(ni,cmp,nk),newnorth(ni,cmp,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(v) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+ 
+!--------
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+
+      nn = 1
+      do while( nn .le. nr )
+        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+        nn = nn + 1
+ 
+      if(index.eq.index_east)then
+        !$acc update device(neweast)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj+1
+        do i=1,cmp
+          v(ni+i,j,k)=neweast(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(newwest)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,nj+1
+        do i=1,cmp
+          v(i-cmp,j,k)=newwest(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          v(i,nj+1+j,k)=newnorth(i,j,k)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=1,nk
+        do j=1,cmp
+        do i=1,ni
+          v(i,j-cmp,k)=newsouth(i,j,k)
+        enddo
+        enddo
+        enddo
+      endif
+
+      enddo
+
+      if(timestats.ge.1) time_mpv2=time_mpv2+mytime()
+
+!----------
+!  patch for corner
+ 
+      if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
+ 
+        if(ibw.eq.1)then
+ 
+          if(p2tchsww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(0,0,k)=v(1,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(0,nj+2,k)=v(1,nj+2,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibe.eq.1)then
+ 
+          if(p2tchsee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(ni+1,0,k)=v(ni,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(ni+1,nj+2,k)=v(ni,nj+2,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
+ 
+        if(ibs.eq.1)then
+ 
+          if(p2tchsws)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(0,0,k)=v(0,1,k)
+            enddo
+          endif
+ 
+          if(p2tchses)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(ni+1,0,k)=v(ni+1,1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibn.eq.1)then
+ 
+          if(p2tchnwn)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(0,nj+2,k)=v(0,nj+1,k)
+            enddo
+          endif
+ 
+          if(p2tchnen)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              v(ni+1,nj+2,k)=v(ni+1,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+!--------
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mpv2=time_mpv2+mytime()
+ 
+!----------
+ 
+      end subroutine comm_3v_end_GPU
+
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
  
       subroutine comm_3w_start(w,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
@@ -3140,6 +4731,166 @@
       if(timestats.ge.1) time_mpw1=time_mpw1+mytime()
  
       end subroutine comm_3w_start
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+ 
+      subroutine comm_3w_start_GPU(w,west,newwest,east,neweast,   &
+                                 south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real w(ib:ie,jb:je,kb:ke+1)
+      real west(cmp,nj,nk-1),newwest(cmp,nj,nk-1)
+      real east(cmp,nj,nk-1),neweast(cmp,nj,nk-1)
+      real south(ni,cmp,nk-1),newsouth(ni,cmp,nk-1)
+      real north(ni,cmp,nk-1),newnorth(ni,cmp,nk-1)
+      integer reqs(8)
+ 
+      integer i,j,k,nr
+      integer tag1,tag2,tag3,tag4
+      !$acc declare present(w) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+ 
+!------------------------------------------------
+
+      nr = 0
+
+      nw=nw+1
+      tag1=3000+nw
+
+      ! receive east
+      if(ibe.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(neweast,cw3we,MPI_REAL,myeast,tag1,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nw=nw+1
+      tag2=3000+nw
+ 
+      ! receive west
+      if(ibw.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newwest,cw3we,MPI_REAL,mywest,tag2,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      nw=nw+1
+      tag3=3000+nw
+ 
+      ! receive north
+      if(ibn.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newnorth,cw3sn,MPI_REAL,mynorth,tag3,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      nw=nw+1
+      tag4=3000+nw
+ 
+      ! receive south
+      if(ibs.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newsouth,cw3sn,MPI_REAL,mysouth,tag4,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!------------------------------------------------
+!------------------------------------------------
+!------------------------------------------------
+
+      nr = 4
+ 
+      ! send west
+      if(ibw.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,nj
+        do i=1,cmp
+          west(i,j,k-1)=w(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(west)
+        call mpi_isend(west,cw3we,MPI_REAL,mywest,tag1,    &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      ! send east
+      if(ibe.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,nj
+        do i=1,cmp
+          east(i,j,k-1)=w(ni-cmp+i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(east)
+        call mpi_isend(east,cw3we,MPI_REAL,myeast,tag2,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      ! send south
+      if(ibs.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,cmp
+        do i=1,ni
+          south(i,j,k-1)=w(i,j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(south)
+        call mpi_isend(south,cw3sn,MPI_REAL,mysouth,tag3,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      ! send north
+      if(ibn.eq.0)then
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,cmp
+        do i=1,ni
+          north(i,j,k-1)=w(i,nj-cmp+j,k)
+        enddo
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(north)
+        call mpi_isend(north,cw3sn,MPI_REAL,mynorth,tag4,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+
+      if(timestats.ge.1) time_mpw1=time_mpw1+mytime()
+ 
+      end subroutine comm_3w_start_GPU
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3358,6 +5109,234 @@
 !----------
  
       end subroutine comm_3w_end
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+ 
+      subroutine comm_3w_end_GPU(w,west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real w(ib:ie,jb:je,kb:ke+1)
+      real west(cmp,nj,nk-1),newwest(cmp,nj,nk-1)
+      real east(cmp,nj,nk-1),neweast(cmp,nj,nk-1)
+      real south(ni,cmp,nk-1),newsouth(ni,cmp,nk-1)
+      real north(ni,cmp,nk-1),newnorth(ni,cmp,nk-1)
+      integer reqs(8)
+ 
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(w) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+
+!--------
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+
+      nn = 1
+      do while( nn .le. nr )
+        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+        nn = nn + 1
+ 
+      if(index.eq.index_east)then
+        !$acc update device(neweast)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,nj
+        do i=1,cmp
+          w(ni+i,j,k)=neweast(i,j,k-1)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(newwest)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,nj
+        do i=1,cmp
+          w(i-cmp,j,k)=newwest(i,j,k-1)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,cmp
+        do i=1,ni
+          w(i,nj+j,k)=newnorth(i,j,k-1)
+        enddo
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=2,nk
+        do j=1,cmp
+        do i=1,ni
+          w(i,j-cmp,k)=newsouth(i,j,k-1)
+        enddo
+        enddo
+        enddo
+      endif
+
+      enddo
+ 
+      if(timestats.ge.1) time_mpw2=time_mpw2+mytime()
+
+!----------
+!  patch for corner
+ 
+      if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
+ 
+        if(ibw.eq.1)then
+ 
+          if(p2tchsww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,0,k)=w(1,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnww)then
+!$omp parallel do default(shared)   &
+!$omp private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,nj+1,k)=w(1,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibe.eq.1)then
+ 
+          if(p2tchsee)then
+!$omp parallel do default(shared)   &
+!$omp private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,0,k)=w(ni,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnee)then
+!$omp parallel do default(shared)   &
+!$omp private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,nj+1,k)=w(ni,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
+ 
+        if(ibs.eq.1)then
+ 
+          if(p2tchsws)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,0,k)=w(0,1,k)
+            enddo
+          endif
+ 
+          if(p2tchses)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,0,k)=w(ni+1,1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibn.eq.1)then
+ 
+          if(p2tchnwn)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,nj+1,k)=w(0,nj,k)
+            enddo
+          endif
+ 
+          if(p2tchnen)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,nj+1,k)=w(ni+1,nj,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+!--------
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mpw2=time_mpw2+mytime()
+ 
+!----------
+ 
+      end subroutine comm_3w_end_GPU
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3672,7 +5651,6 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-
       subroutine comm_1s_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
       use input
@@ -3812,6 +5790,154 @@
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
  
       end subroutine comm_1s_start
+
+
+      subroutine comm_1s_start_GPU(s,west,newwest,east,neweast,   &
+                                 south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real s(ib:ie,jb:je,kb:ke)
+      real west(nj,nk),newwest(nj,nk)
+      real east(nj,nk),neweast(nj,nk)
+      real south(ni,nk),newsouth(ni,nk)
+      real north(ni,nk),newnorth(ni,nk)
+      integer reqs(8)
+      !$acc declare present(s) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+ 
+      integer i,j,k,nr
+      integer tag1,tag2,tag3,tag4
+ 
+!------------------------------------------------
+
+      nr = 0
+
+      nf=nf+1
+      tag1=nf
+
+      ! receive east
+      if(ibe.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(neweast,cs1we,MPI_REAL,myeast,tag1,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      nf=nf+1
+      tag2=nf
+
+      ! receive west
+      if(ibw.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newwest,cs1we,MPI_REAL,mywest,tag2,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      nf=nf+1
+      tag3=nf
+
+      ! receive south
+      if(ibs.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newsouth,cs1sn,MPI_REAL,mysouth,tag3,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+
+      nf=nf+1
+      tag4=nf
+
+      ! receive north
+      if(ibn.eq.0)then
+        nr = nr + 1
+        call mpi_irecv(newnorth,cs1sn,MPI_REAL,mynorth,tag4,   &
+                      MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!------------------------------------------------
+!------------------------------------------------
+!------------------------------------------------
+
+      nr = 4
+ 
+      ! send west
+      if(ibw.eq.0)then
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
+        do k=1,nk
+        do j=1,nj
+          west(j,k)=s(1,j,k)
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(west)
+        call mpi_isend(west,cs1we,MPI_REAL,mywest,tag1,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      ! send east
+      if(ibe.eq.0)then
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
+        do k=1,nk
+        do j=1,nj
+          east(j,k)=s(ni,j,k)
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(east)
+        call mpi_isend(east,cs1we,MPI_REAL,myeast,tag2,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      ! send north
+      if(ibn.eq.0)then
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
+        do k=1,nk
+        do i=1,ni
+          north(i,k)=s(i,nj,k)
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(north)
+        call mpi_isend(north,cs1sn,MPI_REAL,mynorth,tag3,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+ 
+!----------
+ 
+      ! send south
+      if(ibs.eq.0)then
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
+        do k=1,nk
+        do i=1,ni
+          south(i,k)=s(i,1,k)
+        enddo
+        enddo
+        nr = nr + 1
+        !$acc update self(south)
+        call mpi_isend(south,cs1sn,MPI_REAL,mysouth,tag4,   &
+                       MPI_COMM_WORLD,reqs(nr),ierr)
+      endif
+
+!----------
+ 
+      if(timestats.ge.1) time_mps1=time_mps1+mytime()
+ 
+      end subroutine comm_1s_start_GPU
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -4029,6 +6155,223 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+      subroutine comm_1s_end_GPU(s,west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real s(ib:ie,jb:je,kb:ke)
+      real west(nj,nk),newwest(nj,nk)
+      real east(nj,nk),neweast(nj,nk)
+      real south(ni,nk),newsouth(ni,nk)
+      real north(ni,nk),newnorth(ni,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(s) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+
+!---------------------------------------------------------------------
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+
+      nn = 1
+      do while( nn .le. nr )
+        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+        nn = nn + 1
+ 
+      if(index.eq.index_east)then
+        !$acc update device(neweast)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
+        do k=1,nk
+        do j=1,nj
+          s(ni+1,j,k)=neweast(j,k)
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(newwest)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
+        do k=1,nk
+        do j=1,nj
+          s(0,j,k)=newwest(j,k)
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
+        do k=1,nk
+        do i=1,ni
+          s(i,0,k)=newsouth(i,k)
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
+        do k=1,nk
+        do i=1,ni
+          s(i,nj+1,k)=newnorth(i,k)
+        enddo
+        enddo
+      endif
+
+      enddo
+
+      if(timestats.ge.1) time_mps2=time_mps2+mytime()
+
+!----------
+!  patch for corner
+ 
+      if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
+ 
+        if(ibw.eq.1)then
+ 
+          if(p2tchsww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,0,k)=s(1,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,nj+1,k)=s(1,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibe.eq.1)then
+ 
+          if(p2tchsee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,0,k)=s(ni,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,nj+1,k)=s(ni,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
+ 
+        if(ibs.eq.1)then
+ 
+          if(p2tchsws)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,0,k)=s(0,1,k)
+            enddo
+          endif
+ 
+          if(p2tchses)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,0,k)=s(ni+1,1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibn.eq.1)then
+ 
+          if(p2tchnwn)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(0,nj+1,k)=s(0,nj,k)
+            enddo
+          endif
+ 
+          if(p2tchnen)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=1,nk
+              s(ni+1,nj+1,k)=s(ni+1,nj,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+!----------
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mps2=time_mps2+mytime()
+ 
+!----------
+ 
+      end subroutine comm_1s_end_GPU
+
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
 
       subroutine comm_1p_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
@@ -4174,8 +6517,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
- 
- 
+
       subroutine comm_1p_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
       use input
@@ -4286,6 +6628,125 @@
  
       end subroutine comm_1p_end
 
+ 
+      subroutine comm_1p_end_GPU(s,west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real s(ib:ie,jb:je,kb:ke)
+      real west(nj,nk),newwest(nj,nk)
+      real east(nj,nk),neweast(nj,nk)
+      real south(ni,nk),newsouth(ni,nk)
+      real north(ni,nk),newnorth(ni,nk)
+      integer reqs(8)
+ 
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(s) &
+      !$acc present(west,newwest,east,neweast) &
+      !$acc present(south,newsouth,north,newnorth)
+
+!---------------------------------------------------------------------
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+
+      nn = 1
+      do while( nn .le. nr )
+        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+        nn = nn + 1
+ 
+      if(index.eq.index_east)then
+        !$acc update device(neweast)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
+        do k=1,nk
+        do j=1,nj
+          s(ni+1,j,k)=neweast(j,k)
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(newwest)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
+        do k=1,nk
+        do j=1,nj
+          s(0,j,k)=newwest(j,k)
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
+        do k=1,nk
+        do i=1,ni
+          s(i,0,k)=newsouth(i,k)
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
+        do k=1,nk
+        do i=1,ni
+          s(i,nj+1,k)=newnorth(i,k)
+        enddo
+        enddo
+      endif
+
+      enddo
+
+!----------
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mpp2=time_mpp2+mytime()
+ 
+!----------
+ 
+      end subroutine comm_1p_end_GPU
+
+ 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -5494,6 +7955,150 @@
       if(timestats.ge.1) time_mpw1=time_mpw1+mytime()
  
       end subroutine comm_1w_start
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+ 
+      subroutine comm_1w_start_GPU(w,ww1,ww2,we1,we2,   &
+                                 ws1,ws2,wn1,wn2,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real w(ib:ie,jb:je,kb:ke+1)
+      real ww1(nj,nk-1),ww2(nj,nk-1)
+      real we1(nj,nk-1),we2(nj,nk-1)
+      real ws1(ni,nk-1),ws2(ni,nk-1)
+      real wn1(ni,nk-1),wn2(ni,nk-1)
+      integer reqs(8)
+ 
+      integer i,j,k,nr
+      integer tag1,tag2,tag3,tag4
+      !$acc declare present(w) &
+      !$acc present(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2)
+
+      nr = 0
+
+!-----
+
+      nw=nw+1
+      tag1=3000+nw
+ 
+        ! receive east
+        if(ibe.eq.0)then
+          nr = nr+1
+          call mpi_irecv(we2,cw1we,MPI_REAL,myeast,tag1,   &
+                        MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+!-----
+
+      nw=nw+1
+      tag2=3000+nw
+ 
+        ! receive west
+        if(ibw.eq.0)then
+          nr = nr+1
+          call mpi_irecv(ww2,cw1we,MPI_REAL,mywest,tag2,   &
+                        MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+!-----
+
+      nw=nw+1
+      tag3=3000+nw
+ 
+        ! receive north
+        if(ibn.eq.0)then
+          nr = nr+1
+          call mpi_irecv(wn2,cw1sn,MPI_REAL,mynorth,tag3,   &
+                        MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+!-----
+
+      nw=nw+1
+      tag4=3000+nw
+ 
+        ! receive south
+        if(ibs.eq.0)then
+          nr = nr+1
+          call mpi_irecv(ws2,cw1sn,MPI_REAL,mysouth,tag4,   &
+                        MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+!------------------------------------------------
+!------------------------------------------------
+!------------------------------------------------
+
+      nr = 4
+
+        ! send west
+        if(ibw.eq.0)then
+          !$omp parallel do default(shared) private(j,k)
+          !$acc parallel loop gang vector collapse(2) private(j,k)
+          do k=2,nk
+          do j=1,nj
+            ww1(j,k-1)=w(1,j,k)
+          enddo
+          enddo
+          nr = nr+1
+          !$acc update self(ww1)
+          call mpi_isend(ww1,cw1we,MPI_REAL,mywest,tag1,   &
+                         MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+        ! send east
+        if(ibe.eq.0)then
+          !$omp parallel do default(shared) private(j,k)
+          !$acc parallel loop gang vector collapse(2) private(j,k)
+          do k=2,nk
+          do j=1,nj
+            we1(j,k-1)=w(ni,j,k)
+          enddo
+          enddo
+          nr = nr+1
+          !$acc update self(we1)
+          call mpi_isend(we1,cw1we,MPI_REAL,myeast,tag2,   &
+                         MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+        ! send south
+        if(ibs.eq.0)then
+          !$omp parallel do default(shared) private(i,k)
+          !$acc parallel loop gang vector collapse(2) private(i,k)
+          do k=2,nk
+          do i=1,ni
+            ws1(i,k-1)=w(i,1,k)
+          enddo
+          enddo
+          nr = nr+1
+          !$acc update self(ws1)
+          call mpi_isend(ws1,cw1sn,MPI_REAL,mysouth,tag3,   &
+                         MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+        ! send north
+        if(ibn.eq.0)then
+          !$omp parallel do default(shared) private(i,k)
+          !$acc parallel loop gang vector collapse(2) private(i,k)
+          do k=2,nk
+          do i=1,ni
+            wn1(i,k-1)=w(i,nj,k)
+          enddo
+          enddo
+          nr = nr+1
+          !$acc update self(wn1)
+          call mpi_isend(wn1,cw1sn,MPI_REAL,mynorth,tag4,   &
+                         MPI_COMM_WORLD,reqs(nr),ierr)
+        endif
+
+!-----
+
+      if(timestats.ge.1) time_mpw1=time_mpw1+mytime()
+ 
+      end subroutine comm_1w_start_GPU
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -5731,6 +8336,249 @@
 !----------
 
       end subroutine comm_1w_end
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+ 
+ 
+      subroutine comm_1w_end_GPU(w,ww1,ww2,we1,we2,   &
+                               ws1,ws2,wn1,wn2,reqs)
+      use input
+      use mpi
+      implicit none
+ 
+      real w(ib:ie,jb:je,kb:ke+1)
+      real ww1(nj,nk-1),ww2(nj,nk-1)
+      real we1(nj,nk-1),we2(nj,nk-1)
+      real ws1(ni,nk-1),ws2(ni,nk-1)
+      real wn1(ni,nk-1),wn2(ni,nk-1)
+      integer reqs(8)
+ 
+      integer i,j,k,nn,nr,index
+      integer :: index_east,index_west,index_south,index_north
+      integer, dimension(mpi_status_size,8) :: status1
+      !$acc declare present(w) &
+      !$acc present(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2)
+ 
+!-----
+
+      index_east = -1
+      index_west = -1
+      index_south = -1
+      index_north = -1
+
+      nr = 0
+      if(ibe.eq.0)then
+        nr = nr + 1
+        index_east = nr
+      endif
+      if(ibw.eq.0)then
+        nr = nr + 1
+        index_west = nr
+      endif
+      if(ibn.eq.0)then
+        nr = nr + 1
+        index_north = nr
+      endif
+      if(ibs.eq.0)then
+        nr = nr + 1
+        index_south = nr
+      endif
+
+      nn = 1
+      do while( nn .le. nr )
+        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
+        nn = nn + 1
+
+      if(index.eq.index_east)then
+        !$acc update device(we2)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k)
+        do k=2,nk
+        do j=1,nj
+          w(ni+1,j,k)=we2(j,k-1)
+        enddo
+        enddo
+      elseif(index.eq.index_west)then
+        !$acc update device(ww2)
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k)
+        do k=2,nk
+        do j=1,nj
+          w(0,j,k)=ww2(j,k-1)
+        enddo
+        enddo
+      elseif(index.eq.index_north)then
+        !$acc update device(wn2)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector private(i,k)
+        do k=2,nk
+        do i=1,ni
+          w(i,nj+1,k)=wn2(i,k-1)
+        enddo
+        enddo
+      elseif(index.eq.index_south)then
+        !$acc update device(ws2)
+        !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector private(i,k)
+        do k=2,nk
+        do i=1,ni
+          w(i,0,k)=ws2(i,k-1)
+        enddo
+        enddo
+      endif
+
+      enddo
+
+!-----
+
+      nr = 0
+
+      if(ibw.eq.0)then
+        nr = nr+1
+      endif
+      if(ibe.eq.0)then
+        nr = nr+1
+      endif
+      if(ibs.eq.0)then
+        nr = nr+1
+      endif
+      if(ibn.eq.0)then
+        nr = nr+1
+      endif
+
+    if( nr.ge.1 )then
+      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
+    endif
+
+      if(timestats.ge.1) time_mpw2=time_mpw2+mytime()
+
+!----------
+!  patch for corner
+ 
+      if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
+ 
+        if(ibw.eq.1)then
+ 
+          if(p2tchsww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,0,k)=w(1,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnww)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,nj+1,k)=w(1,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibe.eq.1)then
+ 
+          if(p2tchsee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,0,k)=w(ni,0,k)
+            enddo
+          endif
+ 
+          if(p2tchnee)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,nj+1,k)=w(ni,nj+1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
+ 
+        if(ibs.eq.1)then
+ 
+          if(p2tchsws)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,0,k)=w(0,1,k)
+            enddo
+          endif
+ 
+          if(p2tchses)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,0,k)=w(ni+1,1,k)
+            enddo
+          endif
+ 
+        endif
+ 
+        if(ibn.eq.1)then
+ 
+          if(p2tchnwn)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(0,nj+1,k)=w(0,nj,k)
+            enddo
+          endif
+ 
+          if(p2tchnen)then
+            !$omp parallel do default(shared) private(k)
+            !$acc parallel loop gang vector private(k)
+            do k=2,nk
+              w(ni+1,nj+1,k)=w(ni+1,nj,k)
+            enddo
+          endif
+ 
+        endif
+ 
+      endif
+
+!-----------------------------------------------------------
+!  Mirror b.c. patch
+!
+!      if(ibn.eq.1)then
+!!$omp parallel do default(shared)   &
+!!$omp private(i,k)
+!        do k=2,nk
+!        do i=0,ni+1
+!          w(i,nj+1,k)=w(i,nj  ,k)
+!          w(i,nj+2,k)=w(i,nj-1,k)
+!          w(i,nj+3,k)=w(i,nj-2,k)
+!        enddo
+!        enddo
+!      endif
+!
+!      if(ibw.eq.1)then
+!!$omp parallel do default(shared)   &
+!!$omp private(i,k)
+!        do k=2,nk
+!        do j=0,nj+1
+!          w(-2,j,k)=w(3,j,k)
+!          w(-1,j,k)=w(2,j,k)
+!          w( 0,j,k)=w(1,j,k)
+!        enddo
+!        enddo
+!      endif
+!
+!-----------------------------------------------------------
+ 
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+ 
+!----------
+
+      end subroutine comm_1w_end_GPU
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

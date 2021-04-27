@@ -27,12 +27,17 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(arh1,arh2,uh,vh,mh,u,v,w) &
+      !$acc present(dum1,dum2,dum3,div) &
+      !$acc present(rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzu,rgzv,dzdx,dzdy)
+
 
       IF(.not.terrain_flag)THEN
         IF(axisymm.eq.0)THEN
           ! Cartesian without terrain:
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -45,8 +50,8 @@
           enddo
         ELSE
           ! axisymmetric:
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -59,8 +64,8 @@
         ENDIF
       ELSE
           ! Cartesian with terrain:
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector private(i,j,k)
           DO k=1,nk
             do j=1,nj
             do i=1,ni+1
@@ -73,8 +78,8 @@
             enddo
             enddo
           ENDDO
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k,r1,r2)
+          !$omp parallel do default(shared) private(i,j,k,r1,r2)
+          !$acc parallel loop gang vector private(i,j,k,r1,r2)
           DO k=1,nk
             IF(k.eq.1)THEN
               do j=1,nj
@@ -100,8 +105,8 @@
               enddo
             ENDIF
           ENDDO
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -141,46 +146,54 @@
 
       integer :: i,j,k
       real :: r1,r2,tem
+      !$acc declare present(arh1,arh2,uh,vh,mh,rho0,rf0) &
+      !$acc present(rru,rrv,rrw,divx) &
+      !$acc present(rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzu,rgzv,dzdx,dzdy)
 
     IF(.not.terrain_flag)THEN
       ! without terrain:
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,tem)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
+      do j=1,nj
+      do i=1,ni
+        rrw(i,j,   1) = 0.0
+        rrw(i,j,nk+1) = 0.0
+      enddo
+      enddo
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       DO k=1,nk
-        tem = rho0(1,1,k)
         do j=1,nj
         do i=1,ni+1
-          rru(i,j,k)=rru(i,j,k)*tem
+          rru(i,j,k)=rru(i,j,k)*rho0(1,1,k)
         enddo
         enddo
+      ENDDO
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
         do j=1,nj+1
         do i=1,ni
-          rrv(i,j,k)=rrv(i,j,k)*tem
+          rrv(i,j,k)=rrv(i,j,k)*rho0(1,1,k)
         enddo
         enddo
-        IF(k.eq.1)THEN
-          do j=1,nj
-          do i=1,ni
-            rrw(i,j,   1) = 0.0
-            rrw(i,j,nk+1) = 0.0
-          enddo
-          enddo
-        ELSE
-          tem = rf0(1,1,k)
-          do j=1,nj
-          do i=1,ni
-            rrw(i,j,k)=rrw(i,j,k)*tem
-          enddo
-          enddo
-        ENDIF
+      ENDDO
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,nj
+        do i=1,ni
+          rrw(i,j,k)=rrw(i,j,k)*rf0(1,1,k)
+        enddo
+        enddo
       ENDDO
 
     ELSE
       ! with terrain:
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector private(i,j,k)
       DO k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -194,8 +207,8 @@
         enddo
       ENDDO
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,r1,r2)
+      !$omp parallel do default(shared) private(i,j,k,r1,r2)
+      !$acc parallel loop gang vector private(i,j,k,r1,r2)
       DO k=1,nk
         IF(k.eq.1)THEN
           do j=1,nj
@@ -228,8 +241,8 @@
       IF(.not.terrain_flag)THEN
         IF(axisymm.eq.0)THEN
           ! Cartesian without terrain:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -242,8 +255,8 @@
           enddo
         ELSE
           ! axisymmetric:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -256,8 +269,8 @@
         ENDIF
       ELSE
           ! Cartesian with terrain:
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -372,10 +385,11 @@
 
       integer :: i,j,k
       real :: term1,term2,term3,term4,umo
+      !$acc declare present(xf,yh,zh,u0,u3d)
 
 !!!      if(myid.eq.0) print *,'    convinitu '
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,term1,term2,term3,term4,umo)
+      !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,umo)
+      !$acc parallel loop gang vector private(i,j,k,term1,term2,term3,term4,umo)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -413,10 +427,11 @@
 
       integer :: i,j,k
       real :: term1,term2,term3,term4,vmo
+      !$acc declare present(xh,yf,zh,v0,v3d)
 
 !!!      if(myid.eq.0) print *,'    convinitv '
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,term1,term2,term3,term4,vmo)
+      !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,vmo)
+      !$acc parallel loop gang vector private(i,j,k,term1,term2,term3,term4,vmo)
       do k=1,nk
       do j=1,nj+1
       do i=1,ni
@@ -455,6 +470,7 @@
 
       integer :: i,j,k
       real :: beta,wmag,gamm,tem
+      !$acc declare present(xh,yh,zf,wa,wndgten)
 
       !  updraft nudging scheme (Naylor and Gilmore, 2012, MWR, pgs 3699-3705)
 
@@ -468,8 +484,8 @@
 
       tem = alpha_wnudge * gamm
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,beta,wmag)
+      !$omp parallel do default(shared) private(i,j,k,beta,wmag)
+      !$acc parallel loop gang vector private(i,j,k,beta,wmag)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -997,6 +1013,92 @@
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
       end subroutine pdefq
+
+      subroutine pdefq_GPU(rmax,asq,ruh,rvh,rmh,rho,q3d)
+      use input
+      implicit none
+
+      real rmax
+      double precision :: asq
+      real, dimension(ib:ie) :: ruh
+      real, dimension(jb:je) :: rvh
+      real, dimension(ib:ie,jb:je,kb:ke) :: rmh
+      real, dimension(ib:ie,jb:je,kb:ke) :: rho,q3d
+
+      integer i,j,k
+      double precision :: t1,t2,t3
+      double precision :: a1,a2,tem
+      double precision, dimension(nj) :: budj
+      double precision, dimension(nk) :: budk
+      !$acc declare present(ruh,rvh,rmh,rho,q3d)
+
+!----------------------------------------------------------------------
+
+      !$acc data create(budj,budk)
+      tem = dx*dy*dz
+
+      IF(pdscheme.eq.1)THEN
+
+        !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
+        !$acc parallel loop gang vector private(i,j,k,t1,t2,t3,a1,a2)
+        do j=1,nj
+        budj(j)=0.0d0
+        do i=1,ni
+          t1=0.0d0
+          t2=0.0d0
+          a1=0.0d0
+          a2=0.0d0
+          do k=1,nk
+            t1=t1+rho(i,j,k)*q3d(i,j,k)
+            a1=a1+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+!!!            q3d(i,j,k)=max(0.0,q3d(i,j,k))
+            if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+            t2=t2+rho(i,j,k)*q3d(i,j,k)
+          enddo
+          t3=(t1+1.0d-20)/(t2+1.0d-20)
+          if(t3.lt.0.0) t3=1.0d0
+          do k=1,nk
+            q3d(i,j,k)=t3*q3d(i,j,k)
+            a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+          enddo
+          budj(j)=budj(j)+a2-a1
+        enddo
+        enddo
+
+        do j=1,nj
+          asq=asq+budj(j)*tem
+        enddo
+
+      ELSE
+
+        !$omp parallel do default(shared) private(i,j,k,a1,a2)
+        !$acc parallel loop gang vector private(i,j,k,a1,a2)
+        do k=1,nk
+        budk(k)=0.0d0
+        do j=1,nj
+        do i=1,ni
+          a1=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+!!!          q3d(i,j,k)=max(0.0,q3d(i,j,k))
+          if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+          a2=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+          budk(k)=budk(k)+a2-a1
+        enddo
+        enddo
+        enddo
+
+        !$acc parallel loop reduction(+:asq)
+        do k=1,nk
+          asq=asq+budk(k)*tem
+        enddo
+
+      ENDIF
+      !$acc end data
+
+!----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_misc=time_misc+mytime()
+
+      end subroutine pdefq_GPU
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2623,52 +2725,55 @@
  
       integer :: i,j,k
       real :: dtdx,dtdy,dtdz,fmax,wsp,tem
-      real, dimension(nk) :: cfl
+      !$acc declare present(uh,vh,mh,ua,va,wa)
  
       dtdx=0.5*dt*rdx
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
 
-      cfl = 0.0
+      fmax=-99999999.
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,wsp,tem)
-      do k=1,nk
       if(nx.gt.1.and.ny.gt.1)then
-        do j=1,nj
-        do i=1,ni
+        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        do k=1,nk
+          do j=1,nj
+          do i=1,ni
           wsp = sqrt( ( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
                        +((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2 )   &
                        +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          cfl(k) = max( cfl(k) , wsp )
+          fmax = max(fmax,wsp)
 !!!          if( wsp.ge.1.30 ) print *,'  cfl,myid,i,j,k = ',wsp,myid,i,j,k
-        enddo
+          enddo
+          enddo
         enddo
       elseif(nx.gt.1)then
-        do j=1,nj
-        do i=1,ni
+        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        do k=1,nk
+          do j=1,nj
+          do i=1,ni
           wsp = sqrt( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          cfl(k) = max( cfl(k) , wsp )
+          fmax = max(fmax,wsp )
 !!!          if( wsp.ge.1.30 ) print *,'  cfl,myid,i,j,k = ',wsp,myid,i,j,k
-        enddo
+          enddo
+          enddo
         enddo
       elseif(axisymm.eq.0.and.ny.gt.1)then
-        do j=1,nj
-        do i=1,ni
+        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        do k=1,nk
+          do j=1,nj
+          do i=1,ni
           wsp = sqrt( ((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          cfl(k) = max( cfl(k) , wsp )
+          fmax = max( fmax , wsp )
 !!!          if( wsp.ge.1.30 ) print *,'  cfl,myid,i,j,k = ',wsp,myid,i,j,k
-        enddo
+          enddo
+          enddo
         enddo
       endif
-      enddo
-
-      fmax=-99999999.
-      do k=1,nk
-        fmax = max( fmax , cfl(k) )
-      enddo
 
       cflmax = fmax
 
@@ -2677,6 +2782,7 @@
 #endif
 
 !!!      if(cflmax.ge.1.50) stopit=.true.
+
 
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
  
@@ -3576,6 +3682,12 @@
       time_sound=0.0
       time_poiss=0.0
       time_advs=0.0
+      time_adv_H2D=0.0
+      time_adv_D2H=0.0
+      time_slv_H2D=0.0
+      time_slv_D2H=0.0
+      time_sfc_H2D=0.0
+      time_sfc_D2H=0.0
       time_advu=0.0
       time_advv=0.0
       time_advw=0.0
