@@ -2989,6 +2989,39 @@
 
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
+
+!$acc data &
+!$acc copyin(c1,c2,phi1) &
+!$acc copyin(u3d, v3d, w3d, tke3d, pt3d) &
+!$acc copyin(uf,vf,dum1,dum2,sigmaf,sigma,zs,rgzv,rdx,rdsf,rdy,xh,rxf) &
+!$acc copyin(prs,prs0,zh,zf,uten1, vten1, wten1) &
+!$acc copyin(cgs1, cgs2, cgs3, cgt1, cgt2, cgt3) &
+!$acc copyin(rgzu,sigmaf,sigma,rds,dzdx,dzdy,sigmaf,gz,rzt,zt,gzu,gzv) &
+!$acc copyin(dt,uh,vh,reqs_s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
+!$acc copyin(uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u) &
+!$acc copyin(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v) &
+!$acc copyin(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w) &
+!$acc copyin(ug, vg, lsnudge_u, lsnudge_v)&
+!$acc copyin(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x) &
+!$acc copyin(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y) &
+!$acc copyin(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s) &
+!$acc copyin(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2) &
+!$acc copyin(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3) &
+!$acc copyin(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z) & 
+!$acc copyin(n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2) &
+!$acc copyin(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)                  &
+!$acc copyin(n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)          &
+!$acc copyin(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2)                  &
+!$acc copyin(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)          &
+!$acc copyin(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32)          &
+!$acc copyin(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)          &
+!$acc copyin(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
+!$acc copyin(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
+!$acc copy(pp3d,th3d,q3d,rho,rr,rf) &
+!$acc copy(udiag, vdiag, wdiag, tkea, pta, ppi, tha, qa) &
+!$acc copy(ppx,ua,va,wa,rru,rrv,rrw,qpten, qtten, qvten, qcten) &
+!$acc copy(znt,ust,hfx,qfx,qsfc,tsk,tmn,tslb,u2pt,v2pt,u0,v0) &
+!$acc copy(sws,svs,sps,srs,sgs,dum3,wten,sus,shs)
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
                    dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,asq,bsq, &
@@ -3057,7 +3090,7 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve3
-
+        !$acc end data
 
         !--------------------------------
         ! Step model time forward one dt

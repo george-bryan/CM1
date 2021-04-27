@@ -9020,7 +9020,7 @@
                          south,newsouth,north,newnorth)
       use input
 #ifdef MPI
-      use comm_module
+      use comm_gpu_module
 #endif
       implicit none
 
@@ -9037,7 +9037,7 @@
       real :: tem
 
 !------------------------------------------------------------
-
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
     do j=1,nj
@@ -9045,7 +9045,7 @@
       s(i,j)=sfc(i,j)
     enddo
     enddo
-
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
     do j=0,nj+1
@@ -9063,10 +9063,11 @@
 
 #ifdef MPI
       if(timestats.ge.1) time_swath=time_swath+mytime()
-      call comm_2d_start(s,west,newwest,east,neweast,   &
+      call comm_2d_start_GPU(s,west,newwest,east,neweast,   &
                            south,newsouth,north,newnorth,reqs)
 #else
       if(wbc.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -9076,6 +9077,7 @@
         enddo
       endif
       if(ebc.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -9085,6 +9087,7 @@
         enddo
       endif
       if(sbc.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,ngxy
@@ -9094,6 +9097,7 @@
         enddo
       endif
       if(nbc.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,ngxy
@@ -9105,6 +9109,7 @@
 #endif
 
       if(ibw.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -9115,6 +9120,7 @@
       endif
 
       if(ibe.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -9125,6 +9131,7 @@
       endif
 
       if(ibs.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,ngxy
@@ -9135,6 +9142,7 @@
       endif
 
       if(ibn.eq.1)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,ngxy
@@ -9148,7 +9156,7 @@
 
 #ifdef MPI
       if(timestats.ge.1) time_swath=time_swath+mytime()
-      call comm_2dew_end(s,west,newwest,east,neweast,reqs)
+      call comm_2dew_end_GPU(s,west,newwest,east,neweast,reqs)
 #endif
 
 !-------------------------
@@ -9156,6 +9164,7 @@
     if(abs(umove).gt.0.01)then
 
     if( hadvordrs.le.4 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj
@@ -9169,6 +9178,7 @@
       enddo
       enddo
     elseif( hadvordrs.eq.5 .or. hadvordrs.eq.6 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj
@@ -9182,6 +9192,7 @@
       enddo
       enddo
     elseif( hadvordrs.eq.7 .or. hadvordrs.eq.8 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj
@@ -9195,6 +9206,7 @@
       enddo
       enddo
     elseif( hadvordrs.eq.9 .or. hadvordrs.eq.10 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj
@@ -9215,7 +9227,7 @@
 
 #ifdef MPI
       if(timestats.ge.1) time_swath=time_swath+mytime()
-      call comm_2dns_end(s,south,newsouth,north,newnorth,reqs)
+      call comm_2dns_end_GPU(s,south,newsouth,north,newnorth,reqs)
 #endif
 
 !-------------------------
@@ -9223,6 +9235,7 @@
     if(abs(vmove).gt.0.01)then
 
     if( hadvordrs.le.4 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj+1
@@ -9236,6 +9249,7 @@
       enddo
       enddo
     elseif( hadvordrs.eq.5 .or. hadvordrs.eq.6 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj+1
@@ -9249,6 +9263,7 @@
       enddo
       enddo
     elseif( hadvordrs.eq.7 .or. hadvordrs.eq.8 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj+1
@@ -9262,6 +9277,7 @@
       enddo
       enddo
     elseif( hadvordrs.eq.9 .or. hadvordrs.eq.10 )then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj+1
@@ -9281,7 +9297,7 @@
 !-------------------------
 
       tem=dt/(4-nrk)
-
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
       do j=1,nj
@@ -9296,7 +9312,7 @@
 !-------------------------
 
     ENDDO  rkloop
-
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
     do j=1,nj
@@ -9304,6 +9320,7 @@
       sfc(i,j)=s(i,j)
     enddo
     enddo
+
 
 !----------------------------------------------------------------
 
