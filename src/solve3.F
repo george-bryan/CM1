@@ -145,8 +145,7 @@
       use input
       use constants
       use bc_module
-      use bc_gpu_module
-      use comm_GPU_module
+      use comm_module
       use adv_routines, only : movesfc
       use misclibs
       use parcel_module, only : parcel_driver

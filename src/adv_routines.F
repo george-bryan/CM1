@@ -9232,7 +9232,7 @@
                          south,newsouth,north,newnorth)
       use input
 #ifdef MPI
-      use comm_gpu_module
+      use comm_module
 #endif
       implicit none
 

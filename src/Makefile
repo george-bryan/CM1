@@ -49,6 +49,7 @@
 #FC   = pgf90
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel -ta=tesla:cc70,lineinfo
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#LINKOPTS = -lnvToolsExt
 #-----------------------------------------------------------------------------
 #  multi processor + GPU, Portland Group compiler
 FC   = mpif90
@@ -149,11 +150,9 @@ SRC   = constants.F \
 	azimavg.F \
 	base.F \
 	bc.F \
-        bc_gpu.F \
 	cm1.F \
 	cm1libs.F \
 	comm.F \
-        comm_gpu.F \
 	testcase_simple_phys.F \
 	diff2.F \
 	eddy_recycle.F \
@@ -259,16 +258,14 @@ clean:
 # DEPENDENCIES : only dependencies after this line (don't remove the word DEPENDENCIES)
 
 adv.o: constants.o input.o pdef.o adv_routines.o ib_module.o
-adv_routines.o: input.o constants.o pdef.o comm.o comm_gpu.o
+adv_routines.o: input.o constants.o pdef.o comm.o
 anelp.o: constants.o input.o misclibs.o bc.o poiss.o
 azimavg.o: input.o constants.o cm1libs.o writeout_nc.o comm.o bc.o
 base.o: constants.o input.o bc.o comm.o goddard.o cm1libs.o getcape.o turb.o
 bc.o: constants.o input.o
-bc_gpu.o: constants.o input.o
 cm1.o: constants.o input.o param.o base.o init3d.o misclibs.o solve1.o solve2.o solve3.o diff2.o turb.o statpack.o writeout.o restart.o radiation_driver.o radtrns3d.o domaindiag.o azimavg.o hifrq.o parcel.o init_physics.o init_surface.o mp_driver.o ib_module.o eddy_recycle.o lsnudge.o nvtx_mod.o
 cm1libs.o: input.o constants.o
-comm.o: input.o bc.o bc_gpu.o
-comm_gpu.o: input.o bc.o bc_gpu.o
+comm.o: input.o bc.o
 diff2.o: constants.o input.o
 domaindiag.o: constants.o input.o interp_routines.o cm1libs.o getcape.o sfcphys.o turb.o lsnudge.o writeout_nc.o
 eddy_recycle.o: constants.o input.o
@@ -311,7 +308,7 @@ restart.o: constants.o input.o writeout_nc.o lsnudge.o goddard.o lfoice.o
 sfcphys.o: constants.o input.o cm1libs.o
 solve1.o: constants.o input.o bc.o comm.o diff2.o turbtend.o misclibs.o testcase_simple_phys.o ib_module.o eddy_recycle.o lsnudge.o
 solve2.o: constants.o input.o bc.o comm.o adv.o adv_routines.o sound.o sounde.o soundns.o soundcb.o anelp.o misclibs.o module_mp_nssl_2mom.o ib_module.o eddy_recycle.o
-solve3.o: constants.o input.o bc.o bc_gpu.o comm.o comm_gpu.o adv_routines.o misclibs.o parcel.o pdcomp.o lsnudge.o ib_module.o
+solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o pdcomp.o lsnudge.o ib_module.o
 sorad3d.o: radlib3d.o
 sound.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
 sounde.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
