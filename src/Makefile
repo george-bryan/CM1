@@ -40,7 +40,7 @@
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #OMP  = -DOPENMP
 #-----------------------------------------------------------------------------
-#  single processor, Portland Group compiler
+##  single processor, Portland Group compiler
 #FC   = pgf90
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mnofma
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
@@ -50,13 +50,13 @@ FC   = pgf90
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
 #OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
 # flipping the next two for debugging
-OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline=calcnm -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
-#DM   = -D_OPENACC -D_FORCEB4B
-DM   = -D_OPENACC
-LINKOPTS = -lnvToolsExt
+#DM   = -D_OPENACC -D_B4B
+DM   = -D_OPENACC -D_B4B
+LINKOPTS = -lnvToolsExt -v
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
@@ -240,7 +240,7 @@ all : cm1
 
 #			$(FC) $(OBJS) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) $(LINKOPTS) -o ../run/cm1.exe
 cm1:			$(OBJS)
-			$(FC) $(LINKOPTS) $(OBJS) $(OBJS_OPENACC) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) -o ../run/cm1.exe
+			$(FC) $(LINKOPTS) $(FFLAGS) $(OBJS) $(OBJS_OPENACC) $(OUTPUTINC) $(OUTPUTLIB) -o ../run/cm1.exe
 			$(AR) onefile.F $(SRC)
 			mv onefile.F ../run
 
