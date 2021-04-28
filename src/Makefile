@@ -46,17 +46,18 @@
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
-#FC   = pgf90
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel -ta=tesla:cc70,lineinfo
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#LINKOPTS = -lnvToolsExt
+FC   = pgf90
+OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma 
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+LINKOPTS = -lnvToolsExt -v
+DM   = -D_OPENACC -D_B4B
 #-----------------------------------------------------------------------------
 #  multi processor + GPU, Portland Group compiler
-FC   = mpif90
-OPTS = -DMPI -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding -DMPI
-DM   = -D_OPENACC
-LINKOPTS = -lnvToolsExt
+#FC   = mpif90
+#OPTS = -DMPI -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding -DMPI
+#DM   = -D_OPENACC
+#LINKOPTS = -lnvToolsExt
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
@@ -240,7 +241,7 @@ all : cm1
 
 #			$(FC) $(OBJS) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) $(LINKOPTS) -o ../run/cm1.exe
 cm1:			$(OBJS)
-			$(FC) $(LINKOPTS) $(OBJS) $(OBJS_OPENACC) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) -o ../run/cm1.exe
+			$(FC) $(LINKOPTS) $(FFLAGS) $(OBJS) $(OBJS_OPENACC) $(OUTPUTINC) $(OUTPUTLIB) -o ../run/cm1.exe
 			$(AR) onefile.F $(SRC)
 			mv onefile.F ../run
 
