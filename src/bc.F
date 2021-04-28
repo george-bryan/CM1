@@ -184,7 +184,6 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: s
 
       integer i,j,k
-
 !-----------------------------------------------------------------------
 !  west boundary condition
 
@@ -345,7 +344,7 @@
 
       real, dimension(ib:ie+1,jb:je,kb:ke) :: u
 
-      integer i,j,k  
+      integer i,j,k
 
 !-----------------------------------------------------------------------
 !  west boundary condition
@@ -482,8 +481,9 @@
 !-----------------------------------------------------------------------
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
- 
+
       end subroutine bcu
+
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -496,7 +496,7 @@
       implicit none
 
       real, dimension(ib:ie,jb:je+1,kb:ke) :: v
- 
+
       integer i,j,k
 
 !-----------------------------------------------------------------------
@@ -652,9 +652,8 @@
 !-----------------------------------------------------------------------
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
- 
-      end subroutine bcv
 
+      end subroutine bcv
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -667,7 +666,7 @@
 
       real, dimension(ib:ie,jb:je,kb:ke+1) :: w
       integer flag
- 
+
       integer i,j,k
 
 !-----------------------------------------------------------------------
@@ -675,7 +674,7 @@
 
 !$omp parallel do default(shared) private(i,j,k)
     DO k=2,nk
- 
+
 #ifndef MPI
       if(wbc.eq.1)then
         do j=jb,je
@@ -732,7 +731,7 @@
         do i=1,ngxy
           w(ni+i,j,k)=w(ni+1-i,j,k)
         enddo
-        enddo 
+        enddo
       endif
 
 !-----------------------------------------------------------------------
@@ -817,8 +816,9 @@
 !-----------------------------------------------------------------------
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
- 
+
       end subroutine bcw
+
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1263,6 +1263,140 @@
 
       end subroutine bcu2
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine bcu2_GPU(u)
+      use input
+      implicit none
+
+      real u(ib:ie+1,jb:je,kb:ke)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            u(i,j,k)=u(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            u(i,j,k)=u(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=ni+2,ni+1+ngxy
+            u(i,j,k)=u(ni+1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=ni+2,ni+1+ngxy
+            u(i,j,k)=u(ni+1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            u(i,j,k)=u(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+2
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            u(i,j,k)=u(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            u(i,j,k)=u(i,nj,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+2
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            u(i,j,k)=u(i,nj,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcu2_GPU
+
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1389,6 +1523,140 @@
 
       end subroutine bcv2
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine bcv2_GPU(v)
+      use input
+      implicit none
+
+      real v(ib:ie,jb:je+1,kb:ke)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            v(i,j,k)=v(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+2
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            v(i,j,k)=v(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            v(i,j,k)=v(ni,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+2
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            v(i,j,k)=v(ni,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            v(i,j,k)=v(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            v(i,j,k)=v(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=nj+2,nj+1+ngxy
+            v(i,j,k)=v(i,nj+1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=nj+2,nj+1+ngxy
+            v(i,j,k)=v(i,nj+1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcv2_GPU
+
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1514,6 +1782,140 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcw2
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine bcw2_GPU(w)
+      use input
+      implicit none
+
+      real w(ib:ie,jb:je,kb:ke+1)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=1-ngxy,0
+            w(i,j,k)=w(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=1-ngxy,0
+            w(i,j,k)=w(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=ni+1,ni+ngxy
+            w(i,j,k)=w(ni,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=ni+1,ni+ngxy
+            w(i,j,k)=w(ni,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=1-ngxy,0
+            w(i,j,k)=w(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=1-ngxy,0
+            w(i,j,k)=w(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=nj+1,nj+ngxy
+            w(i,j,k)=w(i,nj,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=nj+1,nj+ngxy
+            w(i,j,k)=w(i,nj,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcw2_GPU
+
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

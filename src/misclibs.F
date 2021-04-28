@@ -1426,7 +1426,7 @@
   IF(.not.terrain_flag)THEN
 
     ! Cartesian grid, without terrain:
-
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
     DO k=1,nk
@@ -1444,6 +1444,7 @@
 
         ! dum1 stores u at w-pts:
         ! dum2 stores v at w-pts:
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,r1,r2)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,r1,r2)
         do j=0,nj+2
@@ -1454,21 +1455,25 @@
           enddo
 
           ! upper-most model level:
+          !$acc loop
           do i=0,ni+2
             dum1(i,j,nk+1) = cgt1*ua(i,j,nk)+cgt2*ua(i,j,nk-1)+cgt3*ua(i,j,nk-2)
             dum2(i,j,nk+1) = cgt1*va(i,j,nk)+cgt2*va(i,j,nk-1)+cgt3*va(i,j,nk-2)
           enddo
 
           ! interior:
+          !$acc loop
           do k=2,nk
           r2 = (sigmaf(k)-sigma(k-1))*rds(k)
           r1 = 1.0-r2
+          !$acc loop
           do i=0,ni+2
             dum1(i,j,k) = r1*ua(i,j,k-1)+r2*ua(i,j,k)
             dum2(i,j,k) = r1*va(i,j,k-1)+r2*va(i,j,k)
           enddo
           enddo
         enddo
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,r1)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,r1)
         do k=1,nk
@@ -1489,11 +1494,13 @@
 
   ENDIF
 
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wbar,zbar)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,wbar,zbar)
     DO j=1,nj
     DO i=1,ni
       uh(i,j) = 0.0
+      !$acc loop
       DO k=1,nk
         IF( zh(i,j,k).ge.zz0 .and. zh(i,j,k).le.zzt )THEN
           ! note:  only consider cyclonically rotating updrafts

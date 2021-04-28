@@ -326,24 +326,24 @@
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!Begin:  message passing
 
-          call bcs(pp3d)
+!Begin:  message passing
+          call bcs_GPU(pp3d)
 #ifdef MPI
-          call comm_1s_start(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+          call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
 #endif
 
-          call bcs(th3d)
+          call bcs_GPU(th3d)
 #ifdef MPI
-          call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
+          call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
                                   rs31,rs32,rn31,rn32,reqs_y)
 #endif
 
       IF( imoist.eq.1 )THEN
           DO n=1,numq
-            call bcs(q3d(ib,jb,kb,n))
+            call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI
-            call comm_3s_start(q3d(ib,jb,kb,n)  &
+            call comm_3s_start_GPU(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                        ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                        ,reqs_q(1,n) )
@@ -352,15 +352,14 @@
       ENDIF
 
 
-      call bcs(rho)
+      call bcs_GPU(rho)
 #ifdef MPI
-      call comm_1s_start(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+      call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
 
-
-        !$acc data copyin(rho,c1,c2) copy(rr,rf)
-        !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -369,25 +368,24 @@
         enddo
         enddo
         enddo
-        !$acc end data
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
 
 
-        call bcs(rr)
+        call bcs_GPU(rr)
 #ifdef MPI
-      call comm_1s_start(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+      call comm_1s_start_GPU(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
 
-        call bcs(rf)
+        call bcs_GPU(rf)
 #ifdef MPI
-      call comm_1s_start(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
+      call comm_1s_start_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
 #endif
 
       IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 )THEN
         ! 180212: moved this out of sound,sounde,soundcb
-
         if( psolver.eq.2 .or. psolver.eq.3 )then
-
+     
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
           do k=1,nk
@@ -400,6 +398,8 @@
 
         elseif( psolver.eq.6 )then
 
+           print *, 'Here 3 -- Not being executed'
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
           do k=1,nk
@@ -409,25 +409,22 @@
           enddo
           enddo
           enddo
-
         endif
-
-        call bcs(ppx)
+        call bcs_GPU(ppx)
 #ifdef MPI
-        call comm_1s_start(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+        call comm_1s_start_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
 #endif
 
       ENDIF
-
 !-----------------------------------------------------------------
 
 !Done:  message passing
 !-----------------------------------------------------------------
 !  cm1r17:  diabatic tendencies for next timestep:
-
         IF(imoist.eq.1.and.eqtset.eq.2)THEN
           ! get diabatic tendencies (will be used in next timestep):
           rdt = 1.0/dt
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
           do k=1,nk
@@ -448,7 +445,9 @@
 
       IF( dot2p )THEN
         rdt = 1.0/dt
+        print *, 'Here 4  -- Not being executed'
         ! 200413:  all tendencies except turbz term:
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,ntwk
         do j=1,nj+1
         do i=1,ni+1
@@ -464,11 +463,14 @@
         !-----
         ! update ug,u0:
         tem = lsnudgefac*dt/lsnudge_tau
+        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           ug(k) = ug(k)-tem*(umove+ug(k)-lsnudge_u(k,lsnudge_count))
           u0(1,1,k) = u0(1,1,k)-tem*(umove+u0(1,1,k)-lsnudge_u(k,lsnudge_count))
         enddo
         !-----
+        print *, 'Here 5 -- Not being executed'
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=jb,je
         do i=ib,ie+1
@@ -476,6 +478,7 @@
         enddo
         enddo
         enddo
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=jb,je
         do i=ib,ie+1
           u0(i,j,0)    = cgs1*u0(i,j,1)+cgs2*u0(i,j,2)+cgs3*u0(i,j,3)
@@ -489,11 +492,13 @@
         !-----
         ! update vg,v0:
         tem = lsnudgefac*dt/lsnudge_tau
+        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           vg(k) = vg(k)-tem*(vmove+vg(k)-lsnudge_v(k,lsnudge_count))
           v0(1,1,k) = v0(1,1,k)-tem*(vmove+v0(1,1,k)-lsnudge_v(k,lsnudge_count))
         enddo
         !-----
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=jb,je+1
         do i=ib,ie
@@ -501,6 +506,7 @@
         enddo
         enddo
         enddo
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=jb,je+1
         do i=ib,ie
           v0(i,j,0)    = cgs1*v0(i,j,1)+cgs2*v0(i,j,2)+cgs3*v0(i,j,3)
@@ -511,101 +517,120 @@
       endif
 
 #ifdef MPI
-      call comm_3u_end(u3d,uw31,uw32,ue31,ue32,   &
+      call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
                            us31,us32,un31,un32,reqs_u)
-      call comm_3v_end(v3d,vw31,vw32,ve31,ve32,   &
+      call comm_3v_end_GPU(v3d,vw31,vw32,ve31,ve32,   &
                            vs31,vs32,vn31,vn32,reqs_v)
-      call comm_3w_end(w3d,ww31,ww32,we31,we32,   &
+      call comm_3w_end_GPU(w3d,ww31,ww32,we31,we32,   &
                            ws31,ws32,wn31,wn32,reqs_w)
 #endif
 
 #ifdef MPI
       if(   sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
-        call getcorneru(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcu2(u3d)
-        call getcornerv(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcv2(v3d)
-        call getcornerw(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcw2(w3d)
+        call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcu2_GPU(u3d)
+        call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcv2_GPU(v3d)
+        call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcw2_GPU(w3d)
       endif
 #endif
 
       if(terrain_flag)then
         call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
-        call bc2d(w3d(ib,jb,1))
+        call bc2d_GPU(w3d(ib,jb,1))
       endif
 
 !----------
 !  comms for parcels:
-
       IF(iprcl.eq.1)THEN
         ! cm1r18:  use velocities averaged over small time steps (for psolver=2,3,6)
         IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 )THEN
           ! 180713:  now saved in ten1 arrays
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-          do k=1,nk
+            print *, 'Here 5 -- Not being executed'
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+            do k=1,nk
             do j=1,nj
             do i=1,ni+1
               rru(i,j,k)=uten1(i,j,k)
             enddo
             enddo
+            enddo
             IF(axisymm.eq.0)THEN
+              print *, 'Here 6 -- Not being executed'
               ! Cartesian grid:
+              !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+              do k=1,nk
               do j=1,nj+1
               do i=1,ni
                 rrv(i,j,k)=vten1(i,j,k)
               enddo
               enddo
+              enddo
             ENDIF
             IF(k.gt.1)THEN
+              print *, 'Here 7 -- Not being executed'
+              !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+              do k=1,nk
               do j=1,nj
               do i=1,ni
                 rrw(i,j,k)=wten1(i,j,k)
               enddo
               enddo
+              enddo
             ENDIF
-          enddo
         ELSE
           ! psolver=1,4,5:
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-          do k=1,nk
+            print *, 'Here 8 -- Not being executed'
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+            do k=1,nk
             do j=1,nj
             do i=1,ni+1
               rru(i,j,k)=u3d(i,j,k)
             enddo
             enddo
+            enddo
             IF(axisymm.eq.0)THEN
+              print *, 'Here 9 -- Not being executed'
               ! Cartesian grid:
+              !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+              do k=1,nk
               do j=1,nj+1
               do i=1,ni
                 rrv(i,j,k)=v3d(i,j,k)
               enddo
               enddo
+              enddo
             ENDIF
             IF(k.gt.1)THEN
+              print *, 'Here 10 -- Not being executed'
+              !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+              do k=1,nk
               do j=1,nj
               do i=1,ni
                 rrw(i,j,k)=w3d(i,j,k)
               enddo
               enddo
+              enddo
             ENDIF
-          enddo
         ENDIF
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
         ! bc/comms:
-        call bcu(rru)
+        call bcu_GPU(rru)
 #ifdef MPI
-        call comm_3u_start(rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
+        call comm_3u_start_GPU(rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
 #endif
-        call bcv(rrv)
+        call bcv_GPU(rrv)
 #ifdef MPI
-        call comm_3v_start(rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
+        call comm_3v_start_GPU(rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
 #endif
-        call bcw(rrw,1)
+        call bcw_GPU(rrw,1)
 #ifdef MPI
-        call comm_3w_start(rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
+        call comm_3w_start_GPU(rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
 #endif
       ENDIF
 
@@ -615,6 +640,7 @@
       IF( doubud .and. nutk.ge.1 )THEN
         if( myid.eq.0 ) print *,'  save utk for domaindiag '
         rdt = 1.0/dt
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -626,6 +652,7 @@
       IF( dovbud .and. nvtk.ge.1 )THEN
         if( myid.eq.0 ) print *,'  save vtk for domaindiag '
         rdt = 1.0/dt
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni
@@ -637,6 +664,7 @@
       IF( dowbud .and. nwtk.ge.1 )THEN
         if( myid.eq.0 ) print *,'  save wtk for domaindiag '
         rdt = 1.0/dt
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -647,7 +675,7 @@
       ENDIF
 
 !----------
-
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k)
       do k=1,nk
@@ -665,9 +693,10 @@
 
       if( cm1setup.eq.1 .and. iusetke )then
 #ifdef MPI
-        call comm_3t_end(tke3d,tkw1,tkw2,tke1,tke2,   &
+        call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k) 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
         do k=1,nk+1
@@ -679,19 +708,22 @@
         enddo
         if(timestats.ge.1) time_integ=time_integ+mytime()
       endif
-
 !----------
 
       if(iptra.eq.1)then
-        do n=1,npt
 #ifdef MPI
-          call comm_3s_end(pt3d(ib,jb,kb,n),                           &
+          do n=1,npt
+          call comm_3s_end_GPU(pt3d(ib,jb,kb,n),                           &
                 tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n),   &
                 ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n),   &
                 reqs_t(1,n))
+          enddo
 #endif
+          print *, 'Here 16 -- Not being executed'
+          !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
+          do n=1,npt
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -699,17 +731,18 @@
           enddo
           enddo
           enddo
+          enddo
           if(timestats.ge.1) time_integ=time_integ+mytime()
-        enddo
       endif
 
 !----------
 
 #ifdef MPI
-      call comm_1s_end(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
-      call comm_3s_end(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
+      call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+      call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
 #endif
 
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k)
       do k=1,nk
@@ -721,19 +754,21 @@
       enddo
       enddo
       if(timestats.ge.1) time_integ=time_integ+mytime()
-
 !----------
 
       if(imoist.eq.1)then
-        DO n=1,numq
 #ifdef MPI
-          call comm_3s_end(q3d(ib,jb,kb,n)  &
+        DO n=1,numq
+          call comm_3s_end_GPU(q3d(ib,jb,kb,n)  &
                      ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                      ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                      ,reqs_q(1,n) )
+        ENDDO
 #endif
-          !$omp parallel do default(shared)  &
-          !$omp private(i,j,k)
+        !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n) 
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k)
+        do n=1,numq
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -741,29 +776,29 @@
           enddo
           enddo
           enddo
-          if(timestats.ge.1) time_integ=time_integ+mytime()
-        ENDDO
+        enddo
+        if(timestats.ge.1) time_integ=time_integ+mytime()
       endif
-
 !----------
 
 #ifdef MPI
         !-----
-        call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-        call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcs2(rho)
+        call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+        call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcs2_GPU(rho)
         !-----
-        call comm_1s_end(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
-        call getcorner(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcs2(rr)
+        call comm_1s_end_GPU(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+        call getcorner_GPU(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcs2_GPU(rr)
         !-----
-        call comm_1s_end(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
-        call getcorner(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcs2(rf)
+        call comm_1s_end_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
+        call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcs2_GPU(rf)
         !-----
 #endif
 
-        ! meh 1 !
+        ! meh 1 
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k)
         do j=0,nj+1
@@ -773,10 +808,9 @@
           rf(i,j,nk+1) = cgt1*rho(i,j,nk)+cgt2*rho(i,j,nk-1)+cgt3*rho(i,j,nk-2)
         enddo
         enddo
-
 #ifdef MPI
         IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 )THEN
-          call comm_1p_end(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+          call comm_1p_end_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
         ENDIF
 #endif
 
@@ -790,23 +824,25 @@
         !  get corner info, ghost zone data, etc:
         !  (may not parallelize correctly if this is not done)
 #ifdef MPI
-        call comm_3u_end( rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
-        call comm_3v_end( rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
-        call comm_3w_end( rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
-        call getcorneru3(rru,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
+        call comm_3u_end_GPU( rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
+        call comm_3v_end_GPU( rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
+        call comm_3w_end_GPU( rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
+        call getcorneru3_GPU(rru,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-        call getcornerv3(rrv,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
+        call getcornerv3_GPU(rrv,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-        call getcornerw3(rrw,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
-        call bcu2(rru)
-        call bcv2(rrv)
-        call bcw2(rrw)
+        call getcornerw3_GPU(rrw,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
+        call bcu2_GPU(rru)
+        call bcv2_GPU(rrv)
+        call bcw2_GPU(rrw)
 #endif
 
         prltrn:  &
         if(terrain_flag)then
           ! 180713:  get sigma-dot
 
+          print *,'Here 20 -- Not being executed'
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
           DO k=1,nk
@@ -815,6 +851,9 @@
               rru(i,j,k)=rru(i,j,k)*rgzu(i,j)
             enddo
             enddo
+          ENDDO
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          DO k=1,nk
             do j=0,nj+2
             do i=0,ni+1
               rrv(i,j,k)=rrv(i,j,k)*rgzv(i,j)
@@ -822,10 +861,12 @@
             enddo
           ENDDO
 
+          print *,'Here 21 -- Not being executed'
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k,r1,r2)
           DO k=1,nk
             IF(k.eq.1)THEN
+              !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
               do j=0,nj+1
               do i=0,ni+1
                 rrw(i,j,   1) = 0.0
@@ -837,6 +878,7 @@
               r1 = 1.0-r2
               r1 = 0.5*r1
               r2 = 0.5*r2
+              !$acc parallel loop gang vector collapse(2) default(present) private(i,j,r1,r2)
               do j=0,nj+1
               do i=0,ni+1
                 rrw(i,j,k)=rrw(i,j,k)                              &
@@ -850,6 +892,8 @@
             ENDIF
           ENDDO
 
+          print *,'Here 22 -- Not being executed'
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,r1,r2)
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k,r1,r2)
           do k=1,nk
@@ -914,7 +958,6 @@
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
                             ss31(1,1,1),ss32(1,1,1),sn31(1,1,1),sn32(1,1,1))
         enddo
-
       ENDIF
       ENDIF
 
@@ -943,14 +986,17 @@
 ! Maximum horizontal wind speed at lowest model level: 
 ! (include domain movement in calculation)
 
+
     IF( output_sws.eq.1 )THEN
 
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,tem,n)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n,tem)
       do j=1,nj
       do i=1,ni
         tem = sqrt( (umove+0.5*(ua(i,j,1)+ua(i+1,j,1)))**2    &
                    +(vmove+0.5*(va(i,j,1)+va(i,j+1,1)))**2 ) 
+        !$acc loop
         do n=1,nrain
           sws(i,j,n)=max(sws(i,j,n),tem)
         enddo
@@ -975,12 +1021,14 @@
   IF(axisymm.eq.0)THEN
     IF(.not.terrain_flag)THEN
       ! Cartesian grid, without terrain:
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,tem)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n,tem)
       do j=1,nj+1
       do i=1,ni+1
         tem = (va(i,j,1)-va(i-1,j,1))*rdx*uf(i)   &
              -(ua(i,j,1)-ua(i,j-1,1))*rdy*vf(j)
+        !$acc loop private(n)
         do n=1,nrain
           svs(i,j,n)=max(svs(i,j,n),tem)
         enddo
@@ -990,6 +1038,8 @@
       ! Cartesian grid, with terrain:
       ! dum1 stores u at w-pts:
       ! dum2 stores v at w-pts:
+print *,'Here 25 -- Not being executed'
+!$acc parallel loop gang vector default(present) private(j,k,i,r1,r2)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,r1,r2)
       do j=0,nj+2
@@ -1009,6 +1059,8 @@
         enddo
       enddo
       k = 1
+print *,'Here 26 -- Not being executed'
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,n,r1,tem)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n,r1,tem)
       do j=1,nj+1
@@ -1022,6 +1074,7 @@
                +0.5*( (zt-sigmaf(k+1))*(dum1(i,j-1,k+1)+dum1(i,j,k+1))      &
                      -(zt-sigmaf(k  ))*(dum1(i,j-1,k  )+dum1(i,j,k  ))      &
                     )*rdsf(k)*r1*(rgzu(i,j)-rgzu(i,j-1))*rdy*vf(j) )
+!$acc loop private(n)
         do n=1,nrain
           svs(i,j,n)=max(svs(i,j,n),tem)
         enddo
@@ -1030,11 +1083,14 @@
     ENDIF
   ELSE
       ! Axisymmetric grid:
+print *,'Here 27 -- Not being executed'
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,n,tem)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n,tem)
       do j=1,nj+1
       do i=1,ni+1
         tem = (va(i,j,1)*xh(i)-va(i-1,j,1)*xh(i-1))*rdx*uf(i)*rxf(i)
+!$acc loop private(n)
         do n=1,nrain
           svs(i,j,n)=max(svs(i,j,n),tem)
         enddo
@@ -1056,12 +1112,13 @@
 !  Minimum pressure perturbation at lowest model level:
 
   IF( output_sps.eq.1 )THEN
-
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,n,tem)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n,tem)
       do j=1,nj
       do i=1,ni
         tem = prs(i,j,1)-prs0(i,j,1)
+!$acc loop private(n)
         do n=1,nrain
           sps(i,j,n)=min(sps(i,j,n),tem)
         enddo
@@ -1075,7 +1132,6 @@
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
                             ss31(1,1,1),ss32(1,1,1),sn31(1,1,1),sn32(1,1,1))
       endif
-
   ENDIF
 
 !--------------------------------------------------------------------
@@ -1084,11 +1140,13 @@
   IF( output_srs.eq.1 )THEN
 
     IF(imoist.eq.1.and.nqr.ne.0)THEN
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,n,tem)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n,tem)
       do j=1,nj
       do i=1,ni
         tem = qa(i,j,1,nqr)
+!$acc loop private(n)
         do n=1,nrain
           srs(i,j,n)=max(srs(i,j,n),tem)
         enddo
@@ -1112,11 +1170,13 @@
   IF( output_sgs.eq.1 )THEN
 
     IF(imoist.eq.1.and.nqg.ne.0)THEN
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,n,tem)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n,tem)
       do j=1,nj
       do i=1,ni
         tem = qa(i,j,1,nqg)
+!$acc loop private(n)
         do n=1,nrain
           sgs(i,j,n)=max(sgs(i,j,n),tem)
         enddo
@@ -1141,6 +1201,7 @@
       ! get height AGL:
       if( .not. terrain_flag )then
         ! without terrain:
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
         do k=1,nk+1
@@ -1153,6 +1214,8 @@
         enddo
       else
         ! get height AGL:
+print *,'Here 28 -- Not being executed'
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
         do k=1,nk+1
@@ -1168,6 +1231,7 @@
 !--------------------------------------------------------------------
 !  Maximum updraft velocity (w) at 5 km AGL:
 
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,n,tem)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n,tem)
       do j=1,nj
@@ -1178,6 +1242,7 @@
           k = k + 1
         enddo
         tem = w3d(i,j,k)
+!$acc loop
         do n=1,nrain
           sus(i,j,n)=max(sus(i,j,n),tem)
         enddo
@@ -1202,6 +1267,8 @@
       ! dum3 is zh (agl), wten is zf (agl)
       call calcuh(uf,vf,dum3,wten,ua,va,wa,dum1(ib,jb,1),dum2,dum5,dum6, &
                   zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf)
+
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,n)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,n)
       do j=1,nj
