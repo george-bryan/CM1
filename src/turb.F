@@ -1107,8 +1107,8 @@
     call comm_2d_corner(s1)
     call comm_2d_corner(znt)
   if( sfcmodel.eq.4 )then
-    !$acc update device(mznt) 
     call comm_2d_corner(mznt)
+    !$acc update device(mznt) 
   endif
     !-------------!
     !$acc update device(ust,u1,v1,st,znt)
