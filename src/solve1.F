@@ -1705,7 +1705,6 @@
         rdt = 1.0/dt
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
-          print *,'ib,ie,jb,je,kb,ke: ',ib,ie,jb,je,kb,ke
 #ifdef _B4B01
           !$acc update host(thten1,qten,tha,qa,rho,th0,pi0,ppi)
 #else

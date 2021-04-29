@@ -217,7 +217,7 @@
            time_ttend,time_cor,time_fall,time_satadj,                &
            time_sfcphys,time_dbz,time_last,                          &
            time_advs,time_advu,time_advv,time_advw,                  &
-           time_slv_H2D,time_slv_D2H,                                &
+           time_phys_H2D,time_phys_D2H,                                &
            time_adv_H2D,time_adv_D2H,  &
            time_sfc_H2D,time_sfc_D2H,  &
            time_H2D,time_D2H, &     

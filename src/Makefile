@@ -54,7 +54,7 @@ FC   = pgf90
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline=calcnm -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
 OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
-#DM   = -D_OPENACC -D_B4B
+#DM   = -D_OPENACC
 DM   = -D_OPENACC -D_B4B
 LINKOPTS = -lnvToolsExt -v
 #-----------------------------------------------------------------------------

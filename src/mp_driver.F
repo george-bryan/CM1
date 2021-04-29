@@ -80,6 +80,7 @@
     !$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
     !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
     !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
+    if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
         if( stopit ) getdbz = .true.
 
@@ -1354,6 +1355,7 @@
     !$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
     !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
     !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
+    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
     end subroutine mp_driver
 
