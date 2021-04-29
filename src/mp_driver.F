@@ -74,13 +74,12 @@
     integer :: i,j,k,n
     integer :: has_reqc,has_reqi,has_reqs,do_radar_ref
     real :: rdt
-    !!$acc update &
-    !!$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
-    !!$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
-    !!$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
-    !!$acc      th3d,thten,qa,q3d,qten,p2a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
-    !!$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
-
+    !$acc update &
+    !$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
+    !$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
+    !$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
+    !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
+    !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
 
         if( stopit ) getdbz = .true.
 
@@ -1350,11 +1349,11 @@
 
         if(timestats.ge.1) time_microphy=time_microphy+mytime()
 
-    !!$acc device &
-    !!$acc host(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
-    !!$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
-    !!$acc      th3d,thten,qa,q3d,qten,p2a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
-    !!$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
+    !$acc update &
+    !$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
+    !$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
+    !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
+    !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
 
     end subroutine mp_driver
 
