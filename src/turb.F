@@ -1107,10 +1107,11 @@
     call comm_2d_corner(s1)
     call comm_2d_corner(znt)
   if( sfcmodel.eq.4 )then
+    !$acc update device(mznt) 
     call comm_2d_corner(mznt)
   endif
     !-------------!
-    !$acc update device(ust,u1,v1,st,znt,mznt)
+    !$acc update device(ust,u1,v1,st,znt)
 #endif
     ! account for annoying GFDL naming convention:
     IF( sfcmodel.eq.4 )THEN
