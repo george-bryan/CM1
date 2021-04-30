@@ -2712,18 +2712,12 @@
         !$acc   pi0,rho0,prs0,th0,rth0,qv0,qc0,qi0,rr0,rf0,rrf0,dtu0,dtv0, &
         !$acc   c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw,u1b,v1b, &
         !$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
-        !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, &
+        !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland, &
         !$acc   dt,reqs_s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32, &
         !$acc   uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u, &
-        !$acc   reqs_v, &
-        !$acc   reqs_w, &
+        !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z, & 
         !$acc   ug, vg, lsnudge_u, lsnudge_v,&
-        !$acc   reqs_x, &
-        !$acc   reqs_y, &
-        !$acc   reqs_s, &
-        !$acc   reqs_p2, &
         !$acc   p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3, &
-        !$acc   reqs_z, & 
         !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
         !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
         !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
@@ -2755,8 +2749,15 @@
         !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
         !$acc copy(flag) &
         !$acc copy(udiag,vdiag,wdiag,kdiag) &
-        !$acc copy(znt,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
-        !$acc copy(sws,svs,sps,srs,sgs,sus,shs)
+        !$acc copy(stau,ustt,ut,vt,st,cd,ch,cq,u1,v1,s1,t1) &
+        !$acc copy(znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
+        !$acc copy(sws,svs,sps,srs,sgs,sus,shs) &
+        !$acc copy(defv,defh,lenscl,dissten, &
+        !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
+        !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,dsxy,cda,psim,psih, &
+        !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z)
+
+
         if(timestats.ge.1) time_H2D=time_H2D+mytime()
 #ifdef _OPENACC
         call nvtxEndRange
@@ -3183,11 +3184,11 @@
 #ifdef _OPENACC
         call nvtxStartRange("D2H",id=1)
 #endif
-        !$acc end data
 #ifdef _OPENACC
         call nvtxEndRange
-#endif
         if(timestats.ge.1) time_D2H=time_D2H+mytime()
+#endif
+
 
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !cc   Adaptive domain-moving option for TCs  ccccccccccccccccccccccccccc
@@ -3273,25 +3274,6 @@
       if( startup .or. restarted ) update_sfc = .false.
 
 #ifdef _OPENACC
-        call nvtxStartRange("H2D ",id=1)
-#endif
-    !$acc data &
-    !$acc copyin(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf, &
-    !$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0) &
-    !$acc copy(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
-    !$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx, &
-    !$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
-    !$acc      rrv,rrw,u3d,v3d,w3d,uten,vten,pp3d,ppten,sten,sadv,th3d,thten,thten1, &
-    !$acc      thterm,q3d,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten, &
-    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
-    !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih, &
-    !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,flag)
-#ifdef _OPENACC
-    call nvtxEndRange
-#endif
-    if(timestats.ge.1) time_sfc_H2D=time_sfc_H2D+mytime()
-
-#ifdef _OPENACC
         call nvtxStartRange("srf_and_turb",id=8)
 #endif
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
@@ -3346,22 +3328,14 @@
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
 #ifdef _OPENACC
-    call nvtxEndRange
-    !print *,'nstep: ',nstep
-    !if(nstep == 5033) then 
-    !   stop 'after call to surf_and_turb'
-    !endif
+        call nvtxEndRange
+        call nvtxStartRange("D2H",id=1)
 #endif
+        !$acc end data
 #ifdef _OPENACC
-    call nvtxStartRange("D2H",id=1)
+        call nvtxEndRange
+        if(timestats.ge.1) time_D2H=time_D2H+mytime()
 #endif
-    !$acc end data
-#ifdef _OPENACC
-    call nvtxEndRange
-#endif
-    if(timestats.ge.1) time_sfc_D2H=time_sfc_D2H+mytime()
-
-
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
         !  get stress terms for explicit diffusion scheme:
