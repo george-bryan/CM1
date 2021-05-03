@@ -2723,12 +2723,15 @@
         !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
         !$acc   kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
         !$acc copy(u0,v0) &
+        !$acc copy(thv0,tke_myj,xkzh,xkzq,xkzm) &
         !$acc copy(rho,rr,rf,prs,o30,zir, &
         !$acc      dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9, &
         !$acc      rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1, &
         !$acc      ppi,pp3d,ppten,sten,sadv,ppx,tha,th3d,thten,thten1,thterm, &
         !$acc      qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen, &
         !$acc      tdiag,qdiag) &
+        !$acc copy(xfref,xhref,yfref,yhref,dvdr,uavg,vavg,savg,thavg,pavg,ulspg,vlspg, &
+        !$acc      qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
         !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
         !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
         !$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
@@ -3327,18 +3330,12 @@
                    flag  ,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
-#ifdef _OPENACC
-        call nvtxEndRange
-        call nvtxStartRange("D2H",id=1)
-#endif
-        !$acc end data
-#ifdef _OPENACC
-        call nvtxEndRange
-        if(timestats.ge.1) time_D2H=time_D2H+mytime()
-#endif
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
         !  get stress terms for explicit diffusion scheme:
+#ifdef _OPENACC
+        stop 'ERROR: diff2def not supported on OpenACC version' 
+#endif
         call diff2def(uh,arh1,arh2,uf,arf1,arf2,vh,vf,mh,c1,c2,mf,ust,zntmp,u1,v1,s1,  &
                       divx,rho,rr,rf,t11,t12,t13,t22,t23,t33,u3d,v3d,w3d,dissten)
       ENDIF
@@ -3361,6 +3358,9 @@
 
         IF( adapt_dt.eq.1 .and. dosolve )THEN
 
+#ifdef _OPENACC
+          stop 'ERROR: getnewdt not supported on OpenACC' 
+#endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
                           dorestart,dowriteout,dostat,doprclout,dotdwrite,doazimwrite,  &
@@ -3384,7 +3384,6 @@
           if(dowr) write(outfile,*) '  initial conditions:'
           if(dowr) write(outfile,*)
         endif
-        !$acc data copyin(rho,xf) copy(ppten)
         IF(axisymm.eq.0)THEN
           ! for Cartesian grid:
           !$omp parallel do default(shared) private(i,j,k)
@@ -3408,7 +3407,6 @@
           enddo
           enddo
         ENDIF
-        !$acc end data
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3433,6 +3431,7 @@
         if(myid.eq.0) print *,'  next stattim = ',stattim
         if(timestats.ge.1) time_stat=time_stat+mytime()
       endif
+
 
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
@@ -3462,6 +3461,9 @@
 
 
       if( dowriteout )then
+#ifdef _OPENACC
+          stop 'ERROR: writeout not supported in OpenACC'
+#endif
       otype:  &
       IF(output_format.eq.1.or.output_format.eq.2)THEN
         nn = 1
@@ -3550,6 +3552,9 @@
 
       if(iprcl.eq.1)then
       IF( doprclout )THEN
+#ifdef _OPENACC
+        stop 'ERROR: parcel_{interp,write} not supported in OpenACC'
+#endif
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
                                zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
                                zs,sigma,sigmaf,rds,gz,                 &
@@ -3585,6 +3590,15 @@
       endif
 
 
+#ifdef _OPENACC
+        call nvtxEndRange
+        call nvtxStartRange("D2H",id=1)
+#endif
+        !$acc end data
+#ifdef _OPENACC
+        call nvtxEndRange
+        if(timestats.ge.1) time_D2H=time_D2H+mytime()
+#endif
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
@@ -3664,6 +3678,9 @@
     IF( doazimavg )THEN
       if( doazimwrite )then
 
+#ifdef _OPENACC
+        stop 'ERROR: azimavg not supported in OpenACC'
+#endif
         call   azimavg(nstep,mtime,nwritea,arecs,arecw,qname,dt,dosfcflx,      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
@@ -3715,6 +3732,9 @@
     IF( dohifrq )THEN
       if( dohifrqwrite )then
 
+#ifdef _OPENACC
+        stop 'ERROR: writeout_hifrq not supported in OpenACC'
+#endif
         call   writeout_hifrq(                                                 &
                    nstep,mtime,nwriteh,qname,dt,dosfcflx,                      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
@@ -3779,6 +3799,9 @@
             endif
           enddo
         endif
+#ifdef _OPENACC
+        stop 'ERROR: write_restart not supported in OpenACC'
+#endif
         call     write_restart(nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,      &
                                trecs,trecw,arecs,arecw,                             &
                                nwrite,nwritet,nwritea,nwriteh,nrst,nstatout,        &

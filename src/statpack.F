@@ -80,6 +80,14 @@
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
 #endif
+  !$acc update &
+  !$acc   host(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
+  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
+  !$acc     pi0,rho0,thv0,th0,qv0,dum1,dum2,dum3,dum4,dum5,rho,prs, &
+  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
+  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
+      
+                 
 
 !-----------------------------------------------------------------------
 #ifdef MPI
@@ -649,6 +657,14 @@
   ENDIF
 
   ENDIF  dostats
+
+  !$acc update &
+  !$acc   device(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
+  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
+  !$acc     pi0,rho0,thv0,th0,qv0,dum1,dum2,dum3,dum4,dum5,rho,prs, &
+  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
+  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
+
 
       end subroutine statpack
 
