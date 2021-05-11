@@ -2749,6 +2749,7 @@
     !$acc copyin(qbudget,asq,bsq) &
     !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
     !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
+    !!$acc copyin(thten1) &
     !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1)
 
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
@@ -3678,6 +3679,7 @@
 
     !$acc data &
     !$acc copyin(th3d,prate,pi0) &
+    !$acc copy(thten1) &
     !$acc copy(pavg,uavg,vavg,thavg)
     if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
 

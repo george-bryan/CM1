@@ -193,7 +193,7 @@
     real :: bri,ubar,vbar,thvflux,tmpprt,thf1,thf2,gamfac,ws
     real, dimension(ib:ie,jb:je) :: tmpqsfc,govthv,thvsfc,thv1
 
-    !$acc data create(wavg,wvar,thvavg,wsp,savg,qcrit)
+    !$acc data create(wavg,wvar,thvavg,qvavg,qlavg,qtavg,thlavg,wsp,savg,qcrit)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
@@ -482,6 +482,7 @@
 
 !BLOCK01
 #if 0
+
       !c-c-c-c-c-c-c-c-c-c
 
       nvar = nvar+1
@@ -1235,11 +1236,11 @@
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF
-!END-BLOCK01
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
+!END-BLOCK01
+#endif
 
     IF( imoist.eq.1 )THEN
 
@@ -1254,6 +1255,7 @@
       if( myid.eq.0 ) print *,'  Metric: preciptation rate (mm/day) = ',86400.0*savg2d
 
     ENDIF
+
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2451,8 +2453,6 @@
         enddo
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-!BLOCK05
-#if 0
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2764,6 +2764,7 @@
 
       ENDIF
 
+!HERE
       !c-c-c-c-c-c-c-c-c-c
 
       IF( imoist.eq.1 .and. ptype.eq.5 .and. getvt )THEN
@@ -2896,7 +2897,7 @@
         enddo
         enddo
         enddo
-        call getavg3d_GPu(dum1,savg)
+        call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       endif
 
@@ -2940,7 +2941,6 @@
 !!!          savg(k) = qcrit(k)
 !!!        enddo
 !!!        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-      !HERE I AM 
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
       do j=1,nj
@@ -3029,6 +3029,9 @@
     ENDIF
 
       !c-c-c-c-c-c-c-c-c-c
+
+!BLOCK05
+#if 0
 
     IF( imoist.eq.1 )THEN
 
@@ -4961,6 +4964,8 @@
 
       ENDIF  lsn
 
+!END-BLOCK05
+#endif
     
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -4971,12 +4976,12 @@
     !                dum6  =  w-prime
 
         !PORTME
-    dum4 = 0.0
-    dum5 = 0.0
-    dum6 = 0.0
+    !dum4 = 0.0
+    !dum5 = 0.0
+    !dum6 = 0.0
 
         !PORTME
-    !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -5192,6 +5197,7 @@
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+
       !c-c-c-c-c-c-c-c-c-c
 
       IF( imoist.eq.1 )THEN
@@ -5326,8 +5332,6 @@
     !                dum5  =  v-prime
     !                dum6  =  w-prime
 
-!END-BLOCK05
-#endif
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
     do j=1,nj
     do i=1,ni
