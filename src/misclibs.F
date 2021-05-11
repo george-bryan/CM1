@@ -3686,8 +3686,8 @@
       time_adv_D2H=0.0
       time_phys_H2D=0.0
       time_phys_D2H=0.0
-      time_sfc_H2D=0.0
-      time_sfc_D2H=0.0
+      time_step_H2D=0.0
+      time_step_D2H=0.0
       time_H2D=0.0
       time_D2H=0.0
       time_advu=0.0

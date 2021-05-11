@@ -2827,12 +2827,12 @@
         !$acc copyin(ug,vg) &
         !$acc copyin(dt,reqs_s,reqs_u,reqs_p3, &
         !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) & 
-        !$acc copy(savg,uavg,vavg,thavg,pavg) &
+        !$acc copy(savg,pavg,uavg,thavg,vavg) &
         !$acc copyin(lsnudge_u, lsnudge_v) &
         !$acc copy(thten1,thterm,ulspg,vlspg) &
         !$acc copy(th3d,prate)
 
-        if(timestats.ge.1) time_H2D=time_H2D+mytime()
+        if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
@@ -3666,7 +3666,7 @@
         !$acc end data
 #ifdef _OPENACC
         call nvtxEndRange
-        if(timestats.ge.1) time_D2H=time_D2H+mytime()
+        if(timestats.ge.1) time_step_D2H=time_step_D2H+mytime()
 #endif
 
 
@@ -3678,7 +3678,8 @@
 
     !$acc data &
     !$acc copyin(th3d,prate,pi0) &
-    !$acc copy(uavg,vavg,thavg,pavg)
+    !$acc copy(pavg,uavg,vavg,thavg)
+    if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
 
     !ORIGINAL
     !!$acc data &
@@ -3963,7 +3964,7 @@
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
-                    time_H2D + time_D2H+ &
+                    time_H2D + time_D2H+time_step_H2D+time_step_D2H+ &
                     time_adv_H2D + time_adv_D2H+time_phys_H2D + time_phys_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
@@ -4036,6 +4037,7 @@
       restarted = .false.
 
     !$acc end data
+    if(timestats.ge.1) time_step_D2H=time_step_D2H+mytime()
 
 
     ENDDO  timeloop
@@ -4080,11 +4082,11 @@
         time_phys_D2H = sum/float(numprocs)
 
         sum = 0.0
-        call MPI_REDUCE(time_sfc_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_sfc_H2D = sum/float(numprocs)
+        call MPI_REDUCE(time_step_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_step_H2D = sum/float(numprocs)
         sum = 0.0
-        call MPI_REDUCE(time_sfc_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_sfc_D2H = sum/float(numprocs)
+        call MPI_REDUCE(time_step_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_step_D2H = sum/float(numprocs)
 
         sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
@@ -4265,8 +4267,8 @@
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
-                  time_H2D+time_D2H+ &
-                  time_phys_H2D+time_phys_D2H+time_sfc_H2D+time_sfc_D2H 
+                  time_H2D+time_D2H+time_step_H2D+time_step_D2H+ &
+                  time_phys_H2D+time_phys_D2H+time_step_H2D+time_step_D2H 
       time_solve0 = time_solve
 
 #ifdef MPI
@@ -4287,8 +4289,8 @@
       write(outfile,100) 'D2H',time_D2H,time_D2H/time_solve
       write(outfile,100) 'phys-H2D',time_phys_H2D,time_phys_H2D/time_solve
       write(outfile,100) 'phys-D2H',time_phys_D2H,time_phys_D2H/time_solve
-      write(outfile,100) 'sfc-H2D',time_sfc_H2D,time_sfc_H2D/time_solve
-      write(outfile,100) 'sfc-D2H',time_sfc_D2H,time_sfc_D2H/time_solve
+      write(outfile,100) 'step-H2D',time_step_H2D,time_step_H2D/time_solve
+      write(outfile,100) 'step-D2H',time_step_D2H,time_step_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
       write(outfile,100) ' adv-H2D',time_adv_H2D,time_adv_H2D/time_solve
