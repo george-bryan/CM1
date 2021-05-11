@@ -193,7 +193,7 @@
     real :: bri,ubar,vbar,thvflux,tmpprt,thf1,thf2,gamfac,ws
     real, dimension(ib:ie,jb:je) :: tmpqsfc,govthv,thvsfc,thv1
 
-    !$acc data create(wavg,wvar,thvavg,qvavg,qlavg,qtavg,thlavg,wsp,savg,qcrit)
+    !$acc data create(wavg,wvar,thvavg,qvavg,qlavg,qtavg,thlavg,wsp,wspa,savg,qcrit)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
@@ -480,8 +480,6 @@
         savg2d = vmove
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-!BLOCK01
-#if 0
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -692,6 +690,7 @@
       qvfavg = savg2d
     ENDIF
 
+!HERE
       !c-c-c-c-c-c-c-c-c-c
 
     sfcmodel1:  &
@@ -855,6 +854,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
+!BLOCK01
+#if 0
     sfcstuff:  &
     IF( sfcmodel.ge.1 )THEN
 
@@ -2764,7 +2765,6 @@
 
       ENDIF
 
-!HERE
       !c-c-c-c-c-c-c-c-c-c
 
       IF( imoist.eq.1 .and. ptype.eq.5 .and. getvt )THEN
@@ -4729,14 +4729,13 @@
         !PORTME
         savg = 0.0
 
+        savg(1) = grads_undef
         !$acc parallel loop gang vector default(present) private(k)
         do k=2,nk
 !!!          savg(k) = (wsp(k)-wsp(k-1))*rdz*mf(1,1,k)*karman*zf(1,1,k)/ustbar
           ! 180212:
           savg(k) = (wsp(k)-wsp(k-1))/(wspa(k)-wspa(k-1))
         enddo
-
-        savg(1) = grads_undef
         savg(nk+1) = grads_undef
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -4866,6 +4865,9 @@
         enddo
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+!END-BLOCK05
+#endif
+
         nvar = nvar+1
         varname(nvar) = 'u0'
         vardesc(nvar) = 'base-state u'
@@ -4887,6 +4889,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
 !!!      ENDIF
+!HERE
 
 
       IF( testcase.eq.6 .or. testcase.eq.10 )THEN
@@ -4964,8 +4967,6 @@
 
       ENDIF  lsn
 
-!END-BLOCK05
-#endif
     
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

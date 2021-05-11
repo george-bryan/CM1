@@ -3678,6 +3678,7 @@
     !!$acc copyin(th3d,q3d,u3d,v3d,w3d,prs, &
 
     !$acc data &
+    !!$acc copyin(ug,vg) &
     !$acc copyin(th3d,prate,pi0) &
     !$acc copy(thten1) &
     !$acc copy(pavg,uavg,vavg,thavg)
