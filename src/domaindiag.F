@@ -690,7 +690,6 @@
       qvfavg = savg2d
     ENDIF
 
-!HERE
       !c-c-c-c-c-c-c-c-c-c
 
     sfcmodel1:  &
@@ -854,11 +853,13 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-!BLOCK01
-#if 0
     sfcstuff:  &
     IF( sfcmodel.ge.1 )THEN
 
+!BLOCK01c
+#if 0
+
+      !this causes a code bug
       nvar = nvar+1
       varname(nvar) = 'wspd'
       vardesc(nvar) = 'sfc layer wind speed (with gust)'
@@ -990,6 +991,8 @@
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       molbar = savg2d
+!END-BLOCK01C
+#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -1077,14 +1080,14 @@
       call getavg2d( dum1(ib,jb,1) ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-      !----
-
     endif
 
       !c-c-c-c-c-c-c-c-c-c
 
     ENDIF  sfcstuff
 
+!BLOCK01
+#if 0
       !c-c-c-c-c-c-c-c-c-c
 
     ziflag:  &
@@ -4889,7 +4892,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
 !!!      ENDIF
-!HERE
 
 
       IF( testcase.eq.6 .or. testcase.eq.10 )THEN
@@ -5427,8 +5429,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
-!BLOCK06
-#if 0
 
         nvar = nvar+1
         varname(nvar) = 'upvp_w'
@@ -5446,6 +5446,7 @@
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+!HERE
       !c-c-c-c-c-c-c-c-c-c
 
         nvar = nvar+1
@@ -5536,6 +5537,8 @@
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+!BLOCK06
+#if 0
       !c-c-c-c-c-c-c-c-c-c
 
         !PORTME
@@ -7400,6 +7403,9 @@
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+!END-BLOCK06 
+#endif
+
       !c-c-c-c-c-c-c-c-c-c
       print *,'point #29.0.9'
 
@@ -7495,6 +7501,7 @@
 
       endif
 
+!HERE
       print *,'point #29.3'
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7742,6 +7749,7 @@
       print *,'point #29.10'
       !c-c-c-c-c-c-c-c-c-c
 
+
       if( vd_pbl.ge.1 )then
 
         nvar = nvar+1
@@ -7763,6 +7771,8 @@
 
       endif
 
+!BLOCK06a 
+#if 0
       print *,'point #29.11'
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7810,6 +7820,8 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
+!END-BLOCK06a
+#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7902,6 +7914,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
+
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -8157,9 +8170,8 @@
 
       endif
 
+!HERE
       !c-c-c-c-c-c-c-c-c-c
-!END-BLOCK06
-#endif
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

@@ -3679,7 +3679,9 @@
 
     !$acc data &
     !!$acc copyin(ug,vg) &
+    !$acc copyin(rmol,brcr,phim,phih,psim,psih) &
     !$acc copyin(th3d,prate,pi0) &
+    !!$acc copyin(vlspg) &
     !$acc copy(thten1) &
     !$acc copy(pavg,uavg,vavg,thavg)
     if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
