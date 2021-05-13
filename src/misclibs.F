@@ -1123,6 +1123,11 @@
       double precision :: a1,a2,tem
       double precision, dimension(nj) :: budj
       double precision, dimension(nk) :: budk
+      double precision :: budt
+      !$acc declare &
+      !$acc present(ruh,rvh,rmh,rho,q3d) &
+      !$acc present( dum2d1,dum2d2,dum2d3,dum2d4,dum2d5)
+      !$acc data create(budk)
 
 !----------------------------------------------------------------------
 
@@ -1130,13 +1135,20 @@
 
       IF(pdscheme.eq.1)THEN
 
-        dum2d1 = 0.0
-        dum2d2 = 0.0
-        dum2d3 = 0.0
-        dum2d4 = 0.0
-        dum2d5 = 0.0
+        
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+        do j=jb,je
+        do i=ib,ie
+          dum2d1(i,j) = 0.0
+          dum2d2(i,j) = 0.0
+          dum2d3(i,j) = 0.0
+          dum2d4(i,j) = 0.0
+          dum2d5(i,j) = 0.0
+        enddo
+        enddo
 
         do k=1,nk
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           ! t1
@@ -1150,7 +1162,9 @@
         enddo
         enddo
 
+
         k = 1
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           ! t3
@@ -1163,6 +1177,7 @@
         enddo
 
         do k=2,nk
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           q3d(i,j,k)=dum2d4(i,j)*q3d(i,j,k)
@@ -1172,6 +1187,7 @@
         enddo
         enddo
 
+        !$acc parallel loop gang vector collapse(2) default(present) reduction(+:asq)
         do j=1,nj
         do i=1,ni
           asq=asq+(dum2d5(i,j)-dum2d2(i,j))*tem
@@ -1180,21 +1196,25 @@
 
       ELSE
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,a1,a2)
+        !$omp parallel do default(shared) private(i,j,k,a1,a2)
+        !$acc parallel loop default(present) private(k) reduction(+:budt) 
         do k=1,nk
-        budk(k)=0.0d0
-        do j=1,nj
-        do i=1,ni
+          budt = 0.0d0
+          !$acc loop gang vector collapse(2) private(i,j,a1,a2) reduction(+:budt)
+          do j=1,nj
+          do i=1,ni
           a1=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
 !!!          q3d(i,j,k)=max(0.0,q3d(i,j,k))
           if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
           a2=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
-          budk(k)=budk(k)+a2-a1
-        enddo
-        enddo
+          !budk(k)=budk(k)+a2-a1
+          budt=budt+(a2-a1)
+          enddo
+          enddo
+          budk(k)=budt
         enddo
 
+        !$acc parallel loop gang vector default(present) private(k) reduction(+:asq)
         do k=1,nk
           asq=asq+budk(k)*tem
         enddo
@@ -1202,7 +1222,7 @@
       ENDIF
 
 !----------------------------------------------------------------------
-
+      !$acc end data
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
       end subroutine pdefqtest

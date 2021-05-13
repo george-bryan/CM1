@@ -2297,7 +2297,6 @@
     ENDIF
 
     IF( do_ib .and. vadvordrv.ge.3 )THEN
-      !JMD not currently executed
       IF( doweno )THEN
         print *,'before call to ib_lwr_weno'
         call   ib_lwr_weno( 3 ,ni,nj+1,nk,c1,c2,rrw,dumz,v3d,kbdy,vadvordrv,weps)

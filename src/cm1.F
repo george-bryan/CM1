@@ -2749,7 +2749,6 @@
     !$acc copyin(qbudget,asq,bsq) &
     !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
     !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
-    !!$acc copyin(thten1) &
     !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1)
 
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
@@ -2761,67 +2760,6 @@
 #ifdef _OPENACC
         call nvtxStartRange("H2D ",id=1)
 #endif
-
-        !MOVED out of timestep loop
-        !!$acc copyin(xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
-        !!$acc   yh,vh,rvh,yf,vf,rvf,rds,sigma,rdsf,sigmaf,zh,mh,rmh,zf,mf,rmf, &
-        !!$acc   zs,gz,rgz,gzu,rgzu,gzv,rgzv,dzdx,dzdy,gx,gxu,gy,gyv) &
-        !!$acc copyin( &
-        !!$acc   c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw,u1b,v1b, &
-        !!$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
-        !!$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland, &
-    !!$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
-    !!$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
-    !!$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
-    !!$acc copy(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
-    !!$acc copy(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
-    !!$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
-    !!$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
-    !!$acc copy(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
-    !!$acc copy(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
-    !!$acc copy(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
-    !!$acc copy(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
-    !!$acc copy(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-    !!$acc copy(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
-    !!$acc copy(udiag,vdiag,wdiag,kdiag,tdiag,qdiag) &
-        !!$acc copy(defv,defh,lenscl,dissten, &
-        !!$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
-        !!$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,dsxy,cda,psim,psih, &
-        !!$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z)
-        !!$acc copyin( &
-        !!$acc   sw31,sw32,se31,se32,ss31,ss32,sn31,sn32, &
-        !!$acc   uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u, &
-        !!$acc   p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3, &
-        !!$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
-        !!$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
-        !!$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
-        !!$acc   kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
-        !!$acc copy(rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1) &
-        !!$acc copy(stau,ustt,ut,vt,st,cd,ch,cq,u1,v1,s1,t1) &
-        !!$acc copy(znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
-        !!$acc copy(sws,svs,sps,srs,sgs,sus,shs)
-        !!$acc copy(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
-        !!$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
-        !!$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
-        !!$acc copy(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
-        !!$acc copy(u0,v0) &
-        !!$acc copy(rho,rr,rf,prs,o30,zir)  &
-        !!$acc copy(qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen) &
-        !!$acc copy(tke_myj,xkzh,xkzq,xkzm) &
-        !!$acc copy(effc,effi,effs,effr,effg,effis,out2d,out3d)   ! physics only 
-        !!$acc copy(flag)
-        !!$acc copy(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
-        !!$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0) &
-        !!$acc copy(xfref,xhref,yfref,yhref,dvdr) &
-        !!$acc copyin(prs0,rth0,qc0) &
-        !!$acc copy(rain,p3a,p3o) ! physics only &
-        !!$acc copy(ppi,pp3d,ppten,sadv,ppx,tha) &
-        !!$acc copy(thten1,thterm,ulspg,vlspg) &
-
-        !!OTHER BLOCK 
-        !!$acc data &
-        !!$acc copyin(th3d,prate,pi0) &
-        !!$acc copy(uavg,vavg,thavg,pavg)
 
         !$acc data &
         !$acc copyin(pi0) &
@@ -3674,26 +3612,15 @@
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
-    !MOVE out of timestep loop 
-    !!$acc copyin(th3d,q3d,u3d,v3d,w3d,prs, &
+    !!$acc copyin(ug,vg) &
+    !!$acc copyin(vlspg) &
 
     !$acc data &
-    !!$acc copyin(ug,vg) &
     !$acc copyin(rmol,brcr,phim,phih,psim,psih) &
     !$acc copyin(th3d,prate,pi0) &
-    !!$acc copyin(vlspg) &
     !$acc copy(thten1) &
     !$acc copy(pavg,uavg,vavg,thavg)
     if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
-
-    !ORIGINAL
-    !!$acc data &
-    !!$acc copyin(th0,th3d,q3d,u3d,v3d,w3d,prs, &
-    !!$acc     prate,rho,rmh,pi0,pp3d,zh) &
-    !!$acc copy(th,thv,ql,qice, &
-    !!$acc     dum1,dum2,dum4,dum5,dum6,&
-    !!$acc     uavg,vavg,wavg,wvar,thavg,thvavg,pavg,wsp) &
-    !!$acc create(savg)
 
     IF( dodomaindiag )THEN
       if( dotdwrite )then

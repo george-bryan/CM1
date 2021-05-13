@@ -198,7 +198,6 @@
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
     if( myid.eq.0 ) print *
-    print *,'domaindiag: point #1'
 
     !$acc parallel loop gang vector default(present) private(k)
     do k=kb,ke
@@ -6916,7 +6915,6 @@
         enddo
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-      print *,'point #29.0.1'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7026,7 +7024,6 @@
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'point #29.0.2'
 
       if( ud_vidiff.ge.1 )then
 
@@ -7129,7 +7126,6 @@
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'point #29.0.3'
 
       if( ud_vturb.ge.1 )then
 
@@ -7186,7 +7182,6 @@
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'point #29.0.4'
 
       if( ud_rdamp.ge.1 )then
 
@@ -7215,7 +7210,6 @@
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'point #29.0.5'
 
       if( ud_cor.ge.1 )then
 
@@ -7244,7 +7238,6 @@
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'point #29.0.6'
 
       if( ud_cent.ge.1 )then
 
@@ -7268,7 +7261,6 @@
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'point #29.0.7'
 
       if( ud_pbl.ge.1 )then
 
@@ -7356,7 +7348,6 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      print *,'point #29.0.8'
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -7407,7 +7398,6 @@
 #endif
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'point #29.0.9'
 
       if( vd_hadv.ge.1 )then
 
@@ -7438,7 +7428,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      print *,'point #29.1'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7472,7 +7461,6 @@
 
       endif
 
-      print *,'point #29.2'
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_hidiff.ge.1 )then
@@ -7502,7 +7490,6 @@
       endif
 
 !HERE
-      print *,'point #29.3'
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_vidiff.ge.1 )then
@@ -7531,7 +7518,6 @@
 
       endif
 
-      print *,'point #29.4'
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_hediff.ge.1 )then
@@ -7554,7 +7540,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      print *,'point #29.5'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7579,7 +7564,6 @@
 
       endif
 
-      print *,'point #29.6'
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_hturb.ge.1 )then
@@ -7635,7 +7619,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      print *,'point #29.7'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7664,7 +7647,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      print *,'point #29.8'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7721,7 +7703,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      print *,'point #29.9'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7746,7 +7727,6 @@
 
       endif
 
-      print *,'point #29.10'
       !c-c-c-c-c-c-c-c-c-c
 
 
@@ -7773,7 +7753,6 @@
 
 !BLOCK06a 
 #if 0
-      print *,'point #29.11'
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_lsw.ge.1 )then
@@ -7802,7 +7781,6 @@
 
       endif
 
-      print *,'point #29.12'
       !c-c-c-c-c-c-c-c-c-c
 
       IF( lspgrad.ge.1 )THEN
@@ -7840,7 +7818,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
-      print *,'point #29.13'
 
       !c-c-c-c-c-c-c-c-c-c
 
