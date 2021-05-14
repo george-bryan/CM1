@@ -80,14 +80,18 @@
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
 #endif
-  !$acc update &
-  !$acc   host(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
+!  !$acc update &
+!  !$acc   host(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
+!  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
+!  !$acc     pi0,rho0,thv0,th0,qv0,dum1,dum2,dum3,dum4,dum5,rho,prs, &
+!  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
+!  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)      
+           
+!$acc data copy(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
   !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
   !$acc     pi0,rho0,thv0,th0,qv0,dum1,dum2,dum3,dum4,dum5,rho,prs, &
   !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
-  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
-      
-                 
+  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)      
 
 !-----------------------------------------------------------------------
 #ifdef MPI
@@ -185,6 +189,7 @@
               !                          /(sigmaf(nkm+1)-sigmaf(nkm))
               r2 = (zlev-sigmaf(nkm))/(sigmaf(nkm+1)-sigmaf(nkm))
               r1 = 1.0-r2
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
               do j=1,nj
               do i=1,ni
                 dum1(i,j,1) = r1*wa(i,j,nkm)+r2*wa(i,j,nkm+1)
@@ -192,6 +197,7 @@
               enddo
             ELSE
               ! with terrain:
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,nkm,r1,r2)
               do j=1,nj
               do i=1,ni
                 nkm = nk+1
@@ -205,6 +211,7 @@
               enddo
             ENDIF
           else
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
@@ -233,6 +240,7 @@
       if(stat_prspert.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -300,6 +308,7 @@
       IF(axisymm.eq.0)THEN
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -316,6 +325,7 @@
       ELSE
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -336,6 +346,7 @@
         if(stat_rh.eq.1 .or. stat_the.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,qvs)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -354,6 +365,7 @@
         if(iice.eq.1 .and. stat_rhi.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,qvs)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -400,6 +412,7 @@
         if(stat_cloud.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -411,6 +424,7 @@
             if(cloudvar(n))then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
               do k=1,nk
               do j=1,nj
               do i=1,ni
@@ -426,6 +440,7 @@
 
       if(stat_sfcprs.eq.1)then
         call maxmin2d(ni,nj,prs(ib,jb,1),nstat,rstat,'SFPMAX','SFPMIN')
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum1(i,j,1) = cgs1*prs(i,j,1)+cgs2*prs(i,j,2)+cgs3*prs(i,j,3)
@@ -437,6 +452,7 @@
       if(stat_wsp.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -456,6 +472,7 @@
       IF(bbc.eq.3)THEN
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum1(i,j,1)=sqrt( u10(i,j)**2 + v10(i,j)**2 )
@@ -479,6 +496,7 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -493,6 +511,7 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -525,6 +544,7 @@
           if(ptype.eq.1.or.ptype.eq.2)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -535,6 +555,7 @@
           elseif(ptype.eq.6)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -545,6 +566,7 @@
           else
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -556,6 +578,7 @@
         else
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -657,13 +680,12 @@
   ENDIF
 
   ENDIF  dostats
-
+!$acc end data
 !  !$acc update &
 !  !$acc   device(qbudget,asq,bsq, &
 !  !$acc     dum1,dum2,dum3,dum4,dum5) &
 !  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
 !  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
-
 
       end subroutine statpack
 
