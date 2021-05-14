@@ -1147,8 +1147,9 @@
         enddo
         enddo
 
+        !$acc parallel default(present) private(i,j,k)
         do k=1,nk
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           ! t1
@@ -1161,6 +1162,7 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
 
 
         k = 1
@@ -1176,8 +1178,9 @@
         enddo
         enddo
 
+        !$acc parallel default(present) private(i,j,k)
         do k=2,nk
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           q3d(i,j,k)=dum2d4(i,j)*q3d(i,j,k)
@@ -1186,6 +1189,7 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
 
         !$acc parallel loop gang vector collapse(2) default(present) reduction(+:asq)
         do j=1,nj

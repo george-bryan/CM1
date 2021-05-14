@@ -2741,6 +2741,7 @@
     !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
     !$acc copyin(rho,rr,rf,prs,o30,zir)  &
     !$acc copyin(flag) &
+    !$acc copyin(pi0) &
     !$acc copyin(tke_myj,xkzh,xkzq,xkzm) &
     !$acc copyin(xfref,xhref,yfref,yhref,dvdr) &
     !$acc copyin(qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen) &
@@ -2749,7 +2750,9 @@
     !$acc copyin(qbudget,asq,bsq) &
     !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
     !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
+    !$acc copyin(thten1,thterm) &
     !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1)
+    !!$acc copyin(rmol,brcr,phim,phih) &
 
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
@@ -2760,15 +2763,15 @@
 #ifdef _OPENACC
         call nvtxStartRange("H2D ",id=1)
 #endif
+        !!$acc copyin(pi0) &
 
         !$acc data &
-        !$acc copyin(pi0) &
         !$acc copyin(ug,vg) &
         !$acc copyin(dt,reqs_s,reqs_u,reqs_p3, &
         !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) & 
         !$acc copy(savg,pavg,uavg,thavg,vavg) &
         !$acc copyin(lsnudge_u, lsnudge_v) &
-        !$acc copy(thten1,thterm,ulspg,vlspg) &
+        !$acc copy(ulspg,vlspg) &
         !$acc copy(th3d,prate)
 
         if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
@@ -3612,13 +3615,9 @@
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
-    !!$acc copyin(ug,vg) &
-    !!$acc copyin(vlspg) &
 
     !$acc data &
-    !$acc copyin(rmol,brcr,phim,phih,psim,psih) &
-    !$acc copyin(th3d,prate,pi0) &
-    !$acc copy(thten1) &
+    !$acc copyin(th3d,prate) &
     !$acc copy(pavg,uavg,vavg,thavg)
     if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
 

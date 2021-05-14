@@ -42,30 +42,30 @@
       double precision, dimension(nbudget) :: qbudget
       double precision, dimension(numq) :: asq,bsq
       character(len=40), intent(in), dimension(maxvars) :: name_stat,desc_stat,unit_stat
-      real, dimension(ib:ie) :: xh,rxh,uh,ruh
-      real, dimension(ib:ie+1) :: xf,uf
-      real, dimension(jb:je) :: yh,vh,rvh
-      real, dimension(jb:je+1) :: vf
-      real, dimension(ib:ie,jb:je,kb:ke) :: zh,mh,rmh
-      real, dimension(ib:ie,jb:je,kb:ke+1) :: zf,mf
+      real, intent(in), dimension(ib:ie) :: xh,rxh,uh,ruh
+      real, intent(in), dimension(ib:ie+1) :: xf,uf
+      real, intent(in), dimension(jb:je) :: yh,vh,rvh
+      real, intent(in), dimension(jb:je+1) :: vf
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh,mh,rmh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf,mf
       real, intent(in), dimension(ib:ie,jb:je) :: zs
       real, intent(in), dimension(itb:ite,jtb:jte) :: rgzu,rgzv
       real, intent(in), dimension(kb:ke) :: rds,sigma
       real, intent(in), dimension(kb:ke+1) :: rdsf,sigmaf
       real, dimension(stat_out) :: rstat
-      real, dimension(ib:ie,jb:je,kb:ke), intent(in) :: pi0,rho0,thv0,th0,qv0
-      real, dimension(ib:ie,jb:je,kb:ke) :: dum1,dum2,dum3,dum4,dum5,rho,prs
-      real, dimension(ib:ie+1,jb:je,kb:ke) :: u0,ua
-      real, dimension(ib:ie,jb:je+1,kb:ke) :: v0,va
-      real, dimension(ib:ie,jb:je,kb:ke+1) :: wa
-      real, dimension(ib:ie,jb:je,kb:ke) :: ppi,tha
-      real, dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: qa,vq
-      real, dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
-      real, dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: pi0,rho0,thv0,th0,qv0
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: dum1,dum2,dum3,dum4,dum5,rho,prs
+      real, intent(in), dimension(ib:ie+1,jb:je,kb:ke) :: u0,ua
+      real, intent(in), dimension(ib:ie,jb:je+1,kb:ke) :: v0,va
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: ppi,tha
+      real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: qa,vq
+      real, intent(in), dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
+      real, intent(in), dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea
       real, intent(in), dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: qke
       real, intent(in), dimension(ibmyj:iemyj,jbmyj:jemyj,kbmyj:kemyj) :: tke_myj
       real, intent(in), dimension(ibb:ieb,jbb:jeb,kbb:keb) :: xkzh,xkzq,xkzm
-      real, dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
+      real, intent(in), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
       real, intent(in), dimension(ibl:iel,jbl:jel) :: u10,v10,hpbl
       real, intent(in), dimension(ib:ie,jb:je) :: prate
       logical, intent(inout) :: reset
@@ -658,14 +658,11 @@
 
   ENDIF  dostats
 
-  !$acc update &
-  !$acc   device(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
-  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
-  !$acc     dum1,dum2,dum3,dum4,dum5,rho,prs, &
-  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
-  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
-
-  !!$acc     pi0,rho0,thv0,th0,qv0, &
+!  !$acc update &
+!  !$acc   device(qbudget,asq,bsq, &
+!  !$acc     dum1,dum2,dum3,dum4,dum5) &
+!  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
+!  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
 
 
       end subroutine statpack
