@@ -21,6 +21,7 @@
       integer, dimension(nk+1) :: imaxt,jmaxt,kmaxt,imint,jmint,kmint
       real, dimension(nk+1) :: tmax,tmin
       real :: fmax,fmin,rmax,rmin
+      real :: tmaxt, tmint
       integer :: loc
       real, dimension(2) :: mmax,nmax,mmin,nmin
 
@@ -32,45 +33,40 @@
       imax = 1
       jmax = 1
       kmax = 1
-
 !$omp parallel do default(shared)    &
 !$omp private(i,j,k)
       do k=1,kzz
-        tmax(k)= -1.e30
-        tmin(k)=  1.e30
+        tmaxt= -1.e30
+        tmint= -1.e30
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,tmaxt,tmint) reduction(min:tmint) reduction(max:tmaxt)
         do j=1,jzz
         do i=1,izz
-          if(f(i,j,k).gt.tmax(k))then
-            tmax(k)=f(i,j,k)
+          tmaxt = max(f(i,j,k),tmaxt)
+          tmint = min(f(i,j,k),tmint)
+        enddo
+        enddo
+        tmax(k)=tmaxt
+        tmin(k)=tmint
+      enddo
+
+!$omp parallel do default(shared)    &
+!$omp private(i,j,k)
+!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k) 
+      do k=1,kzz
+        do j=1,jzz
+        do i=1,izz
+          if(f(i,j,k).eq.tmax(k))then
             imaxt(k)=i
             jmaxt(k)=j
             kmaxt(k)=k
           endif
-          if(f(i,j,k).lt.tmin(k))then
-            tmin(k)=f(i,j,k)
+          if(f(i,j,k).eq.tmin(k))then
             imint(k)=i
             jmint(k)=j
             kmint(k)=k
           endif
         enddo
         enddo
-      enddo
-
-      fmax= -1.e30
-      fmin=  1.e30
-      do k=1,kzz
-        if(tmax(k).gt.fmax)then
-          fmax=tmax(k)
-          imax=imaxt(k)
-          jmax=jmaxt(k)
-          kmax=kmaxt(k)
-        endif
-        if(tmin(k).lt.fmin)then
-          fmin=tmin(k)
-          imin=imint(k)
-          jmin=jmint(k)
-          kmin=kmint(k)
-        endif 
       enddo
 
 #ifdef MPI
@@ -115,7 +111,7 @@
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
- 
+
       end subroutine maxmin
 
 
@@ -143,6 +139,7 @@
       integer, dimension(jzz) :: imaxt,jmaxt,imint,jmint
       real, dimension(jzz) :: tmax,tmin
       real :: fmax,fmin,rmax,rmin
+      real :: tmaxt,tmint 
       integer :: loc
       real, dimension(2) :: mmax,nmax,mmin,nmin
           
@@ -150,17 +147,29 @@
 
 !$omp parallel do default(shared)    &
 !$omp private(i,j)
+!$acc parallel loop private(i,j,tmaxt,tmint) reduction(min:tmint) reduction(max:tmaxt)
       do j=1,jzz
-        tmax(j)= -1.e30
-        tmin(j)=  1.e30
+        tmaxt= -1.e30
+        tmint=  1.e30
+!$acc loop reduction(min:tmint) reduction(max:tmaxt)
         do i=1,izz
-          if(f(i,j).gt.tmax(j))then
-            tmax(j)=f(i,j)
+            tmaxt=max(f(i,j),tmaxt)
+            tmint=min(f(i,j),tmint)
+        enddo
+        tmax(j)=tmaxt
+        tmin(j)=tmint
+      enddo
+
+!$omp parallel do default(shared)    &
+!$omp private(i,j)
+!$acc parallel loop gang vector collapse(2) copyin(tmax, tmin) copy(imaxt,jmaxt,imint,jmint) private(i,j)
+      do j=1,jzz
+        do i=1,izz
+          if(f(i,j).eq.tmax(j))then
             imaxt(j)=i
             jmaxt(j)=j
           endif
-          if(f(i,j).lt.tmin(j))then
-            tmin(j)=f(i,j)
+          if(f(i,j).eq.tmin(j))then
             imint(j)=i
             jmint(j)=j
           endif
