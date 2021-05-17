@@ -87,12 +87,6 @@
 !  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
 !  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)      
            
-!$acc data copy(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
-  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
-  !$acc     pi0,rho0,thv0,th0,qv0,dum1,dum2,dum3,dum4,dum5,rho,prs, &
-  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
-  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)      
-
 !-----------------------------------------------------------------------
 #ifdef MPI
       cfoo = 0.0
@@ -680,7 +674,6 @@
   ENDIF
 
   ENDIF  dostats
-!$acc end data
 !  !$acc update &
 !  !$acc   device(qbudget,asq,bsq, &
 !  !$acc     dum1,dum2,dum3,dum4,dum5) &

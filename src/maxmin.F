@@ -33,7 +33,6 @@
       imax = 1
       jmax = 1
       kmax = 1
-!$acc data copyin(f) copy(imaxt,jmaxt,kmaxt,imint,jmint,kmint,tmax,tmin) 
 !$omp parallel do default(shared)    &
 !$omp private(i,j,k)
       do k=1,kzz
@@ -49,7 +48,6 @@
         tmax(k)=tmaxt
         tmin(k)=tmint
       enddo
-!$acc compare(tmax,tmin)
 
 !$omp parallel do default(shared)    &
 !$omp private(i,j,k)
@@ -70,8 +68,6 @@
         enddo
         enddo
       enddo
-!$acc compare(imaxt,jmaxt,kmaxt,imint,jmint,kmint)
-!$acc end data
 
 #ifdef MPI
       mmax(1)=fmax
@@ -115,7 +111,7 @@
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
- 
+
       end subroutine maxmin
 
 
@@ -151,7 +147,6 @@
 
 !$omp parallel do default(shared)    &
 !$omp private(i,j)
-!$acc data copyin(f) copy(imaxt,jmaxt,imint,jmint,tmax,tmin) 
 !$acc parallel loop private(i,j,tmaxt,tmint) reduction(min:tmint) reduction(max:tmaxt)
       do j=1,jzz
         tmaxt= -1.e30
@@ -180,7 +175,7 @@
           endif
         enddo
       enddo
-!$acc end data
+
       fmax= -1.e30
       fmin=  1.e30
       do j=1,jzz
