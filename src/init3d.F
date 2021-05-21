@@ -276,6 +276,7 @@
 !-----------------------------------------------------------------------
 !  Set qv to base state value:
 
+    im1:  &
     IF(imoist.eq.1)THEN
 
       do k=kbm,kem
@@ -287,6 +288,9 @@
       enddo
 
 !---- This is here to ensure that certain idealized cases work ----
+
+    pt1:  &
+    IF( ptype.ge.1 )THEN
 
       IF( (isnd.eq.4 .or. isnd.eq.9 .or. isnd.eq.10 .or. isnd.eq.11 .or. isnd.eq.15) )THEN
 
@@ -312,7 +316,9 @@
 
       ENDIF
 
-    ENDIF
+    ENDIF  pt1
+
+    ENDIF  im1
 
 !-----
 

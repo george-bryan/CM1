@@ -201,8 +201,6 @@
       real :: sfenth,ens_Cdamp
       logical :: lcurr_sf,pert_cd
       integer, dimension(ibl:iel,jbl:jel) :: isltyp
-      real, dimension(nk) :: zh1d
-      real, dimension(nk+1) :: zf1d
       real :: ens_pblamp
       logical :: pert_pbl
 
@@ -221,7 +219,11 @@
 
       if( ramp_up_turb )then
         ! ramp up sgs turbulence near beginning of simulation:
-        turbfac = (rtime-0.0)/(1800.0)
+        if(testcase.eq.11)then
+          turbfac = (rtime-0.0)/(7200.0)
+        else
+          turbfac = (rtime-0.0)/(1800.0)
+        endif
         turbfac = max(0.0,turbfac)
         turbfac = min(1.0,turbfac)
         if(myid.eq.0.and.turbfac.lt.0.999) print *,'  turbfac = ',turbfac
@@ -408,34 +410,53 @@
       ! now, divx stores qv
       !      dum7 stores ql+qi
 
+      ! GHB, 210521: copied from gpu-opt:
       IF(imoist.eq.1)THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,n)
-          DO j=1,nj
-            do k=1,nk
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        DO k=1,nk
+          do j=1,nj
+          do i=1,ni
+            divx(i,j,k) = qa(i,j,k,nqv)
+            dum7(i,j,k) = 0.0
+          enddo
+          enddo
+        ENDDO
+      IF( nql1.gt.0 )THEN
+        !$acc parallel default(present) private(n,i,j,k)
+        do n=nql1,nql2
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc loop gang vector collapse(3)
+        DO k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
+          enddo
+          enddo
+        ENDDO
+        enddo
+      ENDIF
+        !$acc end parallel 
+        IF(iice.eq.1)THEN
+          !$acc parallel default(present) private(n,i,j,k)
+          do n=nqs1,nqs2
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc loop gang vector collapse(3)
+          DO k=1,nk
+          do j=1,nj
             do i=1,ni
-              divx(i,j,k) = qa(i,j,k,nqv)
-              dum7(i,j,k) = 0.0
+              dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
             enddo
-            enddo
-            do n=nql1,nql2
-              do i=1,ni
-                dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
-              enddo
-            enddo
-            IF(iice.eq.1)THEN
-              do n=nqs1,nqs2
-                do i=1,ni
-                  dum7(i,j,k)=dum7(i,j,k)+qa(i,j,k,n)
-                enddo
-              enddo
-            ENDIF
+          enddo
           ENDDO
+          enddo
+          !$acc end parallel
+        ENDIF
       ELSE
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,n)
-          DO j=1,nj
-            do k=1,nk
+          !$omp parallel do default(shared) private(i,j,k,n)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
+          DO k=1,nk
+            do j=1,nj
             do i=1,ni
               divx(i,j,k) = 0.0
               dum7(i,j,k) = 0.0
@@ -655,7 +676,7 @@
                        GZ1OZ0,WSPD,BR,ISFFLX,dsxy,                   &
                        SVP1,SVP2,SVP3,SVPT0,EP1,EP2,                 &
                        KARMAN,EOMEG,STBOLT,                          &
-                       P1000mb,                                      &
+                       P1000mb,rtime,                                &
                        1  ,ni+1 , 1  ,nj+1 , 1  ,nk+1 ,              &
                        ib ,ie , jb ,je , kb ,ke ,                    &
                        1  ,ni , 1  ,nj , 1  ,nk ,                    &
@@ -796,7 +817,7 @@
           ifsnow = 0
           dtmin = dt/60.0
 
-        IF( update_sfc )THEN
+        IF( update_sfc .and. testcase.ne.11 )THEN
           ! slab scheme (MM5/WRF):
           call SLAB(dum4,divx,prs,FLHC,FLQC,                        &
                        PSFC,XLAND,TMN,HFX,QFX,LH,TSK,QSFC,CHKLOWQ,  &
@@ -897,6 +918,7 @@
               qvflux(i,j) = qfx(i,j)/rf(i,j,1)
             enddo
             enddo
+            if(myid.eq.0) print *,'  thflux,qvflux = ',thflux(1,1),qvflux(1,1)
           ENDIF
 
         ENDIF
@@ -1686,13 +1708,6 @@
         ep1 = rv/rd - 1.0
         ep2 = rd/rv
         rovg = rd/g
-
-        do k=1,nk
-          zh1d(k) = zh(1,1,k)
-        enddo
-        do k=1,nk+1
-          zf1d(k) = zf(1,1,k)
-        enddo
 
         if( sfcmodel.ne.4 )then
           do j=1,nj
@@ -4327,6 +4342,18 @@
 
     ELSE
 
+    if( ptype.eq.0 )then
+      !$omp parallel do default(shared)  &
+      !$omp private(i,j,k)
+      do k=1,nk
+      do j=1,nj
+      do i=1,ni
+        qvci(i,j,k) = qa(i,j,k,nqv)
+        qt(i,j,k) = 0.0
+      enddo
+      enddo
+      enddo
+    else
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k)
       do k=1,nk
@@ -4337,6 +4364,7 @@
       enddo
       enddo
       enddo
+    endif
 
       IF( iice.eq.1 )THEN
       !$omp parallel do default(shared)  &
@@ -5584,6 +5612,8 @@
 !----------
 ! u-z:
 
+  IF( vadvordrv.eq.5 )THEN
+
     do k=4,nk-2
     do j=1,nj
     do i=1,ni+1
@@ -5661,8 +5691,16 @@
     enddo
     enddo
 
+  ELSE
+
+    dum1 = 0.0
+
+  ENDIF
+
 !----------
 ! v-z:
+
+  IF( vadvordrv.eq.5 )THEN
 
     do k=4,nk-2
     do j=1,nj+1
@@ -5741,6 +5779,12 @@
     enddo
     enddo
 
+  ELSE
+
+    dum2 = 0.0
+
+  ENDIF
+
 !----------
 
     do k=2,nk
@@ -5758,6 +5802,8 @@
 ! w-z:
 
   acheck2:  IF( axisymm.eq.0 )THEN
+
+  IF( vadvordrv.eq.5 )THEN
 
     do k=3,nk-2
     do j=1,nj
@@ -5835,6 +5881,12 @@
       endif
     enddo
     enddo
+
+  ELSE
+
+    dum1 = 0.0
+
+  ENDIF
 
   ELSE
 

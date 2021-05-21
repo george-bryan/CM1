@@ -386,6 +386,19 @@
         IF( imoist.eq.1 )THEN
           ! moist:
 
+        ifql:  &
+        if( nql1.le.0 )then
+
+          do k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum2(i,j,k)=0.0
+          enddo
+          enddo
+          enddo
+
+        else  ifql
+
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -403,6 +416,8 @@
           enddo
           enddo
           enddo
+
+        endif  ifql
 
           IF(iice.eq.1)THEN
 
@@ -1547,7 +1562,7 @@
 
       IF(imoist.eq.1)THEN
 
-        IF(nrk.eq.nrkmax.and.eqtset.eq.2)THEN
+        IF( nrk.eq.nrkmax .and. eqtset.eq.2 .and. ptype.ge.1 )THEN
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
           do k=1,nk

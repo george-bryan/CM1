@@ -2519,6 +2519,7 @@
 
       if( imoist.eq.1 )then
         ! microphysics:
+        if( ptype.eq.0  ) param_mp = 'water vapor only (no microphysics)'
         if( ptype.eq.1  ) param_mp = 'Kessler'
         if( ptype.eq.2  ) param_mp = 'NASA-GSFC version of LFO'
         if( ptype.eq.3  ) param_mp = 'Thompson'
@@ -2818,16 +2819,16 @@
       idmplus  = 0
       numq     = 1
       nqv      = 1
-      nql1     = 1
-      nql2     = 1
-      nqs1     = 1
-      nqs2     = 1
-      nnc1     = 1
-      nnc2     = 1
-      nzl1     = 1
-      nzl2     = 1
-      nvl1     = 1
-      nvl2     = 1
+      nql1     = -2
+      nql2     = -2
+      nqs1     = -2
+      nqs2     = -2
+      nnc1     = -2
+      nnc2     = -2
+      nzl1     = -2
+      nzl2     = -2
+      nvl1     = -2
+      nvl2     = -2
       nbudget  = 10
       budrain  = 1
       cloudvar = .false.
@@ -2843,7 +2844,36 @@
 !-----------------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !-----------------------------------------------------------------------
-        IF(ptype.eq.1)THEN        ! Kessler scheme
+
+        IF(ptype.eq.0)THEN        ! water vapor only
+
+          numq = 1
+          nqv = 1
+          cloudvar(1) = .false.
+          qname(1) = 'qv '
+          qunit(1) = 'kg/kg'
+          qmag( 1) = 1.0e-2
+
+          nbudget = 10
+
+          budname(1) = 'tcond '
+          budname(2) = 'tevac '
+          budname(3) = 'tauto '
+          budname(4) = 'taccr '
+          budname(5) = 'tevar '
+          budname(6) = 'train '
+          budname(7) = 'erain '
+          budname(8) = 'qsfc  '
+          budname(9) = 'esfc  '
+          budname(10) = 'erad  '
+
+          budrain = 6
+
+!-----------------------------------------------------------------------
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!-----------------------------------------------------------------------
+
+        ELSEIF(ptype.eq.1)THEN        ! Kessler scheme
 
           numq = 3    ! there are 3 q variables
 
@@ -4503,6 +4533,9 @@
 
       maxk = nk
 
+      maxk = min( maxk , nk )
+      maxk = max( maxk , 1 )
+
       if(dowr) write(outfile,*) '  maxk = ',maxk
       if(dowr) write(outfile,*)
 
@@ -5436,7 +5469,7 @@
       kd_adv   = 0
       kd_turb  = 0
 
-      IF( dodomaindiag .and. iusetke )THEN
+      IF( cm1setup.eq.1 .and. dodomaindiag .and. iusetke )THEN
 
         ibdk = ib
         iedk = ie

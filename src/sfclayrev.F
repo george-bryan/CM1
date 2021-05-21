@@ -20,7 +20,7 @@ CONTAINS
                      GZ1OZ0,WSPD,BR,ISFFLX,DX,                     &
                      SVP1,SVP2,SVP3,SVPT0,EP1,EP2,                 &
                      KARMAN,EOMEG,STBOLT,                          &
-                     P1000mb,                                      &
+                     P1000mb,rtime,                                &
                      ids,ide, jds,jde, kds,kde,                    &
                      ims,ime, jms,jme, kms,kme,                    &
                      its,ite, jts,jte, kts,kte,                    &
@@ -122,7 +122,7 @@ CONTAINS
       INTEGER,  INTENT(IN )   ::        ISFFLX
       REAL,     INTENT(IN )   ::        SVP1,SVP2,SVP3,SVPT0
       REAL,     INTENT(IN )   ::        EP1,EP2,KARMAN,EOMEG,STBOLT
-      REAL,     INTENT(IN )   ::        P1000mb
+      REAL,     INTENT(IN )   ::        P1000mb,rtime
 !
       REAL,     DIMENSION( ims:ime, jms:jme , kms:kme )           , &
                 INTENT(IN   )   ::                           dz8w
@@ -238,7 +238,7 @@ CONTAINS
                 QSFC(ims,j),LH(ims,j),rhocm1(ims,j),               &
                 GZ1OZ0(ims,j),WSPD(ims,j),BR(ims,j),ISFFLX,DX(ims,j),  &
                 SVP1,SVP2,SVP3,SVPT0,EP1,EP2,KARMAN,EOMEG,STBOLT,  &
-                P1000mb,                                           &
+                P1000mb,rtime,                                     &
                 ids,ide, jds,jde, kds,kde,                         &
                 ims,ime, jms,jme, kms,kme,                         &
                 its,ite, jts,jte, kts,kte                          &
@@ -265,7 +265,7 @@ CONTAINS
                      QSFC,LH,rhocm1,GZ1OZ0,WSPD,BR,ISFFLX,DX,      &
                      SVP1,SVP2,SVP3,SVPT0,EP1,EP2,                 &
                      KARMAN,EOMEG,STBOLT,                          &
-                     P1000mb,                                      &
+                     P1000mb,rtime,                                &
                      ids,ide, jds,jde, kds,kde,                    &
                      ims,ime, jms,jme, kms,kme,                    &
                      its,ite, jts,jte, kts,kte,                    &
@@ -286,7 +286,7 @@ CONTAINS
       INTEGER,  INTENT(IN )   ::        ISFFLX
       REAL,     INTENT(IN )   ::        SVP1,SVP2,SVP3,SVPT0
       REAL,     INTENT(IN )   ::        EP1,EP2,KARMAN,EOMEG,STBOLT
-      REAL,     INTENT(IN )   ::        P1000mb
+      REAL,     INTENT(IN )   ::        P1000mb,rtime
 
 !
       REAL,     DIMENSION( ims:ime )                             , &
@@ -397,6 +397,8 @@ CONTAINS
       REAL    :: zl2,zl10,z0t
       REAL,     DIMENSION( its:ite )        ::         pq,pq2,pq10
 
+      real :: thmag,qvmag,trat1,trat2,thflux,qvflux
+      real, parameter ::  pi     = 3.1415926535897932384626433
 
 !-------------------------------------------------------------------
       KL=kte
@@ -714,6 +716,12 @@ CONTAINS
 
 ! AHW: mods to compute ck, cd
         PSIQ10=ALOG(KARMAN*UST(I)*10./XKA+10./ZL)-pq10(I)
+
+        !......
+        ! SAS: thermal and heat roughness lengths are equal to znt
+        z0t = znt(i)
+        z0q = znt(i)
+        !......
 
 ! V3.7: using Fairall 2003 to compute z0q and z0t over water:
 !       adapted from module_sf_mynn.F
@@ -1048,8 +1056,24 @@ CONTAINS
 !!!        IF (SCM_FORCE_FLUX.EQ.1) GOTO 405
 !!!     ENDIF
 
+
       DO 370 I=its,ite
-        QFX(I)=FLQC(I)*(QSFC(I)-QX(I))                                     
+!!!        QFX(I)=FLQC(I)*(QSFC(I)-QX(I))                                     
+
+        !......
+        ! SAS case, specify flux as function of time:
+        ! (note: rtime is time since beginning of simulation, in seconds)
+        qvmag = 0.15e-3
+        if( rtime.le.7200.0 ) qvmag = 0.0
+        trat2 = ( rtime - 7200.0 ) / ( 3600.0*(19.5-7.0) )
+        qvflux = max( 0.0 , qvmag*sin( pi*trat2 ) )
+        ! kludge: set flux to a constant
+        qvflux = 0.15e-3
+        ! convert specific humidity to mixing ratio:
+        qvflux = qvflux/(1.0-qvflux)
+        QFX(I)=qvflux*rhox(i)
+        !......
+
         QFX(I)=AMAX1(QFX(I),0.)                                            
 !!!        LH(I)=XLV*QFX(I)
         LH(I)=( lv1-lv2*tsk(I) )*QFX(I)
@@ -1069,7 +1093,20 @@ CONTAINS
 !            ENDIF
 !         ENDIF 
         ELSEIF(XLAND(I)-1.5.LT.0.)THEN                                       
-          HFX(I)=FLHC(I)*(THGB(I)-THX(I))                                
+!!!          HFX(I)=FLHC(I)*(THGB(I)-THX(I))                                
+
+          !......
+          ! SAS case, specify flux as function of time:
+          ! (note: rtime is time since beginning of simulation, in seconds)
+          thmag = 0.1
+          if( rtime.le.3600.0 ) thmag = 0.0
+          trat1 = ( rtime - 3600.0 ) / ( 3600.0*(19.5-6.0) )
+          thflux = max( 0.0 , thmag*sin( pi*trat1 ) )
+          ! kludge: set flux to a constant
+          thflux = 0.1
+          HFX(I)=thflux*rhox(i)*cpm(i)
+          !......
+
           HFX(I)=AMAX1(HFX(I),-250.)                                       
         ENDIF                                                                  
   400 CONTINUE                                                                 

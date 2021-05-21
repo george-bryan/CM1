@@ -794,57 +794,105 @@
         ! store cvm in dum1:
         ! store ql  in dum2:
         ! store qi  in dum3:
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,n)
-        DO k=1,nk
+
+        IF( nql1.ge.1 )THEN
+
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j,k)
+          do k=1,nk
           do j=1,nj
           do i=1,ni
             dum2(i,j,k)=qa(i,j,k,nql1)
           enddo
           enddo
+          enddo
+
           do n=nql1+1,nql2
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k)
+            do k=1,nk
             do j=1,nj
             do i=1,ni
               dum2(i,j,k)=dum2(i,j,k)+qa(i,j,k,n)
             enddo
             enddo
+            enddo
           enddo
-          IF(iice.eq.1)THEN
-            do j=1,nj
-            do i=1,ni
-              dum3(i,j,k)=qa(i,j,k,nqs1)
-            enddo
-            enddo
-            do n=nqs1+1,nqs2
-              do j=1,nj
-              do i=1,ni
-                dum3(i,j,k)=dum3(i,j,k)+qa(i,j,k,n)
-              enddo
-              enddo
-            enddo
-          ELSE
-            do j=1,nj
-            do i=1,ni
-              dum3(i,j,k)=0.0
-            enddo
-            enddo
-          ENDIF
+
+        ELSE
+
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j,k)
+          do k=1,nk
           do j=1,nj
           do i=1,ni
-            dum1(i,j,k)=cv+cvv*qa(i,j,k,nqv)+cpl*dum2(i,j,k)+cpi*dum3(i,j,k)
+            dum2(i,j,k)=0.0
           enddo
           enddo
+          enddo
+
+        ENDIF
+
+        IF(iice.eq.1)THEN
+
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j,k)
+          do k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum3(i,j,k)=qa(i,j,k,nqs1)
+          enddo
+          enddo
+          enddo
+
+          do n=nqs1+1,nqs2
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k)
+            do k=1,nk
+            do j=1,nj
+            do i=1,ni
+              dum3(i,j,k)=dum3(i,j,k)+qa(i,j,k,n)
+            enddo
+            enddo
+            enddo
+          enddo
+
+        ELSE
+
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j,k)
+          do k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum3(i,j,k)=0.0
+          enddo
+          enddo
+          enddo
+
+        ENDIF
+
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k)
+        DO k=1,nk
+        do j=1,nj
+        do i=1,ni
+          dum1(i,j,k)=cv+cvv*qa(i,j,k,nqv)+cpl*dum2(i,j,k)+cpi*dum3(i,j,k)
+        enddo
+        enddo
         ENDDO
+
       ELSE
+
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k,n)
         DO k=1,nk
-          do j=1,nj
-          do i=1,ni
-            dum1(i,j,k)=cv
-          enddo
-          enddo
+        do j=1,nj
+        do i=1,ni
+          dum1(i,j,k)=cv
+        enddo
+        enddo
         ENDDO
+
       ENDIF
 
       !----- store appropriate rho for budget calculations in dum2 -----!
@@ -896,9 +944,11 @@
                 + cvv*qa(i,j,k,nqv)*delt                                    &
                 + cvv*(pi0(i,j,k)+ppi(i,j,k))*(th0(i,j,k)+tha(i,j,k))*delqv &
                 + g*zh(i,j,k)*delqv   )
+        if( nql1.ge.1 )then
           do n=nql1,nql2
             bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpl*qa(i,j,k,n)*delt
           enddo
+        endif
           if(iice.eq.1)then
             do n=nqs1,nqs2
               bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpi*qa(i,j,k,n)*delt
@@ -1636,7 +1686,6 @@
           do k=1,nk
           do j=1,nj
           do i=1,ni
-            !-----
             ! cm1r17:
             ! note:  nothing in pre-RK section should modify rho
             IF( abs(dt*thten1(i,j,k)).gt.tem .or.  &
@@ -1648,15 +1697,24 @@
             ELSE
               ppten(i,j,k) = 0.0
             ENDIF
-            !-----
+          enddo
+          enddo
+          enddo
+          if( ptype.ge.1 )then
             ! use diabatic tendencies from last timestep as a good estimate:
-            ppten(i,j,k)=ppten(i,j,k)+qpten(i,j,k)
-            thten1(i,j,k)=thten1(i,j,k)+qtten(i,j,k)
-            qten(i,j,k,nqv)=qten(i,j,k,nqv)+qvten(i,j,k)
-            qten(i,j,k,nqc)=qten(i,j,k,nqc)+qcten(i,j,k)
-          enddo
-          enddo
-          enddo
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
+            do k=1,nk
+            do j=1,nj
+            do i=1,ni
+              ppten(i,j,k)=ppten(i,j,k)+qpten(i,j,k)
+              thten1(i,j,k)=thten1(i,j,k)+qtten(i,j,k)
+              qten(i,j,k,nqv)=qten(i,j,k,nqv)+qvten(i,j,k)
+              qten(i,j,k,nqc)=qten(i,j,k,nqc)+qcten(i,j,k)
+            enddo
+            enddo
+            enddo
+          endif
         ELSE
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
