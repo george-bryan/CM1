@@ -80,6 +80,7 @@
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
 #endif
+
 !  !$acc update &
 !  !$acc   host(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
 !  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
@@ -663,8 +664,11 @@
 #ifdef NETCDF
     ELSEIF(output_format.eq.2)THEN
 
+#ifdef _OPENACC
+      !$acc update host(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
       call writestat_nc(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
-
+      !$acc update device(nrec)
+#endif
 #endif
 
 !-----------------------------------------------------------------------

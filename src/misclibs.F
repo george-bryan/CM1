@@ -833,15 +833,18 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     DO k=1,nk
-
       do j=1,nj
       do i=1,ni
         ql(i,j,k)=0.0
         qi(i,j,k)=0.0
       enddo
       enddo
+    ENDDO
 
+!$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
+    DO k=1,nk
       do n=nql1,nql2
         do j=1,nj
         do i=1,ni
@@ -849,8 +852,11 @@
         enddo
         enddo
       enddo
+    ENDDO
 
       IF(iice.eq.1)THEN
+!$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
+      DO k=1,nk
         do n=nqs1,nqs2
           do j=1,nj
           do i=1,ni
@@ -858,9 +864,8 @@
           enddo
           enddo
         enddo
+      ENDDO
       ENDIF
-
-    ENDDO
 
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
@@ -2321,8 +2326,13 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n,tx,cpm)
-      do j=1,nj
+#ifdef _B4B
+            !$acc update host(zh,th0,tha,pi0,ppi,qa,prs,rh) 
+#else
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n,tx,cpm)
+#endif
       do k=1,nk
+      do j=1,nj
       do i=1,ni
         if(zh(i,j,k).le.10000.)then
           tx=(th0(i,j,k)+tha(i,j,k))*(pi0(i,j,k)+ppi(i,j,k))
@@ -2337,6 +2347,9 @@
       enddo
       enddo
       enddo
+#ifdef _B4B
+            !$acc update device(the)
+#endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
@@ -2364,8 +2377,10 @@
       integer i,j,k
       real qcbot(nk),qctop(nk),bot,top,var
 
+!$acc data create(qcbot,qctop)
 !$omp parallel do default(shared)  &
 !$omp private(k)
+!$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         qcbot(k)=maxz
         qctop(k)=0.0
@@ -2373,6 +2388,7 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2419,6 +2435,8 @@
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
  
       end subroutine cloud
 
@@ -2477,24 +2495,31 @@
         ! dum2 stores v at w-pts:
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,r1,r2)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=0,nj+2
           ! lowest model level:
           do i=0,ni+2
             dum1(i,j,1) = cgs1*ua(i,j,1)+cgs2*ua(i,j,2)+cgs3*ua(i,j,3)
             dum2(i,j,1) = cgs1*va(i,j,1)+cgs2*va(i,j,2)+cgs3*va(i,j,3)
           enddo
+        enddo
 
           ! upper-most model level:
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+        do j=0,nj+2
           do i=0,ni+2
             dum1(i,j,nk+1) = cgt1*ua(i,j,nk)+cgt2*ua(i,j,nk-1)+cgt3*ua(i,j,nk-2)
             dum2(i,j,nk+1) = cgt1*va(i,j,nk)+cgt2*va(i,j,nk-1)+cgt3*va(i,j,nk-2)
           enddo
+        enddo
 
           ! interior:
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do j=0,nj+2
           do k=2,nk
-          r2 = (sigmaf(k)-sigma(k-1))*rds(k)
-          r1 = 1.0-r2
           do i=0,ni+2
+            r2 = (sigmaf(k)-sigma(k-1))*rds(k)
+            r1 = 1.0-r2
             dum1(i,j,k) = r1*ua(i,j,k-1)+r2*ua(i,j,k)
             dum2(i,j,k) = r1*va(i,j,k-1)+r2*va(i,j,k)
           enddo
@@ -2528,6 +2553,7 @@
     IF( axisymm.eq.0 )THEN
       IF(.not.terrain_flag)THEN
         ! Cartesian grid, without terrain:
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,vort,vmax) reduction(max:vmax)
         do j=1+ibs,nj+1-ibn
         do i=1+ibw,ni+1-ibe
           vort=(va(i,j,k)-va(i-1,j,k))*rdx*uf(i)   &
@@ -2537,6 +2563,7 @@
         enddo
       ELSE
         ! Cartesian grid, with terrain:
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,r1,vort,vmax) reduction(max:vmax)
         do j=1+ibs,nj+1-ibn
         do i=1+ibw,ni+1-ibe
           r1 = zt/(zt-0.25*((zs(i-1,j-1)+zs(i,j))+(zs(i-1,j)+zs(i,j-1))))
@@ -2554,6 +2581,7 @@
       ENDIF
     ELSE
         ! axisymmetric grid
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,vort,vmax) reduction(max:vmax)
         do j=1,nj+1
         do i=2,ni+1
           vort=(xh(i)*va(i,j,k)-xh(i-1)*va(i-1,j,k))*rdx*uf(i)/xf(i)
@@ -2616,6 +2644,8 @@
       integer :: loc
       real, dimension(2) :: mmax,nmax
 
+!$acc data create(imaxt,jmaxt,kmaxt,cfl,mmax,nmax)
+
       dtdx=0.5*dt*rdx
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
@@ -2625,10 +2655,11 @@
       jmaxt = 0
       kmaxt = 0
 
+      if(nx.gt.1.and.ny.gt.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,wsp)
-      do k=1,nk
-      if(nx.gt.1.and.ny.gt.1)then
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wsp)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           wsp = sqrt( ( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
@@ -2642,7 +2673,12 @@
           endif
         enddo
         enddo
+        enddo
       elseif(nx.gt.1)then
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wsp)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           wsp = sqrt( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
@@ -2655,7 +2691,12 @@
           endif
         enddo
         enddo
+        enddo
       elseif(axisymm.eq.0.and.ny.gt.1)then
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wsp)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           wsp = sqrt( ((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2     &
@@ -2668,8 +2709,8 @@
           endif
         enddo
         enddo
+        enddo
       endif
-      enddo
 
       fmax=-99999999.
       imax=1
@@ -2721,7 +2762,9 @@
       if(fmax.ge.1.50) stopit=.true.
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
- 
+
+!$acc end data
+
       end subroutine calccfl
 
 
@@ -2920,23 +2963,56 @@
       real dtdx,dtdy,dtdz,tem,ksh(nk),ksv(nk),fhmax,fvmax
       integer :: loc
       real, dimension(2) :: mmax,nmax
+      real maxksh,maxksv
+
+!!$acc update host(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
+
+!$acc data create(imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv,ksh,ksv,mmax,nmax)
 
       dtdx=dt*rdx*rdx
       dtdy=dt*rdy*rdy
       dtdz=dt*rdz*rdz
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,tem)
+!$acc parallel loop gang vector default(present) private(k)
       do k=2,nk
         ksh(k)=-99999.0
         ksv(k)=-99999.0
+      enddo
+
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,tem)
+!$acc parallel default(present) private(i,j,k,tem,maxksh,maxksv) reduction(max:maxksh) reduction(max:maxksv)
+      do k=2,nk
+        maxksh = -99999.0
+        maxksv = -99999.0
+!$acc loop collapse(2) private(i,j,k,tem,maxksh,maxksv) reduction(max:maxksh) reduction(max:maxksv)
+        do j=1,nj
+        do i=1,ni
+          tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
+          maxksh=max(tem,maxksh)
+
+          tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
+          maxksh=max(tem,maxksh)
+
+          tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
+          maxksv=max(tem,maxksv)
+        enddo
+        enddo
+        ksh(k)=maxksh
+        ksv(k)=maxksv
+      enddo
+!$acc end parallel
+
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,tem)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem)
+      do k=2,nk
         do j=1,nj
         do i=1,ni
 !!!          tem = max( abs(kmh(i,j,k))*dtdx*uh(i)*uh(i) ,   &
 !!!                     abs(khh(i,j,k))*dtdx*uh(i)*uh(i) )
           tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
-          if( tem.gt.ksh(k) )then
-            ksh(k)=tem
+          if( tem.eq.ksh(k) )then
             imaxth(k)=i
             jmaxth(k)=j
             kmaxth(k)=k
@@ -2944,8 +3020,7 @@
 !!!          tem = max( abs(kmh(i,j,k))*dtdy*vh(j)*vh(j) ,   &
 !!!                     abs(khh(i,j,k))*dtdy*vh(j)*vh(j) )
           tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
-          if( tem.gt.ksh(k) )then
-            ksh(k)=tem
+          if( tem.eq.ksh(k) )then
             imaxth(k)=i
             jmaxth(k)=j
             kmaxth(k)=k
@@ -2953,8 +3028,7 @@
 !!!          tem = max( abs(kmv(i,j,k))*dtdz*mf(i,j,k)*mf(i,j,k) ,   &
 !!!                     abs(khv(i,j,k))*dtdz*mf(i,j,k)*mf(i,j,k) )
           tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
-          if( tem.gt.ksv(k) )then
-            ksv(k)=tem
+          if( tem.eq.ksv(k) )then
             imaxtv(k)=i
             jmaxtv(k)=j
             kmaxtv(k)=k
@@ -2971,6 +3045,7 @@
       imaxv=1
       jmaxv=1
       kmaxv=1
+      !$acc parallel loop gang vector default(present) private(k)
       do k=2,nk
         if(ksh(k).gt.fhmax)then
           fhmax=ksh(k)
@@ -3045,6 +3120,8 @@
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
+!$acc end data
+!!$acc update device(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
       end subroutine calcksmax
 
 
@@ -3073,10 +3150,16 @@
 
       ! Note:  only called from axisymmetric simulation
 
-!$omp parallel do default(shared)  &
-!$omp private(i,k,wspd)
+!$acc data create(imaxt,kmaxt,rmaxt,zmaxt,vmaxt)
+!$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         vmaxt(k) = 0.0
+      enddo
+
+!$omp parallel do default(shared)  &
+!$omp private(i,k,wspd)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+      do k=1,nk
         do i=1,ni
           wspd = sqrt( (0.5*(ua(i,1,k)+ua(i+1,1,k)))**2 + va(i,1,k)**2 )
           IF( wspd.ge.vmaxt(k) )THEN
@@ -3113,6 +3196,8 @@
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
+!$acc end data
+
       end subroutine getrmw
 
 
@@ -3139,11 +3224,16 @@
       integer i,j,k
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
- 
+
+!$acc data create(foo)
+!$acc parallel loop gang vector default(present) private(k)
+      do k=1,nk
+        foo(k)=0.0d0 
+      enddo
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
-        foo(k)=0.0d0
         do j=1,nj
         do i=1,ni
           foo(k)=foo(k)+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -3152,6 +3242,7 @@
       enddo
  
       tmass=0.0d0
+!$acc parallel loop gang vector default(present) private(k,tmass) reduction(+:tmass)
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
@@ -3177,6 +3268,8 @@
 #endif
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
  
       end subroutine calcmass
 
@@ -3206,14 +3299,17 @@
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
 
+!$acc data create(foo)
 !$omp parallel do default(shared)  &
 !$omp private(k)
+!$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         foo(k)=0.0d0
       enddo
  
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3223,6 +3319,7 @@
       enddo
  
       tmass=0.0d0
+!$acc parallel loop gang vector default(present) private(k,tmass) reduction(+:tmass)
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
@@ -3250,6 +3347,8 @@
 #endif
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
  
       end subroutine totmois
 
@@ -3279,14 +3378,17 @@
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
 
+!$acc data create(foo)
 !$omp parallel do default(shared)  &
 !$omp private(k)
+!$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         foo(k)=0.0d0
       enddo
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -3296,6 +3398,7 @@
       enddo
 
       tmass=0.0d0
+!$acc parallel loop gang vector default(present) private(k,tmass) reduction(+:tmass)
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
@@ -3321,6 +3424,8 @@
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
 
       end subroutine totq
 
@@ -3472,8 +3577,10 @@
       double precision :: tmu,tmv,tmw,qtot,var,tem
       double precision, dimension(nk) :: foo1,foo2,foo3
 
+!$acc data create(foo1,foo2,foo3)
 !$omp parallel do default(shared)  &
 !$omp private(k)
+!$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         foo1(k)=0.0d0
         foo2(k)=0.0d0
@@ -3482,6 +3589,7 @@
  
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,qtot,tem)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qtot,tem)
       do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3501,6 +3609,7 @@
       tmu=0.0d0
       tmv=0.0d0
       tmw=0.0d0
+!$acc parallel loop gang vector default(present) private(k,tmu,tmv,tmw) reduction(+:tmu) reduction(+:tmv) reduction(+:tmw)
       do k=1,nk
         tmu=tmu+foo1(k)
         tmv=tmv+foo2(k)
@@ -3544,6 +3653,8 @@
 #endif
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
  
       end subroutine calcmoe
 
@@ -3572,11 +3683,17 @@
       double precision :: tmfu,tmfd,mf,var
       double precision, dimension(nk) :: foo1,foo2
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,mf)
+!$acc data create(foo1,foo2)
+!$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         foo1(k)=0.0d0
         foo2(k)=0.0d0
+      enddo
+
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,mf)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,mf)
+      do k=1,nk
         do j=1,nj
         do i=1,ni
           mf=rho(i,j,k)*0.5*(wa(i,j,k)+wa(i,j,k+1))*ruh(i)*rvh(j)
@@ -3588,6 +3705,7 @@
 
       tmfu=0.0d0
       tmfd=0.0d0
+!$acc parallel loop gang vector default(present) private(k,tmfu,tmfd) reduction(+:tmfu) reduction(+:tmfd)
       do k=1,nk
         tmfu=tmfu+foo1(k)
         tmfd=tmfd+foo2(k)
@@ -3622,6 +3740,8 @@
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
 
       end subroutine tmf
 
