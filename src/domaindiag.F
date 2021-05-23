@@ -311,6 +311,7 @@
           ql(i,j,k) = 0.0
         enddo
         enddo
+      IF( nql1.gt.0 )THEN
         do n=nql1,nql2
         do j=1,nj
         do i=1,ni
@@ -318,6 +319,7 @@
         enddo
         enddo
         enddo
+      ENDIF
         if( iice.eq.1 )then
           do j=1,nj
           do i=1,ni
@@ -3118,6 +3120,21 @@
         vardesc(nvar) = 'equivalent potential temperature'
         varunit(nvar) = 'K'
 
+      if( ptype.eq.0 )then
+        do k=1,nk
+        do j=1,nj
+        do i=1,ni
+          tx = (th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))
+          qx = q3d(i,j,k,nqv)
+          px = prs(i,j,k)
+            ee=0.01*px*qx/(eps+qx)
+            tlcl=55.0+2840.0/(3.5*alog(tx)-log(1.0e-20+ee)-4.805)
+          dum1(i,j,k) = tx*((p00/px)**(0.2854*(1.0-0.28*qx)))   &
+                          *exp(((3376.0/tlcl)-2.54)*qx*(1.0+0.81*qx))
+        enddo
+        enddo
+        enddo
+      else
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3135,6 +3152,7 @@
         enddo
         enddo
         enddo
+      endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -8166,8 +8184,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( ud_cor.ge.1 .and. vd_cor.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'rtkeb_cor'
@@ -8217,8 +8234,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( ud_rdamp.ge.1 .and. vd_rdamp.ge.1 .and. wd_rdamp.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'rtkeb_rdamp'
@@ -8288,8 +8304,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( ud_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
+          ud_vadv.ge.1 .and. wd_vadv.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'uwb_adv'
@@ -8308,8 +8324,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( ud_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
+          ud_vidiff.ge.1 .and. wd_vidiff.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'uwb_idiff'
@@ -8328,8 +8344,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( ud_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
+          ud_vturb.ge.1 .and. wd_vturb.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'uwb_turb'
@@ -8348,8 +8364,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( ud_pgrad.ge.1 .and. wd_pgrad.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'uwb_prs'
@@ -8367,8 +8382,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( ud_cor.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'uwb_cor'
@@ -8441,8 +8455,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( vd_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
+          vd_vadv.ge.1 .and. wd_vadv.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'vwb_adv'
@@ -8461,8 +8475,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( vd_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
+          vd_vidiff.ge.1 .and. wd_vidiff.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'vwb_idiff'
@@ -8481,8 +8495,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
+          vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'vwb_turb'
@@ -8501,8 +8515,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( vd_pgrad.ge.1 .and. wd_pgrad.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'vwb_prs'
@@ -8520,8 +8533,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      if( ud_hturb.ge.1 .and. vd_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
-          ud_vturb.ge.1 .and. vd_vturb.ge.1 .and. wd_vturb.ge.1 )then
+      if( vd_cor.ge.1 )then
 
         nvar = nvar+1
         varname(nvar) = 'vwb_cor'

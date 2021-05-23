@@ -404,6 +404,8 @@
 
  ptype - Explicit moisture scheme:
 
+             0 = no microphysics (vapor only)
+
              1 = Kessler scheme (water only)
 
              2 = NASA-Goddard version of LFO scheme

@@ -447,6 +447,8 @@
           enddo
           enddo
 
+        endif  ifql
+
           IF(iice.eq.1)THEN
 
             !$acc parallel loop gang vector collapse(3) private(i,j,k)

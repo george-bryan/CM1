@@ -3910,6 +3910,7 @@
                 dum1(i,j,k) = dum1(i,j,k)+g*repsm1*(qa(i,j,k,nqv)-qv0(i,j,k))
               enddo
               enddo
+              IF(nql1.ge.1)THEN
               do nn=nql1,nql2
                 do j=1,nj
                 do i=1,ni
@@ -3917,6 +3918,7 @@
                 enddo
                 enddo
               enddo
+              ENDIF
               IF(iice.eq.1)THEN
               do nn=nqs1,nqs2
                 do j=1,nj
@@ -5936,9 +5938,11 @@
             ql = 0.0
             if( imoist.eq.1 )then
               qv = qa(i,j,k,nqv)
+              IF(nql1.ge.1)THEN
               do nn=nql1,nql2
                 ql = ql+qa(i,j,k,nn)
               enddo
+              ENDIF
               if( iice.eq.1 )then
                 do nn=nqs1,nqs2
                   ql = ql+qa(i,j,k,nn)

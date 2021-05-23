@@ -1663,6 +1663,9 @@
 
       IF( testcase.eq.11 )THEN
         ! SAS convective PBL:
+
+        prs_sfc  =  100000.0   ! (Pa)
+
         ! (m)
         z1   =     0.0
         z2   =   352.5
@@ -1682,10 +1685,9 @@
         qv1  =  11.8e-3
         qv2  =  11.8e-3
         qv3  =   7.8e-3
-        qv4  =  qv3 - 0.004e-3*(z3-z3)
+        qv4  =  qv3 - 0.004e-3*(z4-z3)
         qv5  =  qv3 - 0.004e-3*(z5-z3)
 
-        prs_sfc  =  100000.0   ! (Pa)
       ENDIF
 
         pi_sfc   =  (prs_sfc*rp00)**(rovcp)
@@ -2787,8 +2789,10 @@
     IF( testcase.eq.11 )THEN
       ! SAS NCAR PBL intercomparison
 
-      ug = 2.0
-      vg = 0.0
+!!!      ug = 2.0
+!!!      vg = 0.0
+      ug = u0(1,1,1)+umove
+      vg = v0(1,1,1)+vmove
 
       do k=2,nk
         ! note:  wprof is on w levels (ie, full levels):   Use zf.
@@ -2803,6 +2807,8 @@
       thfrc = 0.0
       qvfrc = 0.0
       wprof = 0.0
+
+      ramp_up_turb = .true.
 
     ENDIF
 

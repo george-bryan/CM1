@@ -842,6 +842,7 @@
       enddo
       enddo
 
+    IF( nql1.gt.0 )THEN
       do n=nql1,nql2
         do j=1,nj
         do i=1,ni
@@ -849,6 +850,7 @@
         enddo
         enddo
       enddo
+    ENDIF
 
       IF(iice.eq.1)THEN
         do n=nqs1,nqs2
@@ -901,6 +903,7 @@
           cvm(i,j,k) = cv+cvv*q(i,j,k,nqv)
         enddo
         enddo
+      IF( nql1.gt.0 )THEN
         do n=nql1,nql2
           do j=1,nj
           do i=1,ni
@@ -908,6 +911,7 @@
           enddo
           enddo
         enddo
+      ENDIF
         IF(iice.eq.1)THEN
           do n=nqs1,nqs2
           do j=1,nj
@@ -2189,9 +2193,11 @@
       if(imoist.eq.1)then
         do k=1,nk
           ql = 0.0
+        IF( nql1.gt.0 )THEN
           do n=nql1,nql2
             ql=ql+qa(i,j,k,n)
           enddo
+        ENDIF
           if(iice.eq.1)then
             do n=nqs1,nqs2
               ql=ql+qa(i,j,k,n)
