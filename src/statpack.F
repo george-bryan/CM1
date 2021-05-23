@@ -339,9 +339,9 @@
       IF(imoist.eq.1)THEN
 
         if(stat_rh.eq.1 .or. stat_the.eq.1)then
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,qvs)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
+          ! non-B4B  due to presence of exp in rslf()
+          !$omp parallel do default(shared) private(i,j,k,qvs)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
           do k=1,nk
           do j=1,nj
           do i=1,ni

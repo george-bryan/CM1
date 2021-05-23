@@ -1196,7 +1196,7 @@
         enddo
         !$acc end parallel
 
-        !$acc parallel loop gang vector collapse(2) default(present) reduction(+:asq)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j) reduction(+:asq)
         do j=1,nj
         do i=1,ni
           asq=asq+(dum2d5(i,j)-dum2d2(i,j))*tem
@@ -1206,7 +1206,7 @@
       ELSE
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
-        !$acc parallel loop default(present) private(k) reduction(+:budt) 
+        !$acc parallel default(present) private(k) reduction(+:budt) 
         do k=1,nk
           budt = 0.0d0
           !$acc loop gang vector collapse(2) private(i,j,a1,a2) reduction(+:budt)
@@ -1222,6 +1222,7 @@
           enddo
           budk(k)=budt
         enddo
+        !$acc end parallel
 
         !$acc parallel loop gang vector default(present) private(k) reduction(+:asq)
         do k=1,nk
@@ -2327,7 +2328,7 @@
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n,tx,cpm)
 #ifdef _B4B
-            !$acc update host(zh,th0,tha,pi0,ppi,qa,prs,rh) 
+            !$acc update host(zh,th0,tha,pi0,ppi,qa,prs,rh,the) 
 #else
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n,tx,cpm)
 #endif
@@ -2348,7 +2349,7 @@
       enddo
       enddo
 #ifdef _B4B
-            !$acc update device(the)
+      !$acc update device(the)
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
@@ -3224,25 +3225,29 @@
       integer i,j,k
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
+      double precision :: foot
 
-!$acc data create(foo)
-!$acc parallel loop gang vector default(present) private(k)
+      !$acc data create(foo) copyout(tmass)
+      !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         foo(k)=0.0d0 
       enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel default(present) private(i,j,k) reduction(+:foot)
       do k=1,nk
+        foot=0.0d0
+        !$acc loop gang vector collapse(2) reduction(+:foot)
         do j=1,nj
         do i=1,ni
-          foo(k)=foo(k)+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+          foot=foot+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
         enddo
         enddo
+        foo(k)=foot
       enddo
+      !$acc end parallel
  
       tmass=0.0d0
-!$acc parallel loop gang vector default(present) private(k,tmass) reduction(+:tmass)
+      !$acc parallel loop gang vector default(present) private(k) reduction(+:tmass)
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
@@ -3256,6 +3261,7 @@
 #endif
 
       tmass=tmass*(dx*dy*dz)
+      !$acc end data
  
       write(6,100) 'TMASS ',tmass
 100   format(2x,a6,':',1x,e13.6)
@@ -3269,7 +3275,6 @@
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
-!$acc end data
  
       end subroutine calcmass
 
