@@ -407,13 +407,13 @@
       if( rtime.le.3600.0 )then
         thmag = 0.0
       else
-        thmag = 0.1 * sin( pi * ( rtime - 3600.0 ) / ( timax - 3600.0 ) )
+        thmag = 0.1 * sin( pi * ( rtime - 3600.0 ) / ( 3600.0*(19.5-6.0) ) )
       endif
 
       if( rtime.le.7200.0 )then
         qvmag = 0.0
       else
-        qvmag = 0.15e-3 * sin( pi * ( rtime - 7200.0 ) / ( timax - 7200.0 ) )
+        qvmag = 0.15e-3 * sin( pi * ( rtime - 7200.0 ) / ( 3600.0*(19.5-7.0) ) )
       endif
 
       ! SAS
