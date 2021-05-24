@@ -1003,13 +1003,13 @@
           delpi = rddcv*(pi0(i,j,1)+ppi(i,j,1))*(           &
                                delqv/( eps+qa(i,j,1,nqv)) &
                                +delth/(th0(i,j,1)+tha(i,j,1))  )
-          delt = (pi0(i,j,k)+ppi(i,j,k))*delth   &
-                +(th0(i,j,k)+tha(i,j,k))*delpi
-          budarray(i,j) = dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*(           &
+          delt = (pi0(i,j,1)+ppi(i,j,1))*delth   &
+                +(th0(i,j,1)+tha(i,j,1))*delpi
+          budarray(i,j) = dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*(           &
                    cv*delt                                                   &
-                 + cvv*qa(i,j,k,nqv)*delt                                    &
-                 + cvv*(pi0(i,j,k)+ppi(i,j,k))*(th0(i,j,k)+tha(i,j,k))*delqv &
-                 + g*zh(i,j,k)*delqv   )
+                 + cvv*qa(i,j,1,nqv)*delt                                    &
+                 + cvv*(pi0(i,j,1)+ppi(i,j,1))*(th0(i,j,1)+tha(i,j,1))*delqv &
+                 + g*zh(i,j,1)*delqv   )
 
         if( nql1.ge.1 )then
           do n=nql1,nql2

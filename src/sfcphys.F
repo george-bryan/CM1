@@ -489,25 +489,28 @@
 
     ELSEIF( testcase.eq.11 )THEN
 
-      thmag = 0.1
-      qvmag = 0.15e-3
+      if( rtime.le.3600.0 )then
+        thmag = 0.0
+      else
+        thmag = 0.1 * sin( pi * ( rtime - 3600.0 ) / ( 3600.0*(19.5-6.0) ) )
+      endif
 
-      if( rtime.le.3600.0 ) thmag = 0.0
-      if( rtime.le.7200.0 ) qvmag = 0.0
-
-      trat1 = ( rtime - 3600.0 ) / ( timax - 3600.0 )
-      trat2 = ( rtime - 7200.0 ) / ( timax - 7200.0 )
+      if( rtime.le.7200.0 )then
+        qvmag = 0.0
+      else
+        qvmag = 0.15e-3 * sin( pi * ( rtime - 7200.0 ) / ( 3600.0*(19.5-7.0) ) )
+      endif
 
       ! SAS
-      thtmp = thmag*sin( pi*trat1 )
-      qvtmp = qvmag*sin( pi*trat2 )
+      !$omp parallel do default(shared) private(i,j)
       !$acc parallel loop gang vector default(present) private(i,j) 
-      DO j=1,nj
+      do j=1,nj
       do i=1,ni
-        thflux(i,j) = thtmp
-        qvflux(i,j) = qvtmp
+        thflux(i,j) = thmag
+        qvflux(i,j) = qvmag
       enddo
-      ENDDO
+      enddo
+
     ENDIF
 
   !-------------------------------------------------------------------------
