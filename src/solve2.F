@@ -433,6 +433,19 @@
         IF( imoist.eq.1 )THEN
           ! moist:
 
+        ifql:  &
+        if( nql1.le.0 )then
+
+          do k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum2(i,j,k)=0.0
+          enddo
+          enddo
+          enddo
+
+        else  ifql
+
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
@@ -452,6 +465,8 @@
           enddo
           enddo
           enddo
+
+        endif  ifql
 
           IF(iice.eq.1)THEN
 
@@ -1218,7 +1233,7 @@
         ELSEIF(psolver.eq.2)THEN
 
 #ifdef _OPENACC
-          stop 'ERROR: sounde not ported to GPU'
+          print *,'WARNING: sounde not verified on GPU'
 #endif
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
@@ -1236,6 +1251,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+          !stop 'after call to sounde'
 
         ELSEIF(psolver.eq.3)THEN
 
@@ -1380,6 +1396,7 @@
 !  on final RK step, get max CFL
 
         IF( nrk.eq.nrkmax )THEN
+          print *,'solve2: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
         ENDIF
 

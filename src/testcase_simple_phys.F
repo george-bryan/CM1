@@ -278,41 +278,68 @@
       integer :: i,j,k,n
       real :: tem
       double precision :: temd
+      double precision :: cavg1,cavg2,cavg3,cavgt
 
       ! 180612:  area-weighted average
+      !$acc parallel default(present)
       tem = dx*dy
 
       ! Get domain-averages:
-      do k=1,nk
         !----
+      !$acc loop gang vector collapse(2) private(k,n)
+      do k=1,nk
         do n=1,(3+numq)
           cavg(k,n) = 0.0
         enddo
+      enddo
         !----
+      !$acc end parallel
+      !$acc compare(rvh) 
+      !stop 'get_avg_uvtq: after compare(rvh)'
+      !$acc parallel default(present) private(i,j,k) reduction(+:cavg1,cavg2,cavg3)
+      do k=1,nk
+        cavg1 = 0.0
+        cavg2 = 0.0
+        cavg3 = 0.0
+        !$acc loop gang vector collapse(2) reduction(+:cavg1,cavg2,cavg3)
         do j=1,nj
         do i=1,ni
-          cavg(k,1) = cavg(k,1) + ua(i,j,k)*tem*ruf(i)*rvh(j)
-          cavg(k,2) = cavg(k,2) + va(i,j,k)*tem*ruh(i)*rvf(j)
-          cavg(k,3) = cavg(k,3) + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
+          cavg1 = cavg1 + ua(i,j,k)*tem*ruf(i)*rvh(j)
+          cavg2 = cavg2 + va(i,j,k)*tem*ruh(i)*rvf(j)
+          cavg3 = cavg3 + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
         enddo
         enddo
+        cavg(k,1) = cavg1
+        cavg(k,2) = cavg2
+        cavg(k,3) = cavg3
+      enddo
+      !$acc end parallel
+
+      !$acc parallel default(present) private(i,j,k,n) reduction(+:cavg1,cavg2,cavg3)
+      do k=1,nk
         !----
         do n=1,numq
-        do j=1,nj
-        do i=1,ni
-          cavg(k,3+n) = cavg(k,3+n) + qa(i,j,k,n)*tem*ruh(i)*rvh(j)
-        enddo
-        enddo
+          cavgt = 0.0
+          !$acc loop gang vector collapse(2) reduction(+:cavgt)
+          do j=1,nj
+          do i=1,ni
+            cavgt = cavgt + qa(i,j,k,n)*tem*ruh(i)*rvh(j)
+          enddo
+          enddo
+          cavg(k,3+n) = cavgt
         enddo
         !----
       enddo
+      !$acc end parallel
 
 #ifdef MPI
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*(3+numq),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
+      !$acc parallel default(present)
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
+      !$acc loop gang vector
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
@@ -321,6 +348,8 @@
           qavg(k,n) = cavg(k,3+n)*temd
         enddo
       enddo
+      !$acc end parallel
+      print *,'temd: ',temd
 
 
       end subroutine get_avg_uvtq

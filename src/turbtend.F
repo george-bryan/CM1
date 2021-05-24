@@ -535,6 +535,7 @@
             dumz(i,j,nk+1) = -khv(i,j,nk)*(s(i,j,nk)-s(i,j,nk-1))*rdz*mf(i,j,nk)*rf(i,j,nk)
           enddo
           enddo
+          !442 $acc end data
         ENDIF
         if(iflux.eq.1 .and. dosfcflx)then
           ! surface heat/moisture flux:
@@ -610,6 +611,7 @@
         enddo
         !$acc end parallel
 
+      !518 $acc data copyin(s,dum7,mh,rr,dumx,dumy,rho,turbx,turby) copy(dumz,turbz,sten)
       IF( axisymm.eq.0 )THEN
 
         k = nk
@@ -680,8 +682,8 @@
 
         enddo
         !$acc end parallel
-
       ENDIF
+      !590 $acc end data
 
   ENDIF  ifimpls
 
@@ -697,6 +699,7 @@
       enddo
       enddo
       enddo
+      !607 $acc end data
 
   ENDIF  dovert
 
@@ -704,6 +707,7 @@
 !  Diagnostics:
 
       IF( dobud )THEN
+        !615 $acc data copyin(turbx,turby,turbz,rr) copy(diag)
         if( axisymm.eq.0 )then
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -727,6 +731,7 @@
           enddo
           enddo
         endif
+        !639 $acc end data
       ENDIF
 
 !---------------------------------------------------------------------
@@ -866,7 +871,6 @@
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=2,nk
-
         ! x-flux:
         do j=1,nj
         do i=1,ni+1
@@ -898,7 +902,6 @@
                                                         )
         enddo
         enddo
-
       enddo
 
         !$omp parallel do default(shared) private(i,j)
@@ -1163,8 +1166,6 @@
       !$acc present(u,uten,w,t11,t12,t13,t22,kmv,kmw,u1b) &
       !$acc present(u2pt,udiag)
  
-
-
 !---------------------------------------------------------------
 
   dohoriz:  &

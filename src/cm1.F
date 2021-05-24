@@ -446,6 +446,8 @@
       read(20,nml=param2)
       read(20,nml=param8)
       close(unit=20)
+      !OpenACC data movement directives
+      !$acc enter data copyin(nx,ny)
 
       ! note:  read remainder of namelist sections in param.F !
 
@@ -2589,9 +2591,13 @@
       reqc = 0
       reqk = 0
 
+      !$acc data &
+      !$acc copyin(uh,vh,mh,u3d,v3d,w3d) &
+      !$acc copyin(kmh,kmv,khh,khv)
       if( adapt_dt.eq.1 )then
         dt = dbldt
         if( .not. restarted )then
+          print *,'cm1: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
@@ -2609,12 +2615,16 @@
           ndt  = 0
           adt  = 0.0
           acfl = 0.0
+#ifdef _OPENACC
+          print *, 'WARNING: getnewdt not supported on OpenACC' 
+#endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
                           dorestart,dowriteout,dostat,doprclout,dotdwrite,doazimwrite,  &
                           hifrqtim,dohifrqwrite,.true.)
         endif
       endif
+      !$acc end data
 
 
       ! cm1r19:  nsound is always determined diagnostically
@@ -2751,6 +2761,7 @@
     !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
     !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
     !$acc copyin(thten1,thterm) &
+    !$acc copyin(glw,gsw) &
     !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1)
     !!$acc copyin(rmol,brcr,phim,phih) &
 
@@ -3083,6 +3094,14 @@
         call nvtxStartRange("mp_driver",id=5)
 #endif
 
+      if( ptype.eq.0 )then
+        ! qv only:
+#ifdef _OPENACC
+        !stop 'ERROR: pdefq is not ported to OpenACC'
+        print *,'WARNING: pdefq is not verified on OpenACC'
+#endif
+        call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
+      else
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
                          rho,prs,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,  &
@@ -3092,6 +3111,7 @@
                          tdiag,qdiag,out2d,out3d,  &
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
+      endif
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
@@ -3372,7 +3392,7 @@
         IF( adapt_dt.eq.1 .and. dosolve )THEN
 
 #ifdef _OPENACC
-          stop 'ERROR: getnewdt not supported on OpenACC' 
+          print *,'WARNING: getnewdt not supported on OpenACC' 
 #endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
@@ -3475,7 +3495,7 @@
 
       if( dowriteout )then
 #ifdef _OPENACC
-          stop 'ERROR: writeout not supported in OpenACC'
+          print *,'WARNING: writeout not supported in OpenACC'
 #endif
       otype:  &
       IF(output_format.eq.1.or.output_format.eq.2)THEN

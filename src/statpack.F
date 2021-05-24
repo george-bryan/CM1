@@ -340,8 +340,12 @@
 
         if(stat_rh.eq.1 .or. stat_the.eq.1)then
           ! non-B4B  due to presence of exp in rslf()
-          !$omp parallel do default(shared) private(i,j,k,qvs)
+#ifdef _B4B
+          !$acc update host(prs,th0,tha,pi0,ppi,qa)
+#else
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
+#endif
+          !$omp parallel do default(shared) private(i,j,k,qvs)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -351,6 +355,9 @@
           enddo
           enddo
           enddo
+#ifdef _B3B
+          !$acc update device(dum2)
+#endif
         endif
 
         if(stat_rh.eq.1)then

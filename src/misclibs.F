@@ -843,6 +843,7 @@
       enddo
     ENDDO
 
+    IF( nql1.gt.0 )THEN
 !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
     DO k=1,nk
       do n=nql1,nql2
@@ -853,6 +854,7 @@
         enddo
       enddo
     ENDDO
+    ENDIF
 
       IF(iice.eq.1)THEN
 !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
@@ -906,6 +908,7 @@
           cvm(i,j,k) = cv+cvv*q(i,j,k,nqv)
         enddo
         enddo
+      IF( nql1.gt.0 )THEN
         do n=nql1,nql2
           do j=1,nj
           do i=1,ni
@@ -913,6 +916,7 @@
           enddo
           enddo
         enddo
+      ENDIF
         IF(iice.eq.1)THEN
           do n=nqs1,nqs2
           do j=1,nj
@@ -1070,6 +1074,7 @@
         enddo
         enddo
 
+        !$acc parallel loop reduction(+:asq)
         do j=1,nj
           asq=asq+budj(j)*tem
         enddo
@@ -1077,7 +1082,6 @@
       ELSE
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
-        !$acc parallel loop gang vector private(i,j,k,a1,a2)
         do k=1,nk
         budk(k)=0.0d0
         do j=1,nj
@@ -2226,9 +2230,11 @@
       if(imoist.eq.1)then
         do k=1,nk
           ql = 0.0
+        IF( nql1.gt.0 )THEN
           do n=nql1,nql2
             ql=ql+qa(i,j,k,n)
           enddo
+        ENDIF
           if(iice.eq.1)then
             do n=nqs1,nqs2
               ql=ql+qa(i,j,k,n)
@@ -2880,52 +2886,68 @@
       integer :: i,j,k
       real :: dtdx,dtdy,fmax,tem1,tem2,tem3
       real, dimension(nk) :: ks
+      real :: kstmp
+      !$acc data create(ks)
  
       dtdx=dt*rdx*rdx
       dtdy=dt*rdy*rdy
 
-      ks = 0.0
-
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,tem1,tem2,tem3)
-      do k=2,nk
       if(nx.gt.1.and.ny.gt.1)then
         ! 3d:
-        do j=1,nj
-        do i=1,ni
-          tem1 = sqrt( (kmh(i,j,k)*dtdx*uh(i)*uh(i))**2 &
+        !$omp parallel do default(shared) private(i,j,k,tem1,tem2,tem3)
+        !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
+        do k=2,nk
+           kstmp = 0.0
+           !$acc loop gang vector collapse(2) reduction(max:kstmp)
+           do j=1,nj
+           do i=1,ni
+             tem1 = sqrt( (kmh(i,j,k)*dtdx*uh(i)*uh(i))**2 &
                       +(kmh(i,j,k)*dtdy*vh(j)*vh(j))**2 )
-          tem2 = sqrt( (khh(i,j,k)*dtdx*uh(i)*uh(i))**2 &
+             tem2 = sqrt( (khh(i,j,k)*dtdx*uh(i)*uh(i))**2 &
                       +(khh(i,j,k)*dtdy*vh(j)*vh(j))**2 )
-          tem3 = sqrt( (kmv(i,j,k)*dtdx*uh(i)*uh(i))**2 &
+             tem3 = sqrt( (kmv(i,j,k)*dtdx*uh(i)*uh(i))**2 &
                       +(kmv(i,j,k)*dtdy*vh(j)*vh(j))**2 )
-          ks(k) = max( ks(k) , tem1 , tem2 , tem3 )
+             kstmp = max( kstmp , tem1 , tem2 , tem3 )
+          enddo
+          enddo
+          ks(k) = kstmp
         enddo
-        enddo
+        !$acc end parallel
       elseif(nx.gt.1)then
         ! 2d (including axisymm):
-        do j=1,nj
-        do i=1,ni
-          tem1 = kmh(i,j,k)*dtdx*uh(i)*uh(i)
-          tem2 = khh(i,j,k)*dtdx*uh(i)*uh(i)
-          tem3 = kmv(i,j,k)*dtdx*uh(i)*uh(i)
-          ks(k) = max( ks(k) , tem1 , tem2 , tem3 )
+        !$omp parallel do default(shared) private(i,j,tem1,tem2,tem3)
+        !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
+        do k=2,nk
+          kstmp = 0.0
+          !$acc loop gang vector collapse(2) reduction(max:kstmp)
+          do j=1,nj
+          do i=1,ni
+            tem1 = kmh(i,j,k)*dtdx*uh(i)*uh(i)
+            tem2 = khh(i,j,k)*dtdx*uh(i)*uh(i)
+            tem3 = kmv(i,j,k)*dtdx*uh(i)*uh(i)
+            kstmp = max( kstmp , tem1 , tem2 , tem3 )
+          enddo
+          enddo
+          ks(k) = kstmp
         enddo
-        enddo
+        !$acc end parallel
       elseif(axisymm.eq.0.and.ny.gt.1)then
         stop 1112
       endif
-      enddo
 
       fmax=-99999999.
+      !$acc parallel loop gang vector private(k) reduction(max:fmax)
       do k=2,nk
         fmax = max( fmax , ks(k) )
       enddo
 
       ksmax = fmax
+      !$acc end data
 
 #ifdef MPI
+      !$acc update host(ksmax)
       call MPI_IALLREDUCE(MPI_IN_PLACE,ksmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqk,ierr)
+      !$acc update device(ksmax)
 #endif
 
 !!!      if(ksmax.ge.0.50) stopit=.true.

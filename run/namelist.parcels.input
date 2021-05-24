@@ -120,7 +120,7 @@
 
  &param12
  isfcflx    =      1,
- sfcmodel   =      3,
+ sfcmodel   =      1,
  oceanmodel =      1,
  initsfc    =      1,
  tsk0       = 299.28,

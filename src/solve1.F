@@ -464,10 +464,18 @@
           enddo
           enddo
         endif
+        !424 $acc end data
 
+        !$acc data copyin(xh,rxh,uh,xf,uf,vh,vf,mh,mf) &
+        !$acc copyin(rho,rr,rf,rds,sigma) &
+        !$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
+        !$acc copyin(tkea,kmh,kmv)
+        !!$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
+        !!$acc copy(tketen)
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
                    rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,        &
                    dum1,dum2,dum3,dum4,dum5,sten,tkea,tketen,kmh,kmv)
+        !$acc end data
 
         if( dotdwrite .and. kd_turb.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)
@@ -489,12 +497,17 @@
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
     IF( irdamp.eq.2 .or. hrdamp.eq.2 .or. tqnudge .or. do_lsnudge )THEN
-#ifdef _OPENACC
-      print *,'WARNING: solve1: get_avg_{uvtq,uvt} not ported to GPU'
-#endif
       if( imoist.eq.1 )then
+#ifdef _OPENACC
+        print *,'WARNING: solve1: get_avg_uvtq not verififed on GPU'
+#endif
         call     get_avg_uvtq(uavg,vavg,thavg,qavg,cavg,th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
+        !$acc compare(uavg,vavg,thavg,qavg,cavg)
+        !stop 'solve1: after call to subroutien get_avg_uvtq'
       else
+#ifdef _OPENACC
+        print *,'WARNING: solve1: get_avg_uvt not ported to GPU'
+#endif
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
       endif
 
@@ -552,9 +565,11 @@
         enddo
         enddo
       ENDIF
+
       if(timestats.ge.1) time_rdamp=time_rdamp+mytime()
 
       IF( imoist.eq.1 )THEN
+        !529 $acc data copy(qten)
         ! moisture:
         !$omp parallel do default(shared) private(i,j,k,n)
         !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
@@ -598,6 +613,7 @@
         enddo
         enddo
         enddo
+        !576 $acc end data
       endif
       if( dovbud .and. vd_rdamp.ge.1 )then
         !$omp parallel do default(shared) private(i,j,k)
@@ -631,6 +647,7 @@
         enddo
         enddo
         enddo
+        !615 $acc end data
       endif
       if(timestats.ge.1) time_rdamp=time_rdamp+mytime()
 
@@ -715,6 +732,7 @@
           enddo
           enddo
           enddo
+          !698 $acc end data
 
         elseif( lspgrad.eq.2 )then
 
@@ -844,57 +862,103 @@
         ! store cvm in dum1:
         ! store ql  in dum2:
         ! store qi  in dum3:
-        !$omp parallel do default(shared) private(i,j,k,n)
-        !$acc parallel loop gang vector default(present) private(i,j,k,n)
-        DO k=1,nk
+        IF( nql1.ge.1 )THEN
+
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
+          do k=1,nk
           do j=1,nj
           do i=1,ni
             dum2(i,j,k)=qa(i,j,k,nql1)
           enddo
           enddo
+          enddo
+
           do n=nql1+1,nql2
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k)
+            do k=1,nk
             do j=1,nj
             do i=1,ni
               dum2(i,j,k)=dum2(i,j,k)+qa(i,j,k,n)
             enddo
             enddo
+            enddo
           enddo
-          IF(iice.eq.1)THEN
-            do j=1,nj
-            do i=1,ni
-              dum3(i,j,k)=qa(i,j,k,nqs1)
-            enddo
-            enddo
-            do n=nqs1+1,nqs2
-              do j=1,nj
-              do i=1,ni
-                dum3(i,j,k)=dum3(i,j,k)+qa(i,j,k,n)
-              enddo
-              enddo
-            enddo
-          ELSE
-            do j=1,nj
-            do i=1,ni
-              dum3(i,j,k)=0.0
-            enddo
-            enddo
-          ENDIF
+
+        ELSE
+
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j,k)
+          do k=1,nk
           do j=1,nj
           do i=1,ni
-            dum1(i,j,k)=cv+cvv*qa(i,j,k,nqv)+cpl*dum2(i,j,k)+cpi*dum3(i,j,k)
+            dum2(i,j,k)=0.0
           enddo
           enddo
+          enddo
+
+        ENDIF
+
+        IF(iice.eq.1)THEN
+
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j,k)
+          do k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum3(i,j,k)=qa(i,j,k,nqs1)
+          enddo
+          enddo
+          enddo
+
+          do n=nqs1+1,nqs2
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k)
+            do k=1,nk
+            do j=1,nj
+            do i=1,ni
+              dum3(i,j,k)=dum3(i,j,k)+qa(i,j,k,n)
+            enddo
+            enddo
+            enddo
+          enddo
+
+        ELSE
+
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j,k)
+          do k=1,nk
+          do j=1,nj
+          do i=1,ni
+            dum3(i,j,k)=0.0
+          enddo
+          enddo
+          enddo
+
+        ENDIF
+
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k)
+        DO k=1,nk
+        do j=1,nj
+        do i=1,ni
+          dum1(i,j,k)=cv+cvv*qa(i,j,k,nqv)+cpl*dum2(i,j,k)+cpi*dum3(i,j,k)
+        enddo
+        enddo
         ENDDO
+
       ELSE
         !$omp parallel do default(shared) private(i,j,k,n)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
         DO k=1,nk
-          do j=1,nj
-          do i=1,ni
-            dum1(i,j,k)=cv
-          enddo
-          enddo
+        do j=1,nj
+        do i=1,ni
+          dum1(i,j,k)=cv
+        enddo
+        enddo
         ENDDO
+        !878 $acc end data
       ENDIF
 
       !----- store appropriate rho for budget calculations in dum2 -----!
@@ -927,6 +991,7 @@
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
         tem0 = dt*dx*dy*dz
+        !JMD-FIXME review the indexing in this loop 
         !$acc data copyin(tem0) create(budtmp,budarray)
         !$omp parallel do default(shared) private(i,j,delpi,delth,delqv,delt,n)
         !$acc parallel loop gang vector collapse(2) default(present) &
@@ -938,17 +1003,19 @@
           delpi = rddcv*(pi0(i,j,1)+ppi(i,j,1))*(           &
                                delqv/( eps+qa(i,j,1,nqv)) &
                                +delth/(th0(i,j,1)+tha(i,j,1))  )
-          delt = (pi0(i,j,1)+ppi(i,j,1))*delth   &
-                +(th0(i,j,1)+tha(i,j,1))*delpi
-          budarray(i,j) = dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*(           &
+          delt = (pi0(i,j,k)+ppi(i,j,k))*delth   &
+                +(th0(i,j,k)+tha(i,j,k))*delpi
+          budarray(i,j) = dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*(           &
                    cv*delt                                                   &
-                 + cvv*qa(i,j,1,nqv)*delt                                    &
-                 + cvv*(pi0(i,j,1)+ppi(i,j,1))*(th0(i,j,1)+tha(i,j,1))*delqv &
-                 + g*zh(i,j,1)*delqv   )
+                 + cvv*qa(i,j,k,nqv)*delt                                    &
+                 + cvv*(pi0(i,j,k)+ppi(i,j,k))*(th0(i,j,k)+tha(i,j,k))*delqv &
+                 + g*zh(i,j,k)*delqv   )
 
+        if( nql1.ge.1 )then
           do n=nql1,nql2
             budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpl*qa(i,j,1,n)*delt
           enddo
+        endif
           if(iice.eq.1)then
             do n=nqs1,nqs2
               !bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpi*qa(i,j,k,n)*delt
@@ -1267,6 +1334,7 @@
           enddo
           enddo
           enddo
+          !1238 $acc end data
         endif
 
         ! cm1r18: subtract th0r from theta (as in advection scheme)
@@ -1716,7 +1784,6 @@
           do k=1,nk
           do j=1,nj
           do i=1,ni
-            !-----
             ! cm1r17:
             ! note:  nothing in pre-RK section should modify rho
             !jmd  = (k-kb)*((ie-ib+1)*(je-jb+1)) + (j-jb)*(ie-ib+1) + (i-ib)
@@ -1736,23 +1803,22 @@
           !$acc update device(ppten)
 #else
           !$acc end data
-!          !$acc compare(ppten,val)
 #endif
-
-          !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-          do k=1,nk
-          do j=1,nj
-          do i=1,ni
-            !-----
+          if( ptype.ge.1 )then
             ! use diabatic tendencies from last timestep as a good estimate:
-            ppten(i,j,k)=ppten(i,j,k)+qpten(i,j,k)
-            thten1(i,j,k)=thten1(i,j,k)+qtten(i,j,k)
-            qten(i,j,k,nqv)=qten(i,j,k,nqv)+qvten(i,j,k)
-            qten(i,j,k,nqc)=qten(i,j,k,nqc)+qcten(i,j,k)
-          enddo
-          enddo
-          enddo
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
+            do k=1,nk
+            do j=1,nj
+            do i=1,ni
+              ppten(i,j,k)=ppten(i,j,k)+qpten(i,j,k)
+              thten1(i,j,k)=thten1(i,j,k)+qtten(i,j,k)
+              qten(i,j,k,nqv)=qten(i,j,k,nqv)+qvten(i,j,k)
+              qten(i,j,k,nqc)=qten(i,j,k,nqc)+qcten(i,j,k)
+            enddo
+            enddo
+            enddo
+          endif
         ELSE
 #ifdef _B4B02
           !$acc update host(thten1,tha,rho,th0,pi0,ppi)

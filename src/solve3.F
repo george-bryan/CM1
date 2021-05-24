@@ -421,7 +421,7 @@
 !Done:  message passing
 !-----------------------------------------------------------------
 !  cm1r17:  diabatic tendencies for next timestep:
-        IF(imoist.eq.1.and.eqtset.eq.2)THEN
+        IF( imoist.eq.1 .and. eqtset.eq.2 .and. ptype.ge.1 )THEN
           ! get diabatic tendencies (will be used in next timestep):
           rdt = 1.0/dt
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)

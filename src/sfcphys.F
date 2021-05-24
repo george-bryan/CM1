@@ -1130,14 +1130,18 @@
 
       integer :: i,j
       double precision :: temd
+      !$acc declare present(u1,v1,s1,t1)
 
 !-----------------------------------------------------------------------
 
+      
       avgsfcu = 0.0
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
-
+      !$acc data copy(avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      !$acc parallel loop gang vector collapse(2) private(i,j) &
+      !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
       do j=1,nj
       do i=1,ni
         avgsfcu = avgsfcu + u1(i,j)
@@ -1146,19 +1150,24 @@
         avgsfct = avgsfct + t1(i,j)
       enddo
       enddo
-
+  
 #ifdef MPI
+      !$acc update host(avgsfcu,avgsfcv,avgsfcs,avgsfct)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcu,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 #endif
 
+      !$acc parallel 
       temd = 1.0/dble(nx*ny)
       avgsfcu = avgsfcu*temd
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
+      !$acc end parallel
+      !$acc end data
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
 
