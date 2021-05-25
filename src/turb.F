@@ -242,7 +242,7 @@
 !-----------------------------------------------------------------------------------
       turbfac = 1.0
       t2pfac = 1.0
-
+    !JMD !$acc compare(dum4)
     facheck:  &
     IF( cm1setup.eq.1 .and. sgsmodel.ge.1 )THEN
 
@@ -1236,13 +1236,15 @@
         do i=ib,ie
           iamsat(i,j,k) = .false.
           nm(i,j,k)     = 0.0
+          dum2(i,j,k)   = 0.0  !KLUDGE zero out dum2 so that PCAST does not flag it.
+          dum6(i,j,k)   = 0.0  !KLUDGE zero out dum6 so that PCAST does not flag it.
         enddo
         enddo
         enddo
-        !$acc compare(qa)
-        call calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,dum1,dum2,dum3,dum4,dum5,dum6,   &
+        !!$acc compare(qa)
+        call calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,dum1,dum2,dum3,dum6,   &
                     prs,ppi,tha,qa,iamsat)
-        !$acc compare(nm,dum1,dum2,dum3,dum4,dum5,dum6,iamsat)
+        !$acc compare(nm,dum1,dum2,dum3,dum6,iamsat)
         !stop  'sfc_and_turb: after call to calcnm'
       ENDIF
 
@@ -4642,7 +4644,7 @@
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 
-      subroutine calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,t,qt,thv,cloud,rh,qvci,   &
+      subroutine calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,t,qt,thv,qvci,   &
                         prs,pp,th,qa,iamsat)
       use input
       use constants
@@ -4654,7 +4656,7 @@
       real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: mf
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: pi0,thv0,th0
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: nm
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: t,qt,thv,cloud,rh,qvci
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: t,qt,thv,qvci
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: prs,pp,th
       real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: qa
       logical, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: iamsat
@@ -4749,28 +4751,31 @@
       enddo
       ENDIF
 
+      !print *,'compare(qa): '
+      !!$acc compare(qa)
+      !print *,'compare(qvci): '
+      !!$acc compare(qvci)
       !$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
       !print *,'numq: ',numq
-      !$acc compare(numq)
+      !!$acc compare(numq)
       !print *,'nqv: ',nqv
-      !$acc compare(nqv)
+      !!$acc compare(nqv)
       !print *,'nql1: ',nql1
-      !$acc compare(nql1)
+      !!$acc compare(nql1)
       !print *,'nql2: ',nql2
-      !$acc compare(nql2)
+      !!$acc compare(nql2)
       !print *,'nqs1: ',nqs1
-      !$acc compare(nqs1)
+      !!$acc compare(nqs1)
       !print *,'nqs2: ',nqs2
-      !$acc compare(nqs2)
+      !!$acc compare(nqs2)
       !print *,'iice: ',iice
-      !$acc compare(iice)
-      !$acc parallel default(present) private(i,j,k,n)
+      !!$acc compare(iice)
       DO n=1,numq
         IF( (n.eq.nqv) .or.                                 &
             (n.ge.nql1.and.n.le.nql2) .or.                  &
             (n.ge.nqs1.and.n.le.nqs2.and.iice.eq.1) )THEN
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc loop gang vector collapse(3)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -4780,8 +4785,7 @@
           enddo
         ENDIF
       ENDDO
-      !$acc end parallel
-      !$acc compare(qt)
+      !!$acc compare(qt)
       !$acc end data
       !stop 'calcnm: After calculation of qt'
 
@@ -5714,6 +5718,7 @@
 
       !dir$ attributes forceinline :: flx3
       real function flx3(s1,s2,s3)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3
@@ -5732,6 +5737,7 @@
 
       !dir$ attributes forceinline :: flx4
       real function flx4(s1,s2,s3,s4)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4
@@ -5749,6 +5755,7 @@
 
       !dir$ attributes forceinline :: flx5
       real function flx5(s1,s2,s3,s4,s5)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5
@@ -5769,6 +5776,7 @@
 
       !dir$ attributes forceinline :: flx6
       real function flx6(s1,s2,s3,s4,s5,s6)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6

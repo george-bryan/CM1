@@ -115,14 +115,14 @@
         ! "s" velocities ARE NOT coupled with reference density
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tem,tem1,r1,r2,c1a,c1b,c2a,c2b,p1,p2,p3,p4)
-        !$acc parallel loop gang vector default(present) private(i,j,k,p1,p2,p3,p4)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,p1,p2,p3,p4)
         do k=1,nk
-          p1 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*(1.0-c1(1,1,k+1))
-          p2 = -dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*c2(1,1,k+1)
-          p3 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*c1(1,1,k)
-          p4 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*(c2(1,1,k)-1.0)
           do j=1,nj
           do i=1,ni
+            p1 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*(1.0-c1(1,1,k+1))
+            p2 = -dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*c2(1,1,k+1)
+            p3 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*c1(1,1,k)
+            p4 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*(c2(1,1,k)-1.0)
             pk2(i,j,k) = p2*piadv(i,j,k+1)+p1*piadv(i,j,k)
             pk1(i,j,k) = p3*piadv(i,j,k-1)+p4*piadv(i,j,k)
           enddo
@@ -442,16 +442,13 @@
         ! without terrain:
 
         !$omp parallel do default(shared) private(i,j,k,tem1,c1a,c1b,c2a,c2b)
-        !$acc parallel loop gang vector default(present) private(i,j,k,tem1,c1a,c1b,c2a,c2b)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
-          tem1 = rdz*cp*mf(1,1,k)
-          c1a = c1(1,1,k)
-          c2a = c2(1,1,k)
           do j=1,nj
           do i=1,ni
             w3d(i,j,k)=w3d(i,j,k)+dts*( wten(i,j,k)                     &
-                    -tem1*(ppd(i,j,k)-ppd(i,j,k-1))                     &
-                         *(c2a*thv(i,j,k)+c1a*thv(i,j,k-1)) )
+                    -rdz*cp*mf(1,1,k)*(ppd(i,j,k)-ppd(i,j,k-1))                     &
+                         *(c2(1,1,k)*thv(i,j,k)+c1(1,1,k)*thv(i,j,k-1)) )
           enddo
           enddo
         enddo

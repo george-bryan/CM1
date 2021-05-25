@@ -2616,7 +2616,7 @@
           adt  = 0.0
           acfl = 0.0
 #ifdef _OPENACC
-          print *, 'WARNING: getnewdt not supported on OpenACC' 
+          !print *, 'WARNING: getnewdt not supported on OpenACC' 
 #endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
@@ -3098,9 +3098,13 @@
         ! qv only:
 #ifdef _OPENACC
         !stop 'ERROR: pdefq is not ported to OpenACC'
-        print *,'WARNING: pdefq is not verified on OpenACC'
+        !print *,'WARNING: pdefq is not verified on OpenACC'
 #endif
+        !!$acc compare(asq)
         call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
+        print *,'after pdefq_GPU'
+        !!$acc compare(q3d)
+        !stop 'after call to pdefq_GPU'
       else
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
@@ -3111,6 +3115,8 @@
                          tdiag,qdiag,out2d,out3d,  &
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
+        print *,'after mp_driver'
+        !!$acc compare(q3d)
       endif
 #ifdef _OPENACC
         call nvtxEndRange
@@ -3197,6 +3203,8 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
+        print *,'after solve3'
+        !!$acc compare(q3d)
 
 
 
@@ -3392,7 +3400,7 @@
         IF( adapt_dt.eq.1 .and. dosolve )THEN
 
 #ifdef _OPENACC
-          print *,'WARNING: getnewdt not supported on OpenACC' 
+          !print *,'WARNING: getnewdt not supported on OpenACC' 
 #endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &

@@ -1062,6 +1062,7 @@
 
       !dir$ attributes forceinline :: upstrpd
       real function upstrpd(s1,s2,s3,weps)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3

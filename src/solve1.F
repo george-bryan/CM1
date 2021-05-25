@@ -499,11 +499,11 @@
     IF( irdamp.eq.2 .or. hrdamp.eq.2 .or. tqnudge .or. do_lsnudge )THEN
       if( imoist.eq.1 )then
 #ifdef _OPENACC
-        print *,'WARNING: solve1: get_avg_uvtq not verififed on GPU'
+        !print *,'WARNING: solve1: get_avg_uvtq not verififed on GPU'
 #endif
         call     get_avg_uvtq(uavg,vavg,thavg,qavg,cavg,th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
         !$acc compare(uavg,vavg,thavg,qavg,cavg)
-        !stop 'solve1: after call to subroutien get_avg_uvtq'
+        !stop 'solve1: after call to subroutine get_avg_uvtq'
       else
 #ifdef _OPENACC
         print *,'WARNING: solve1: get_avg_uvt not ported to GPU'
@@ -741,10 +741,13 @@
           ! using ug,vg arrays:
           !---------------------------------------------------------------!
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector default(present) private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(k)
           do k=1,nk
             ulspg(k) = -fcor*(vg(k)+vmove)
             vlspg(k) =  fcor*(ug(k)+umove)
+          enddo
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
               uten1(i,j,k) = uten1(i,j,k)+ulspg(k)

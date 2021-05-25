@@ -1028,11 +1028,12 @@
       implicit none
 
       real rmax
-      double precision :: asq
-      real, dimension(ib:ie) :: ruh
-      real, dimension(jb:je) :: rvh
-      real, dimension(ib:ie,jb:je,kb:ke) :: rmh
-      real, dimension(ib:ie,jb:je,kb:ke) :: rho,q3d
+      double precision, intent(inout)    :: asq
+      real, intent(in), dimension(ib:ie) :: ruh
+      real, intent(in), dimension(jb:je) :: rvh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rmh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rho
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: q3d
 
       integer i,j,k
       double precision :: t1,t2,t3
@@ -1043,13 +1044,18 @@
 
 !----------------------------------------------------------------------
 
+#ifndef _B4B
       !$acc data create(budj,budk)
+#endif
       tem = dx*dy*dz
-
       IF(pdscheme.eq.1)THEN
 
+#ifdef _B4B
+        !$acc update host(asq,ruh,rvh,rmh,rho,q3d)
+#else
+        !$acc parallel loop gang vector default(present) private(i,j,k,t1,t2,t3,a1,a2)
+#endif
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
-        !$acc parallel loop gang vector private(i,j,k,t1,t2,t3,a1,a2)
         do j=1,nj
         budj(j)=0.0d0
         do i=1,ni
@@ -1074,7 +1080,9 @@
         enddo
         enddo
 
+#ifndef _B4B
         !$acc parallel loop reduction(+:asq)
+#endif
         do j=1,nj
           asq=asq+budj(j)*tem
         enddo
@@ -1082,6 +1090,9 @@
       ELSE
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
+#ifndef _B4B
+        !$acc parallel loop gang vector default(present) private(i,j,k,a1,a2)
+#endif
         do k=1,nk
         budk(k)=0.0d0
         do j=1,nj
@@ -1095,13 +1106,19 @@
         enddo
         enddo
 
+#ifndef _B4B
         !$acc parallel loop reduction(+:asq)
+#endif
         do k=1,nk
           asq=asq+budk(k)*tem
         enddo
 
       ENDIF
+#ifdef _B4B
+      !$acc update device(asq,q3d)
+#else
       !$acc end data
+#endif
 
 !----------------------------------------------------------------------
 

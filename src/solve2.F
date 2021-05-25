@@ -1233,7 +1233,7 @@
         ELSEIF(psolver.eq.2)THEN
 
 #ifdef _OPENACC
-          print *,'WARNING: sounde not verified on GPU'
+          !print *,'WARNING: sounde not verified on GPU'
 #endif
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
@@ -1396,7 +1396,7 @@
 !  on final RK step, get max CFL
 
         IF( nrk.eq.nrkmax )THEN
-          print *,'solve2: before call to calccflquick'
+          !JMD print *,'solve2: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
         ENDIF
 
