@@ -1818,6 +1818,7 @@
                                 rs31,rs32,rn31,rn32,reqs_y)
 #endif
         IF(imoist.eq.1)THEN
+          print *,'numq: ',numq
           do n=1,numq
             call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI
@@ -2173,7 +2174,7 @@
     if(iptra.eq.1)then
       DO n=1,npt
         if( pdtra.eq.1 ) then 
-            call pdefq(0.0,afoo,ruh,rvh,rmh,rho,pt3d(ib,jb,kb,n))
+            call pdefq_GPU(0.0,afoo,ruh,rvh,rmh,rho,pt3d(ib,jb,kb,n))
         endif
         call bcs_GPU(pt3d(ib,jb,kb,n))
 #ifdef MPI

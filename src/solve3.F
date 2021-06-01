@@ -340,6 +340,7 @@
 #endif
 
       IF( imoist.eq.1 )THEN
+          print *,'numq: ',numq
           DO n=1,numq
             call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI

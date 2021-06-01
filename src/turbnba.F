@@ -146,7 +146,9 @@
                                 ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
       call comm_1s_end(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                               ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
-      call bcs2(lenscl)
+      !$acc data copy(lenscl)
+      call bcs2_GPU(lenscl)
+      !$acc end data
       call getcorner(lenscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
 #endif
 
@@ -192,7 +194,9 @@
       enddo
 
       do k=1,2
-        call bc2d(grdscl(ib,jb,k))
+        !$acc data copy(grdscl)
+        call bc2d_GPU(grdscl(ib,jb,k))
+        !$acc end data
 #ifdef MPI
         call comm_2d_start(grdscl(ib,jb,k),west,newwest,east,neweast,   &
                                            south,newsouth,north,newnorth,reqs_s)
@@ -558,7 +562,9 @@
                                 ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
       call comm_1s_end(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                               ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
-      call bcs2(grdscl)
+      !$acc data copy(grdscl)
+      call bcs2_GPU(grdscl)
+      !$acc end data
       call getcorner(grdscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
 #endif
 

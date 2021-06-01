@@ -2041,7 +2041,7 @@ enddo
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -2447,7 +2447,7 @@ enddo
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -2851,7 +2851,7 @@ enddo
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -3254,7 +3254,7 @@ enddo
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !--------
 
@@ -3657,7 +3657,7 @@ enddo
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !--------
 
@@ -3988,7 +3988,7 @@ enddo
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -4377,7 +4377,7 @@ enddo
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -5051,7 +5051,7 @@ enddo
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -5440,7 +5440,7 @@ enddo
  
       endif
  
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -5828,7 +5828,7 @@ enddo
  
       endif
  
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -6260,7 +6260,7 @@ enddo
 !
 !-----------------------------------------------------------
  
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
  
 !----------
 
@@ -7375,7 +7375,7 @@ enddo
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -7816,7 +7816,7 @@ enddo
  
       endif
  
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 

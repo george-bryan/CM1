@@ -883,11 +883,17 @@
 
 #ifdef MPI
       call getcorneru(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call bcu2(u3d)
+      !$acc data copy(u3d)
+      call bcu2_GPU(u3d)
+      !$acc end data
       call getcornerv(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call bcv2(v3d)
+      !$acc data copy(v3d)
+      call bcv2_GPU(v3d)
+      !$acc end data
       call getcornerw(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call bcw2(w3d)
+      !$acc data copy(w3d)
+      call bcw2_GPU(w3d)
+      !$acc end data
 #endif
 
 !----------------------------------------------------------------------

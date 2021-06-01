@@ -3117,7 +3117,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -3875,7 +3875,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -4633,7 +4633,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -5391,7 +5391,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !--------
 
@@ -6151,7 +6151,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !--------
 
@@ -7180,7 +7180,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
 !----------
 
@@ -9416,7 +9416,7 @@
 !
 !-----------------------------------------------------------
  
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
  
 !----------
 
@@ -11191,7 +11191,9 @@
       call comm_3s_end(  s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
       call getcorner3(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
                         s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      call bcs2(s)
+      !$acc data copy(s)
+      call bcs2_GPU(s)
+      !$acc end data
 
       end subroutine comm_all_s
 
@@ -11222,7 +11224,9 @@
 !--------------------------------------------!
 
       IF( comm.eq.1 )THEN
-        call bcs(s)
+        !$acc data copy(s)
+        call bcs_GPU(s)
+        !$acc end data
       ENDIF
 #ifdef MPI
       IF( comm.eq.1 )THEN
@@ -11230,7 +11234,9 @@
         call comm_1s_end(  s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       ENDIF
       call getcorner(s,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call bcs2(s)
+      !$acc data copy(s)
+      call bcs2_GPU(s)
+      !$acc end data
 #endif
 
       IF( bbc.eq.1 .or. bbc.eq.2 .or. bbc.eq.3 )THEN
@@ -11283,7 +11289,9 @@
 !--------------------------------------------!
 
       IF( comm.eq.1 )THEN
-        call bcw(t,0)
+        !$acc data copy(t)
+        call bcw_GPU(t,0)
+        !$acc end data
       ENDIF
 #ifdef MPI
       IF( comm.eq.1 )THEN
@@ -11314,7 +11322,9 @@
 
       integer :: i,j
 
-      call bc2d(s)
+      !$acc data copy(s)
+      call bc2d_GPU(s)
+      !$acc end data
 #ifdef MPI
       call comm_1s2d_start(s,pw1(1,1),pw2(1,1),pe1(1,1),pe2(1,1),  &
                              ps1(1,1),ps2(1,1),pn1(1,1),pn2(1,1),reqs_p)

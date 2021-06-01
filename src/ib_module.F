@@ -185,7 +185,9 @@
 
     !---  DO NOT CHANGE ANYTHING BELOW HERE  ---!
 
-        call bc2d(zsfoo)
+        !$acc data copy(zsfoo)
+        call bc2d_GPU(zsfoo)
+        !$acc end data
 #ifdef MPI
       nf=0
       nu=0
@@ -196,7 +198,9 @@
       call comm_2dew_end(zsfoo,west,newwest,east,neweast,reqs_p)
       call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p)
       call bcs2_2d(zsfoo)
-      call bc2d(zsfoo)
+      !$acc data copy(zsfoo)
+      call bc2d_GPU(zsfoo)
+      !$acc end data
       call getcorner3_2d(zsfoo)
 #endif
 

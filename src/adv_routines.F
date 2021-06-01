@@ -1415,7 +1415,7 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
     !$acc parallel 
-    !$acc loop gang private(i,j,k,ubar,vbar)
+    !$acc loop gang vector collapse(3) private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj+1
       !!dir$ vector always
@@ -1431,7 +1431,7 @@
      ENDDO
     !$acc end parallel
 
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=1,nj+1
       do i=(i1-1),i2
@@ -1463,7 +1463,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar)
     DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
@@ -1488,7 +1488,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj+1
       !dir$ vector always

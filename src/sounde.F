@@ -653,7 +653,7 @@
 
         IF( n.lt.nloop )THEN
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          call bcs(ppd)
+          call bcs_GPU(ppd)
 #ifdef MPI
           call comm_1p_start(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)

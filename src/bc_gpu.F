@@ -179,7 +179,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bc2d_GPU
 
@@ -363,7 +363,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bcs_GPU
 
@@ -551,7 +551,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
  
       end subroutine bcu_GPU
 
@@ -763,7 +763,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
  
       end subroutine bcv_GPU
 
@@ -965,7 +965,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
  
       end subroutine bcw_GPU
 
@@ -1001,7 +1001,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bcwsfc_GPU
 
@@ -1165,7 +1165,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bcs2_GPU
 
@@ -1299,7 +1299,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bct2_GPU
 
@@ -1433,7 +1433,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bcu2_GPU
 
@@ -1567,7 +1567,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bcv2_GPU
 
@@ -1701,7 +1701,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bcw2_GPU
 
@@ -1811,7 +1811,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine bcs2_2d_GPU
 
@@ -1867,7 +1867,7 @@
 
 !-----------------------------------------------------------------------
  
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
  
       end subroutine radbcew_GPU
 
@@ -1922,7 +1922,7 @@
 
 !-----------------------------------------------------------------------
  
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
  
       end subroutine radbcns_GPU
 
@@ -1991,7 +1991,7 @@
         enddo
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine radbcew4_GPU
 
@@ -2060,7 +2060,7 @@
         enddo
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine radbcns4_GPU
 
@@ -2172,7 +2172,7 @@
         enddo
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine restrict_openbc_we_GPU
 
@@ -2284,7 +2284,7 @@
         enddo
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine restrict_openbc_sn_GPU
 
@@ -2369,7 +2369,7 @@
             enddo
           ENDIF  ! end check for terrain
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine ssopenbcw_GPU
 
@@ -2454,7 +2454,7 @@
             enddo
           ENDIF  ! end check for terrain
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine ssopenbce_GPU
 
@@ -2539,7 +2539,7 @@
             enddo
           ENDIF  ! end check for terrain
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine ssopenbcs_GPU
 
@@ -2624,7 +2624,7 @@
             enddo
           ENDIF  ! end check for terrain
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
 
       end subroutine ssopenbcn_GPU
 

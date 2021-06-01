@@ -479,7 +479,9 @@
       if(timestats.ge.1) time_sound=time_sound+mytime()
 
         IF( n.lt.nloop )THEN
-          call bcs(ppd)
+          !$acc data copy(ppd)
+          call bcs_GPU(ppd)
+          !$acc end data
 #ifdef MPI
           call comm_1s_start(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
@@ -553,7 +555,9 @@
 
 
       if(timestats.ge.1) time_sound=time_sound+mytime()
-      call bcs(phi2)
+      !$acc data copy(phi2)
+      call bcs_GPU(phi2)
+      !$acc end data
 #ifdef MPI
       call comm_1s_start(phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       call comm_1s_end(  phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)

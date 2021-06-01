@@ -1528,11 +1528,17 @@
 #ifdef MPI
         !$acc update host(ua,va,wa)
         call getcorneru(ua,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcu2(ua)
+        !$acc data copy(ua) 
+        call bcu2_GPU(ua)
+        !$acc end data
         call getcornerv(va,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcv2(va)
+        !$acc data copy(va) 
+        call bcv2_GPU(va)
+        !$acc end data
         call getcornerw(wa,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcw2(wa)
+        !$acc data copy(wa) 
+        call bcw2_GPU(wa)
+        !$acc end data
         !$acc update device(ua,va,wa)
 #endif
       endif
@@ -2527,7 +2533,6 @@
 ! Set values at boundaries, start comms:
 
       call bcw_GPU(kmh,1)
-      !call bcw(kmh,1)
 #ifdef MPI
       !$acc update host(kmh)
       call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
@@ -2535,7 +2540,6 @@
 #endif
 
       call bcw_GPU(kmv,1)
-      !call bcw(kmv,1)
 #ifdef MPI
       !$acc update host(kmv)
       call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
@@ -2543,7 +2547,6 @@
 #endif
 
       call bcw_GPU(khh,1)
-      !call bcw(khh,1)
 #ifdef MPI
       !$acc update host(khh)
       call comm_1t_start(khh,khdw1,khdw2,khde1,khde2,   &
@@ -2551,7 +2554,6 @@
 #endif
 
       call bcw_GPU(khv,1)
-      !call bcw(khv,1)
 #ifdef MPI
       !$acc update host(khv)
       call comm_1t_start(khv,kvdw1,kvdw2,kvde1,kvde2,   &
@@ -2897,8 +2899,10 @@
 !--------------------------------------------------------------
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
-      call bcw(kmh,1)
-      call bcw(kmv,1)
+      !$acc data copy(kmh,kmv)
+      call bcw_GPU(kmh,1)
+      call bcw_GPU(kmv,1)
+      !$acc end data
 #ifdef MPI
       call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
@@ -2964,7 +2968,9 @@
         enddo
         enddo
 
-        call bc2d(kmv(ibc,jbc,1))
+        !$acc data copy(kmv)
+        call bc2d_GPU(kmv(ibc,jbc,1))
+        !$acc end data
 #ifdef MPI
         call comm_1s2d_start(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
@@ -3110,7 +3116,9 @@
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
 
-      call bcw(kmh,1)
+      !$acc data copy(kmh)
+      call bcw_GPU(kmh,1)
+      !$acc end data
 #ifdef MPI
       call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
@@ -3242,7 +3250,10 @@
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
 
-      call bcw(kmv,1)
+      !$acc data copy(kmv)
+      call bcw_GPU(kmv,1)
+      !$acc end data
+
 #ifdef MPI
       call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
@@ -3288,7 +3299,9 @@
         enddo
         enddo
 
-        call bc2d(kmv(ibc,jbc,1))
+        !$acc data copy(kmv)
+        call bc2d_GPU(kmv(ibc,jbc,1))
+        !$acc end data
 #ifdef MPI
         call comm_1s2d_start(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
@@ -4913,7 +4926,7 @@
       !$acc update host(th0,th,pi0,pp,qa,qt,mf,c1,c2,prs,t,qt,qvci)
 #else
       !non-B4B
-      !$acc parallel loop gang vector default(present) &
+      !$acc parallel loop gang vector collapse(3) default(present) &
       !$acc private(pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
 #endif
       do k=2,nk
@@ -4954,7 +4967,7 @@
     ENDIF  icecheck
 
       !$omp parallel do default(shared) private(i,j)
-      !$acc parallel loop gang vector default(present) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         nm(i,j,   1)=0.0

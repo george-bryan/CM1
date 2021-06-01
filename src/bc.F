@@ -9,6 +9,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bc2d(s)
       use input
       implicit none
@@ -170,6 +171,7 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bc2d
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -177,6 +179,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcs(s)
       use input
       implicit none
@@ -331,6 +334,7 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcs
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -338,6 +342,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcu(u)
       use input
       implicit none
@@ -484,6 +489,7 @@
 
       end subroutine bcu
 
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -491,6 +497,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcv(v)
       use input
       implicit none
@@ -654,12 +661,14 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcv
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcw(w,flag)
       use input
       implicit none
@@ -819,6 +828,7 @@
 
       end subroutine bcw
 
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -867,14 +877,15 @@
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
+      !$acc declare present(s)
 
       integer :: i,j
 
       ! cm1r18 extrapolation formulation:
       ! assumes zh(0) is same as zf(1), and zh(nk+1) is same as zf(nk+1)
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=jb,je
       do i=ib,ie
         s(i,j,0)    = cgs1*s(i,j,1)+cgs2*s(i,j,2)+cgs3*s(i,j,3)
@@ -891,6 +902,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcs2(s)
       use input
       implicit none
@@ -1010,6 +1022,7 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcs2
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1137,131 +1150,6 @@
 
       end subroutine bct2
 
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
-      subroutine bcu2(u)
-      use input
-      implicit none
-
-      real u(ib:ie+1,jb:je,kb:ke)
-
-      integer i,j,k
-
-!---------------------------------------------------------
-!  This subroutine sets the corner points
-!---------------------------------------------------------
-
-      if(ibw.eq.1)then
-
-        if(patchsww)then
-          j=0
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=1-ngxy,0
-            u(i,j,k)=u(1,j,k)
-          enddo
-          enddo
-        endif
-
-        if(patchnww)then
-          j=nj+1
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=1-ngxy,0
-            u(i,j,k)=u(1,j,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(ibe.eq.1)then
-
-        if(patchsee)then
-          j=0
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=ni+2,ni+1+ngxy
-            u(i,j,k)=u(ni+1,j,k)
-          enddo
-          enddo
-        endif
-
-        if(patchnee)then
-          j=nj+1
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=ni+2,ni+1+ngxy
-            u(i,j,k)=u(ni+1,j,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(ibs.eq.1)then
-
-        if(patchsws)then
-          i=0
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=1-ngxy,0
-            u(i,j,k)=u(i,1,k)
-          enddo
-          enddo
-        endif
-
-        if(patchses)then
-          i=ni+2
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=1-ngxy,0
-            u(i,j,k)=u(i,1,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(ibn.eq.1)then
-
-        if(patchnwn)then
-          i=0
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=nj+1,nj+ngxy
-            u(i,j,k)=u(i,nj,k)
-          enddo
-          enddo
-        endif
-
-        if(patchnen)then
-          i=ni+2
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=nj+1,nj+ngxy
-            u(i,j,k)=u(i,nj,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(timestats.ge.1) time_bc=time_bc+mytime()
-
-      end subroutine bcu2
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1403,131 +1291,6 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine bcv2(v)
-      use input
-      implicit none
-
-      real v(ib:ie,jb:je+1,kb:ke)
-
-      integer i,j,k
-
-!---------------------------------------------------------
-!  This subroutine sets the corner points
-!---------------------------------------------------------
-
-      if(ibw.eq.1)then
-
-        if(patchsww)then
-          j=0
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=1-ngxy,0
-            v(i,j,k)=v(1,j,k)
-          enddo
-          enddo
-        endif
-
-        if(patchnww)then
-          j=nj+2
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=1-ngxy,0
-            v(i,j,k)=v(1,j,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(ibe.eq.1)then
-
-        if(patchsee)then
-          j=0
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=ni+1,ni+ngxy
-            v(i,j,k)=v(ni,j,k)
-          enddo
-          enddo
-        endif
-
-        if(patchnee)then
-          j=nj+2
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
-          do k=1,nk
-          do i=ni+1,ni+ngxy
-            v(i,j,k)=v(ni,j,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(ibs.eq.1)then
-
-        if(patchsws)then
-          i=0
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=1-ngxy,0
-            v(i,j,k)=v(i,1,k)
-          enddo
-          enddo
-        endif
-
-        if(patchses)then
-          i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=1-ngxy,0
-            v(i,j,k)=v(i,1,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(ibn.eq.1)then
-
-        if(patchnwn)then
-          i=0
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=nj+2,nj+1+ngxy
-            v(i,j,k)=v(i,nj+1,k)
-          enddo
-          enddo
-        endif
-
-        if(patchnen)then
-          i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
-          do k=1,nk
-          do j=nj+2,nj+1+ngxy
-            v(i,j,k)=v(i,nj+1,k)
-          enddo
-          enddo
-        endif
-
-      endif
-
-      if(timestats.ge.1) time_bc=time_bc+mytime()
-
-      end subroutine bcv2
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
       subroutine bcv2_GPU(v)
       use input
       implicit none
@@ -1662,6 +1425,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+#if 0
 
       subroutine bcw2(w)
       use input
@@ -1782,6 +1546,7 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcw2
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3162,7 +2927,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bcs_gpu=time_bcs_gpu+mytime()
 
       end subroutine bcs_GPU
 

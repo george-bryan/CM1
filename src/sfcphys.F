@@ -595,7 +595,7 @@
 #ifdef _B4B07
       !$acc update host(psfc,tsk,th0,tha,qa,qsfc,znt,za,qvflux,hpbl,dsxy,s1,wspd,thflux,rf,cd,th2)
 #else
-      !$acc parallel loop gang vector default(present)   &
+      !$acc parallel loop gang vector collapse(2) default(present)   &
       !$acc private(i,j,pisfc,thgb,thx,thvx,tskv,govrth,dthvdz,vconv,vsgd,   &
       !$acc dthvm,val,fluxc,rznt)
 #endif      

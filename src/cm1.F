@@ -2716,21 +2716,21 @@
     !$acc copyin(c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw,u1b,v1b, &
     !$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
     !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland) &
-    !$acc copyin(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
-    !$acc copyin(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
-    !$acc copyin(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
-    !$acc copyin(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
-    !$acc copyin(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
-    !$acc copyin(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
-    !$acc copyin(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
-    !$acc copyin(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
-    !$acc copyin(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
-    !$acc copyin(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
-    !$acc copyin(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
-    !$acc copyin(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-    !$acc copyin(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
-    !$acc copyin(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2) &
-    !$acc copyin( &
+    !$acc create(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
+    !$acc create(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
+    !$acc create(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
+    !$acc create(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
+    !$acc create(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
+    !$acc create(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
+    !$acc create(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
+    !$acc create(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
+    !$acc create(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
+    !$acc create(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
+    !$acc create(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
+    !$acc create(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
+    !$acc create(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
+    !$acc create(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2) &
+    !$acc create( &
     !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
     !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
     !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
@@ -2752,6 +2752,7 @@
     !$acc copyin(rho,rr,rf,prs,o30,zir)  &
     !$acc copyin(flag) &
     !$acc copyin(pi0) &
+    !$acc copyin(ug,vg) &
     !$acc copyin(tke_myj,xkzh,xkzq,xkzm) &
     !$acc copyin(xfref,xhref,yfref,yhref,dvdr) &
     !$acc copyin(qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen) &
@@ -2762,8 +2763,8 @@
     !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
     !$acc copyin(thten1,thterm) &
     !$acc copyin(glw,gsw) &
+    !$acc copyin(ulspg,vlspg) &
     !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1)
-    !!$acc copyin(rmol,brcr,phim,phih) &
 
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
@@ -2774,15 +2775,16 @@
 #ifdef _OPENACC
         call nvtxStartRange("H2D ",id=1)
 #endif
-        !!$acc copyin(pi0) &
+        !!$acc copyin(ug,vg) &
+        !!$acc copyin(ulspg,vlspg) &
+        !!$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) & 
 
         !$acc data &
-        !$acc copyin(ug,vg) &
-        !$acc copyin(dt,reqs_s,reqs_u,reqs_p3, &
+        !$acc copyin(dt) &
+        !$acc copyin(reqs_s,reqs_u,reqs_p3, &
         !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) & 
-        !$acc copy(savg,pavg,uavg,thavg,vavg) &
         !$acc copyin(lsnudge_u, lsnudge_v) &
-        !$acc copy(ulspg,vlspg) &
+        !$acc copy(savg,pavg,uavg,thavg,vavg) &
         !$acc copy(th3d,prate)
 
         if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
@@ -3128,6 +3130,7 @@
 #ifdef _OPENACC
         call nvtxStartRange("solve3",id=6)
 #endif
+        if(timestats.ge.1) time_nvtx=time_nvtx+mytime()
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
 
@@ -3911,7 +3914,8 @@
         if(timestats.eq.2)then
           steptime2=time_sound+time_poiss+time_buoyan+time_turb+            &
                     time_diffu+time_microphy+time_stat+time_cflq+           &
-                    time_bc+time_misc+time_integ+time_rdamp+time_divx+      &
+                    time_bc+time_bc_gpu+time_bc2d_gpu+time_bcs_gpu+time_bcv_gpu+time_bcu_gpu+time_bcw_gpu+ &
+                    time_misc+time_nvtx+time_integ+time_rdamp+time_divx+      &
                     time_write+time_restart+time_ttend+time_cor+time_fall+  &
                     time_satadj+time_dbz+time_sfcphys+time_parcels+         &
                     time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
@@ -4122,6 +4126,29 @@
         sum = 0.0
         call MPI_REDUCE(time_bc      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_bc = sum/float(numprocs)
+
+        sum = 0.0
+        call MPI_REDUCE(time_bc_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bc_gpu = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_bcs_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bcs_gpu = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_bcu_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bcu_gpu = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_bcv_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bcv_gpu = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_bcw_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bcw_gpu = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_bc2d_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bc2d_gpu = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_nvtx   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_nvtx = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_integ   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_integ = sum/float(numprocs)
@@ -4214,7 +4241,8 @@
 
       time_solve=time_sound+time_poiss+time_buoyan+time_turb+             &
                   time_diffu+time_microphy+time_stat+time_cflq+           &
-                  time_bc+time_misc+time_integ+time_rdamp+time_divx+      &
+                  time_bc+time_bc_gpu+time_bc2d_gpu+time_bcs_gpu+time_bcu_gpu+time_bcv_gpu+time_bcw_gpu + &
+                  time_misc+time_nvtx+time_integ+time_rdamp+time_divx+      &
                   time_write+time_restart+time_ttend+time_cor+time_fall+  &
                   time_satadj+time_dbz+time_sfcphys+time_parcels+         &
                   time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
@@ -4275,6 +4303,13 @@
       write(outfile,100) 'stat    ',time_stat,time_stat/time_solve
       write(outfile,100) 'cflq    ',time_cflq,time_cflq/time_solve
       write(outfile,100) 'bc      ',time_bc,time_bc/time_solve
+      write(outfile,100) 'bc_gpu  ',time_bc_gpu,time_bc_gpu/time_solve
+      write(outfile,100) 'bc2d_gpu  ',time_bc2d_gpu,time_bc2d_gpu/time_solve
+      write(outfile,100) 'bcs_gpu  ',time_bcs_gpu,time_bcs_gpu/time_solve
+      write(outfile,100) 'bcu_gpu  ',time_bcu_gpu,time_bcu_gpu/time_solve
+      write(outfile,100) 'bcv_gpu  ',time_bcv_gpu,time_bcv_gpu/time_solve
+      write(outfile,100) 'bcw_gpu  ',time_bcw_gpu,time_bcw_gpu/time_solve
+      write(outfile,100) 'nvtx   ',time_nvtx,time_nvtx/time_solve
       write(outfile,100) 'integ   ',time_integ,time_integ/time_solve
       write(outfile,100) 'write   ',time_write,time_write/time_solve
       write(outfile,100) 'restart ',time_restart,time_restart/time_solve

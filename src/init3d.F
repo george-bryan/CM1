@@ -254,8 +254,10 @@
             tkea = 1.0
             tke3d = 1.0
           ENDIF
-          call bcw(tkea,1)
-          call bcw(tke3d,1)
+          !$acc data copy(tkea,tke3d)
+          call bcw_GPU(tkea,1)
+          call bcw_GPU(tke3d,1)
+          !$acc end data
       ENDIF
 
 
@@ -1199,10 +1201,12 @@
 
         ! all done, set some boundary conditions, calculate final pressure, etc:
 
-        call bcu(ua)
-        call bcv(va)
-        call bcs(ppi)
-        call bcs(tha)
+        !$acc data copy(ua,va,ppi,tha)
+        call bcu_GPU(ua)
+        call bcv_GPU(va)
+        call bcs_GPU(ppi)
+        call bcs_GPU(tha)
+        !$acc end data
 
         call calcprs(pi0,prs,ppi)
 
@@ -1875,7 +1879,9 @@
 
         ENDIF
 
-        call bcs(ppi)
+        !$acc data copy(ppi)
+        call bcs_GPU(ppi)
+        !$acc end data
 
       ENDIF
 
@@ -1976,7 +1982,9 @@
         enddo
         enddo
 
-      call bcs(ppi)
+      !$acc data copy(ppi)
+      call bcs_GPU(ppi)
+      !$acc end data
 
   ENDIF  bsmod
 
@@ -2092,28 +2100,39 @@
 !------------------------------------------------------------------
 !  Make sure boundary values are set properly
 
-      call bcu(ua)
-      call bcv(va)
-      call bcw(wa,1)
-      call bcs(ppi)
-      call bcs(tha)
+      !$acc data copy(ua,va,wa,ppi,tha)
+      call bcu_GPU(ua)
+      call bcv_GPU(va)
+      call bcw_GPU(wa,1)
+      call bcs_GPU(ppi)
+      call bcs_GPU(tha)
+      !$acc end data
       if(imoist.eq.1)then
+        !$acc data copy(qa)
         do n=1,numq
-          call bcs(qa(ibm,jbm,kbm,n))
+          call bcs_GPU(qa(ibm,jbm,kbm,n))
         enddo
+        !$acc end data
       endif
       if( cm1setup.eq.1 .and. iusetke )then
-        call bcw(tkea,1)
-      endif
-      if(iptra.eq.1)then
-        do n=1,npt
-          call bcs(pta(ib,jb,kb,n))
-        enddo
+        !$acc data copy(tkea)
+        call bcw_GPU(tkea,1)
+        !$acc end data
       endif
 
-      call bcu(u0)
-      call bcv(v0)
-      call bcs(th0)
+      if(iptra.eq.1)then
+        !$acc data copy(pta)
+        do n=1,npt
+          call bcs_GPU(pta(ib,jb,kb,n))
+        enddo
+        !$acc end data
+      endif
+      
+      !$acc data copy(u0,v0,th0)
+      call bcu_GPU(u0)
+      call bcv_GPU(v0)
+      call bcs_GPU(th0)
+      !$acc end data
 
 #ifdef MPI
 !------------------------------------------------------------------
@@ -2193,7 +2212,9 @@
 #endif
       if(terrain_flag)then
         call bcwsfc(gz,dzdx,dzdy,ua,va,wa)
-        call bc2d(wa(ib,jb,1))
+        !$acc data copy(wa)
+        call bc2d_GPU(wa(ib,jb,1))
+        !$acc end data
       endif
 
       if( cm1setup.eq.1 .and. iusetke )then
@@ -2202,7 +2223,9 @@
           tkea(i,j,1) = tkea(i,j,2)
         enddo
         enddo
-        call bc2d(tkea(ibt,jbt,1))
+        !$acc data copy(tkea)
+        call bc2d_GPU(tkea(ibt,jbt,1))
+        !$acc end data
 #ifdef MPI
         call comm_1s2d_start(tkea(ibt,jbt,1),sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),   &
                                              ss31(1,1,1),ss32(1,1,1),sn31(1,1,1),sn32(1,1,1),reqs_s)
@@ -2291,7 +2314,9 @@
       endif
 
       if( psolver.eq.6 )then
-        call bcs(phi1)
+        !$acc data copy(phi1)
+        call bcs_GPU(phi1)
+        !$acc end data
 #ifdef MPI
         call comm_1s_start(phi1,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
         call comm_1s_end(phi1,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
@@ -2361,11 +2386,15 @@
   ENDIF
 
 
-        call bcs(rho)
+        !$acc data copy(rho) 
+        call bcs_GPU(rho)
+        !$acc end data
 #ifdef MPI
         call comm_1s_start(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
         call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        call bcs2(rho)
+        !$acc data copy(rho)
+        call bcs2_GPU(rho)
+        !$acc end data
         call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
 #endif
 
@@ -2380,18 +2409,26 @@
         enddo
         enddo
 
-        call bcs(rr)
+        !$acc data copy(rr) 
+        call bcs_GPU(rr)
+        !$acc end data
 #ifdef MPI
         call comm_1s_start(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
         call comm_1s_end(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        call bcs2(rr)
+        !$acc data copy(rr)
+        call bcs2_GPU(rr)
+        !$acc end data
         call getcorner(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
 #endif
-        call bcs(rf)
+        !$acc data copy(rf) 
+        call bcs_GPU(rf)
+        !$acc end data
 #ifdef MPI
         call comm_1s_start(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
         call comm_1s_end(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        call bcs2(rf)
+        !$acc data copy(rf)
+        call bcs2_GPU(rf)
+        !$acc end data
         call getcorner(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
 #endif
 
@@ -2485,7 +2522,9 @@
 
       ENDIF
 
-      call bcs(ppx)
+      !$acc data copy(ppx)
+      call bcs_GPU(ppx)
+      !$acc end data
 #ifdef MPI
       call comm_1s_start(ppx,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       call comm_1s_end(ppx,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)

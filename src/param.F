@@ -8153,7 +8153,9 @@
       enddo
       enddo
 
-      call bcs(cc2)
+      !$acc data copy(cc2)
+      call bcs_GPU(cc2)
+      !$acc end data
 #ifdef MPI
       call comm_all_s(cc2,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
