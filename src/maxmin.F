@@ -33,8 +33,8 @@
       imax = 1
       jmax = 1
       kmax = 1
-      !$acc data create(tmax,tmin,imaxt,jmaxt,kmaxt,imint,jmint,kmint) &
-      !$acc copy(fmax,imax,jmax,kmax,fmin,imin,jmin,kmin)
+      !$acc data create(fmin,fmax,tmax,tmin,imaxt,jmaxt,kmaxt,imint,jmint,kmint) &
+      !$acc copy(imax,jmax,kmax,imin,jmin,kmin)
 !$omp parallel do default(shared)    &
 !$omp private(i,j,k)
       !$acc parallel private(i,j,k,tmaxt,tmint) default(present) reduction(min:tmint) reduction(max:tmaxt)
@@ -75,22 +75,27 @@
 
       fmax= -1.e30
       fmin=  1.e30
+      !$acc parallel loop gang vector default(present) private(k) reduction(max:fmax) reduction(min:fmin)
+      do k=1,kzz
+        fmax=max(tmax(k),fmax)
+        fmin=min(tmin(k),fmin)
+      enddo
+
       !$acc parallel loop gang vector default(present) private(k) 
       do k=1,kzz
         if(tmax(k).gt.fmax)then
-          fmax=tmax(k)
           imax=imaxt(k)
           jmax=jmaxt(k)
           kmax=kmaxt(k)
         endif
         if(tmin(k).lt.fmin)then
-          fmin=tmin(k)
           imin=imint(k)
           jmin=jmint(k)
           kmin=kmint(k)
         endif 
       enddo
-
+      !print *,'maxmin: before compare'
+      !$acc compare(imax,jmax,kmax,imin,jmin,kmin)
 #ifdef MPI
       mmax(1)=fmax
       mmax(2)=myid
@@ -131,7 +136,7 @@
       rstat(nstat) = fmin
 #ifdef MPI
     else
-      !$acc end data
+        !$acc end data
     endif
 #endif
 
@@ -173,11 +178,11 @@
       imax=1
       jmin=1
       jmax=1
-      !$acc data create(tmax,tmin,imaxt,jmaxt,imint,jmint) &
-      !$acc copy(fmax,imax,jmax,fmin,imin,jmin)
+      !$acc data create(fmax,fmin,tmax,tmin,imaxt,jmaxt,imint,jmint) &
+      !$acc copy(imax,jmax,imin,jmin)
 !$omp parallel do default(shared)    &
 !$omp private(i,j)
-      !$acc parallel private(i,j,tmaxt,tmint) reduction(min:tmint) reduction(max:tmaxt)
+      !$acc parallel private(i,j,tmaxt,tmint) default(present) reduction(min:tmint) reduction(max:tmaxt)
       do j=1,jzz
         tmaxt= -1.e30
         tmint=  1.e30
@@ -193,7 +198,7 @@
 
 !$omp parallel do default(shared)    &
 !$omp private(i,j)
-!$acc parallel loop gang vector collapse(2) copyin(tmax, tmin) copy(imaxt,jmaxt,imint,jmint) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,jzz
         do i=1,izz
           if(f(i,j).eq.tmax(j))then
@@ -209,15 +214,19 @@
 
       fmax= -1.e30
       fmin=  1.e30
+      !$acc parallel loop gang vector default(present) private(j) reduction(max:fmax) reduction(min:fmin)
+      do j=1,jzz
+        fmax=max(tmax(j),fmax)
+        fmin=min(tmin(j),fmin)
+      enddo
+
       !$acc parallel loop gang vector default(present) private(j) 
       do j=1,jzz
         if(tmax(j).gt.fmax)then
-          fmax=tmax(j)
           imax=imaxt(j)
           jmax=jmaxt(j)
         endif
         if(tmin(j).lt.fmin)then
-          fmin=tmin(j)
           imin=imint(j)
           jmin=jmint(j)
         endif
@@ -260,8 +269,8 @@
       nstat = nstat + 1
       rstat(nstat) = fmin
 #ifdef MPI
-    else
-      !$acc end data
+    else 
+        !$acc end data
     endif
 #endif
 
