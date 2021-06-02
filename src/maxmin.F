@@ -124,6 +124,7 @@
 
     if(myid.eq.0)then
 #endif
+      !$acc end data
       write(6,100) amax,fmax,imax,jmax,kmax,    &
                    amin,fmin,imin,jmin,kmin
 100   format(2x,a6,':',1x,g13.6,i5,i5,i5,    &
@@ -134,12 +135,12 @@
       nstat = nstat + 1
       rstat(nstat) = fmin
 #ifdef MPI
+    else
+        !$acc end data
     endif
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
-
-      !$acc end data
 
       end subroutine maxmin
 
@@ -257,6 +258,7 @@
 
     if(myid.eq.0)then
 #endif
+      !$acc end data
       write(6,100) amax,fmax,imax,jmax,1,    &
                    amin,fmin,imin,jmin,1
 100   format(2x,a6,':',1x,g13.6,i5,i5,i5,    &
@@ -267,12 +269,12 @@
       nstat = nstat + 1
       rstat(nstat) = fmin
 #ifdef MPI
+    else 
+        !$acc end data
     endif
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
-
-      !$acc end data
 
       end subroutine maxmin2d
 
