@@ -2740,8 +2740,8 @@
     !$acc create(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
     !$acc copyin(defv,defh,lenscl,dissten, &
     !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
-    !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,dsxy,cda,psim,psih, &
-    !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z), &
+    !$acc      wspd,gz1oz0,br,brcr,phim,phih,swspd,cpmm,zol,mavail,mol,rmol,dsxy,cda,psim,psih, &
+    !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z) &
     !$acc copyin(stau,ustt,ut,vt,st,cd,ch,cq,u1,v1,s1,t1) &
     !$acc copyin(znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
     !$acc copyin(sws,svs,sps,srs,sgs,sus,shs) &

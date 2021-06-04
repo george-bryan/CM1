@@ -193,7 +193,9 @@
     real :: bri,ubar,vbar,thvflux,tmpprt,thf1,thf2,gamfac,ws
     real, dimension(ib:ie,jb:je) :: tmpqsfc,govthv,thvsfc,thv1
 
-    !$acc data create(wavg,wvar,thvavg,qvavg,qlavg,qtavg,thlavg,wsp,wspa,savg,qcrit)
+    !$acc data &
+    !$acc   create(wavg,wvar,ravg,tavg,thvavg,rhoavg,rfavg, &
+    !$acc          qvavg,qlavg,qtavg,thlavg,wsp,wspa,savg,qcrit)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
@@ -857,8 +859,6 @@
     sfcstuff:  &
     IF( sfcmodel.ge.1 )THEN
 
-!BLOCK01c
-#if 0
 
       !this causes a code bug
       nvar = nvar+1
@@ -869,6 +869,7 @@
       vargrid(nvar) = '2'
       call getavg2d( wspd  ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -992,8 +993,6 @@
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       molbar = savg2d
-!END-BLOCK01C
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -1087,10 +1086,10 @@
 
     ENDIF  sfcstuff
 
-!BLOCK01
-#if 0
       !c-c-c-c-c-c-c-c-c-c
 
+!BLOCK01a
+#if 0
     ziflag:  &
     IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 )THEN
 
@@ -1171,7 +1170,11 @@
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF  ziflag
+!END-BLOCK01a
+#endif
 
+!BLOCK01
+#if 0
       !c-c-c-c-c-c-c-c-c-c
 
     IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 )THEN
@@ -1227,6 +1230,8 @@
 
     ENDIF
 
+!END-BLOCK01
+#endif
       !c-c-c-c-c-c-c-c-c-c
 
     IF( imoist.eq.1 )THEN
@@ -1242,10 +1247,9 @@
 
     ENDIF
 
+
       !c-c-c-c-c-c-c-c-c-c
 
-!END-BLOCK01
-#endif
 
     IF( imoist.eq.1 )THEN
 
@@ -2322,6 +2326,9 @@
 
       ENDIF
 
+!END-BLOCK02
+#endif
+
       !c-c-c-c-c-c-c-c-c-c
 
       nvar2d = nvar
@@ -2331,8 +2338,6 @@
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     ! 3d vars:  averages
 
-!END-BLOCK02
-#endif
       !c-c-c-c-c-c-c-c-c-c
 
         nvar = nvar+1
@@ -4545,6 +4550,8 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
+!END-BLOCK05
+#endif
 
         nvar = nvar+1
         varname(nvar) = 'sdwsp'
@@ -4565,6 +4572,8 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
+!BLOCK05a
+#if 0
     IF( iptra.eq.1 )THEN
 
       !$acc parallel loop vector gang collapse(2) default(present) private(k,n)
@@ -4604,6 +4613,8 @@
 
     ENDIF
 
+!END-BLOCK05a
+#endif
       !c-c-c-c-c-c-c-c-c-c
 
       IF( testcase.eq.4 .or. testcase.eq.5 )THEN
@@ -4749,16 +4760,18 @@
         vargrid(nvar) = 'w'
 
         !PORTME
-        savg = 0.0
+        !savg = 0.0
 
+        !$acc parallel default(present) private(k)
         savg(1) = grads_undef
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc loop gang vector
         do k=2,nk
 !!!          savg(k) = (wsp(k)-wsp(k-1))*rdz*mf(1,1,k)*karman*zf(1,1,k)/ustbar
           ! 180212:
           savg(k) = (wsp(k)-wsp(k-1))/(wspa(k)-wspa(k-1))
         enddo
         savg(nk+1) = grads_undef
+        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4772,10 +4785,10 @@
 
         !savg = 0.0
 
-        !$acc parallel default(present) private(k) copyin(thavg,mf) copyout(savg)
         
+        !$acc parallel default(present) private(k)
         savg(1) = grads_undef
-        !$acc loop gang vector private(k)
+        !$acc loop gang vector
         do k=2,nk
           savg(k) = (thavg(k)-thavg(k-1))*rdz*mf(1,1,k)
         enddo
@@ -4793,14 +4806,16 @@
         vargrid(nvar) = 'w'
 
         !PORTME
-        savg = 0.0
+        !savg = 0.0
 
+        !$acc parallel default(present) private(k)
         savg(1) = grads_undef
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc loop gang vector
         do k=2,nk
           savg(k) = (uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
         enddo
         savg(nk+1) = grads_undef
+        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4812,14 +4827,16 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 'w'
 
-        savg = 0.0
+        !savg = 0.0
 
+        !$acc parallel default(present) private(k)
         savg(1) = grads_undef
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc loop gang vector
         do k=2,nk
           savg(k) = (vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
         enddo
         savg(nk+1) = grads_undef
+        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4831,14 +4848,16 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 'w'
 
-        savg = 0.0
+        !JMD savg = 0.0
 
+        !$acc parallel default(present) private(k)
         savg(1) = grads_undef
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc loop gang vector private(k)
         do k=2,nk
           savg(k) = (wsp(k)-wsp(k-1))*rdz*mf(1,1,k)
         enddo
         savg(nk+1) = grads_undef
+        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4851,14 +4870,16 @@
         varunit(nvar) = 'g/g/m'
         vargrid(nvar) = 'w'
 
-        savg = 0.0
+        !JMD savg = 0.0
 
+        !$acc parallel default(present) private(k)
         savg(1) = grads_undef
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc loop gang vector private(k)
         do k=2,nk
           savg(k) = (qvavg(k)-qvavg(k-1))*rdz*mf(1,1,k)
         enddo
         savg(nk+1) = grads_undef
+        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
@@ -4887,8 +4908,6 @@
         enddo
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-!END-BLOCK05
-#endif
 
         nvar = nvar+1
         varname(nvar) = 'u0'
@@ -7413,6 +7432,8 @@
         enddo
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+!END-BLOCK06 
+#endif
 
 
       !c-c-c-c-c-c-c-c-c-c
@@ -7480,8 +7501,6 @@
 
       endif
 
-!END-BLOCK06 
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7540,7 +7559,6 @@
 
       endif
 
-#if 0
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_hediff.ge.1 )then
@@ -7563,7 +7581,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7775,8 +7792,6 @@
 
       endif
 
-!BLOCK06a 
-#if 0
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_lsw.ge.1 )then
@@ -7805,7 +7820,6 @@
 
       endif
 
-      !c-c-c-c-c-c-c-c-c-c
 
       IF( lspgrad.ge.1 )THEN
 
@@ -7822,8 +7836,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
-!END-BLOCK06a
-#endif
+      !c-c-c-c-c-c-c-c-c-c
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -8224,8 +8237,6 @@
           wavg(k) = savg(k)
         enddo
 
-!BLOCK06b
-#if 0
 
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
@@ -8331,6 +8342,8 @@
         call write3d(ravg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
 
+!BLOCK06b
+#if 0
       !c-c-c-c-c-c-c-c-c-c
 
       if( wd_buoy.ge.1 )then
@@ -8341,6 +8354,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
+        !PORTME
         call rtkeb_addw(dum1,wtk,wdiag,wd_buoy,w_buoy)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -10124,10 +10138,10 @@
 
     integer :: i,j
 
-    savg2d = 0.0
 
+    savg2d = 0.0
     !$acc parallel loop gang vector collapse(2) default(present) &
-    !$acc private(i,j) copyout(savg2d) reduction(+:savg2d)
+    !$acc private(i,j) copy(savg2d) reduction(+:savg2d)
     do j=1,nj
     do i=1,ni
       savg2d = savg2d+s2d(i,j)
