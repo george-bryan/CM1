@@ -2757,14 +2757,19 @@
     !$acc copyin(xfref,xhref,yfref,yhref,dvdr) &
     !$acc copyin(qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen) &
     !$acc copyin(effc,effi,effs,effr,effg,effis,out2d,out3d) &  ! physics only 
-    !$acc copyin(rain,p3a,p3o) & ! physics only
+    !$acc copyin(rain,prate,p3a,p3o) & ! physics only
     !$acc copyin(qbudget,asq,bsq) &
     !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
     !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
     !$acc copyin(thten1,thterm) &
     !$acc copyin(glw,gsw) &
     !$acc copyin(ulspg,vlspg) &
-    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,vten,vten1,rrw,wa,w3d,wten,wten1)
+    !$acc copyin(savg,pavg,uavg,vavg,thavg) &
+    !$acc copyin(lsnudge_u, lsnudge_v) &
+    !$acc copyin(dt) &
+    !$acc copyin(reqs_s,reqs_u,reqs_p3, &
+    !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) &
+    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,vten,vten1,rrw,wa,w3d,wten,wten1)
 
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
@@ -2772,25 +2777,6 @@
     timeloop:  &
     DO WHILE( mtime.lt.timax )
 
-#ifdef _OPENACC
-        call nvtxStartRange("H2D ",id=1)
-#endif
-        !!$acc copyin(ug,vg) &
-        !!$acc copyin(ulspg,vlspg) &
-        !!$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) & 
-
-        !$acc data &
-        !$acc copyin(dt) &
-        !$acc copyin(reqs_s,reqs_u,reqs_p3, &
-        !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) & 
-        !$acc copyin(lsnudge_u, lsnudge_v) &
-        !$acc copy(savg,pavg,uavg,thavg,vavg) &
-        !$acc copy(th3d,prate)
-
-        if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
-#ifdef _OPENACC
-        call nvtxEndRange
-#endif
       ifsolve:  &
       if( dosolve )then
 
@@ -3228,15 +3214,6 @@
 
       endif  ifsolve
 
-#ifdef _OPENACC
-        call nvtxStartRange("D2H",id=1)
-#endif
-#ifdef _OPENACC
-        call nvtxEndRange
-        if(timestats.ge.1) time_D2H=time_D2H+mytime()
-#endif
-
-
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !cc   Adaptive domain-moving option for TCs  ccccccccccccccccccccccccccc
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3461,6 +3438,8 @@
                           ua,va,wa,ppi,tha,qa,qten,kmh,kmv,khh,khv,tkea,qke,  &
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
+#if 0
+#endif
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
@@ -3632,25 +3611,10 @@
         endif
       ENDIF
       endif
-#ifdef _OPENACC
-        call nvtxEndRange
-        call nvtxStartRange("D2H",id=1)
-#endif
-        !$acc end data
-#ifdef _OPENACC
-        call nvtxEndRange
-        if(timestats.ge.1) time_step_D2H=time_step_D2H+mytime()
-#endif
-
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
-
-    !$acc data &
-    !$acc copyin(th3d,prate) &
-    !$acc copy(pavg,uavg,vavg,thavg)
-    if(timestats.ge.1) time_step_H2D=time_step_H2D+mytime()
 
     IF( dodomaindiag )THEN
       if( dotdwrite )then
@@ -3999,7 +3963,6 @@
       startup = .false.
       restarted = .false.
 
-    !$acc end data
     if(timestats.ge.1) time_step_D2H=time_step_D2H+mytime()
 
 

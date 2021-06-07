@@ -1173,8 +1173,6 @@
 !END-BLOCK01a
 #endif
 
-!BLOCK01
-#if 0
       !c-c-c-c-c-c-c-c-c-c
 
     IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 )THEN
@@ -1186,10 +1184,11 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
+      !$acc parallel default(present)
       tmax = -1.0e30
       zi = 0.0
 
-      !PORTME
+      !$acc loop seq
       do k=nk,2,-1
         dtdz = (thvavg(k)-thvavg(k-1))*rdz*mf(1,1,k)
         if( dtdz .ge. tmax )then
@@ -1200,6 +1199,7 @@
 
       savg2d = zi
       zitb = zi
+      !$acc end parallel
 
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -1216,22 +1216,22 @@
         varlvls(nvar) = 0
         vargrid(nvar) = '2'
 
+        !$acc parallel default(present)
         tmax = -1.0e30
 
-        !PORTME
+        !$acc loop seq
         do k=nk,1,-1
           if( wsp(k) .ge. tmax )then
             tmax = wsp(k)
             savg2d = zh(1,1,k)
           endif
         enddo
+        !$acc end parallel
 
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF
 
-!END-BLOCK01
-#endif
       !c-c-c-c-c-c-c-c-c-c
 
     IF( imoist.eq.1 )THEN
@@ -1775,15 +1775,13 @@
 
     ENDIF
 
-!BLOCK02
-#if 0
       !c-c-c-c-c-c-c-c-c-c
 
     IF( imoist.eq.1 )THEN
       ! cloud top heights:
 
         !PORTME
-      !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = 0.0
@@ -1793,31 +1791,36 @@
       enddo
 
         !PORTME
-      do k=1,nk
         if( nqc.ge.1 )then
-          !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          do k=1,nk
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqc).ge.qcrit(k) ) dum1(i,j,1) = zh(i,j,k)
           enddo
           enddo
+          enddo
         endif
         if( nqr.ge.1 )then
-          !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          do k=1,nk
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqr).ge.qcrit(k) ) dum1(i,j,2) = zh(i,j,k)
           enddo
           enddo
+          enddo
         endif
-          !!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-        do j=1,nj
-        do i=1,ni
-          if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do k=1,nk
+          do j=1,nj
+          do i=1,ni
+            if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
+          enddo
+          enddo
         enddo
-        enddo
-      enddo
 
+      !$acc parallel default(present) private(i,j) 
       qct = 0.0
       qrt = 0.0
       qlt = 0.0
@@ -1826,7 +1829,7 @@
       nrt = 0
       nlt = 0
 
-        !PORTME
+      !$acc loop gang vector collapse(2) reduction(+:qct,nct,qrt,nrt,qlt,nlt)
       do j=1,nj
       do i=1,ni
         if( dum1(i,j,1).gt.0.01*zh(1,1,1) )then
@@ -1843,6 +1846,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
 #ifdef MPI
       call MPI_ALLREDUCE(MPI_IN_PLACE,qct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -1852,10 +1856,11 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
-
+      !$acc parallel 
       qct = qct/dble(max(1,nct))
       qrt = qrt/dble(max(1,nrt))
       qlt = qlt/dble(max(1,nlt))
+      !$acc end parallel
 
       nvar = nvar+1
       varname(nvar) = 'qct'
@@ -2200,6 +2205,8 @@
 
     ENDIF
 
+!BLOCK02
+#if 0
       !c-c-c-c-c-c-c-c-c-c
       !PORTME
       doit = .true.
@@ -3271,6 +3278,8 @@
 
       endif
 
+#endif
+
       !c-c-c-c-c-c-c-c-c-c
 
       IF( imoist.eq.1 )THEN
@@ -3311,8 +3320,7 @@
         varunit(nvar) = 'K'
 
       if( ptype.eq.0 )then
-        !PORTME
-        !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3327,8 +3335,7 @@
         enddo
         enddo
       else
-        !PORTME
-        !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3478,6 +3485,7 @@
 
       ENDIF
 
+
       !c-c-c-c-c-c-c-c-c-c
 
       IF( cm1setup.ge.1 )THEN
@@ -3509,9 +3517,22 @@
 
       IF( cm1setup.eq.1 )THEN
 
-        !PORTME
-        wtk = 0.0
-        wtmp = 0.0
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k) 
+        do k = kb,ke
+        do j = ib,je
+        do i = ib,ie
+          wtk(i,j,k) = 0.0
+          wtmp(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
+        
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j) 
+        do j = ib,je
+        do i = ib,ie
+          wtmp(i,j,ke+1) = 0.0
+        enddo
+        enddo
 
           if(timestats.ge.1) time_diag = time_diag+mytime()
           if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
@@ -3562,9 +3583,22 @@
 
       IF( cm1setup.eq.1 .and. dot2p )THEN
 
-        !PORTME
-        wtk = 0.0
-        wtmp = 0.0
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          wtk(i,j,k) = 0.0
+          wtmp(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
+
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+        do j=jb,je
+        do i=ib,ie
+          wtmp(i,j,ke+1) = 0.0
+        enddo
+        enddo
 
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
@@ -3780,6 +3814,7 @@
 
       ENDIF  ipbl3
 
+!BLOCK
       !c-c-c-c-c-c-c-c-c-c
 
       ipbl4:  &
@@ -4207,10 +4242,10 @@
         vargrid(nvar) = 'w'
 
         !PORTME
-        dum1 = 0.0
+        ! dum1 = 0.0
 
         !PORTME
-        !!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4535,7 +4570,7 @@
         vardesc(nvar) = 'analytic wind speed'
         varunit(nvar) = 'm/s'
 
-        !PORTME
+        !$acc parallel loop gang vector default(present) private(k,zeta,tpsim)
         do k=1,nk
           if( abs(molbar).gt.1.0e-6 )then
             zeta = zh(1,1,k)/molbar
@@ -4550,8 +4585,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
-!END-BLOCK05
-#endif
 
         nvar = nvar+1
         varname(nvar) = 'sdwsp'

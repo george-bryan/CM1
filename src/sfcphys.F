@@ -1084,6 +1084,7 @@
 
 
       subroutine stabil_funcs(zeta,phim,phih,psim,psih)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: zeta

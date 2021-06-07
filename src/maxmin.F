@@ -33,8 +33,8 @@
       imax = 1
       jmax = 1
       kmax = 1
-      !$acc data create(fmin,fmax,tmax,tmin,imaxt,jmaxt,kmaxt,imint,jmint,kmint) &
-      !$acc copy(imax,jmax,kmax,imin,jmin,kmin)
+      !$acc data create(tmax,tmin,imaxt,jmaxt,kmaxt,imint,jmint,kmint) &
+      !$acc copy(imax,jmax,kmax,imin,jmin,kmin) copyout(fmin,fmax)
 !$omp parallel do default(shared)    &
 !$omp private(i,j,k)
       !$acc parallel private(i,j,k,tmaxt,tmint) default(present) reduction(min:tmint) reduction(max:tmaxt)
@@ -73,13 +73,15 @@
         enddo
       enddo
 
-      fmax= -1.e30
-      fmin=  1.e30
-      !$acc parallel loop gang vector default(present) private(k) reduction(max:fmax) reduction(min:fmin)
+      !$acc parallel default(present) private(k) reduction(max:fmax) reduction(min:fmin)
+      fmax = -1.e30
+      fmin =  1.e30
+      !$acc loop gang vector
       do k=1,kzz
         fmax=max(tmax(k),fmax)
         fmin=min(tmin(k),fmin)
       enddo
+      !$acc end parallel
 
       !$acc parallel loop gang vector default(present) private(k) 
       do k=1,kzz
