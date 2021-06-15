@@ -3081,7 +3081,7 @@
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &
-!$omp private(i,j,k),
+!$omp private(i,j,k)
     !JMD !$acc parallel loop gang collapse(2) private(i,j,k)
     DO j=1,nj
 

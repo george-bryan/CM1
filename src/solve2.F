@@ -1151,12 +1151,12 @@
                          ppi,pp3d,sten ,t11,   t22,dttmp,nrk,rtime,mtime, &
                          bndy,kbdy)
 
-        ELSEIF(psolver.eq.2)THEN
+        ELSEIF( psolver.eq.2 .or. psolver.eq.7 )THEN
 
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
-                        pi0,rho0,rr0,rf0,rrf0,th0,rth0,zs,                &
+                        pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs,           &
                         gz,rgz,gzu,rgzu,gzv,rgzv,                         &
                         dzdx,dzdy,gx,gxu,gy,gyv,                          &
                         radbcw,radbce,radbcs,radbcn,dtu,dtu0,dtv,dtv0,    &
@@ -1543,7 +1543,7 @@
     dopf = .false.
 
     pscheck:  &
-    IF(psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6)THEN
+    IF(psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6.or.psolver.eq.7)THEN
 
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k)

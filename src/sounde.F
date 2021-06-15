@@ -9,7 +9,7 @@
 
       subroutine sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
-                        pi0,rho0,rr0,rf0,rrf0,th0,rth0,zs,                &
+                        pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs,           &
                         gz,rgz,gzu,rgzu,gzv,rgzv,                         &
                         dzdx,dzdy,gx,gxu,gy,gyv,                          &
                         radbcw,radbce,radbcs,radbcn,dtu,dtu0,dtv,dtv0,    &
@@ -39,7 +39,7 @@
       real, intent(in), dimension(kb:ke+1) :: rdsf,sigmaf
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh,mh,rmh,c1,c2
       real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: mf,zf
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: pi0,rho0,rr0,rf0,rrf0,th0,rth0
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0
       real, intent(in), dimension(ib:ie,jb:je) :: zs
       real, intent(in), dimension(itb:ite,jtb:jte) :: gz,rgz,gzu,rgzu,gzv,rgzv,dzdx,dzdy
       real, intent(in), dimension(itb:ite,jtb:jte,ktb:kte) :: gx,gxu,gy,gyv
@@ -69,7 +69,7 @@
 !-----
 
       integer :: i,j,k,n,nloop
-      real :: tem,tem1,tem2,tem3,tem4,r1,r2,dts,delp
+      real :: tem,tem1,tem2,tem3,tem4,r1,r2,rr1,rr2,dts,delp
 
       real :: temx,temy,u1,u2,v1,v2,w1,w2,ww,div,tavg,c1a,c1b,c2a,c2b,p1,p2,p3,p4
 
@@ -107,6 +107,8 @@
 
 !---------------------------------------------------------------------
 !  Arrays for vadv:
+
+    IF( psolver.eq.2 )THEN
 
       IF(.not.terrain_flag)THEN
 
@@ -161,6 +163,8 @@
         pk2(i,j,nk) = 0.0
       enddo
       enddo
+
+    ENDIF
 
 !---------------------------------------------------------------------
 !  Prepare for acoustic steps
@@ -289,7 +293,11 @@
         endif
 #endif
 
-!-----
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!  psolver = 2
+
+  ps27a:  &
+  IF(psolver.eq.2)THEN
 
     IF(.not.terrain_flag)THEN
 
@@ -386,6 +394,102 @@
 
     ENDIF
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!  psolver = 7
+
+  ELSEIF(psolver.eq.7)THEN  ps27a
+
+    IF(.not.terrain_flag)THEN
+
+      IF(axisymm.eq.0)THEN
+        ! Cartesian grid without terrain:
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1,tem2)
+        do k=1,nk
+          tem1 = rdx*cp*thv0(1,1,k)
+          tem2 = rdy*cp*thv0(1,1,k)
+          do j=1,nj+1
+          do i=1,ni+1
+            u3d(i,j,k)=u3d(i,j,k)+dtu(i,j)*( uten(i,j,k)      &
+                    -tem1*(ppd(i,j,k)-ppd(i-1,j,k))*uf(i) )
+            v3d(i,j,k)=v3d(i,j,k)+dtv(i,j)*( vten(i,j,k)      &
+                    -tem2*(ppd(i,j,k)-ppd(i,j-1,k))*vf(j) )
+          enddo
+          enddo
+        enddo
+
+        IF( do_ib )THEN
+          call zero_out_uv(bndy,kbdy,u3d,v3d)
+        ENDIF
+
+      ELSE
+        ! axisymmetric grid:
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1)
+        do k=1,nk
+          tem1 = rdx*cp*thv0(1,1,k)
+          do j=1,nj
+          do i=1+ibw,ni+1-ibe
+            u3d(i,j,k)=u3d(i,j,k)+dts*( uten(i,j,k)      &
+                    -tem1*(ppd(i,j,k)-ppd(i-1,j,k))*uf(i) )
+          enddo
+          enddo
+        enddo
+
+      ENDIF
+
+    ELSE
+
+        ! Cartesian grid with terrain:
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2)
+        do j=0,nj+1
+          do k=2,nk
+          do i=0,ni+1
+            dum1(i,j,k) = (ppd(i,j,k)-ppd(i,j,k-1))*rds(k)
+          enddo
+          enddo
+          do i=0,ni+1
+            dum1(i,j,1) = 0.0
+            dum1(i,j,nk+1) = 0.0
+          enddo
+        enddo
+
+        tem = cp*0.5
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
+        do k=1,nk
+          ! x-dir
+          do j=1,nj
+          do i=1+ibw,ni+1-ibe
+            u3d(i,j,k)=u3d(i,j,k)+dts*( uten(i,j,k)         &
+                   -tem*(thv0(i,j,k)+thv0(i-1,j,k))*(         &
+                     (ppd(i,j,k)-ppd(i-1,j,k))*rdx*uf(i)    &
+              +0.125*( (dum1(i,j,k+1)+dum1(i-1,j,k+1))      &
+                      +(dum1(i,j,k  )+dum1(i-1,j,k  )) )    &
+                    *(gxu(i,j,k)+gxu(i,j,k+1))    ) )
+          enddo
+          enddo
+          do j=1+ibs,nj+1-ibn
+          do i=1,ni
+            v3d(i,j,k)=v3d(i,j,k)+dts*( vten(i,j,k)         &
+                   -tem*(thv0(i,j,k)+thv0(i,j-1,k))*(         &
+                     (ppd(i,j,k)-ppd(i,j-1,k))*rdy*vf(j)    &
+              +0.125*( (dum1(i,j,k+1)+dum1(i,j-1,k+1))      &
+                      +(dum1(i,j,k  )+dum1(i,j-1,k  )) )    &
+                    *(gyv(i,j,k)+gyv(i,j,k+1))    ) )
+          enddo
+          enddo
+        enddo
+
+    ENDIF
+
+  ENDIF  ps27a
+
 !----------------------------------------------
 !  convergence forcing:
 
@@ -432,6 +536,10 @@
         ENDIF
       ENDIF
 
+  !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    ps27b:  &
+    IF( psolver.eq.2 )THEN
 
       IF(.not.terrain_flag)THEN
         ! without terrain:
@@ -450,6 +558,7 @@
           enddo
           enddo
         enddo
+        if(timestats.ge.1) time_sound=time_sound+mytime()
 
       ELSE
         ! with terrain:
@@ -472,6 +581,50 @@
 
       ENDIF
 
+
+  !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    ELSEIF( psolver.eq.7 )THEN  ps27b
+
+      IF(.not.terrain_flag)THEN
+        ! without terrain:
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1)
+        do k=2,nk
+          tem1 = rdz*mf(1,1,k)*cp*(c2(1,1,k)*thv0(1,1,k)+c1(1,1,k)*thv0(1,1,k-1))
+          do j=1,nj
+          do i=1,ni
+            w3d(i,j,k)=w3d(i,j,k)+dts*( wten(i,j,k)            &
+                    -tem1*(ppd(i,j,k)-ppd(i,j,k-1)) )
+          enddo
+          enddo
+        enddo
+        if(timestats.ge.1) time_sound=time_sound+mytime()
+
+      ELSE
+        ! with terrain:
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1)
+        do k=2,nk
+          do j=1,nj
+          do i=1,ni
+            tem1 = rds(k)*cp*(c2(i,j,k)*thv0(i,j,k)+c1(i,j,k)*thv0(i,j,k-1))
+            w3d(i,j,k)=w3d(i,j,k)+dts*( wten(i,j,k)                     &
+                  -tem1*(ppd(i,j,k)-ppd(i,j,k-1))*gz(i,j) )
+          enddo
+          enddo
+        enddo
+        if(timestats.ge.1) time_sound=time_sound+mytime()
+
+        call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+
+      ENDIF
+
+    ENDIF  ps27b
+
+  !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       IF( wnudge.eq.1 )THEN
         !  apply updraft nudging:
@@ -497,10 +650,15 @@
 !-----------------------------------------------------------------------
 !  get terms for div,vadv (terrain only):
 
-      IF(terrain_flag)THEN
-        ! Cartesian grid with terrain:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
+    doter:  &
+    IF(terrain_flag)THEN
+      ! Cartesian grid with terrain:
+
+      ps27d:  &
+      IF(psolver.eq.2)THEN 
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         DO k=1,nk
           do j=1,nj
           do i=1,ni+1
@@ -515,8 +673,9 @@
           enddo
           enddo
         ENDDO
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2)
         DO k=2,nk
           r2 = (sigmaf(k)-sigma(k-1))*rds(k)
           r1 = 1.0-r2
@@ -539,12 +698,65 @@
           enddo
           enddo
         ENDDO
-      ENDIF
+
+      ELSEIF( psolver.eq.7 )THEN  ps27d
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
+        DO k=1,nk
+          do j=1,nj
+          do i=1,ni+1
+            dum1(i,j,k)=u3d(i,j,k)*rgzu(i,j)*0.25*(thv0(i-1,j,k)+thv0(i,j,k))*(rho0(i-1,j,k)+rho0(i,j,k))
+          enddo
+          enddo
+          do j=1,nj+1
+          do i=1,ni
+            dum2(i,j,k)=v3d(i,j,k)*rgzv(i,j)*0.25*(thv0(i,j-1,k)+thv0(i,j,k))*(rho0(i,j-1,k)+rho0(i,j,k))
+          enddo
+          enddo
+        ENDDO
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2,rr1,rr2)
+        DO k=1,nk
+          IF(k.eq.1)THEN
+            do j=1,nj
+            do i=1,ni
+              dum3(i,j,1)=0.0
+              dum3(i,j,nk+1)=0.0
+            enddo
+            enddo
+          ELSE
+            rr2 = (sigmaf(k)-sigma(k-1))*rds(k)
+            rr1 = 1.0-rr2
+            r1 = 0.5*rr1
+            r2 = 0.5*rr2
+            do j=1,nj
+            do i=1,ni
+              dum3(i,j,k)=w3d(i,j,k)*(rr1*thv0(i,j,k-1)+rr2*thv0(i,j,k))*rf0(i,j,k)  &
+                         +( ( r2*(dum1(i,j,k  )+dum1(i+1,j,k  ))               &
+                             +r1*(dum1(i,j,k-1)+dum1(i+1,j,k-1)) )*dzdx(i,j)   &
+                           +( r2*(dum2(i,j,k  )+dum2(i,j+1,k  ))               &
+                             +r1*(dum2(i,j,k-1)+dum2(i,j+1,k-1)) )*dzdy(i,j)   &
+                             )*(sigmaf(k)-zt)*gz(i,j)*rzt
+            enddo
+            enddo
+          ENDIF
+        ENDDO
+
+      ENDIF  ps27d
+
+    ENDIF  doter
 
 !-----------------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !-----------------------------------------------------------------------
 !  get new pp,th
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+  ps27c:  &
+  IF( psolver.eq.2 )THEN
 
       temx = dts*0.5*rdx
       temy = dts*0.5*rdy
@@ -645,9 +857,109 @@
 
     ENDIF
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+  ELSEIF( psolver.eq.7 )THEN  ps27c
+
+    IF( axisymm.eq.0 )THEN
+
+      IF(.not.terrain_flag)THEN
+        ! Cartesian grid, without terrain:
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2,div,tem)
+        do k=1,nk
+          r2 = rf0(1,1,k+1)*(c2(1,1,k+1)*thv0(1,1,k+1)+c1(1,1,k+1)*thv0(1,1,k  ))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          r1 = rf0(1,1,k  )*(c2(1,1,k  )*thv0(1,1,k  )+c1(1,1,k  )*thv0(1,1,k-1))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          tem = dts*csound*csound/(cp*thv0(1,1,k))
+          do j=1,nj
+          do i=1,ni
+            !-----
+            div=( (u3d(i+1,j,k)-u3d(i,j,k))*rdx*uh(i)        &
+                 +(v3d(i,j+1,k)-v3d(i,j,k))*rdy*vh(j) )      &
+                 +(r2*w3d(i,j,k+1)-r1*w3d(i,j,k))
+            if(abs(div).lt.smeps) div=0.0
+            !-----
+            ppd(i,j,k)=pp3d(i,j,k)
+            pp3d(i,j,k)=pp3d(i,j,k)-tem*div
+            if(abs(pp3d(i,j,k)).lt.smeps) pp3d(i,j,k)=0.0
+            dum1(i,j,k)=kdiv*( pp3d(i,j,k)-ppd(i,j,k) )
+            ppd(i,j,k)=pp3d(i,j,k)+dum1(i,j,k)
+            !-----
+          enddo
+        enddo
+        enddo
+
+      ELSE
+        ! Cartesian grid, with terrain:
+
+        tem = dts*csound*csound/(cp*thv0(1,1,k))
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,div)
+        do k=1,nk
+        do j=1,nj
+        do i=1,ni
+          !-----
+          div=( ( (dum1(i+1,j,k)-dum1(i,j,k))*rdx*uh(i)        &
+                 +(dum2(i,j+1,k)-dum2(i,j,k))*rdy*vh(j) )      &
+                 +(dum3(i,j,k+1)-dum3(i,j,k))*rdsf(k) )/(rho0(i,j,k)*thv0(i,j,k))
+          if(abs(div).lt.smeps) div=0.0
+          !-----
+          ppd(i,j,k)=pp3d(i,j,k)
+          pp3d(i,j,k)=pp3d(i,j,k)-tem*div
+          if(abs(pp3d(i,j,k)).lt.smeps) pp3d(i,j,k)=0.0
+          dum1(i,j,k)=kdiv*( pp3d(i,j,k)-ppd(i,j,k) )
+          ppd(i,j,k)=pp3d(i,j,k)+dum1(i,j,k)
+          !-----
+        enddo
+        enddo
+        enddo
+
+      ENDIF
+
+    ELSE
+        ! axisymmetric grid:
+
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2,div,tem)
+        do k=1,nk
+          r2 = rf0(1,1,k+1)*(c2(1,1,k+1)*thv0(1,1,k+1)+c1(1,1,k+1)*thv0(1,1,k  ))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          r1 = rf0(1,1,k  )*(c2(1,1,k  )*thv0(1,1,k  )+c1(1,1,k  )*thv0(1,1,k-1))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          tem = dts*csound*csound/(cp*thv0(1,1,k))
+          do j=1,nj
+          do i=1,ni
+            !-----
+            div=(arh2(i)*u3d(i+1,j,k)-arh1(i)*u3d(i,j,k))*rdx*uh(i)        &
+               +(r2*w3d(i,j,k+1)-r1*w3d(i,j,k))
+            if(abs(div).lt.smeps) div=0.0
+            !-----
+            ppd(i,j,k)=pp3d(i,j,k)
+            pp3d(i,j,k)=pp3d(i,j,k)-tem*div
+            if(abs(pp3d(i,j,k)).lt.smeps) pp3d(i,j,k)=0.0
+            dum1(i,j,k)=kdiv*( pp3d(i,j,k)-ppd(i,j,k) )
+            ppd(i,j,k)=pp3d(i,j,k)+dum1(i,j,k)
+            !-----
+          enddo
+        enddo
+        enddo
+
+    ENDIF
+
+  ENDIF  ps27c
+
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
         IF( n.lt.nloop )THEN
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          call bcs(ppd)
+!!!          call bcs(ppd)
+          ! 210613: call bcp, only set 1 row/column
+          call bcp(ppd)
 #ifdef MPI
           call comm_1p_start(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)

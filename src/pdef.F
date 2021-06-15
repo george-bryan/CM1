@@ -547,11 +547,16 @@
         enddo
 
 
+
+      ! GHB, 210613:  needed to rearrange do loops to parallelize 
+      !               correctly with openmp
+
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,foo1,foo2,foo3)
         !JMD !$acc parallel loop gang collapse(2) private(i,j,k,foo1,foo2,foo3)
-        do k=1,nk
         do j=1,nj
+
+        do k=1,nk
         do i=1,ni
           if(dum(i,j,k).lt.0.0)then
             foo1=max(0.0,dum(i,j,k-1))

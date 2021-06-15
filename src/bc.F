@@ -327,6 +327,162 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+      subroutine bcp(p)
+      use input
+      implicit none
+
+      real, dimension(ib:ie,jb:je,kb:ke) :: p
+
+      integer i,j,k
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+#ifndef MPI
+      if(wbc.eq.1)then
+        !$omp parallel do default(shared) private(j,k)
+        do k=1,nk
+        do j=0,nj+1
+          p(0,j,k)=p(ni,j,k)
+        enddo
+        enddo
+      elseif(wbc.eq.2)then
+#else
+      if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(j,k)
+        do k=1,nk
+        do j=0,nj+1
+          p(0,j,k)=p(1,j,k)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+      elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(j,k)
+        do k=1,nk
+        do j=0,nj+1
+          p(0,j,k)=p(1,j,k)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+      if(ebc.eq.1)then
+        !$omp parallel do default(shared) private(j,k)
+        do k=1,nk
+        do j=0,nj+1
+          p(ni+1,j,k)=p(1,j,k)
+        enddo
+        enddo
+      elseif(ebc.eq.2)then
+#else
+      if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(j,k)
+        do k=1,nk
+        do j=0,nj+1
+          p(ni+1,j,k)=p(ni,j,k)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+      elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(j,k)
+        do k=1,nk
+        do j=0,nj+1
+          p(ni+1,j,k)=p(ni,j,k)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+#ifndef MPI
+      if(sbc.eq.1)then
+        !$omp parallel do default(shared) private(i,k)
+        do k=1,nk
+        do i=0,ni+1
+          p(i,0,k)=p(i,nj,k)
+        enddo
+        enddo
+      elseif(sbc.eq.2)then
+#else
+      if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,k)
+        do k=1,nk
+        do i=0,ni+1
+          p(i,0,k)=p(i,1,k)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+      elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,k)
+        do k=1,nk
+        do i=0,ni+1
+          p(i,0,k)=p(i,1,k)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+#ifndef MPI
+      if(nbc.eq.1)then
+        !$omp parallel do default(shared) private(i,k)
+        do k=1,nk
+        do i=0,ni+1
+          p(i,nj+1,k)=p(i,1,k)
+        enddo
+        enddo
+      elseif(nbc.eq.2)then
+#else
+      if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,k)
+        do k=1,nk
+        do i=0,ni+1
+          p(i,nj+1,k)=p(i,nj,k)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+      elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,k)
+        do k=1,nk
+        do i=0,ni+1
+          p(i,nj+1,k)=p(i,nj,k)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcp
+
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
       subroutine bcu(u)
       use input
       implicit none

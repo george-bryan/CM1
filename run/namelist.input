@@ -1,8 +1,8 @@
 
  &param0
- nx           =     128,
- ny           =     128,
- nz           =      50,
+ nx           =     512,
+ ny           =     512,
+ nz           =     200,
  ppnode       =      36,
  timeformat   =       2,
  timestats    =       1,
@@ -11,11 +11,11 @@
  /
 
  &param1
- dx     =    60.0,
- dy     =    60.0,
- dz     =    60.0,
- dtl    =  20.000,
- timax  =  3600.0,
+ dx     =    15.0,
+ dy     =    15.0,
+ dz     =    15.0,
+ dtl    =   2.000,
+ timax  = 46800.0,
  run_time =  -999.9,
  tapfrq =   300.0,
  rstfrq = 9999999.0,
@@ -26,7 +26,7 @@
  &param2
  cm1setup  =  1,
  testcase  = 11,
- adapt_dt  =  1,
+ adapt_dt  =  0,
  irst      =  0,
  rstnum    =  1,
  iconly    =  0,
@@ -37,7 +37,7 @@
  advwenos  =  2,
  advwenov  =  0,
  weno_order = 5,
- apmasscon =  1,
+ apmasscon =  0,
  idiff     =  0,
  mdiff     =  0,
  difforder =  6,
@@ -48,9 +48,9 @@
  bcturbs   =  1,
  horizturb =  0,
  doimpl    =  0,
- irdamp    =  2,
+ irdamp    =  0,
  hrdamp    =  0,
- psolver   =  2,
+ psolver   =  7,
  ptype     =  0,
  ihail     =  0,
  iautoc    =  0,
@@ -120,7 +120,7 @@
 
  &param12
  isfcflx    =      1,
- sfcmodel   =      3,
+ sfcmodel   =      1,
  oceanmodel =      1,
  initsfc    =      1,
  tsk0       = 299.28,
@@ -182,7 +182,7 @@
  var1      =  50.0,  ! csound
  var2      =  0.10,  ! c_m
  var3      =   1.0,  ! l_fac
- var4      =   0.0,
+ var4      =  12.5,  ! gam_dr
  var5      =   0.0,
  var6      =   0.0,
  var7      =   0.0,
