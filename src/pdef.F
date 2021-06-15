@@ -572,6 +572,9 @@
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,foo1,foo2,foo3)
         do k=1,nk
+
+        ! GHB, 210613:  needed to rearrange do loops to parallelize 
+        !               correctly with openmp
         !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni

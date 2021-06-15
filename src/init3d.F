@@ -2325,7 +2325,7 @@
 
   IF( .not. restarted )THEN
 
-    IF(psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6)THEN
+    IF(psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6.or.psolver.eq.7)THEN
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
@@ -2473,12 +2473,12 @@
 !------------------------------------------------------------------
 !  cm1r19.5:
 
-    IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 )THEN
+    IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
 
       IF( .not. restarted )THEN
         if( myid.eq.0 ) print *,'  setting initial ppx '
 
-        IF( psolver.eq.2 .or. psolver.eq.3 )THEN
+        IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.7 )THEN
 
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)

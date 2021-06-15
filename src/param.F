@@ -751,14 +751,14 @@
         isfcflx = 1
       ENDIF
       !-----
-      IF( (psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6) .and. eqtset.eq.2 )THEN
+      IF( (psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6.or.psolver.eq.7) .and. eqtset.eq.2 )THEN
         if(myid.eq.0)then
         print *,'  -------------------------------- '
         print *
         print *,'  psolver    = ',psolver
         print *,'  eqtset     = ',eqtset
         print *
-        print *,'  psolver=4,5,6 requires eqtset=1 '
+        print *,'  psolver=4,5,6,7 requires eqtset=1 '
         print *,'  ... setting eqtset to 1 ... '
         print *
         print *,'  -------------------------------- '
@@ -782,14 +782,14 @@
         eqtset = 1
       ENDIF
       !-----
-      IF( (psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6) .and. apmasscon.eq.1 )THEN
+      IF( (psolver.eq.4.or.psolver.eq.5.or.psolver.eq.6.or.psolver.eq.7) .and. apmasscon.eq.1 )THEN
         if(myid.eq.0)then
         print *,'  -------------------------------- '
         print *
         print *,'  psolver    = ',psolver
         print *,'  apmasscon  = ',apmasscon
         print *
-        print *,'  psolver=4,5,6 requires apmasscon=0 '
+        print *,'  psolver=4,5,6,7 requires apmasscon=0 '
         print *,'  ... setting apmasscon to 0 ... '
         print *
         print *,'  -------------------------------- '
@@ -1091,7 +1091,7 @@
       ENDIF
       ENDIF
       !-----
-      IF( psolver.lt.1 .or. psolver.gt.6 )THEN
+      IF( psolver.lt.1 .or. psolver.gt.7 )THEN
         if(myid.eq.0)then
         print *
         print *,'  psolver  = ',psolver
@@ -1883,7 +1883,7 @@
         print *
         print *,'  psolver    = ',psolver
         print *
-        print *,'  axisymm=1 is only available with psolver=2,3,6'
+        print *,'  axisymm=1 is only available with psolver=2,3,6,7'
         print *
         print *,'   stopping model .... '
         print *
@@ -6363,10 +6363,12 @@
       if(dowr) write(outfile,*) 'ls2   =',ls2
       if(dowr) write(outfile,*) 'karman=',karman
 
-      if( psolver.eq.6 )then
+      if( psolver.eq.6 .or. psolver.eq.7 )then
         !----------------
         ! speed of sound for compressible-Boussinesq equations (psolver=6)
+        !                and modified compressible equations (psolver=7)
         csound = 300.0
+        if( testcase.eq.11 ) csound = 50.0
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) 'csound=',csound
         if(dowr) write(outfile,*)
@@ -7980,13 +7982,13 @@
         call stopcm1
       endif
       !-----
-      if( do_ib .and. ( psolver.eq.3 .or. psolver.eq.4 .or. psolver.eq.5 ) )then
+      if( do_ib .and. ( psolver.eq.3 .or. psolver.eq.4 .or. psolver.eq.5 .or. psolver.eq.7 ) )then
         if(myid.eq.0)then
         print *
         print *,'  psolver      = ',psolver
         print *,'  do_ib        = ',do_ib
         print *
-        print *,'  cannot use immersed boundaries with psolver = 3,4,5 (for now) '
+        print *,'  cannot use immersed boundaries with psolver = 3,4,5,7 (for now) '
         print *
         print *,'  stopping cm1 .... '
         print *

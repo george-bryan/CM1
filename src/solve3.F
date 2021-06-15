@@ -382,10 +382,10 @@
       call comm_1s_start_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
 #endif
 
-      IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 )THEN
+      IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
         ! 180212: moved this out of sound,sounde,soundcb
-        if( psolver.eq.2 .or. psolver.eq.3 )then
-     
+        if( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.7 )then
+
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
@@ -546,7 +546,7 @@
 !  comms for parcels:
       IF(iprcl.eq.1)THEN
         ! cm1r18:  use velocities averaged over small time steps (for psolver=2,3,6)
-        IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 )THEN
+        IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
           ! 180713:  now saved in ten1 arrays
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
@@ -810,7 +810,7 @@
         enddo
         enddo
 #ifdef MPI
-        IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 )THEN
+        IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
           call comm_1p_end_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
         ENDIF
 #endif
