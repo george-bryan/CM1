@@ -1399,6 +1399,7 @@
       vargrid(nvar) = '2'
       call getavg2d(dum1(ib,jb,4),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      !stop 'after call to getavg2d(pwat) '
 
       nvar = nvar+1
       varname(nvar) = 'spwr'
@@ -1408,6 +1409,7 @@
       vargrid(nvar) = '2'
       call getavg2d(dum1(ib,jb,5),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      !stop 'after call to getavg2d(spwr) '
 
       nvar = nvar+1
       varname(nvar) = 'fwp'
@@ -9646,6 +9648,7 @@
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
     call flush(6)
+    !stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 
@@ -10222,9 +10225,10 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
-    !$acc parallel loop default(present) private(i,j,k,stmp)
+    !$acc parallel default(present) private(i,j,k) reduction(+:stmp)
     do k=1,k2
       stmp = 0.0
+      !$acc loop collapse(2) reduction(+:stmp)
       do j=1,nj
       do i=1,ni
         stmp = stmp+s(i,j,k)
@@ -10232,6 +10236,7 @@
       enddo
       savg(k)=stmp
     enddo
+    !$acc end parallel
 
 #ifdef MPI
     !$acc update host(savg)

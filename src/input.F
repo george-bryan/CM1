@@ -213,7 +213,6 @@
 
       real clock_rate,time_sound,time_buoyan,time_turb,              &
            time_diffu,time_microphy,time_stat,time_cflq,time_bc,     &
-           time_bc_gpu,time_bc2d_gpu,time_bcs_gpu,time_bcu_gpu,time_bcv_gpu,time_bcw_gpu, &
            time_misc,time_integ,time_rdamp,time_divx,time_write,time_nvtx,     &
            time_ttend,time_cor,time_fall,time_satadj,                &
            time_sfcphys,time_dbz,time_last,                          &

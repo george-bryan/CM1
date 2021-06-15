@@ -1236,16 +1236,17 @@
         do i=ib,ie
           iamsat(i,j,k) = .false.
           nm(i,j,k)     = 0.0
+          dum1(i,j,k)   = 0.0  !KLUDGE
           dum2(i,j,k)   = 0.0  !KLUDGE zero out dum2 so that PCAST does not flag it.
           dum6(i,j,k)   = 0.0  !KLUDGE zero out dum6 so that PCAST does not flag it.
         enddo
         enddo
         enddo
-        !!$acc compare(qa)
+        !$acc compare(qa)
         call calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,dum1,dum2,dum3,dum6,   &
                     prs,ppi,tha,qa,iamsat)
         !$acc compare(nm,dum1,dum2,dum3,dum6,iamsat)
-        !stop  'sfc_and_turb: after call to calcnm'
+        !stop 'sfc_and_turb: after call to calcnm'
       ENDIF
 
       IF( cm1setup.ge.1 .or. output_def.eq.1 .or. ipbl.ge.1 .or. horizturb.eq.1 )THEN
@@ -4926,10 +4927,14 @@
       !$acc update host(th0,th,pi0,pp,qa,qt,mf,c1,c2,prs,t,qt,qvci)
 #else
       !non-B4B
-      !$acc parallel loop gang vector collapse(3) default(present) &
+      !$acc parallel default(present) &
       !$acc private(pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
 #endif
       do k=2,nk
+#ifndef _B4B06
+      ! Only do the two inner loops because of the vertical dependency of nm
+      !$acc loop gang vector collapse(2) 
+#endif
       do j=1,nj
       do i=1,ni
         t(i,j,k)=(th0(i,j,k)+th(i,j,k))*(pi0(i,j,k)+pp(i,j,k))
@@ -4962,6 +4967,8 @@
       enddo
 #ifdef _B4B06
     !$acc update device(t,thv,nm,iamsat)
+#else
+    !$acc end parallel
 #endif
 
     ENDIF  icecheck

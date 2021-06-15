@@ -563,15 +563,18 @@
           ! increase timestep:
           dbldt = dbldt*min( 1.0+max_change , cfl_limit/cflmax )
         ENDIF
+        print *,'getnewdt: point #1 dbldt: ',dbldt
 
         ! 180129:
         IF( cm1setup.ge.1 .and. (ksmax*dbldt/dt).gt.ks_limit )THEN
           ! decrease timestep:
           dbldt = min( dbldt , dt*ks_limit/max(1.0e-10,ksmax) )
         ENDIF
+        print *,'getnewdt: point #2 dbldt: ',dbldt
 
         ! don't allow dt to exceed twice initial timestep
         dbldt = min( dbldt , dble(2.0*dtl) )
+        print *,'getnewdt: point #3 dbldt: ',dbldt
 
 
         IF( .not. doinit )THEN
@@ -590,6 +593,7 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
+        print *,'getnewdt: point #4 dbldt: ',dbldt
             ENDIF
 
             IF( rsttim.gt.0.0 )THEN
@@ -606,6 +610,7 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
+        print *,'getnewdt: point #5 dbldt: ',dbldt
             ENDIF
 
             IF( stattim.gt.0.0 )THEN
@@ -622,6 +627,7 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
+        print *,'getnewdt: point #6 dbldt: ',dbldt
             ENDIF
 
             IF( dodomaindiag .and. diagtim.gt.0.0 )THEN
@@ -638,6 +644,7 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
+        print *,'getnewdt: point #7 dbldt: ',dbldt
             ENDIF
 
             IF( doazimavg .and. azimavgtim.gt.0.0 )THEN
@@ -654,6 +661,7 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
+        print *,'getnewdt: point #8 dbldt: ',dbldt
             ENDIF
 
             IF( dohifrq .and. hifrqtim.gt.0.0 )THEN
@@ -670,6 +678,7 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
+              print *,'getnewdt: point #9 dbldt: ',dbldt
             ENDIF
 
         ENDIF
@@ -1040,6 +1049,7 @@
       double precision :: a1,a2,tem
       double precision, dimension(nj) :: budj
       double precision, dimension(nk) :: budk
+      double precision :: budt
       !$acc declare present(ruh,rvh,rmh,rho,q3d)
 
 !----------------------------------------------------------------------
@@ -1053,34 +1063,41 @@
 #ifdef _B4B
         !$acc update host(asq,ruh,rvh,rmh,rho,q3d)
 #else
-        !$acc parallel loop gang vector default(present) private(i,j,k,t1,t2,t3,a1,a2)
+        !!$acc parallel loop gang vector default(present) private(i,j,k,t1,t2,t3,a1,a2)
+        !$acc parallel default(present) private(i,j,k,t3,a2) &
+        !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:budt)
 #endif
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
         do j=1,nj
-        budj(j)=0.0d0
-        do i=1,ni
-          t1=0.0d0
-          t2=0.0d0
-          a1=0.0d0
-          a2=0.0d0
-          do k=1,nk
-            t1=t1+rho(i,j,k)*q3d(i,j,k)
-            a1=a1+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+          budt = 0.0d0
+          !$acc loop reduction(+:budt)
+          do i=1,ni
+            t1=0.0d0
+            t2=0.0d0
+            a1=0.0d0
+            !$acc loop reduction(+:a1,t1,t2)
+            do k=1,nk
+              t1=t1+rho(i,j,k)*q3d(i,j,k)
+              a1=a1+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
 !!!            q3d(i,j,k)=max(0.0,q3d(i,j,k))
-            if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
-            t2=t2+rho(i,j,k)*q3d(i,j,k)
+              if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+              t2=t2+rho(i,j,k)*q3d(i,j,k)
+            enddo
+            t3=(t1+1.0d-20)/(t2+1.0d-20)
+            if(t3.lt.0.0) t3=1.0d0
+            a2=0.0d0
+            !$acc loop reduction(+:a2)
+            do k=1,nk
+              q3d(i,j,k)=t3*q3d(i,j,k)
+              a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+            enddo
+            budt = budt+a2-a1
           enddo
-          t3=(t1+1.0d-20)/(t2+1.0d-20)
-          if(t3.lt.0.0) t3=1.0d0
-          do k=1,nk
-            q3d(i,j,k)=t3*q3d(i,j,k)
-            a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
-          enddo
-          budj(j)=budj(j)+a2-a1
-        enddo
+          budj(j)=budt
         enddo
 
 #ifndef _B4B
+        !$acc end parallel
         !$acc parallel loop reduction(+:asq)
 #endif
         do j=1,nj
@@ -2824,9 +2841,11 @@
 
       fmax=-99999999.
 
+      !$acc compare(ua,va,wa,mh)
+      !$acc data copy(fmax) copyin(dtdx,dtdy,dtdz)
       if(nx.gt.1.and.ny.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2840,7 +2859,7 @@
         enddo
       elseif(nx.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2853,7 +2872,7 @@
         enddo
       elseif(axisymm.eq.0.and.ny.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2865,6 +2884,7 @@
           enddo
         enddo
       endif
+      !$acc end data
 
       cflmax = fmax
 
@@ -3005,6 +3025,7 @@
       real, dimension(2) :: mmax,nmax
       real maxksh,maxksv
 
+!JMD-FIXME
 !!$acc update host(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
 
 !$acc data create(imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv,ksh,ksv,mmax,nmax)
@@ -3620,49 +3641,38 @@
       integer i,j,k
       double precision :: tmu,tmv,tmw,qtot,var,tem
       double precision, dimension(nk) :: foo1,foo2,foo3
+      double precision :: foot1,foot2,foot3
 
-!$acc data create(foo1,foo2,foo3)
-!$omp parallel do default(shared)  &
-!$omp private(k)
-!$acc parallel loop gang vector default(present) private(k)
-      do k=1,nk
-        foo1(k)=0.0d0
-        foo2(k)=0.0d0
-        foo3(k)=0.0d0
-      enddo
+      tmu=0.0d0
+      tmv=0.0d0
+      tmw=0.0d0
+      !$acc compare(qv,ql,qi)
+      !$acc data copy(tmu,tmv,tmw)
  
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,qtot,tem)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qtot,tem)
+      !$omp parallel do default(shared) private(i,j,k,qtot,tem)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
       do k=1,nk
         do j=1,nj
         do i=1,ni
           qtot=qv(i,j,k)+ql(i,j,k)+qi(i,j,k)
           tem=ruh(i)*rvh(j)*rmh(i,j,k)
-          foo1(k)=foo1(k)   &
+          tmu=tmu  &
                 +rho(i,j,k)*tem*(1.0+qtot)*( umove+0.5*(ua(i,j,k)+ua(i+1,j,k)) )
-          foo2(k)=foo2(k)   &
+          tmv=tmv   &
                 +rho(i,j,k)*tem*(1.0+qtot)*( vmove+0.5*(va(i,j,k)+va(i,j+1,k)) )
-          foo3(k)=foo3(k)                                                &
+          tmw=tmw   &
                 +rho(i,j,k)*tem*(1.0+qtot)*( 0.5*(wa(i,j,k)+wa(i,j,k+1)) )   &
                 -rho(i,j,k)*tem*ql(i,j,k)*vr(i,j,k)
         enddo
         enddo
       enddo
+      !$acc end parallel
 
-      tmu=0.0d0
-      tmv=0.0d0
-      tmw=0.0d0
-!$acc parallel loop gang vector default(present) private(k,tmu,tmv,tmw) reduction(+:tmu) reduction(+:tmv) reduction(+:tmw)
-      do k=1,nk
-        tmu=tmu+foo1(k)
-        tmv=tmv+foo2(k)
-        tmw=tmw+foo3(k)
-      enddo
-
+      !$acc end data
       tmu=tmu*(dx*dy*dz)
       tmv=tmv*(dx*dy*dz)
       tmw=tmw*(dx*dy*dz)
+      
 
 #ifdef MPI
       var=0.0d0
@@ -3698,7 +3708,7 @@
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
-!$acc end data
+!!$acc end data
  
       end subroutine calcmoe
 
@@ -3889,12 +3899,6 @@
       time_stat=0.0
       time_cflq=0.0
       time_bc=0.0
-      time_bc_gpu=0.0
-      time_bcs_gpu=0.0
-      time_bcu_gpu=0.0
-      time_bcv_gpu=0.0
-      time_bcw_gpu=0.0
-      time_bc2d_gpu=0.0
       time_misc=0.0
       time_integ=0.0
       time_rdamp=0.0

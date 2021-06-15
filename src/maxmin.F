@@ -23,6 +23,8 @@
       real :: fmax,fmin,rmax,rmin
       real :: tmaxt, tmint
       integer :: loc
+      integer :: foundmin,foundmax
+      integer :: foo(3)
       real, dimension(2) :: mmax,nmax,mmin,nmin
 
 !-----------------------------------------------------------------------
@@ -33,8 +35,51 @@
       imax = 1
       jmax = 1
       kmax = 1
+      fmax = -1.e30
+      fmin =  1.e30
+#if 1
+      !$acc data copy(imax,imin,jmax,jmin,kmax,kmin,fmax,fmin)
+      !$acc parallel default(present) private(i,j,k)
+
+      !$acc loop gang vector collapse(3) reduction(min:fmin) reduction(max:fmax)
+      do k=1,kzz
+      do j=1,jzz
+      do i=1,izz
+        fmax = max(f(i,j,k),fmax)
+        fmin = min(f(i,j,k),fmin)
+      enddo
+      enddo
+      enddo
+
+      !$acc loop collapse(3)
+      do k=1,kzz
+      do j=1,jzz
+      do i=1,izz
+        if(f(i,j,k).eq.fmax)then
+          !$acc atomic write
+          imax=i
+          !$acc atomic write
+          jmax=j
+          !$acc atomic write
+          kmax=k
+        endif
+        if(f(i,j,k).eq.fmin)then
+          !$acc atomic write
+          imin=i
+          !$acc atomic write
+          jmin=j
+          !$acc atomic write
+          kmin=k
+        endif
+      enddo
+      enddo
+      enddo
+      !$acc end parallel
+      !$acc end data
+#else
+
       !$acc data create(tmax,tmin,imaxt,jmaxt,kmaxt,imint,jmint,kmint) &
-      !$acc copy(imax,jmax,kmax,imin,jmin,kmin) copyout(fmin,fmax)
+      !$acc copy(fmax,imax,jmax,kmax,fmin,imin,jmin,kmin)
 !$omp parallel do default(shared)    &
 !$omp private(i,j,k)
       !$acc parallel private(i,j,k,tmaxt,tmint) default(present) reduction(min:tmint) reduction(max:tmaxt)
@@ -73,24 +118,22 @@
         enddo
       enddo
 
-      !$acc parallel default(present) private(k) reduction(max:fmax) reduction(min:fmin)
-      fmax = -1.e30
-      fmin =  1.e30
-      !$acc loop gang vector
+      fmax= -1.e30
+      fmin=  1.e30
+      !$acc parallel loop gang vector default(present) private(k) reduction(max:fmax) reduction(min:fmin)
       do k=1,kzz
         fmax=max(tmax(k),fmax)
         fmin=min(tmin(k),fmin)
       enddo
-      !$acc end parallel
 
       !$acc parallel loop gang vector default(present) private(k) 
       do k=1,kzz
-        if(tmax(k).eq.fmax)then
+        if(tmax(k).gt.fmax)then
           imax=imaxt(k)
           jmax=jmaxt(k)
           kmax=kmaxt(k)
         endif
-        if(tmin(k).eq.fmin)then
+        if(tmin(k).lt.fmin)then
           imin=imint(k)
           jmin=jmint(k)
           kmin=kmint(k)
@@ -98,6 +141,8 @@
       enddo
       !print *,'maxmin: before compare'
       !$acc compare(imax,jmax,kmax,imin,jmin,kmin)
+      !$acc end data
+#endif
 #ifdef MPI
       mmax(1)=fmax
       mmax(2)=myid
@@ -126,7 +171,6 @@
 
     if(myid.eq.0)then
 #endif
-      !$acc end data
       write(6,100) amax,fmax,imax,jmax,kmax,    &
                    amin,fmin,imin,jmin,kmin
 100   format(2x,a6,':',1x,g13.6,i5,i5,i5,    &
@@ -137,8 +181,6 @@
       nstat = nstat + 1
       rstat(nstat) = fmin
 #ifdef MPI
-    else
-        !$acc end data
     endif
 #endif
 
@@ -174,17 +216,51 @@
       real :: tmaxt,tmint 
       integer :: loc
       real, dimension(2) :: mmax,nmax,mmin,nmin
+      integer :: foundmax,foundmin
           
 !-----------------------------------------------------------------------
       imin=1
       imax=1
       jmin=1
       jmax=1
-      !$acc data create(fmax,fmin,tmax,tmin,imaxt,jmaxt,imint,jmint) &
-      !$acc copy(imax,jmax,imin,jmin)
-!$omp parallel do default(shared)    &
-!$omp private(i,j)
-      !$acc parallel private(i,j,tmaxt,tmint) default(present) reduction(min:tmint) reduction(max:tmaxt)
+      fmax = -1.e30
+      fmin =  1.e30
+#if 1
+      !$acc data copy(imax,imin,jmax,jmin,fmax,fmin)
+      !$acc parallel default(present) private(i,j) 
+      !$acc loop gang vector collapse(2) reduction(min:fmin) reduction(max:fmax)
+      do j=1,jzz
+      do i=1,izz
+        fmax = max(f(i,j),fmax)
+        fmin = min(f(i,j),fmin)
+      enddo
+      enddo
+
+      !$acc loop collapse(2)
+      do j=1,jzz
+      do i=1,izz
+        if(f(i,j).eq.fmax)then
+          !$acc atomic write
+          imax=i
+          !$acc atomic write
+          jmax=j
+        endif
+        if(f(i,j).eq.fmin)then
+          !$acc atomic write
+          imin=i
+          !$acc atomic write
+          jmin=j
+        endif
+      enddo
+      enddo
+      !$acc end parallel
+      !$acc end data
+#else
+      !!$acc data &
+      !!$acc create(tmax,tmin,imaxt,jmaxt,imint,jmint) &
+      !$acc copy(fmax,imax,jmax,fmin,imin,jmin)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel private(i,j,tmaxt,tmint) reduction(min:tmint) reduction(max:tmaxt)
       do j=1,jzz
         tmaxt= -1.e30
         tmint=  1.e30
@@ -197,10 +273,10 @@
         tmin(j)=tmint
       enddo
       !$acc end parallel
+      !$acc compare(tmax,tmin)
 
-!$omp parallel do default(shared)    &
-!$omp private(i,j)
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
       do j=1,jzz
         do i=1,izz
           if(f(i,j).eq.tmax(j))then
@@ -218,8 +294,8 @@
       fmin=  1.e30
       !$acc parallel loop gang vector default(present) private(j) reduction(max:fmax) reduction(min:fmin)
       do j=1,jzz
-        fmax=max(tmax(j),fmax)
-        fmin=min(tmin(j),fmin)
+          fmax=max(fmax,tmax(j))
+          fmin=min(fmin,tmin(j))
       enddo
 
       !$acc parallel loop gang vector default(present) private(j) 
@@ -233,6 +309,7 @@
           jmin=jmint(j)
         endif
       enddo
+#endif
 
 #ifdef MPI
       mmax(1)=fmax
@@ -260,7 +337,6 @@
 
     if(myid.eq.0)then
 #endif
-      !$acc end data
       write(6,100) amax,fmax,imax,jmax,1,    &
                    amin,fmin,imin,jmin,1
 100   format(2x,a6,':',1x,g13.6,i5,i5,i5,    &
@@ -271,10 +347,9 @@
       nstat = nstat + 1
       rstat(nstat) = fmin
 #ifdef MPI
-    else 
-        !$acc end data
     endif
 #endif
+    !stop 'maxmin2d: at the end of the subroutine'
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
 

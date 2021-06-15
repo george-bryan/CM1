@@ -2041,7 +2041,7 @@ enddo
 
       endif
 
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc_GPU=time_bc_gpu+mytime()
 
 !----------
 

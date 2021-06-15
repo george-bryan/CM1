@@ -3090,7 +3090,7 @@
 #endif
         !!$acc compare(asq)
         call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
-        print *,'after pdefq_GPU'
+        !print *,'after pdefq_GPU'
         !!$acc compare(q3d)
         !stop 'after call to pdefq_GPU'
       else
@@ -3192,7 +3192,7 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-        print *,'after solve3'
+        !print *,'after solve3'
         !!$acc compare(q3d)
 
 
@@ -3428,6 +3428,7 @@
           enddo
           enddo
         ENDIF
+#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3438,7 +3439,7 @@
                           ua,va,wa,ppi,tha,qa,qten,kmh,kmv,khh,khv,tkea,qke,  &
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
-#if 0
+        stop 'after call to statpack'
 #endif
         nrec = nrec + 1
         nstatout = nstatout + 1
@@ -3619,6 +3620,7 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
+#if 0
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=9)
 #endif
@@ -3677,6 +3679,7 @@
         if(timestats.ge.1) time_diag = time_diag+mytime()
 #ifdef _OPENACC
         call nvtxEndRange()
+#endif
 #endif
 
       endif
@@ -3878,8 +3881,7 @@
         if(timestats.eq.2)then
           steptime2=time_sound+time_poiss+time_buoyan+time_turb+            &
                     time_diffu+time_microphy+time_stat+time_cflq+           &
-                    time_bc+time_bc_gpu+time_bc2d_gpu+time_bcs_gpu+time_bcv_gpu+time_bcu_gpu+time_bcw_gpu+ &
-                    time_misc+time_nvtx+time_integ+time_rdamp+time_divx+      &
+                    time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+    &
                     time_write+time_restart+time_ttend+time_cor+time_fall+  &
                     time_satadj+time_dbz+time_sfcphys+time_parcels+         &
                     time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
@@ -4089,25 +4091,6 @@
         sum = 0.0
         call MPI_REDUCE(time_bc      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_bc = sum/float(numprocs)
-
-        sum = 0.0
-        call MPI_REDUCE(time_bc_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_bc_gpu = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_bcs_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_bcs_gpu = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_bcu_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_bcu_gpu = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_bcv_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_bcv_gpu = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_bcw_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_bcw_gpu = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_bc2d_gpu      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_bc2d_gpu = sum/float(numprocs)
         sum = 0.0
         call MPI_REDUCE(time_nvtx   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_nvtx = sum/float(numprocs)
@@ -4204,8 +4187,7 @@
 
       time_solve=time_sound+time_poiss+time_buoyan+time_turb+             &
                   time_diffu+time_microphy+time_stat+time_cflq+           &
-                  time_bc+time_bc_gpu+time_bc2d_gpu+time_bcs_gpu+time_bcu_gpu+time_bcv_gpu+time_bcw_gpu + &
-                  time_misc+time_nvtx+time_integ+time_rdamp+time_divx+      &
+                  time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+    &
                   time_write+time_restart+time_ttend+time_cor+time_fall+  &
                   time_satadj+time_dbz+time_sfcphys+time_parcels+         &
                   time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
@@ -4266,12 +4248,6 @@
       write(outfile,100) 'stat    ',time_stat,time_stat/time_solve
       write(outfile,100) 'cflq    ',time_cflq,time_cflq/time_solve
       write(outfile,100) 'bc      ',time_bc,time_bc/time_solve
-      write(outfile,100) 'bc_gpu  ',time_bc_gpu,time_bc_gpu/time_solve
-      write(outfile,100) 'bc2d_gpu  ',time_bc2d_gpu,time_bc2d_gpu/time_solve
-      write(outfile,100) 'bcs_gpu  ',time_bcs_gpu,time_bcs_gpu/time_solve
-      write(outfile,100) 'bcu_gpu  ',time_bcu_gpu,time_bcu_gpu/time_solve
-      write(outfile,100) 'bcv_gpu  ',time_bcv_gpu,time_bcv_gpu/time_solve
-      write(outfile,100) 'bcw_gpu  ',time_bcw_gpu,time_bcw_gpu/time_solve
       write(outfile,100) 'nvtx   ',time_nvtx,time_nvtx/time_solve
       write(outfile,100) 'integ   ',time_integ,time_integ/time_solve
       write(outfile,100) 'write   ',time_write,time_write/time_solve

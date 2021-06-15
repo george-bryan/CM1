@@ -429,6 +429,15 @@
 !    t11 = theta_rho
 !    t22 = ppterm
 !    dum8 = buoyancy at s pts
+     !KLUDGE this to eliminated PCAST ERRORS
+     !$acc parallel loop gang vector collapse(3) private(i,j,k)
+     do k=kb,ke
+     do j=jb,je
+     do i=ib,ie
+        dum2(i,j,k) = 0.0
+     enddo
+     enddo
+     enddo
 
         IF( imoist.eq.1 )THEN
           ! moist:
@@ -467,6 +476,9 @@
           enddo
 
         endif  ifql
+        print *,'solve2: after calculation of dum2'
+        !$acc compare(dum2,q3d)
+
 
           IF(iice.eq.1)THEN
 
@@ -502,7 +514,7 @@
             enddo
 
           ENDIF
-
+          print *,'eqtset: ',eqtset 
           IF(eqtset.eq.2)THEN
 
             !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli,cpli,cpm,cvm)
@@ -526,6 +538,8 @@
 
           ELSEIF(eqtset.eq.1)THEN
 
+            print *,'before eqtset==1 loop'
+            !$acc compare(th3d,th0,q3d,dum2,dum3)
             !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli)
             do k=1,nk
             do j=1,nj
@@ -538,10 +552,12 @@
             enddo
             enddo
             enddo
+            !stop 'solve2: after call to eqtset==1 loop'
 
           ENDIF
 
         ELSE
+          print *,'solve2: dry loop'
           ! dry:
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
@@ -557,7 +573,11 @@
         if(timestats.ge.1) time_buoyan=time_buoyan+mytime()
 
 !--------------------------------------------------------------------
+        print *,'before call to bcs_GPU(t11)'
+        !$acc compare(t11)
         call bcs_GPU(t11)
+        print *,'after call to bcs_GPU(t11)'
+        !$acc compare(t11)
 #ifdef MPI
         call comm_1s_start_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
@@ -1235,6 +1255,8 @@
 #ifdef _OPENACC
           !print *,'WARNING: sounde not verified on GPU'
 #endif
+          print *,'solve2: before call to sounde'
+          !$acc compare(t11)
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1251,6 +1273,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+          !$acc compare(u3d,v3d,w3d)
           !stop 'after call to sounde'
 
         ELSEIF(psolver.eq.3)THEN
@@ -1398,6 +1421,7 @@
         IF( nrk.eq.nrkmax )THEN
           !JMD print *,'solve2: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
+          !stop 'solve2: after call to calccflquick'
         ENDIF
 
 !--------------------------------------------------------------------
@@ -1727,35 +1751,37 @@
         ! cm1r18:  adjust average pressure perturbation to ensure 
         !          conservation of total dry-air mass
 
-        !$acc parallel loop gang vector private(k)
-        do k=1,nk
-          dumk1(k) = 0.0
-          dumk2(k) = 0.0
-        enddo
+        !JMD !$acc parallel loop gang vector private(k)
+        !JMD do k=1,nk
+        !JMD   dumk1(k) = 0.0
+        !JMD   dumk2(k) = 0.0
+        !JMD enddo
+        print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
+        !$acc compare(rho,rmh,pp3d,pi0,ruh,rvh) 
         IF( axisymm.eq.0 )THEN
-          !$acc parallel private(i,j,k,tmp1,tmp2) 
           do k=1,nk
             tmp1=0;
             tmp2=0;
+            !$acc parallel private(i,j,k) reduction(+:tmp1,tmp2) copy(tmp1,tmp2)
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
-            !$acc loop gang vector collapse(2) reduction(+:tmp1,tmp2)
+            !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
+            !$acc end parallel
             dumk1(k) = tmp1
             dumk2(k) = tmp2
           enddo
-          !$acc end parallel
         ELSEIF( axisymm.eq.1 )THEN
-          !$acc parallel private(i,j,k,tmp1,tmp2) 
+          !$acc parallel private(i,j,k) reduction(+:tmp1,tmp2)
           do k=1,nk
             tmp1=0;
             tmp2=0;
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2
-            !$acc loop gang vector collapse(2) reduction(+:tmp1,tmp2)
+            !$acc loop collapse(2) reduction(+:tmp1,tmp2)
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*pi*(xf(i+1)**2-xf(i)**2)
@@ -1767,6 +1793,9 @@
           enddo
           !$acc end parallel
         ENDIF
+        print *,'solve2: dumk{1,2} loop'
+        !$acc compare(dumk1,dumk2)
+        stop 'solve2: after dumk{1,2} loop'
 
 #ifdef MPI
         !$acc update self(dumk1,dumk2)
@@ -1818,7 +1847,7 @@
                                 rs31,rs32,rn31,rn32,reqs_y)
 #endif
         IF(imoist.eq.1)THEN
-          print *,'numq: ',numq
+          !print *,'numq: ',numq
           do n=1,numq
             call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI
@@ -1959,6 +1988,8 @@
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
+      print *,'solve2: after advs'
+      !$acc compare(dumk1,dumk2)
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2038,6 +2069,8 @@
                  flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
+      print *,'solve2: after advs'
+      !$acc compare(dumk1,dumk2)
 
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2078,12 +2111,14 @@
 
         temq1 = 0.0
         temq2 = 0.0
-
+        print *,'solve2: before calculaton of tempq{1,2}'
+        !$acc compare(dumk1,dumk2)
         !$acc parallel loop gang vector reduction(+:temq1,temq2) private(k)
         do k=1,nk
           temq1 = temq1 + dumk1(k)
           temq2 = temq2 + dumk2(k)
         enddo
+        stop 'solve2: after temq{1,2}'
 
         mass2 = temq1
         p2 = temq2

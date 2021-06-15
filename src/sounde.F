@@ -263,6 +263,8 @@
 
 !-----
 
+      !print *,'sounde: before openbc'
+      !$acc compare(vten)
       IF(axisymm.eq.0)THEN
         IF(sbc.eq.2.and.ibs.eq.1)THEN
           ! south open bc tendency:
@@ -277,6 +279,8 @@
           call restrict_openbc_sn(ruh,rmh,rho0,v3d)
         ENDIF
       ENDIF
+      !print *,'sounde: after openbc'
+      !$acc compare(v3d,vten)
 
 !-----------------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -292,7 +296,7 @@
 #endif
 
 !-----
-
+    !print *,'terrain_flag,axisymm: ',terrain_flag,axisymm
     IF(.not.terrain_flag)THEN
 
       IF(axisymm.eq.0)THEN
@@ -300,6 +304,10 @@
 
         tem1 = rdx*cp*0.5
         tem2 = rdy*cp*0.5
+
+        !print *,'sounde: before loop'
+        !$acc compare(v3d,dtv,vten,thv,ppd,vf)
+        !stop 'sounde: after call to compare'
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -315,10 +323,14 @@
           enddo
           enddo
         enddo
+        !print *,'sounde: after loop'
+        !$acc compare(v3d)
 
         IF( do_ib )THEN
           call zero_out_uv(bndy,kbdy,u3d,v3d)
         ENDIF
+        !stop 'sounde: after zero_out_uv'
+        !$acc compare(v3d)
 
       ELSE
         ! axisymmetric grid:
@@ -387,6 +399,8 @@
 
 
     ENDIF
+    !print *,'sounde: checking v3d'
+    !$acc compare(v3d)
 
 !----------------------------------------------
 !  convergence forcing:

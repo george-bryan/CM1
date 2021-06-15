@@ -3117,7 +3117,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc=time_bc+mytime()
 
 !----------
 
@@ -3875,7 +3875,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc=time_bc+mytime()
 
 !----------
 
@@ -4633,7 +4633,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc=time_bc+mytime()
 
 !----------
 
@@ -5391,7 +5391,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc=time_bc+mytime()
 
 !--------
 
@@ -6151,7 +6151,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc=time_bc+mytime()
 
 !--------
 
@@ -7180,7 +7180,7 @@
  
       endif
 
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc=time_bc+mytime()
 
 !----------
 
@@ -9416,7 +9416,7 @@
 !
 !-----------------------------------------------------------
  
-      if(timestats.ge.1) time_bc_gpu=time_bc_gpu+mytime()
+      if(timestats.ge.1) time_bc=time_bc+mytime()
  
 !----------
 
