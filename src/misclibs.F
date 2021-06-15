@@ -768,7 +768,7 @@
             ! 3D sims:
             dtsm = 0.60*min( min_dx , min_dy )/360.0
           ENDIF
-        ELSEIF( psolver.eq.6 )THEN
+        ELSEIF( psolver.eq.6 .or. psolver.eq.7 )THEN
           ! check dx,dy,dz:
           IF( ny.eq.1 )THEN
             ! 2D sims (x-z):

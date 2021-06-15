@@ -399,8 +399,12 @@
                               types of idealized modeling.
                               (see, eg, Bryan and Rotunno, 2014, JAS, pg 1126)
 
+       7 = modified compressible equations:  from Klemp and Wilhelmson (1978)
+                              but with modified value of csound.  Efficient for 
+                              simulations with low wind speeds (<10 m/s).
+
        NOTE:  since cm1r19, users no longer need to set the "nsound" parameter
-              for psolver=2,3,6
+              for psolver=2,3,6,7
 
  ptype - Explicit moisture scheme:
 
