@@ -1048,7 +1048,7 @@
       IF(idiss.eq.1)THEN
         IF( dotbud .and. td_diss.ge.1 )THEN
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector default(present) private(i,j,k)
+          !$acc parallel loop gang collapse(3) vector default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni

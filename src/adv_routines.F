@@ -1543,7 +1543,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang collapse(3) private(i,j,k)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1551,6 +1551,9 @@
         dumx(i,j,k) = rru(i,j,k)*flx6(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k))
       enddo
       enddo
+    ENDDO
+    !$acc parallel loop gang collapse(3) private(i,j,k)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1617,7 +1620,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang collapse(3) private(i,j,k,ubar)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1626,6 +1629,9 @@
         dumx(i,j,k) = ubar*flx6(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k))
       enddo
       enddo
+    ENDDO
+    !$acc parallel loop gang collapse(3) private(i,j,k,vbar)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1639,7 +1645,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar,cc1,cc2)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1650,6 +1656,9 @@
         dumx(i,j,k) = ubar*flx6(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k))
       enddo
       enddo
+    ENDDO
+    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar,cc1,cc2)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -6480,16 +6489,17 @@
       b2 = (13.0/12.0)*( s2 -2.0*s3 +s4 )**2 + 0.25*(     s2             -s4 )**2
       b3 = (13.0/12.0)*( s3 -2.0*s4 +s5 )**2 + 0.25*( 3.0*s3 -4.0*s4     +s5 )**2
 
+      ! if( siform.eq.2 )then
+      ! improved smoothness indicators (Borges et al, 2008, JCP)
+      w1 = 0.1*(1.0+min(1.0d30,abs(b1-b3)/(b1+weps))**2)
+      w2 = 0.6*(1.0+min(1.0d30,abs(b1-b3)/(b2+weps))**2)
+      w3 = 0.3*(1.0+min(1.0d30,abs(b1-b3)/(b3+weps))**2)
+      ! endif
       if( siform.eq.1 )then
         ! original WENO (eg, Jiang and Shu, 1996, JCP)
         w1 = 0.1/(weps+b1)**2
         w2 = 0.6/(weps+b2)**2
         w3 = 0.3/(weps+b3)**2
-      elseif( siform.eq.2 )then
-        ! improved smoothness indicators (Borges et al, 2008, JCP)
-        w1 = 0.1*(1.0+min(1.0d30,abs(b1-b3)/(b1+weps))**2)
-        w2 = 0.6*(1.0+min(1.0d30,abs(b1-b3)/(b2+weps))**2)
-        w3 = 0.3*(1.0+min(1.0d30,abs(b1-b3)/(b3+weps))**2)
       endif
 
       weno5 = ( w1*( ( 2.0/6.0)*s1 + (-7.0/6.0)*s2 + (11.0/6.0)*s3 )  &

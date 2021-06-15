@@ -342,10 +342,6 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-<<<<<<< HEAD
-#if 0
-      subroutine bcu(u)
-=======
       subroutine bcp(p)
       use input
       implicit none
@@ -353,6 +349,7 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: p
 
       integer i,j,k
+      !$acc declare present(p)
 
 !-----------------------------------------------------------------------
 !  west boundary condition
@@ -502,9 +499,8 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcu(u)
->>>>>>> ab6bcd7846f7b4b4576d7a2d6a09a6072d7ec496
->>>>>>> main
       use input
       implicit none
 

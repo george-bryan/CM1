@@ -476,7 +476,6 @@
           enddo
 
         endif  ifql
-        print *,'solve2: after calculation of dum2'
         !$acc compare(dum2,q3d)
 
 
@@ -514,7 +513,6 @@
             enddo
 
           ENDIF
-          print *,'eqtset: ',eqtset 
           IF(eqtset.eq.2)THEN
 
             !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli,cpli,cpm,cvm)
@@ -538,7 +536,7 @@
 
           ELSEIF(eqtset.eq.1)THEN
 
-            print *,'before eqtset==1 loop'
+            !print *,'before eqtset==1 loop'
             !$acc compare(th3d,th0,q3d,dum2,dum3)
             !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli)
             do k=1,nk
@@ -557,7 +555,6 @@
           ENDIF
 
         ELSE
-          print *,'solve2: dry loop'
           ! dry:
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
@@ -1255,7 +1252,6 @@
 #ifdef _OPENACC
           !print *,'WARNING: sounde not verified on GPU'
 #endif
-          print *,'solve2: before call to sounde'
           !$acc compare(t11)
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
@@ -1756,7 +1752,7 @@
         !JMD   dumk1(k) = 0.0
         !JMD   dumk2(k) = 0.0
         !JMD enddo
-        print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
+        !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
         !$acc compare(rho,rmh,pp3d,pi0,ruh,rvh) 
         IF( axisymm.eq.0 )THEN
           do k=1,nk
@@ -1793,9 +1789,9 @@
           enddo
           !$acc end parallel
         ENDIF
-        print *,'solve2: dumk{1,2} loop'
+        !print *,'solve2: dumk{1,2} loop'
         !$acc compare(dumk1,dumk2)
-        stop 'solve2: after dumk{1,2} loop'
+        !stop 'solve2: after dumk{1,2} loop'
 
 #ifdef MPI
         !$acc update self(dumk1,dumk2)
@@ -1988,7 +1984,7 @@
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-      print *,'solve2: after advs'
+      !print *,'solve2: after advs'
       !$acc compare(dumk1,dumk2)
 
         !$omp parallel do default(shared) private(i,j,k)
@@ -2069,7 +2065,7 @@
                  flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-      print *,'solve2: after advs'
+      !print *,'solve2: after advs'
       !$acc compare(dumk1,dumk2)
 
       !$omp parallel do default(shared) private(i,j,k)
@@ -2111,7 +2107,7 @@
 
         temq1 = 0.0
         temq2 = 0.0
-        print *,'solve2: before calculaton of tempq{1,2}'
+        !print *,'solve2: before calculaton of tempq{1,2}'
         !$acc compare(dumk1,dumk2)
         !$acc parallel loop gang vector reduction(+:temq1,temq2) private(k)
         do k=1,nk
