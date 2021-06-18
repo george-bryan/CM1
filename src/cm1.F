@@ -537,6 +537,7 @@
       nj = ny / nodey
       nk = nz
       nkp1 = nk+1
+      !$acc enter data copyin(nkp1)
 
       nimax = ni
       njmax = nj
@@ -726,6 +727,7 @@
 
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
+      !$acc enter data copyin(ngxy,ngz)
 
 !---------------------------------------------------------------------
 !      For ZVD:
@@ -2462,6 +2464,8 @@
         if(dowr) write(outfile,*) '   rsttim  = ',rsttim
         if(dowr) write(outfile,*) '   radtim  = ',radtim
         if(dowr) write(outfile,*)
+        call flush(6)
+        print *,'cm1: after read_restart'
 
         ! Experimental ... not thoroughly tested !
 !!!        doit = .false.
@@ -2675,7 +2679,8 @@
         dosolve     = .true.
         dorad       = .false.
         dostat      = .false.
-        dowriteout  = .false.
+        !dowriteout  = .false.
+        dowriteout  = .true.
         doprclout   = .false.
         dotdwrite   = .false.
         doazimwrite = .false.
@@ -2741,13 +2746,14 @@
     !$acc copyin(defv,defh,lenscl,dissten, &
     !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
     !$acc      wspd,gz1oz0,br,brcr,phim,phih,swspd,cpmm,zol,mavail,mol,rmol,dsxy,cda,psim,psih, &
-    !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z) &
-    !$acc copyin(stau,ustt,ut,vt,st,cd,ch,cq,u1,v1,s1,t1) &
+    !$acc      psiq,fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z) &
+    !$acc copyin(stau,ustt,ut,vt,st,cd,ch,cq,tlh,u1,v1,s1,t1) &
     !$acc copyin(znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
     !$acc copyin(sws,svs,sps,srs,sgs,sus,shs) &
     !$acc copyin(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
     !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
     !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
+    !$acc copyin(lu_index) &
     !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
     !$acc copyin(rho,rr,rf,prs,o30,zir)  &
     !$acc copyin(flag) &
@@ -2992,7 +2998,10 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-
+       call flush(6)
+       print *,'cm1: after solve1'
+       !!$acc compare(ppten)
+       !stop 'cm1: after call to solve1'
 
 #ifdef _OPENACC
         call nvtxStartRange("solve2",id=4)
@@ -3072,6 +3081,8 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
+       call flush(6)
+       print *,'cm1: after solve2'
 
       IF(imoist.eq.1)THEN
 
@@ -3351,6 +3362,10 @@
                    flag  ,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
+#ifdef _OPENACC
+      call nvtxEndRange()
+#endif
+
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
         !  get stress terms for explicit diffusion scheme:
@@ -3893,8 +3908,7 @@
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
-                    time_H2D + time_D2H+time_step_H2D+time_step_D2H+ &
-                    time_adv_H2D + time_adv_D2H+time_phys_H2D + time_phys_D2H
+                    time_phys_H2D + time_phys_D2H
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -3965,8 +3979,6 @@
       startup = .false.
       restarted = .false.
 
-    if(timestats.ge.1) time_step_D2H=time_step_D2H+mytime()
-
 
     ENDDO  timeloop
 
@@ -4010,13 +4022,6 @@
         time_phys_D2H = sum/float(numprocs)
 
         sum = 0.0
-        call MPI_REDUCE(time_step_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_step_H2D = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_step_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_step_D2H = sum/float(numprocs)
-
-        sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
         sum = 0.0
@@ -4025,12 +4030,6 @@
         sum = 0.0
         call MPI_REDUCE(time_advs    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_advs = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_adv_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_adv_H2D = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_adv_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_adv_D2H = sum/float(numprocs)
         sum = 0.0
         call MPI_REDUCE(time_advu    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_advu = sum/float(numprocs)
@@ -4199,8 +4198,7 @@
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
-                  time_H2D+time_D2H+time_step_H2D+time_step_D2H+ &
-                  time_phys_H2D+time_phys_D2H+time_step_H2D+time_step_D2H 
+                  time_phys_H2D+time_phys_D2H
       time_solve0 = time_solve
 
 #ifdef MPI
@@ -4212,25 +4210,21 @@
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'Total time: ',time_solve
+      if(dowr) write(outfile,*) 'H2D:',time_H2D
+      if(dowr) write(outfile,*) 'D2H:',time_D2H
       if(dowr) write(outfile,*)
       time_solve=0.01*time_solve
       if(time_solve.lt.0.0001) time_solve=1.
 
     IF(dowr)THEN
-      write(outfile,100) 'H2D',time_H2D,time_H2D/time_solve
-      write(outfile,100) 'D2H',time_D2H,time_D2H/time_solve
       write(outfile,100) 'phys-H2D',time_phys_H2D,time_phys_H2D/time_solve
       write(outfile,100) 'phys-D2H',time_phys_D2H,time_phys_D2H/time_solve
-      write(outfile,100) 'step-H2D',time_step_H2D,time_step_H2D/time_solve
-      write(outfile,100) 'step-D2H',time_step_D2H,time_step_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
-      write(outfile,100) ' adv-H2D',time_adv_H2D,time_adv_H2D/time_solve
       write(outfile,100) 'advs    ',time_advs,time_advs/time_solve
       write(outfile,100) 'advu    ',time_advu,time_advu/time_solve
       write(outfile,100) 'advv    ',time_advv,time_advv/time_solve
       write(outfile,100) 'advw    ',time_advw,time_advw/time_solve
-      write(outfile,100) ' adv-D2H',time_adv_D2H,time_adv_D2H/time_solve
       write(outfile,100) 'divx    ',time_divx,time_divx/time_solve
       write(outfile,100) 'buoyan  ',time_buoyan,time_buoyan/time_solve
       write(outfile,100) 'turb    ',time_turb,time_turb/time_solve

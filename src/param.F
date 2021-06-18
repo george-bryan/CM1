@@ -218,7 +218,8 @@
          read(20,nml=nssl2mom_params)
       ENDIF
       close(unit=20)
-      !$acc enter data copyin(dx,dy,dz)
+      !$acc enter data copyin(dx,dy,dz,wbc,ebc,sbc,nbc)
+      
 
 #ifdef MPI
       endif  myid0

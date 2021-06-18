@@ -1912,7 +1912,6 @@
 !------------------------------------------------------------------
 !  fill in ghost cells
 
-      print *,'base: point #1' 
       !$acc data copy(pi0,prs0,th0,qv0,qc0,qi0,rh0)
       call bcs_GPU(pi0)
       call bcs_GPU(prs0)
@@ -1922,6 +1921,7 @@
       call bcs_GPU(qi0)
       call bcs_GPU(rh0)
       !$acc end data
+       
 
 #ifdef MPI
       nf=0
@@ -2013,7 +2013,6 @@
     enddo
     enddo
 
-      print *,'base: point #2' 
       !$acc data copy(rho0)
       call bcs_GPU(rho0)
       !$acc end data

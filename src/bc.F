@@ -3081,6 +3081,7 @@
       integer i,j,k
       !$acc declare present(s)
 
+    !$acc compare(s)
     !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
 !  west boundary condition

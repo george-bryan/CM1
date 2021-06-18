@@ -536,7 +536,7 @@
 
           ELSEIF(eqtset.eq.1)THEN
 
-            !print *,'before eqtset==1 loop'
+            print *,'before eqtset==1 loop'
             !$acc compare(th3d,th0,q3d,dum2,dum3)
             !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli)
             do k=1,nk
@@ -570,10 +570,10 @@
         if(timestats.ge.1) time_buoyan=time_buoyan+mytime()
 
 !--------------------------------------------------------------------
-        print *,'before call to bcs_GPU(t11)'
+        print *,'solve2: before call to bcs_GPU(t11) #1'
         !$acc compare(t11)
         call bcs_GPU(t11)
-        print *,'after call to bcs_GPU(t11)'
+        print *,'solve2: after call to bcs_GPU(t11) #1'
         !$acc compare(t11)
 #ifdef MPI
         call comm_1s_start_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
@@ -1108,7 +1108,8 @@
 
       termod1:  &
       IF( terrain_flag )THEN
-
+        call flush(6)
+        print *,'solve2: before bcs_GPU #2'
         call bcs_GPU(dum6)
 #ifdef MPI
         call comm_1s_start_GPU(dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
@@ -1270,11 +1271,14 @@
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
           !$acc compare(u3d,v3d,w3d)
-          !stop 'after call to sounde'
+          stop 'solve2: after call to sounde'
 
         ELSEIF(psolver.eq.3)THEN
 
-          !print *,'before call to sound'
+          
+          print *,'solve2: before call to sound'
+          !$acc compare(ppten)
+          !stop 'solve2: before call to sound'
           get_time_avg = .true.
           call   sound( dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1291,6 +1295,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+          !stop 'solve2: after call to sound'
 
         ELSEIF(psolver.eq.4.or.psolver.eq.5)THEN
           ! anelastic/incompressible solver:
@@ -1829,14 +1834,20 @@
                              ws31,ws32,wn31,wn32,reqs_w)
 #endif
       IF(nrk.lt.nrkmax)THEN
+        call flush(6)
+        print *,'solve2: before bcs_GPU #3'
         call bcs_GPU(rho)
 #ifdef MPI
         call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
+        call flush(6)
+        print *,'solve2: before bcs_GPU #4'
         call bcs_GPU(pp3d)
 #ifdef MPI
         call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
 #endif
+        call flush(6)
+        print *,'solve2: before bcs_GPU #5'
         call bcs_GPU(th3d)
 #ifdef MPI
         call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
@@ -1844,6 +1855,8 @@
 #endif
         IF(imoist.eq.1)THEN
           !print *,'numq: ',numq
+        call flush(6)
+        print *,'solve2: before bcs_GPU #6'
           do n=1,numq
             call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI
@@ -1969,6 +1982,8 @@
         ENDIF
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
+        call flush(6)
+        print *,'solve2: before bcs_GPU #7'
         call bcs_GPU(qke3d)
 #ifdef MPI
         call comm_3s_start_GPU(qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
@@ -2080,6 +2095,8 @@
       if(timestats.ge.1) time_integ=time_integ+mytime()
 
       IF(nrk.le.2)THEN
+        call flush(6)
+        print *,'solve2: before bcs_GPU #8'
         call bcs_GPU(pt3d(ib,jb,kb,n))
 #ifdef MPI
         call comm_3s_start_GPU(pt3d(ib,jb,kb,n)   &
@@ -2203,6 +2220,8 @@
 !  (using final value of rho)
 
     if(iptra.eq.1)then
+        call flush(6)
+        print *,'solve2: before bcs_GPU #9'
       DO n=1,npt
         if( pdtra.eq.1 ) then 
             call pdefq_GPU(0.0,afoo,ruh,rvh,rmh,rho,pt3d(ib,jb,kb,n))

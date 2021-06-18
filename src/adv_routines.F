@@ -18,6 +18,7 @@
           !  2 = Borges et al. (2008, JCP)
     integer, parameter :: siform = 2
     !-----------------------------------------------------!
+    real, parameter :: c260 = 2.0/60.0
 
 
   CONTAINS
@@ -2627,10 +2628,10 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) private(i,j,k,wbar)
-    DO j=1,nj
-
-      do k=3,nk-2
+    !$acc parallel loop gang vector collapse(3) 
+    !!! private(i,j,k,wbar)
+    DO k=3,nk-2
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -6312,8 +6313,13 @@
       real, intent(in) :: s1,s2,s3,s4,s5
 
       ! 5th-order flux (eg, Wicker and Skamarock, 2002, MWR)
+      !flx5 = (  (  2.0/60.0)*s1  &
+      !         +(-13.0/60.0)*s2  &
+      !         +( 47.0/60.0)*s3  &
+      !         +( 27.0/60.0)*s4  &
+      !         +( -3.0/60.0)*s5  )
 
-      flx5 = (  (  2.0/60.0)*s1  &
+      flx5 = (  c260*s1  &
                +(-13.0/60.0)*s2  &
                +( 47.0/60.0)*s3  &
                +( 27.0/60.0)*s4  &
@@ -6491,9 +6497,9 @@
 
       ! if( siform.eq.2 )then
       ! improved smoothness indicators (Borges et al, 2008, JCP)
-      w1 = 0.1*(1.0+min(1.0d30,abs(b1-b3)/(b1+weps))**2)
-      w2 = 0.6*(1.0+min(1.0d30,abs(b1-b3)/(b2+weps))**2)
-      w3 = 0.3*(1.0+min(1.0d30,abs(b1-b3)/(b3+weps))**2)
+      w1 = 0.1d0*(1.0d0+min(1.0d30,abs(b1-b3)/(b1+weps))**2)
+      w2 = 0.6d0*(1.0d0+min(1.0d30,abs(b1-b3)/(b2+weps))**2)
+      w3 = 0.3d0*(1.0d0+min(1.0d30,abs(b1-b3)/(b3+weps))**2)
       ! endif
       if( siform.eq.1 )then
         ! original WENO (eg, Jiang and Shu, 1996, JCP)
@@ -6505,7 +6511,7 @@
       weno5 = ( w1*( ( 2.0/6.0)*s1 + (-7.0/6.0)*s2 + (11.0/6.0)*s3 )  &
                +w2*( (-1.0/6.0)*s2 + ( 5.0/6.0)*s3 + ( 2.0/6.0)*s4 )  &
                +w3*( ( 2.0/6.0)*s3 + ( 5.0/6.0)*s4 + (-1.0/6.0)*s5 )  &
-              )/( w1+w2+w3 )
+                        )/( w1+w2+w3 )
 
       end function weno5
 

@@ -1811,6 +1811,7 @@
             ! use diabatic tendencies from last timestep as a good estimate:
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
+            !$acc parallel loop gang vector collapse(3) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -1822,6 +1823,8 @@
             enddo
             enddo
           endif
+          !$acc compare(ppten,qpten,ppi,rho,th0,pi0)
+          !stop 'solve1: deep in loop to set ppten(moist)'
         ELSE
 #ifdef _B4B02
           !$acc update host(thten1,tha,rho,th0,pi0,ppi)
@@ -1853,6 +1856,8 @@
 #else
           !$acc end data
 #endif
+          !$acc compare(ppten)
+          !stop 'solve1: deep in loop to set ppten(dry)'
         ENDIF  ! endif for moist/dry
       ENDIF    ! endif for eqtset 1/2
 

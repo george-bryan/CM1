@@ -2363,13 +2363,13 @@
         enddo
         call getavg3d(dum1,savg)
 
-        print *,'after calculation of uavg'
+        !print *,'after calculation of uavg'
         !! save uavg:
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           uavg(k) = savg(k)
         enddo
-        !!$acc compare(u3d,uavg)
+        !$acc compare(u3d,uavg)
         !stop 'after calclation of uavg'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -2443,6 +2443,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
+        !$acc compare(w3d)
         nvar = nvar+1
         varname(nvar) = 'w'
         vardesc(nvar) = 'vertical velocity'
@@ -2456,6 +2457,8 @@
           wavg(k) = savg(k)
         enddo
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+        !$acc compare(wavg)
+        !stop 'domaindiag: after calculation of wavg'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2579,7 +2582,7 @@
         varunit(nvar) = 'kg/m3'
         vargrid(nvar) = 'w'
 
-        call getavg3d(rf,savg,nk+1)
+        call getavg3d(rf,savg,nkp1)
 
         ! save rfavg:
         !$acc parallel loop gang vector default(present) private(k)
@@ -5422,6 +5425,7 @@
     enddo
     enddo
 
+    !$acc compare(uavg,vavg,wavg)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
@@ -9458,6 +9462,7 @@
         varlvls(nvar) = 0
         vargrid(nvar) = '2'
 
+        !$acc compare(wvar)
         savg2d = 0.0
         !$acc parallel loop gang vector reduction(max:savg2d)
         do k=2,nk
@@ -9648,7 +9653,7 @@
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
     call flush(6)
-    !stop 'domaindiag: at the end of the subroutine'
+    stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 
@@ -10209,14 +10214,18 @@
     real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: s
     double precision, intent(out), dimension(nk+1) :: savg
     integer, intent(in), optional :: nkm
-    !$acc declare present(s,savg)
+    !$acc declare present(s,savg,nkm)
 
     integer :: i,j,k,k2
     real :: stmp
     double precision :: temd
     
 
-    savg = 0.0
+    !$acc parallel default(present) copyout(k2)
+    !$acc loop 
+    do k=1,nk+1
+      savg(k) = 0.0
+    enddo
 
 !!!    k2 = nk
     k2 = nk+1
@@ -10225,10 +10234,10 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
-    !$acc parallel default(present) private(i,j,k) reduction(+:stmp)
+    !$acc loop gang
     do k=1,k2
       stmp = 0.0
-      !$acc loop collapse(2) reduction(+:stmp)
+      !$acc loop vector collapse(2) reduction(+:stmp)
       do j=1,nj
       do i=1,ni
         stmp = stmp+s(i,j,k)
@@ -10237,6 +10246,7 @@
       savg(k)=stmp
     enddo
     !$acc end parallel
+    !$acc compare(savg)
 
 #ifdef MPI
     !$acc update host(savg)
@@ -10248,6 +10258,7 @@
     do k=1,k2
       savg(k) = savg(k)/dble(nx*ny)
     enddo
+    print *,'getavg3d: nx*ny: ',dble(nx*ny)
 
     end subroutine getavg3d
 

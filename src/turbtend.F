@@ -1792,7 +1792,7 @@
     IF(axisymm.eq.0)THEN
 
       !$omp parallel do default(shared) private(i,j,k,rru0)
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,rru0)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,rru0)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1

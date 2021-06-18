@@ -218,8 +218,6 @@
            time_sfcphys,time_dbz,time_last,                          &
            time_advs,time_advu,time_advv,time_advw,                  &
            time_phys_H2D,time_phys_D2H,                                &
-           time_adv_H2D,time_adv_D2H,  &
-           time_step_H2D,time_step_D2H,  &
            time_H2D,time_D2H, &     
            time_mpu1,time_mpv1,time_mpw1,time_mpp1,                  &
            time_mpu2,time_mpv2,time_mpw2,time_mpp2,                  &

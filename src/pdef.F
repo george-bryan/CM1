@@ -106,6 +106,8 @@
           enddo
         endif
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
+        call flush(6)
+        print *,'pdefx1: before bcs_GPU'
         call bcs_GPU(dum)
 #ifdef MPI
         call comm_2we_start(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
@@ -367,6 +369,8 @@
           enddo
         endif
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
+        call flush(6)
+        print *,'pdefy1: before bcs_GPU'
         call bcs_GPU(dum)
 #ifdef MPI
         call comm_2sn_start(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
