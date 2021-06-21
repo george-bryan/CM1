@@ -3635,7 +3635,6 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
-#if 0
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=9)
 #endif
@@ -3695,6 +3694,7 @@
 #ifdef _OPENACC
         call nvtxEndRange()
 #endif
+#if 0
 #endif
 
       endif

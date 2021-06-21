@@ -3,6 +3,7 @@
 #define _B4B02
 #define _B4B03
 #define _B4B04
+#define _B4B05
 #endif
   MODULE solve2_module
 
@@ -1757,18 +1758,14 @@
         ! cm1r18:  adjust average pressure perturbation to ensure 
         !          conservation of total dry-air mass
 
-        !JMD !$acc parallel loop gang vector private(k)
-        !JMD do k=1,nk
-        !JMD   dumk1(k) = 0.0
-        !JMD   dumk2(k) = 0.0
-        !JMD enddo
         !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
         !$acc compare(rho,rmh,pp3d,pi0,ruh,rvh) 
+        !$acc parallel private(tmp1,tmp2) reduction(+:tmp1,tmp2)
         IF( axisymm.eq.0 )THEN
+          !$acc loop gang reduction(+:tmp1,tmp2)
           do k=1,nk
             tmp1=0;
             tmp2=0;
-            !$acc parallel private(i,j,k) reduction(+:tmp1,tmp2) copy(tmp1,tmp2)
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
             !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
             do j=1,nj
@@ -1777,17 +1774,16 @@
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
-            !$acc end parallel
             dumk1(k) = tmp1
             dumk2(k) = tmp2
           enddo
         ELSEIF( axisymm.eq.1 )THEN
-          !$acc parallel private(i,j,k) reduction(+:tmp1,tmp2)
+          !$acc loop gang reduction(+:tmp1,tmp2)
           do k=1,nk
             tmp1=0;
             tmp2=0;
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2
-            !$acc loop collapse(2) reduction(+:tmp1,tmp2)
+            !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*pi*(xf(i+1)**2-xf(i)**2)
@@ -1797,8 +1793,8 @@
             dumk1(k) = tmp1
             dumk2(k) = tmp2
           enddo
-          !$acc end parallel
         ENDIF
+        !$acc end parallel
         !print *,'solve2: dumk{1,2} loop'
         !$acc compare(dumk1,dumk2)
         !stop 'solve2: after dumk{1,2} loop'
@@ -2126,22 +2122,30 @@
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
         !$acc update device(dumk1,dumk2)
 #endif
+#ifndef _B4B05
+        !$acc parallel copy(temq1,temq2) reduction(+:temq1,temq2)
+#endif
+
 
         temq1 = 0.0
         temq2 = 0.0
-        !print *,'solve2: before calculaton of tempq{1,2}'
         !$acc compare(dumk1,dumk2)
-        !$acc parallel loop gang vector reduction(+:temq1,temq2) private(k)
+#ifndef _B4B05
+        !$acc loop reduction(+:temq1,temq2)
+#endif 
+
         do k=1,nk
           temq1 = temq1 + dumk1(k)
           temq2 = temq2 + dumk2(k)
         enddo
-        stop 'solve2: after temq{1,2}'
 
         mass2 = temq1
         p2 = temq2
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
+#ifndef _B4B05
+        !$acc end parallel
+#endif
 
 !!!        if( myid.eq.0 ) print *,'  temd,tem = ',temd,tem
 
@@ -2165,7 +2169,7 @@
           enddo
           enddo
 #ifdef _B4B03
-          !$acc update host(rho,prs,pp3d)
+          !$acc update device(rho,prs,pp3d)
 #endif
         ELSE
 #ifdef _B4B04
@@ -2186,7 +2190,7 @@
           enddo
           enddo
 #ifdef _B4B04
-          !$acc update host(rho,prs,pp3d)
+          !$acc update device(rho,prs,pp3d)
 #endif
         ENDIF
 
