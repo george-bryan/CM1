@@ -4228,6 +4228,7 @@
         ENDIF    ! endif for ptype
 
       ENDIF    ! endif for imoist=1
+      !$acc enter data copyin(nqs1,nqs2)
 
 !-----------------------------------------------------------------------
 !-------   END:  modify stuff above here -------------------------------

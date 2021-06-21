@@ -2464,8 +2464,8 @@
         if(dowr) write(outfile,*) '   rsttim  = ',rsttim
         if(dowr) write(outfile,*) '   radtim  = ',radtim
         if(dowr) write(outfile,*)
-        call flush(6)
-        print *,'cm1: after read_restart'
+        !call flush(6)
+        !print *,'cm1: after read_restart'
 
         ! Experimental ... not thoroughly tested !
 !!!        doit = .false.
@@ -2998,8 +2998,8 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-       call flush(6)
-       print *,'cm1: after solve1'
+       !call flush(6)
+       !print *,'cm1: after solve1'
        !!$acc compare(ppten)
        !stop 'cm1: after call to solve1'
 
@@ -3081,8 +3081,8 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-       call flush(6)
-       print *,'cm1: after solve2'
+       !call flush(6)
+       !print *,'cm1: after solve2'
 
       IF(imoist.eq.1)THEN
 
@@ -3114,7 +3114,7 @@
                          tdiag,qdiag,out2d,out3d,  &
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
-        print *,'after mp_driver'
+        !print *,'after mp_driver'
         !!$acc compare(q3d)
       endif
 #ifdef _OPENACC

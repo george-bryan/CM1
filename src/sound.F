@@ -553,7 +553,6 @@
         ENDDO
 
       ENDIF
-      print *,'terrain_flag: ',terrain_flag
       !$acc compare(fpk,u3d,v3d,w3d,ppten,ppterm,piadv,pk1,pk2,qk)
       !stop 'after call to compare(fpk): axisymm'
 
@@ -836,7 +835,7 @@
           
           call flush(6)
           !$acc compare(ppd,dum1,pp3d,w3d,pk1,pk2,qk)
-          print *,'sound: before bcs_GPU'
+          !print *,'sound: before bcs_GPU'
           call bcs_GPU(ppd)
 #ifdef MPI
           call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &

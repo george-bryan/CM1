@@ -573,6 +573,7 @@
             ppten(i,j,1) = zh(i,j,kval)
           enddo
           enddo
+          !$acc compare(s1,u1,v1,ugr,vgr)
 
           IF( terrain_flag )THEN
             !$omp parallel do default(shared) private(i,j)
@@ -643,13 +644,16 @@
           enddo
          ENDIF
 
+        !$acc compare(s1)
         IF( use_avg_sfc .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )THEN
             call getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
         ENDIF
+        !$acc compare(s1)
 
         IF( sfcmodel.eq.1 )THEN
 
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+          !$acc compare(s1)
 
           if( tbc.eq.3 )then
 #ifdef _B4B01
@@ -671,6 +675,7 @@
           endif
 
 
+          !$acc compare(s1)
           if(isfcflx.eq.1)then
             call sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail, &
                          rho,rf,u1,v1,s1,ppi,tha,divx, &
