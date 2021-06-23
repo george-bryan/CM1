@@ -355,7 +355,7 @@
           enddo
           enddo
           enddo
-#ifdef _B3B
+#ifdef _B4B
           !$acc update device(dum2)
 #endif
         endif
@@ -404,7 +404,6 @@
         endif
 
       IF(imoist.eq.1)THEN
-
         if(stat_the.eq.1)then
           call calcthe(zh,pi0,th0,dum4,dum2,prs,ppi,tha,qa)
           call maxmin(ni,nj,nk,dum4,nstat,rstat,kmin,kmax,'THEMAX','THEMIN')

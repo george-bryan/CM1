@@ -9644,8 +9644,6 @@
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
-    !call flush(6)
-    !stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 

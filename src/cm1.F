@@ -3432,7 +3432,7 @@
           enddo
           enddo
         ENDIF
-#if 0
+!!#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3444,7 +3444,7 @@
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
         stop 'after call to statpack'
-#endif
+!!#endif
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
