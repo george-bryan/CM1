@@ -1063,8 +1063,8 @@
 #ifdef _B4B
         !$acc update host(asq,ruh,rvh,rmh,rho,q3d)
 #else
-        !!$acc parallel loop gang vector default(present) private(i,j,k,t1,t2,t3,a1,a2)
-        !$acc parallel default(present) private(i,j,k,t3,a2) &
+        !!$acc parallel loop gang vector default(present) private(i,j,k)
+        !$acc parallel default(present) private(i,j,k) &
         !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:budt)
 #endif
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
@@ -2594,7 +2594,7 @@
     IF( axisymm.eq.0 )THEN
       IF(.not.terrain_flag)THEN
         ! Cartesian grid, without terrain:
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j,vort,vmax) reduction(max:vmax)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,vort) reduction(max:vmax)
         do j=1+ibs,nj+1-ibn
         do i=1+ibw,ni+1-ibe
           vort=(va(i,j,k)-va(i-1,j,k))*rdx*uf(i)   &
@@ -2604,7 +2604,7 @@
         enddo
       ELSE
         ! Cartesian grid, with terrain:
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j,r1,vort,vmax) reduction(max:vmax)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,r1,vort) reduction(max:vmax)
         do j=1+ibs,nj+1-ibn
         do i=1+ibw,ni+1-ibe
           r1 = zt/(zt-0.25*((zs(i-1,j-1)+zs(i,j))+(zs(i-1,j)+zs(i,j-1))))
@@ -2622,7 +2622,7 @@
       ENDIF
     ELSE
         ! axisymmetric grid
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j,vort,vmax) reduction(max:vmax)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,vort) reduction(max:vmax)
         do j=1,nj+1
         do i=2,ni+1
           vort=(xh(i)*va(i,j,k)-xh(i-1)*va(i-1,j,k))*rdx*uf(i)/xf(i)
@@ -3042,11 +3042,11 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,tem)
-!$acc parallel default(present) private(i,j,k,tem,maxksh,maxksv) reduction(max:maxksh) reduction(max:maxksv)
+!$acc parallel default(present) private(i,j,k,tem) reduction(max:maxksh) reduction(max:maxksv)
       do k=2,nk
         maxksh = -99999.0
         maxksv = -99999.0
-!$acc loop collapse(2) private(i,j,k,tem,maxksh,maxksv) reduction(max:maxksh) reduction(max:maxksv)
+!$acc loop collapse(2) private(i,j,k,tem) reduction(max:maxksh) reduction(max:maxksv)
         do j=1,nj
         do i=1,ni
           tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
@@ -3287,10 +3287,10 @@
       double precision, dimension(nk) :: foo
       double precision :: foot
 
-      !$acc data create(foo) copyout(tmass)
+      !$acc data create(foo,foot,tmass)
       !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
-        foo(k)=0.0d0 
+        foo(k)=0.0d0
       enddo
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:foot)
@@ -3305,12 +3305,14 @@
         foo(k)=foot
       enddo
       !$acc end parallel
- 
-      tmass=0.0d0
-      !$acc parallel loop gang vector default(present) private(k) reduction(+:tmass)
+
+      !$acc parallel default(present) private(k) reduction(+:tmass)
+      tmass=0.0d0 
+      !$acc loop gang vector reduction(+:tmass)
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
+      !$acc end parallel
 
 #ifdef MPI
       var=0.0d0
@@ -3320,8 +3322,8 @@
       if(myid.eq.0)then
 #endif
 
-      tmass=tmass*(dx*dy*dz)
       !$acc end data
+      tmass=tmass*(dx*dy*dz)
  
       write(6,100) 'TMASS ',tmass
 100   format(2x,a6,':',1x,e13.6)
@@ -3364,7 +3366,7 @@
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
 
-!$acc data create(foo)
+!$acc data create(foo,tmass)
 !$omp parallel do default(shared)  &
 !$omp private(k)
 !$acc parallel loop gang vector default(present) private(k)
@@ -3383,11 +3385,13 @@
         enddo
       enddo
  
+!$acc parallel default(present) private(k) reduction(+:tmass)
       tmass=0.0d0
-!$acc parallel loop gang vector default(present) private(k,tmass) reduction(+:tmass)
+!$acc loop gang vector reduction(+:tmass)
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
+!$acc end parallel
 
 #ifdef MPI
       var=0.0d0
@@ -3443,7 +3447,7 @@
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
 
-!$acc data create(foo)
+!$acc data create(foo,tmass)
 !$omp parallel do default(shared)  &
 !$omp private(k)
 !$acc parallel loop gang vector default(present) private(k)
@@ -3462,11 +3466,13 @@
       enddo
       enddo
 
+!$acc parallel default(present) private(k) reduction(+:tmass)
       tmass=0.0d0
-!$acc parallel loop gang vector default(present) private(k,tmass) reduction(+:tmass)
+!$acc loop gang vector reduction(+:tmass)
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
+!$acc end parallel
 
 #ifdef MPI
       var=0.0d0
@@ -3646,11 +3652,11 @@
       tmu=0.0d0
       tmv=0.0d0
       tmw=0.0d0
-      !$acc compare(qv,ql,qi)
+      !$acc compare(qv,ql,qi,ua,rho)
       !$acc data copy(tmu,tmv,tmw)
- 
+
       !$omp parallel do default(shared) private(i,j,k,qtot,tem)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
+      !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
       do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3759,7 +3765,7 @@
 
       tmfu=0.0d0
       tmfd=0.0d0
-!$acc parallel loop gang vector default(present) private(k,tmfu,tmfd) reduction(+:tmfu) reduction(+:tmfd)
+!$acc parallel loop gang vector default(present) private(k) reduction(+:tmfu) reduction(+:tmfd)
       do k=1,nk
         tmfu=tmfu+foo1(k)
         tmfd=tmfd+foo2(k)
