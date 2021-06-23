@@ -553,8 +553,6 @@
         ENDDO
 
       ENDIF
-      !$acc compare(fpk,u3d,v3d,w3d,ppten,ppterm,piadv,pk1,pk2,qk)
-      !stop 'after call to compare(fpk): axisymm'
 
     ELSE
         ! axisymmetric grid:
@@ -629,7 +627,6 @@
 !-----------------------------------------------------------------------
 !  advection for terrain:
 
-      !$acc compare(rho0,dum1,dum2,dzdx,dzdy,rrf0,w3d,piadv,rr0,pk1,pk2)
       IF(terrain_flag)THEN
         ! Cartesian grid with terrain:
         call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
@@ -686,8 +683,6 @@
         enddo
         enddo
         ENDDO
-        !$acc compare(fpk)
-        !stop 'after call to compare(fpk): terrain_flag'
       ENDIF
 
 !-----------------------------------------------------------------------
@@ -712,7 +707,6 @@
           dum2(i,j,k) =  dd*r1
         enddo
         enddo
-        !$acc compare(dum1,dum2)
 
         !$acc parallel private(i,j,k,aa,bb,cc,dd,fwk,r1)
         do k=3,(nk-1)
@@ -736,7 +730,6 @@
 
         enddo
         !$acc end parallel
-        !$acc compare(dum1,dum2)
 
         k = nk
 
@@ -770,12 +763,9 @@
         enddo
         !$acc end parallel
 
-      !$acc compare(w3d)
       IF( do_ib )THEN
           call zero_out_w(bndy,kbdy,w3d)
       ENDIF
-      !$acc compare(w3d)
-      !stop 'after call to zero_out_w(w3d)'
 
 !-----------------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -834,8 +824,6 @@
           if(timestats.ge.1) time_sound=time_sound+mytime()
           
           call flush(6)
-          !$acc compare(ppd,dum1,pp3d,w3d,pk1,pk2,qk)
-          !print *,'sound: before bcs_GPU'
           call bcs_GPU(ppd)
 #ifdef MPI
           call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &

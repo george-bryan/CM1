@@ -389,7 +389,6 @@
        !$acc present(bndy,kbdy)
 
 !--------------------------------------------------------------------
-
 #ifdef MPI
       nf=0
       nu=0
@@ -478,7 +477,6 @@
           enddo
 
         endif  ifql
-        !$acc compare(dum2,q3d)
 
 
           IF(iice.eq.1)THEN
@@ -517,8 +515,6 @@
             enddo
 
           ENDIF
-          print *,'solve3: after setting of dum3'
-          !$acc compare(dum3,q3d)
           IF(eqtset.eq.2)THEN
 
             !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli,cpli,cpm,cvm)
@@ -542,8 +538,7 @@
 
           ELSEIF(eqtset.eq.1)THEN
 
-            print *,'before eqtset==1 loop'
-            !$acc compare(th3d,th0,q3d,dum2,dum3)
+            !print *,'before eqtset==1 loop'
             !$acc parallel loop gang vector collapse(3) private(i,j,k,qv,qli)
             do k=1,nk
             do j=1,nj
@@ -577,10 +572,8 @@
 
 !--------------------------------------------------------------------
         !print *,'solve2: before call to bcs_GPU(t11) #1'
-        !$acc compare(t11)
         call bcs_GPU(t11)
         !!print *,'solve2: after call to bcs_GPU(t11) #1'
-        !$acc compare(t11)
 #ifdef MPI
         call comm_1s_start_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
@@ -1256,10 +1249,6 @@
 
         ELSEIF( psolver.eq.2 .or. psolver.eq.7 )THEN
 
-#ifdef _OPENACC
-          !print *,'WARNING: sounde not verified on GPU'
-#endif
-          !$acc compare(t11)
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1276,15 +1265,11 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-          !$acc compare(u3d,v3d,w3d)
-          !stop 'solve2: after call to sounde'
 
         ELSEIF(psolver.eq.3)THEN
 
           
           !print *,'solve2: before call to sound'
-          !$acc compare(ppten)
-          !stop 'solve2: before call to sound'
           get_time_avg = .true.
           call   sound( dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1759,7 +1744,6 @@
         !          conservation of total dry-air mass
 
         !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
-        !$acc compare(rho,rmh,pp3d,pi0,ruh,rvh) 
         !$acc parallel private(tmp1,tmp2) reduction(+:tmp1,tmp2)
         IF( axisymm.eq.0 )THEN
           !$acc loop gang reduction(+:tmp1,tmp2)
@@ -1796,8 +1780,6 @@
         ENDIF
         !$acc end parallel
         !print *,'solve2: dumk{1,2} loop'
-        !$acc compare(dumk1,dumk2)
-        !stop 'solve2: after dumk{1,2} loop'
 
 #ifdef MPI
         !$acc update self(dumk1,dumk2)
@@ -2001,7 +1983,6 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
       !print *,'solve2: after advs'
-      !$acc compare(dumk1,dumk2)
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2082,7 +2063,6 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
       !print *,'solve2: after advs'
-      !$acc compare(dumk1,dumk2)
 
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2129,11 +2109,9 @@
 
         temq1 = 0.0
         temq2 = 0.0
-        !$acc compare(dumk1,dumk2)
 #ifndef _B4B05
         !$acc loop reduction(+:temq1,temq2)
 #endif 
-
         do k=1,nk
           temq1 = temq1 + dumk1(k)
           temq2 = temq2 + dumk2(k)
@@ -2260,7 +2238,6 @@
 
     ! cm1r20.1:  - moved microphysics to mp_driver (which is called from cm1.F)
     !            - moved message passing and equate to solve_finish.F
-
 
       end subroutine solve2
 

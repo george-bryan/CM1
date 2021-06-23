@@ -2369,7 +2369,6 @@
         do k=1,nk
           uavg(k) = savg(k)
         enddo
-        !$acc compare(u3d,uavg)
         !stop 'after calclation of uavg'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -2443,7 +2442,6 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-        !$acc compare(w3d)
         nvar = nvar+1
         varname(nvar) = 'w'
         vardesc(nvar) = 'vertical velocity'
@@ -2457,7 +2455,6 @@
           wavg(k) = savg(k)
         enddo
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-        !$acc compare(wavg)
         !stop 'domaindiag: after calculation of wavg'
 
       !c-c-c-c-c-c-c-c-c-c
@@ -5425,7 +5422,6 @@
     enddo
     enddo
 
-    !$acc compare(uavg,vavg,wavg)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
@@ -5438,7 +5434,6 @@
     enddo
     enddo
     enddo
-    !!$acc compare(uavg,vavg,wavg)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -5501,8 +5496,6 @@
           wvar(k) = savg(k)
         enddo
         !$acc end parallel
-        !!$acc compare(wvar,dum6)
-        !stop 'after call to compare(wvar)'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9462,7 +9455,6 @@
         varlvls(nvar) = 0
         vargrid(nvar) = '2'
 
-        !$acc compare(wvar)
         savg2d = 0.0
         !$acc parallel loop gang vector reduction(max:savg2d)
         do k=2,nk
@@ -9652,8 +9644,8 @@
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
-    call flush(6)
-    stop 'domaindiag: at the end of the subroutine'
+    !call flush(6)
+    !stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 
@@ -10246,7 +10238,6 @@
       savg(k)=stmp
     enddo
     !$acc end parallel
-    !$acc compare(savg)
 
 #ifdef MPI
     !$acc update host(savg)
@@ -10258,7 +10249,7 @@
     do k=1,k2
       savg(k) = savg(k)/dble(nx*ny)
     enddo
-    print *,'getavg3d: nx*ny: ',dble(nx*ny)
+    !print *,'getavg3d: nx*ny: ',dble(nx*ny)
 
     end subroutine getavg3d
 

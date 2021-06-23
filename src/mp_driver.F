@@ -155,7 +155,6 @@
             enddo
             enddo
           endif
-          !$acc compare(q3d(ib:ie,jb:je,kb:ke,1:1))
 
 
     if(ptype.ne.5) then 

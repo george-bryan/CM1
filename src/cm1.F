@@ -2721,6 +2721,7 @@
     !$acc copyin(c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw,u1b,v1b, &
     !$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
     !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland) &
+    !$acc copyin(avgsfcu,avgsfcv,avgsfcs,avgsfct) &
     !$acc create(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
     !$acc create(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
     !$acc create(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
@@ -3000,8 +3001,6 @@
 #endif
        !call flush(6)
        !print *,'cm1: after solve1'
-       !!$acc compare(ppten)
-       !stop 'cm1: after call to solve1'
 
 #ifdef _OPENACC
         call nvtxStartRange("solve2",id=4)
@@ -3081,8 +3080,6 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-       !call flush(6)
-       !print *,'cm1: after solve2'
 
       IF(imoist.eq.1)THEN
 
@@ -3099,11 +3096,7 @@
         !stop 'ERROR: pdefq is not ported to OpenACC'
         !print *,'WARNING: pdefq is not verified on OpenACC'
 #endif
-        !!$acc compare(asq)
         call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
-        !print *,'after pdefq_GPU'
-        !!$acc compare(q3d)
-        !stop 'after call to pdefq_GPU'
       else
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
@@ -3114,8 +3107,6 @@
                          tdiag,qdiag,out2d,out3d,  &
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
-        !print *,'after mp_driver'
-        !!$acc compare(q3d)
       endif
 #ifdef _OPENACC
         call nvtxEndRange
@@ -3203,8 +3194,6 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-        !print *,'after solve3'
-        !!$acc compare(q3d)
 
 
 
@@ -3500,6 +3489,7 @@
 
 
       if( dowriteout )then
+#if 0
 #ifdef _OPENACC
           print *,'WARNING: writeout not supported in OpenACC'
 #endif
@@ -3580,6 +3570,7 @@
           enddo
         endif
         if(myid.eq.0) print *,'  next taptim = ',taptim
+#endif
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
 

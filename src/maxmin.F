@@ -140,7 +140,6 @@
         endif 
       enddo
       !print *,'maxmin: before compare'
-      !$acc compare(imax,jmax,kmax,imin,jmin,kmin)
       !$acc end data
 #endif
 #ifdef MPI
@@ -273,7 +272,6 @@
         tmin(j)=tmint
       enddo
       !$acc end parallel
-      !$acc compare(tmax,tmin)
 
       !$omp parallel do default(shared) private(i,j)
       !$acc parallel loop gang vector collapse(2) private(i,j)

@@ -1354,7 +1354,6 @@
       enddo
 
   ENDIF  dohoriz
-
 !-----------------------------------------------------------------
 !  z-direction
 
@@ -1369,7 +1368,6 @@
 
       i1 = 1
       i2 = ni+1
-
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
@@ -1379,7 +1377,6 @@
       enddo
       enddo
       enddo
-
   ELSE
 
       ! implicit vertical turbulence:
@@ -1387,7 +1384,6 @@
     check_grid:  &
     IF(axisymm.eq.0)THEN
       ! Cartesian grid:
-
       rdt = 0.5/dt
       tema = -0.0625*dt*vialpha*rdz*rdz
       temb =  0.0625*dt*vibeta*rdz*rdz

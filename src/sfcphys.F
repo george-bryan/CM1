@@ -48,7 +48,8 @@
       !$acc present(xh,za,xland) &
       !$acc present(u1,v1,s1) &
       !$acc present(u10,v10,s10) &
-      !$acc present(znt,ust,cd,ch,cq)
+      !$acc present(znt,ust,cd,ch,cq) &
+      !$acc present(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 !-----------------------------------------------------------------------
 !
 !  This subroutine determines several important variables at the surface
@@ -64,6 +65,7 @@
 
 !!!    print *,'  za = ',za(1,1),za(ni/2,1),za(ni,1)
 
+    !FIXME:  Need to protect all instances of alog on GPU.
     nmax = 0
 
     i1 = 1
@@ -81,11 +83,12 @@
       j1 = 1
       j2 = 1
 
+      !$acc parallel default(present)
       usave = u1(1,1)
       vsave = v1(1,1)
       ssave = s1(1,1)
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$acc loop gang vector collapse(2)
       do j=j1,j2
       do i=i1,i2
         u1(i,j) = avgsfcu
@@ -93,6 +96,8 @@
         s1(i,j) = avgsfcs
       enddo
       enddo
+      !$acc end parallel
+       
 
     endif
 
@@ -101,10 +106,15 @@
 
   sfc_options:  &
   IF( set_znt.eq.1 )THEN
+    !stop 'getcecd: set_znt.eq.1'
     ! specify z0 (roughness length):
     ! note:  set znt array in "init_surface.F"
 
+#ifdef _B4B01
+    !$acc update host(za,znt,u1,v1,s1)
+#else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
+#endif
     !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
@@ -117,7 +127,9 @@
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
     enddo
     enddo
-
+#ifdef _B4B01
+    !$acc update device(cd,u10,v10,s10,ust)
+#endif
 
   ELSEIF( set_ust.eq.1 )THEN  sfc_options
       ! specify ustar (friction velocity):
@@ -145,6 +157,7 @@
 
   ELSEIF( cecd.eq.1 )THEN  sfc_options
     ! specify Cd (drag coefficient):
+    stop 'getcecd: cecd.eq.1'
 
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
     !$omp parallel do default(shared) private(i,j,var,rznt)
@@ -162,6 +175,8 @@
     enddo
 
   ELSE  sfc_options
+
+    stop 'getcecd: sfc_options else'
     ! Cd,z0,ust are functions of 10-m windspeed over water ... need to iterate:
     convergeFail = .false.
     !$omp parallel do default(shared) private(i,j,wlast,n,var,rznt)
@@ -269,7 +284,8 @@
 
     if( use_avg_sfc )then
 
-      !$acc parallel loop gang vector default(present) private(i,j)
+      !$acc parallel default(present) 
+      !$acc loop gang vector collapse(2)
       do j=1,nj
       do i=1,ni
         u10(i,j) = u10(1,1)
@@ -286,6 +302,7 @@
       u1(1,1) = usave
       v1(1,1) = vsave
       s1(1,1) = ssave
+      !$acc end parallel
 
     endif
 
@@ -591,7 +608,6 @@
       EP1 = rv/rd - 1.0
 
       ! surface layer diagnostics:
-
 #ifdef _B4B07
       !$acc update host(psfc,tsk,th0,tha,qa,qsfc,znt,za,qvflux,hpbl,dsxy,s1,wspd,thflux,rf,cd,th2)
 #else
@@ -1139,13 +1155,20 @@
 !-----------------------------------------------------------------------
 
       
+#ifndef _B4B
+      !$acc parallel default(present) &
+      !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
+#endif
       avgsfcu = 0.0
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
-      !$acc data copy(avgsfcu,avgsfcv,avgsfcs,avgsfct)
-      !$acc parallel loop gang vector collapse(2) private(i,j) &
+#ifdef _B4B
+      !$acc update host(u1,v1,s1,t1)
+#else
+      !$acc loop collapse(2) &
       !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
+#endif
       do j=1,nj
       do i=1,ni
         avgsfcu = avgsfcu + u1(i,j)
@@ -1154,6 +1177,9 @@
         avgsfct = avgsfct + t1(i,j)
       enddo
       enddo
+#ifndef _B4B
+      !$acc end parallel
+#endif
   
 #ifdef MPI
       !$acc update host(avgsfcu,avgsfcv,avgsfcs,avgsfct)
@@ -1164,14 +1190,19 @@
       !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 #endif
 
+#ifndef _B4B
       !$acc parallel 
+#endif
       temd = 1.0/dble(nx*ny)
       avgsfcu = avgsfcu*temd
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
+#ifndef _B4B
       !$acc end parallel
-      !$acc end data
+#else
+      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
+#endif
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
 

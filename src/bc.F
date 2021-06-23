@@ -3093,7 +3093,6 @@
       integer i,j,k
       !$acc declare present(s)
 
-    !$acc compare(s)
     !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
 !  west boundary condition
@@ -3139,7 +3138,6 @@
     ENDDO
       endif
     !$acc end parallel
-    !$acc compare(s)
 
     !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
@@ -3186,7 +3184,6 @@
     ENDDO
       endif
     !$acc end parallel
-    !$acc compare(s)
 
     !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
@@ -3233,7 +3230,6 @@
     ENDDO
       endif
    !$acc end parallel
-   !$acc compare(s)
 
     !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
@@ -3280,7 +3276,6 @@
     ENDDO
       endif
    !$acc end parallel
-   !$acc compare(s)
 !-----------------------------------------------------------------------
 
       if(timestats.ge.1) time_bc=time_bc+mytime()

@@ -563,18 +563,15 @@
           ! increase timestep:
           dbldt = dbldt*min( 1.0+max_change , cfl_limit/cflmax )
         ENDIF
-        print *,'getnewdt: point #1 dbldt: ',dbldt
 
         ! 180129:
         IF( cm1setup.ge.1 .and. (ksmax*dbldt/dt).gt.ks_limit )THEN
           ! decrease timestep:
           dbldt = min( dbldt , dt*ks_limit/max(1.0e-10,ksmax) )
         ENDIF
-        print *,'getnewdt: point #2 dbldt: ',dbldt
 
         ! don't allow dt to exceed twice initial timestep
         dbldt = min( dbldt , dble(2.0*dtl) )
-        print *,'getnewdt: point #3 dbldt: ',dbldt
 
 
         IF( .not. doinit )THEN
@@ -593,7 +590,6 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
-        print *,'getnewdt: point #4 dbldt: ',dbldt
             ENDIF
 
             IF( rsttim.gt.0.0 )THEN
@@ -610,7 +606,6 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
-        print *,'getnewdt: point #5 dbldt: ',dbldt
             ENDIF
 
             IF( stattim.gt.0.0 )THEN
@@ -627,7 +622,6 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
-        print *,'getnewdt: point #6 dbldt: ',dbldt
             ENDIF
 
             IF( dodomaindiag .and. diagtim.gt.0.0 )THEN
@@ -644,7 +638,6 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
-        print *,'getnewdt: point #7 dbldt: ',dbldt
             ENDIF
 
             IF( doazimavg .and. azimavgtim.gt.0.0 )THEN
@@ -661,7 +654,6 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
-        print *,'getnewdt: point #8 dbldt: ',dbldt
             ENDIF
 
             IF( dohifrq .and. hifrqtim.gt.0.0 )THEN
@@ -678,7 +670,6 @@
               elseif( tout.le.dbldt )then
                 dbldt = tout
               endif
-              print *,'getnewdt: point #9 dbldt: ',dbldt
             ENDIF
 
         ENDIF
@@ -1234,20 +1225,28 @@
         enddo
         !$acc end parallel
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j) reduction(+:asq)
+#ifdef _B4B
+        !$acc update host(dum2d5,dum2d2) 
+#else
+        !$acc parallel loop vector collapse(2) default(present) private(i,j) reduction(+:asq)
+#endif
         do j=1,nj
         do i=1,ni
           asq=asq+(dum2d5(i,j)-dum2d2(i,j))*tem
         enddo
         enddo
+#ifdef _B4B
+        !$acc update device(asq)
+#endif
 
       ELSE
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
         !$acc parallel default(present) private(k) reduction(+:budt) 
+        !$acc loop gang 
         do k=1,nk
           budt = 0.0d0
-          !$acc loop gang vector collapse(2) private(i,j,a1,a2) reduction(+:budt)
+          !$acc loop vector collapse(2) private(i,j,a1,a2) reduction(+:budt)
           do j=1,nj
           do i=1,ni
           a1=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -1262,7 +1261,7 @@
         enddo
         !$acc end parallel
 
-        !$acc parallel loop gang vector default(present) private(k) reduction(+:asq)
+        !$acc parallel loop vector default(present) private(k) reduction(+:asq)
         do k=1,nk
           asq=asq+budk(k)*tem
         enddo
@@ -2841,7 +2840,6 @@
 
       fmax=-99999999.
 
-      !$acc compare(ua,va,wa,mh)
       !$acc data copy(fmax) copyin(dtdx,dtdy,dtdz)
       if(nx.gt.1.and.ny.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
@@ -2933,9 +2931,11 @@
         ! 3d:
         !$omp parallel do default(shared) private(i,j,k,tem1,tem2,tem3)
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
+        ks(1)=0.0
+        !$acc loop gang 
         do k=2,nk
            kstmp = 0.0
-           !$acc loop gang vector collapse(2) reduction(max:kstmp)
+           !$acc loop vector collapse(2) reduction(max:kstmp)
            do j=1,nj
            do i=1,ni
              tem1 = sqrt( (kmh(i,j,k)*dtdx*uh(i)*uh(i))**2 &
@@ -2954,9 +2954,11 @@
         ! 2d (including axisymm):
         !$omp parallel do default(shared) private(i,j,tem1,tem2,tem3)
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
+        ks(1)=0.0
+        !$acc loop gang
         do k=2,nk
           kstmp = 0.0
-          !$acc loop gang vector collapse(2) reduction(max:kstmp)
+          !$acc loop vector collapse(2) reduction(max:kstmp)
           do j=1,nj
           do i=1,ni
             tem1 = kmh(i,j,k)*dtdx*uh(i)*uh(i)
@@ -3646,7 +3648,6 @@
       tmu=0.0d0
       tmv=0.0d0
       tmw=0.0d0
-      !$acc compare(qv,ql,qi)
       !$acc data copy(tmu,tmv,tmw)
  
       !$omp parallel do default(shared) private(i,j,k,qtot,tem)

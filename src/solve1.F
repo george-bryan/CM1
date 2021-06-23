@@ -464,18 +464,15 @@
           enddo
           enddo
         endif
-        !424 $acc end data
 
-        !$acc data copyin(xh,rxh,uh,xf,uf,vh,vf,mh,mf) &
-        !$acc copyin(rho,rr,rf,rds,sigma) &
-        !$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
-        !$acc copyin(tkea,kmh,kmv)
-        !!$acc copy(dum1,dum2,dum3,dum4,dum5,sten) &
-        !!$acc copy(tketen)
+        !!$acc data copyin(xh,rxh,uh,xf,uf,vh,vf,mh,mf) &
+        !!$acc copyin(rho,rr,rf,rds,sigma) &
+        !!$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
+        !!$acc copyin(tkea,kmh,kmv)
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
                    rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,        &
                    dum1,dum2,dum3,dum4,dum5,sten,tkea,tketen,kmh,kmv)
-        !$acc end data
+        !!$acc end data
 
         if( dotdwrite .and. kd_turb.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)
@@ -502,8 +499,6 @@
         !print *,'WARNING: solve1: get_avg_uvtq not verififed on GPU'
 #endif
         call     get_avg_uvtq(uavg,vavg,thavg,qavg,cavg,th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
-        !$acc compare(uavg,vavg,thavg,qavg,cavg)
-        !stop 'solve1: after call to subroutine get_avg_uvtq'
       else
 #ifdef _OPENACC
         print *,'WARNING: solve1: get_avg_uvt not ported to GPU'
@@ -569,7 +564,6 @@
       if(timestats.ge.1) time_rdamp=time_rdamp+mytime()
 
       IF( imoist.eq.1 )THEN
-        !529 $acc data copy(qten)
         ! moisture:
         !$omp parallel do default(shared) private(i,j,k,n)
         !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
@@ -961,7 +955,6 @@
         enddo
         enddo
         ENDDO
-        !878 $acc end data
       ENDIF
 
       !----- store appropriate rho for budget calculations in dum2 -----!
@@ -1027,11 +1020,21 @@
           endif
         enddo
         enddo
+#ifdef _B4B
+        !$acc update host(budarray,qbudget)
+#else
+        !$acc parallel default(present) reduction(+:budtmp,qtmp)
+#endif
+
         qtmp =0.0
-        !$acc parallel loop default(present) private(i,j) reduction(+:budtmp,qtmp)
+#ifndef _B4B
+        !$acc loop gang reduction(+:budtmp) reduction(+:qtmp)
+#endif
         do j=1,nj
           budtmp=0.0
-          !$acc loop reduction(+:budtmp)
+#ifndef _B4B
+          !$acc loop vector reduction(+:budtmp)
+#endif
           do i=1,ni
             budtmp = budtmp + budarray(i,j) 
           enddo
@@ -1039,6 +1042,11 @@
           qtmp = qtmp + tem0*bud2(j)
         enddo
         qbudget(9) = qtmp;
+#ifdef _B4B
+        !$acc update device(qbudget)
+#else
+        !$acc end parallel
+#endif
         !$acc end data
         if(timestats.ge.1) time_misc=time_misc+mytime()
       endif
@@ -1288,7 +1296,6 @@
 
       doturb:  &
       IF( dohturb .or. dovturb )THEN
-
 
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
           ! NBA sgs turbulence models:
@@ -1664,9 +1671,8 @@
                    ua,va,tha,qa,uten1,vten1,thten1,qten,             &
                    o30 ,zir,ruh,ruf,rvh,rvf)
         if(timestats.ge.1) time_misc=time_misc+mytime()
-
+        
       ENDIF
-
 !-------------------------------------------------------------------
 !   Eddy recycler
 
@@ -1823,8 +1829,6 @@
             enddo
             enddo
           endif
-          !$acc compare(ppten,qpten,ppi,rho,th0,pi0)
-          !stop 'solve1: deep in loop to set ppten(moist)'
         ELSE
 #ifdef _B4B02
           !$acc update host(thten1,tha,rho,th0,pi0,ppi)
@@ -1856,8 +1860,6 @@
 #else
           !$acc end data
 #endif
-          !$acc compare(ppten)
-          !stop 'solve1: deep in loop to set ppten(dry)'
         ENDIF  ! endif for moist/dry
       ENDIF    ! endif for eqtset 1/2
 

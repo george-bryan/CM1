@@ -242,7 +242,6 @@
 !-----------------------------------------------------------------------------------
       turbfac = 1.0
       t2pfac = 1.0
-    !JMD !$acc compare(dum4)
     facheck:  &
     IF( cm1setup.eq.1 .and. sgsmodel.ge.1 )THEN
 
@@ -573,7 +572,6 @@
             ppten(i,j,1) = zh(i,j,kval)
           enddo
           enddo
-          !$acc compare(s1,u1,v1,ugr,vgr)
 
           IF( terrain_flag )THEN
             !$omp parallel do default(shared) private(i,j)
@@ -592,7 +590,7 @@
         ! ppten(k=1) stores height of first model level above surface
 
         IF( testcase.ge.1 .and. testcase.le.7 )THEN
-
+          print *,'before setting of hpbl'
           ! max gradient method (for simple LES simulations only):
 
           !$omp parallel do default(shared) private(i,j)
@@ -604,8 +602,10 @@
           ENDDO
 
           !$omp parallel do default(shared) private(i,j,k,dtdz)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,dtdz)
+          !$acc parallel default(present) 
+          !$acc loop seq
           DO k=nk,2,-1
+            !$acc loop gang vector collapse(2)
             do j=1,nj
             do i=1,ni
               dtdz = ( (th0(i,j,k  )+tha(i,j,k  ))*(1.0+repsm1*divx(i,j,k  )-dum7(i,j,k  ))  &
@@ -618,6 +618,7 @@
             enddo
 
           ENDDO
+          !$acc end parallel
 
         ELSE
 
@@ -644,16 +645,13 @@
           enddo
          ENDIF
 
-        !$acc compare(s1)
         IF( use_avg_sfc .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )THEN
             call getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
         ENDIF
-        !$acc compare(s1)
 
         IF( sfcmodel.eq.1 )THEN
 
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
-          !$acc compare(s1)
 
           if( tbc.eq.3 )then
 #ifdef _B4B01
@@ -675,7 +673,7 @@
           endif
 
 
-          !$acc compare(s1)
+          !stop 'before call to sfcflux'
           if(isfcflx.eq.1)then
             call sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail, &
                          rho,rf,u1,v1,s1,ppi,tha,divx, &
@@ -1247,11 +1245,8 @@
         enddo
         enddo
         enddo
-        !$acc compare(qa)
         call calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,dum1,dum2,dum3,dum6,   &
                     prs,ppi,tha,qa,iamsat)
-        !$acc compare(nm,dum1,dum2,dum3,dum6,iamsat)
-        !stop 'sfc_and_turb: after call to calcnm'
       ENDIF
 
       IF( cm1setup.ge.1 .or. output_def.eq.1 .or. ipbl.ge.1 .or. horizturb.eq.1 )THEN
@@ -4770,25 +4765,7 @@
       enddo
       ENDIF
 
-      !print *,'compare(qa): '
-      !!$acc compare(qa)
-      !print *,'compare(qvci): '
-      !!$acc compare(qvci)
       !$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
-      !print *,'numq: ',numq
-      !!$acc compare(numq)
-      !print *,'nqv: ',nqv
-      !!$acc compare(nqv)
-      !print *,'nql1: ',nql1
-      !!$acc compare(nql1)
-      !print *,'nql2: ',nql2
-      !!$acc compare(nql2)
-      !print *,'nqs1: ',nqs1
-      !!$acc compare(nqs1)
-      !print *,'nqs2: ',nqs2
-      !!$acc compare(nqs2)
-      !print *,'iice: ',iice
-      !!$acc compare(iice)
       DO n=1,numq
         IF( (n.eq.nqv) .or.                                 &
             (n.ge.nql1.and.n.le.nql2) .or.                  &
@@ -4804,9 +4781,7 @@
           enddo
         ENDIF
       ENDDO
-      !!$acc compare(qt)
       !$acc end data
-      !stop 'calcnm: After calculation of qt'
 
       k = 1
 

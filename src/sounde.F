@@ -267,8 +267,7 @@
 
 !-----
 
-      print *,'sounde: before openbc: N:= ',N
-      !$acc compare(v3d,vten)
+      !print *,'sounde: before openbc: N:= ',N
       IF(axisymm.eq.0)THEN
         IF(sbc.eq.2.and.ibs.eq.1)THEN
           ! south open bc tendency:
@@ -283,8 +282,7 @@
           call restrict_openbc_sn(ruh,rmh,rho0,v3d)
         ENDIF
       ENDIF
-      print *,'sounde: after openbc: N:= ',N
-      !$acc compare(v3d,vten)
+      !print *,'sounde: after openbc: N:= ',N
       !stop 'sounde: after openbc'
 
 !-----------------------------------------------------------------------
@@ -315,8 +313,6 @@
         tem2 = rdy*cp*0.5
 
         !print *,'sounde: before loop'
-        !$acc compare(v3d,dtv,vten,thv,ppd,vf)
-        !stop 'sounde: after call to compare'
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -332,14 +328,10 @@
           enddo
           enddo
         enddo
-        print *,'sounde: after loop'
-        !$acc compare(v3d,u3d)
 
         IF( do_ib )THEN
           call zero_out_uv(bndy,kbdy,u3d,v3d)
         ENDIF
-        !stop 'sounde: after zero_out_uv'
-        !$acc compare(v3d,u3d)
 
       ELSE
         ! axisymmetric grid:
@@ -408,8 +400,6 @@
 
 
     ENDIF
-    print *,'sounde: checking v3d'
-    !$acc compare(v3d)
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !  psolver = 7
@@ -419,9 +409,7 @@
     IF(.not.terrain_flag)THEN
 
       IF(axisymm.eq.0)THEN
-        !$acc compare(u3d,v3d,uten,vten,dtu,dtv,ppd,thv0)
         ! Cartesian grid without terrain:
-        !$acc compare(u3d,v3d,dtu,dtv,uten,vten,ppd,thv0)
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tem1,tem2)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1,tem2)
@@ -438,11 +426,9 @@
           enddo
         enddo
 
-        !$acc compare(v3d,u3d)
         IF( do_ib )THEN
           call zero_out_uv(bndy,kbdy,u3d,v3d)
         ENDIF
-        !$acc compare(v3d,u3d)
 
       ELSE
         ! axisymmetric grid:
@@ -461,8 +447,7 @@
         enddo
 
       ENDIF
-      print *,'axisymm: ',axisymm
-      !$acc compare(v3d,u3d)
+      !print *,'axisymm: ',axisymm
 
     ELSE
 
@@ -520,8 +505,6 @@
     ENDIF
 
   ENDIF  ps27a
-  !$acc compare(v3d)
-  !stop 'sounde: after ps27a if-test'
 
 !----------------------------------------------
 !  convergence forcing:
