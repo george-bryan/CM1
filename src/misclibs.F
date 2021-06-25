@@ -1489,13 +1489,16 @@
       integer :: i,j,k
       real :: r1,r2
       real :: wbar,zbar
+      !!$acc declare &
+      !!$acc present(uf,vf,zh,zf,ua,va,wa,uh,zeta,dum1,dum2, &
+      !!$acc         zs,rgsu,rgzv,rds,sigma,rdsf,sigmaf)
 
   IF(.not.terrain_flag)THEN
 
     ! Cartesian grid, without terrain:
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
     DO j=1,nj+1
     DO i=1,ni+1
@@ -1511,9 +1514,9 @@
 
         ! dum1 stores u at w-pts:
         ! dum2 stores v at w-pts:
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,r1,r2)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,r1,r2)
+    !$acc parallel loop gang vector default(present) private(i,j,k,r1,r2)
         do j=0,nj+2
           ! lowest model level:
           do i=0,ni+2
@@ -2318,18 +2321,22 @@
 
       integer :: i,j,k
 
+      !$acc parallel default(present)
       !$omp parallel do default(shared)  &
       !$omp private(i,j)
+      !$acc loop gang vector collapse(2)
       do j=1,nj
       do i=1,ni
         cref(i,j) = -1000.0
       enddo
       enddo
 
+      
+      !$acc loop gang
       do k=1,nk
 
-      !$omp parallel do default(shared)  &
-      !$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc loop vector collapse(2)
       do j=1,nj
       do i=1,ni
         cref(i,j)=max(cref(i,j),dbz(i,j,k))
@@ -2337,6 +2344,7 @@
       enddo
 
       enddo
+      !$acc end parallel
 
 
       if(timestats.ge.1) time_write=time_write+mytime()
@@ -3743,34 +3751,39 @@
       integer i,j,k
       double precision :: tmfu,tmfd,mf,var
       double precision, dimension(nk) :: foo1,foo2
+      double precision :: foo1t,foo2t
 
-!$acc data create(foo1,foo2)
-!$acc parallel loop gang vector default(present) private(k)
-      do k=1,nk
-        foo1(k)=0.0d0
-        foo2(k)=0.0d0
-      enddo
+     !$acc data create(foo1,foo2)
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,mf)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,mf)
+     !$omp parallel do default(shared) private(i,j,k,mf)
+     !$acc parallel default(present)  private(i,j,k,mf) copyout(tmfu,tmfd) &
+     !$acc reduction(+:tmfu,tmfd)
+     !$acc loop gang 
       do k=1,nk
+        foo1t = 0.0d0
+        foo2t = 0.0d0
+        !$acc loop vector collapse(2) reduction(+:foo1t,foo2t)
         do j=1,nj
         do i=1,ni
           mf=rho(i,j,k)*0.5*(wa(i,j,k)+wa(i,j,k+1))*ruh(i)*rvh(j)
-          foo1(k)=foo1(k)+max(mf,0.0d0)
-          foo2(k)=foo2(k)+min(mf,0.0d0)
+          foo1t=foo1t+max(mf,0.0d0)
+          foo2t=foo2t+min(mf,0.0d0)
         enddo
         enddo
+        foo1(k) = foo1t
+        foo2(k) = foo2t
       enddo
+      !$acc compare(foo1,foo2)
 
       tmfu=0.0d0
       tmfd=0.0d0
-!$acc parallel loop gang vector default(present) private(k) reduction(+:tmfu) reduction(+:tmfd)
+      !$acc loop vector reduction(+:tmfu,tmfd)
       do k=1,nk
         tmfu=tmfu+foo1(k)
         tmfd=tmfd+foo2(k)
       enddo
+      !$acc compare(tmfu,tmfd)
+      !$acc end parallel
 
 #ifdef MPI
       var=0.0d0
@@ -3783,7 +3796,6 @@
       tmfd=var
       if(myid.eq.0)then
 #endif
-
       tmfu=tmfu*dx*dy
       tmfd=tmfd*dx*dy
 
@@ -3799,10 +3811,9 @@
 #ifdef MPI
       endif
 #endif
-
+      !$acc end data
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
-!$acc end data
 
       end subroutine tmf
 

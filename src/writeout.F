@@ -176,6 +176,7 @@
       real, intent(inout), dimension(kmt) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
       integer, intent(in), dimension(numprocs) :: myi1p,myi2p,myj1p,myj2p
 
+      double precision :: dumkt
       integer :: i,j,k,n,nn,im,ip,nloop,nmax
       integer :: ncid,time_index,varid
       real :: tnew,pnew,thold,thnew,rdt,qv,ql,thv
@@ -737,6 +738,7 @@
             enddo
           endif
           if(timestats.ge.1) time_write=time_write+mytime()
+          !VERIFY correctness
           call calcuh(uf,vf,dum3,dumw,ua,va,wa,dum1(ib,jb,1),dum2,dum5,dum6, &
                       zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf)
 
@@ -757,6 +759,9 @@
 
     if(output_coldpool.eq.1)then
           if(timestats.ge.1) time_write=time_write+mytime()
+#ifdef _OPENACC
+         print *,'WARNING: calccpch not ported to GPU'
+#endif
           call calccpch(zh,zf,th0,qv0,dum1(ib,jb,1),dum1(ib,jb,2),tha,qa)
     endif
 
@@ -2160,64 +2165,80 @@
       unit_output(n_out) = 'm'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
+      !$acc data create(tmax,zibar)
       !--------
       !  Get zi from avg theta:
-
+      !$acc parallel default(present) 
       if( imoist.eq.1 )then
+        !$acc loop gang 
         do k=1,nk
-          dumk1(k) = 0.0
+          dumkt = 0.0
+          !$acc loop vector collapse(2) reduction(+:dumkt)
           do j=1,nj
           do i=1,ni
-            dumk1(k) = dumk1(k) + (th0(i,j,k)+tha(i,j,k))*(1.0+repsm1*qa(i,j,k,nqv))
+            dumkt = dumkt + (th0(i,j,k)+tha(i,j,k))*(1.0+repsm1*qa(i,j,k,nqv))
           enddo
           enddo
+          dumk1(k) = dumkt
         enddo
       else
+        !$acc loop gang 
         do k=1,nk
-          dumk1(k) = 0.0
+          dumkt = 0.0
+          !$acc loop vector collapse(2) reduction(+:dumkt)
           do j=1,nj
           do i=1,ni
-            dumk1(k) = dumk1(k) + (th0(i,j,k)+tha(i,j,k))
+            dumkt = dumkt + (th0(i,j,k)+tha(i,j,k))
           enddo
           enddo
+          dumk1(k) = dumkt
         enddo
       endif
+      !$acc end parallel
 
 #ifdef MPI
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
-        do k=1,nk
-          dumk1(k) = dumk1(k)/dble(nx*ny)
-        enddo
+      !$acc parallel default(present)
+      !$acc loop gang vector
+      do k=1,nk
+        dumk1(k) = dumk1(k)/dble(nx*ny)
+      enddo
 
-        tmax = -1.0e30
-        do k=nk,2,-1
-          dtdz = (dumk1(k)-dumk1(k-1))*rdz*mf(1,1,k)
-          if( dtdz .gt. tmax )then
-            tmax = dtdz
-            zibar = zf(1,1,k)
-          endif
-        enddo
+      tmax = -1.0e30
+      !$acc loop
+      do k=nk,2,-1
+        dtdz = (dumk1(k)-dumk1(k-1))*rdz*mf(1,1,k)
+        if( dtdz .gt. tmax )then
+          !$acc atomic write
+          tmax = dtdz
+          !$acc atomic write
+          zibar = zf(1,1,k)
+        endif
+      enddo
+      !$acc end parallel
 
+      !JMD for some reason this loop has a race condition
       !--------
       !  Get zi:
-
-        do j=1,nj
-        do i=1,ni
-          dum2d(i,j) = 0.0
-          tmax = -1.0e30
-          do k=nk,2,-1
-            dtdz = ((th0(i,j,k)+tha(i,j,k))-(th0(i,j,k-1)+tha(i,j,k-1)))*rdz*mf(i,j,k)
-            if( dtdz .ge. tmax .and. abs(zf(i,j,k)-zibar).le.(0.5*zibar) )then
-              tmax = dtdz
-              dum2d(i,j) = zf(i,j,k)
-            endif
-          enddo
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,tmax,dtdz)
+      do j=1,nj
+      do i=1,ni
+        tmax = -1.0e30
+        !$acc loop seq
+        do k=nk,2,-1
+          dtdz = ((th0(i,j,k)+tha(i,j,k))-(th0(i,j,k-1)+tha(i,j,k-1)))*rdz*mf(i,j,k)
+          if( dtdz .ge. tmax .and. abs(zf(i,j,k)-zibar).le.(0.5*zibar) )then
+            tmax = dtdz
+            dum2d(i,j) = zf(i,j,k)
+          endif
         enddo
-        enddo
+      enddo
+      enddo
+      !$acc end data
 
-        call   write2d(dum2d,fnum,srec,nwrite,nloop,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,ncid,time_index,name_output(n_out))
+      call   write2d(dum2d,fnum,srec,nwrite,nloop,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,ncid,time_index,name_output(n_out))
 
     ENDIF
     ENDIF
@@ -2784,21 +2805,26 @@
       unit_output(n_out) = 'kg/m^2'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !PORTME
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
             enddo
-            if( nqc.ge.1 )then
-              do k=1,nk
+          enddo
+          if( nqc.ge.1 )then
+            !$acc parallel default(present)
+            do k=1,nk
+              !$acc loop gang vector collapse(2)
+              do j=1,nj
               do i=1,ni
                 dum1(i,j,1) = dum1(i,j,1) + rho(i,j,k)*qa(i,j,k,nqc)*dz*rmh(i,j,k)
               enddo
               enddo
-            endif
-          enddo
+            enddo
+            !$acc end parallel
+          endif
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
@@ -2823,21 +2849,26 @@
       unit_output(n_out) = 'kg/m^2'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !PORTME
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
             enddo
-            if( nqc.ge.1 .and. nqr.ge.1 )then
-              do k=1,nk
+          enddo
+          if( nqc.ge.1 .and. nqr.ge.1 )then
+            !$acc parallel default(present)
+            do k=1,nk
+              !$acc loop gang vector collapse(2)
+              do j=1,nj
               do i=1,ni
                 dum1(i,j,1) = dum1(i,j,1) + rho(i,j,k)*(qa(i,j,k,nqc)+qa(i,j,k,nqr))*dz*rmh(i,j,k)
               enddo
               enddo
-            endif
-          enddo
+            enddo
+            !$acc end parallel
+          endif
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
@@ -2862,22 +2893,26 @@
       unit_output(n_out) = 'm'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !PORTME
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
             enddo
-            if( nqv.ge.1 )then
-              do k=1,nk
+          enddo
+          if( nqv.ge.1 )then
+            !$acc parallel default(present)
+            do k=1,nk
+              !$acc loop gang vector collapse(2)
+              do j=1,nj
               do i=1,ni
-                                                                                ! 1000 kg/m3
                 dum1(i,j,1) = dum1(i,j,1) + rho(i,j,k)*qa(i,j,k,nqv)*dz*rmh(i,j,k)/1000.0
               enddo
               enddo
-            endif
-          enddo
+            enddo
+            !$acc end parallel
+          endif
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
@@ -2922,6 +2957,7 @@
             ! dum2(1) = lcl
             ! dum2(2) = lfc
 
+            !PORTME
             call getcape( 3 , nk+1 , pfoo , tfoo , qfoo , dum1(i,j,1) , dum1(i,j,2) ,   &
                           dum2(i,j,1), dum2(i,j,2), zel , psource , tsource , qvsource )
 
@@ -8217,6 +8253,7 @@
       if( output_format.eq.1 )then
 
         ! write GrADS descriptor files:
+        !PORTME
         call write_outputctl(xh,xf,yh,yf,xfref,yfref,sigma,sigmaf,name_output,desc_output,unit_output,grid_output,nwrite)
 
       endif

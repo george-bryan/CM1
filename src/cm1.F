@@ -237,7 +237,7 @@
       integer count,rate,maxr
       real rtime,xtime,time_solve,time_solve0
       real steptime1,steptime2
-      integer :: i,j,k,n,nn,fnum,frec
+      integer :: i,j,k,m,n,nn,fnum,frec
       real :: sum,tem0,tem
       logical :: getsfc,getpbl,update_sfc,startup,restarted,restart_prcl,reset
       logical :: dosolve,dorad,getdbz,getvt,doit,dotbud,doqbud,doubud,dovbud,dowbud,donudge
@@ -3092,10 +3092,6 @@
 
       if( ptype.eq.0 )then
         ! qv only:
-#ifdef _OPENACC
-        !stop 'ERROR: pdefq is not ported to OpenACC'
-        !print *,'WARNING: pdefq is not verified on OpenACC'
-#endif
         call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
       else
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
@@ -3432,7 +3428,7 @@
           enddo
           enddo
         ENDIF
-!!#if 0
+#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3444,7 +3440,7 @@
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
         stop 'after call to statpack'
-!!#endif
+#endif
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
@@ -3489,10 +3485,7 @@
 
 
       if( dowriteout )then
-#if 0
-#ifdef _OPENACC
-          print *,'WARNING: writeout not supported in OpenACC'
-#endif
+#if 1
       otype:  &
       IF(output_format.eq.1.or.output_format.eq.2)THEN
         nn = 1
@@ -3508,12 +3501,68 @@
           IF( stopit )THEN
             ! diag code does not account for stopit, so just set arrays to zero
             ! to avoid confusion
-            tdiag = 0.0
-            qdiag = 0.0
-            udiag = 0.0
-            vdiag = 0.0
-            wdiag = 0.0
-            kdiag = 0.0
+            !$acc parallel default(present) 
+            !$acc loop gang vector collapse(4) 
+            do m=1,ntdiag
+              do k=kbdt,kedt
+              do j=jbdt,jedt
+              do i=ibdt,iedt
+                tdiag(i,j,k,m) = 0.0
+              enddo
+              enddo
+              enddo
+            enddo
+            !$acc loop gang vector collapse(4) 
+            do m=1,nqdiag
+              do k=kbdq,kedq
+              do j=jbdq,jedq
+              do i=ibdq,iedq
+                qdiag(i,j,k,m) = 0.0
+              enddo
+              enddo
+              enddo
+            enddo
+            !$acc loop gang vector collapse(4) 
+            do m=1,nudiag
+              do k=kbdv,kedv
+              do j=jbdv,jedv
+              do i=ibdv,iedv
+                udiag(i,j,k,m) = 0.0
+              enddo
+              enddo
+              enddo
+            enddo
+            !$acc loop gang vector collapse(4) 
+            do m=1,nvdiag
+              do k=kbdv,kedv
+              do j=jbdv,jedv
+              do i=ibdv,iedv
+                vdiag(i,j,k,m) = 0.0
+              enddo
+              enddo
+              enddo
+            enddo
+            !$acc loop gang vector collapse(4) 
+            do m=1,nwdiag
+              do k=kbdv,kedv
+              do j=jbdv,jedv
+              do i=ibdv,iedv
+                wdiag(i,j,k,m) = 0.0
+              enddo
+              enddo
+              enddo
+            enddo
+            !$acc loop gang vector collapse(4) 
+            do m=1,nkdiag
+              do k=kbdk,kedk
+              do j=jbdk,jedk
+              do i=ibdk,iedk
+                kdiag(i,j,k,m) = 0.0
+              enddo
+              enddo
+              enddo
+            enddo
+            !$acc end parallel
           ENDIF
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
@@ -3549,6 +3598,7 @@
                         bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                                     &
                         nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,myi1p,myi2p,myj1p,myj2p)
                         ! end_writeout
+                        !stop 'cm1: after call to writout'
           if(n.eq.1)then
             srec = frec
           else
@@ -3626,6 +3676,7 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
+#if 0
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=9)
 #endif
@@ -3685,7 +3736,6 @@
 #ifdef _OPENACC
         call nvtxEndRange()
 #endif
-#if 0
 #endif
 
       endif

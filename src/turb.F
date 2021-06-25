@@ -590,7 +590,6 @@
         ! ppten(k=1) stores height of first model level above surface
 
         IF( testcase.ge.1 .and. testcase.le.7 )THEN
-          print *,'before setting of hpbl'
           ! max gradient method (for simple LES simulations only):
 
           !$omp parallel do default(shared) private(i,j)
