@@ -8981,7 +8981,7 @@
  105    format('xdef 1 linear 0 1')
  106    format('ydef 1 linear 0 1')
  107    format('zdef ',i6,' levels')
- 217    format(2x,f13.6)
+ 217    format(2x,f16.9)
  108    format('tdef ',i10,' linear 00:00Z01JAN0001 1YR')
  109    format('vars ',i6)
  110    format(a12,2x,i6,' 99 ',a40,1x,a16)

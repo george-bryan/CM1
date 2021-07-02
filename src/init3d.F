@@ -162,6 +162,8 @@
       double precision :: tem1,tem2,temd
       logical :: doit
 
+      real :: salinity
+
 
       ! Note:  By default, CM1 uses the same set of psuedorandom numbers 
       !        every time it is called.  To use truly random perturbations 
@@ -346,68 +348,6 @@
       enddo
     ENDIF
 
-!-----
-!  parcel info:
-
-      IF(iprcl.eq.1)THEN
-        ! define initial locations of parcels here:
-        !   pdata(*,prx) = x location (m)
-        !   pdata(*,pry) = y location (m)
-        !   pdata(*,prz) = z location (m ASL)
-
-        ! initialize to really small number (so we can use the allreduce command below)
-        do n=1,nparcels
-          pdata(n,prx) = -1.0e30
-          pdata(n,pry) = -1.0e30
-          pdata(n,prz) = -1.0e30
-        enddo
-
-        if(dowr) write(outfile,*)
-        if(dowr) write(outfile,*) '  Parcels ! '
-        if(dowr) write(outfile,*) '  npvals,nparcels = ',npvals,nparcels
-        if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
-        n = 0
-        do k=1,10
-        do j=1,60
-        do i=1,60
-          n = n + 1
-          if(n.gt.nparcels)then
-            if(dowr) write(outfile,*)
-            if(dowr) write(outfile,*) ' You are trying to define too many parcels'
-            if(dowr) write(outfile,*)
-            if(dowr) write(outfile,*) ' Increase the value of nparcels in namelist.input'
-            if(dowr) write(outfile,*)
-            call stopcm1
-          endif
-          pdata(n,prx) = minx + 2000.0*(i-1)
-          pdata(n,pry) = miny + 2000.0*(j-1)
-          pdata(n,prz) = zh(1,1,1) + 1000.0*(k-1)
-!!!          if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
-        enddo
-        enddo
-        enddo
-        if(dowr) write(outfile,*)
-
-#ifdef MPI
-        ! this ensures that every processor has all parcel locations:
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),3*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-#endif
-
-        IF(axisymm.eq.1.or.ny.eq.1)THEN
-          ! 170719,  for 2d setup (x,z), fix all y values:
-          DO n=1,nparcels
-            pdata(n,pry) = 0.0
-          ENDDO
-        ENDIF
-        IF(nx.eq.1)THEN
-          ! 170719,  for 2d setup (y,z), fix all x values:
-          DO n=1,nparcels
-            pdata(n,prx) = 0.0
-          ENDDO
-        ENDIF
-
-      ENDIF
-
 !-----------------------------------------------------------------------
 !  initialize random number generator:
 
@@ -436,6 +376,104 @@
         deallocate( sand )
         !----- don't change this code) -----!
         !-----------------------------------!
+
+      ENDIF
+
+!-----
+!  parcel info:
+
+      IF(iprcl.eq.1)THEN
+        ! define initial locations of parcels here:
+        !   pdata(*,prx) = x location (m)
+        !   pdata(*,pry) = y location (m)
+        !   pdata(*,prz) = z location (m ASL)
+
+        ! initialize to really small number (so we can use the allreduce command below)
+        do n=1,nparcels
+          pdata(n,prx) = -1.0e30
+          pdata(n,pry) = -1.0e30
+          pdata(n,prz) = -1.0e30
+        enddo
+
+
+        if(dowr) write(outfile,*)
+        if(dowr) write(outfile,*) '  Parcels ! '
+        if(dowr) write(outfile,*) '  npvals,nparcels = ',npvals,nparcels
+        if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
+
+
+        do n=1,nparcels
+          call random_number(rand)
+          pdata(n,prx) = rand*maxx
+          call random_number(rand)
+          pdata(n,pry) = rand*maxy
+          call random_number(rand)
+          pdata(n,prz) = rand*maxz
+
+          if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
+
+          if (prcl_droplet) then
+
+            pdata(n,prvpx) = 0.0
+            pdata(n,prvpy) = 0.0
+            pdata(n,prvpz) = 0.0
+
+            !Droplet size (radius)
+            pdata(n,prrp) = 20.0e-6
+
+            !Droplet solute mass
+            salinity = 0.034
+            pdata(n,prms) = salinity*rhow*4.0/3.0*pi*pdata(n,prrp)**3
+
+            !Droplet temperature
+            pdata(n,prtp) = 302.0
+
+          endif
+
+        end do
+
+
+
+! Original stuff:
+!        n = 0
+!        do k=1,10
+!        do j=1,60
+!        do i=1,60
+!          n = n + 1
+!          if(n.gt.nparcels)then
+!            if(dowr) write(outfile,*)
+!            if(dowr) write(outfile,*) ' You are trying to define too many parcels'
+!            if(dowr) write(outfile,*)
+!            if(dowr) write(outfile,*) ' Increase the value of nparcels in namelist.input'
+!            if(dowr) write(outfile,*)
+!            call stopcm1
+!          endif
+!          pdata(n,prx) = minx + 2000.0*(i-1)
+!          pdata(n,pry) = miny + 2000.0*(j-1)
+!          pdata(n,prz) = zh(1,1,1) + 1000.0*(k-1)
+!        enddo
+!        enddo
+!        enddo
+
+        if(dowr) write(outfile,*)
+
+#ifdef MPI
+        ! this ensures that every processor has all parcel locations:
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),3*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+#endif
+
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          ! 170719,  for 2d setup (x,z), fix all y values:
+          DO n=1,nparcels
+            pdata(n,pry) = 0.0
+          ENDDO
+        ENDIF
+        IF(nx.eq.1)THEN
+          ! 170719,  for 2d setup (y,z), fix all x values:
+          DO n=1,nparcels
+            pdata(n,prx) = 0.0
+          ENDDO
+        ENDIF
 
       ENDIF
 
@@ -1423,7 +1461,7 @@
 
         ! this is the amplitude of the theta perturbations
         ! (plus or minus this value in K)
-        amplitude = 0.25
+        amplitude = 0.01
 
         ! random numbers added here
         ! (can be modified to only place perturbations in certain

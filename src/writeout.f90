@@ -59,13 +59,7 @@
       use getcape_module
       use cm1libs , only : rslf,rsif
       use ib_module
-#ifdef MPI
       use mpi
-#endif
-#ifdef NETCDF
-      use netcdf
-      use writeout_nc_module, only : disp_err,netcdf_prelim
-#endif
       implicit none
 
       !----------------------------------------------------------
@@ -184,13 +178,11 @@
       character(len=30) :: text2
       logical, parameter :: dosfcflx = .true.
       logical :: dothis
-#ifdef MPI
       logical :: doit
       character(len=80) sname,uname,vname,wname
       integer, dimension(MPI_STATUS_SIZE) :: status
       integer, parameter :: nlim = 1000
       integer :: reqs
-#endif
       real, dimension(:), allocatable :: pfoo,tfoo,qfoo
       real :: zlcl, zlfc, zel , psource , tsource , qvsource
 
@@ -205,11 +197,11 @@
       ! write effective radii:
       logical, parameter :: doeff = .false.
 
-!!!#ifdef MPI
+!!!#ifdef 1
 !!!      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 !!!#endif
       if( myid.eq.0 ) print *,'  Entering writeout ... '
-!!!#ifdef MPI
+!!!#ifdef 1
 !!!      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 !!!#endif
 
@@ -232,7 +224,6 @@
 
       if( myid.eq.0 ) print *,'  nwrite = ',nwrite
 
-#ifdef MPI
       !  limit to "nlim" writes at a time:
       IF( output_filetype.eq.3 )THEN
       IF( numprocs.gt.nlim )THEN
@@ -243,7 +234,6 @@
         ENDIF
       ENDIF
       ENDIF
-#endif
 
 
   if(output_filetype.ge.2)then
@@ -310,23 +300,6 @@
         dointerp = .false.
       endif
 
-#ifdef NETCDF
-      IF(output_format.eq.2)THEN
-      IF( nloop.eq.2 )THEN
-        ! netcdf stuff:
-        if( output_filetype.eq.3 .or. myid.eq.0 )then
-            if(dowr) write(outfile,*) '  calling netcdf_prelim ... '
-            call netcdf_prelim(rtime,nwrite,fnum,ncid,time_index,qname,                      &
-                               name_output,desc_output,unit_output,grid_output,cmpr_output,  &
-                               xh,xf,yh,yf,xfref,yfref,sigma,sigmaf,zs,zh,zf,                &
-                               dum1(ib,jb,kb),dum2(ib,jb,kb),dum3(ib,jb,kb),dum4(ib,jb,kb),  &
-                               dum5(ib,jb,kb),dat2(1,1),dat2(1,2))
-            if(dowr) write(outfile,*) '  ... done '
-          opens = .true.
-        endif
-      ENDIF
-      ENDIF
-#endif
 
       n_out = 0
 
@@ -2105,9 +2078,7 @@
         enddo
       endif
 
-#ifdef MPI
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-#endif
 
         do k=1,nk
           dumk1(k) = dumk1(k)/dble(nx*ny)
@@ -7841,7 +7812,6 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 !---------------------------------------------------------------
-#ifdef MPI
       !  limit to "nlim" writes at a time:
       IF( output_filetype.eq.3 )THEN
       IF( numprocs.gt.nlim )THEN
@@ -7852,7 +7822,6 @@
         ENDIF
       ENDIF
       ENDIF
-#endif
 !--------------------------------------------------------------
 
       if(dowr) write(outfile,*)
@@ -7864,14 +7833,6 @@
       if( openu ) close(unit=unum)
       if( openv ) close(unit=vnum)
       if( openw ) close(unit=wnum)
-#ifdef NETCDF
-    ELSEIF( output_format.eq.2 )THEN
-      if( opens )then
-        if( myid.eq.0 ) print *,'  calling nf90_close ... '
-        call disp_err( nf90_close(ncid) , .true. )
-        if( myid.eq.0 ) print *,'  ... done '
-      endif
-#endif
     ENDIF
 
 
@@ -7911,16 +7872,14 @@
       endif
 
 
-!!!#ifdef MPI
+!!!#ifdef 1
 !!!      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 !!!#endif
       if( myid.eq.0 ) print *,'  ... leaving writeout '
-#ifdef MPI
       if(timestats.ge.1)then
         ! this is needed for proper accounting of timing:
       call MPI_BARRIER (MPI_COMM_WORLD,ierr)
       endif
-#endif
 
       end subroutine writeout
 
@@ -7937,18 +7896,12 @@
                       ncid,time_index,output_format,output_filetype,       &
                       dat1,dat2,dat3,reqt,ppnode,d3n,d3t,                  &
                       mynode,nodemaster,nodes,d2i,d2j,d3i,d3j)
-#ifdef MPI
     use mpi
-#endif
-#ifdef NETCDF
-    use netcdf
-    use writeout_nc_module , only : disp_err
-#endif
     implicit none
 
     !-------------------------------------------------------------------
     ! This subroutine collects data (from other processors if this is a
-    ! MPI run) and does the actual writing to disk.
+    ! 1 run) and does the actual writing to disk.
     !-------------------------------------------------------------------
 
     integer, intent(in) :: numi,numj,numk1,numk2,nxr,nyr
@@ -7967,9 +7920,6 @@
     integer, intent(in) :: mynode,nodemaster,nodes
 
     integer :: i,j,k
-#ifdef NETCDF
-    integer :: varid,status
-#endif
 
   !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   !-----------------------------------------------------------------------------
@@ -7977,13 +7927,7 @@
 
     if( myid.eq.0 ) print *,fileunit,nout,aname
 
-#ifndef MPI
-
-  ! single processor writeo:
-      call       writeosp(numi,numj,nxr,nyr,numk1,numk2,ngxy,output_format,fileunit,irec,var,ncid,aname,time_index,dat2(1,1))
-
-#else
-  ! MPI section:
+  ! 1 section:
 
   IF(output_filetype.eq.1.or.output_filetype.eq.2)THEN
 
@@ -7997,7 +7941,7 @@
         ENDIF
       ENDIF
 
-!!!#ifdef MPI
+!!!#ifdef 1
 !!!    ! can help with memory:
 !!!    call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 !!!#endif
@@ -8006,8 +7950,8 @@
   !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   !-----   output_filetype = 3   ----------------------------------------------!
   !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-  !  this section wites one output file per MPI process:
-  !  (for MPI runs only)
+  !  this section wites one output file per 1 process:
+  !  (for 1 runs only)
 
   ELSEIF(output_filetype.eq.3)THEN
     IF( output_format.eq.1 )THEN
@@ -8016,46 +7960,8 @@
         write(fileunit,rec=irec) ((var(i,j,k),i=1,numi),j=1,numj)
         irec=irec+1
       ENDDO
-#ifdef NETCDF
-    ELSEIF( output_format.eq.2 )THEN
-      ! netcdf format:
-      status = nf90_inq_varid(ncid,aname,varid)
-      if(status.ne.nf90_noerr)then
-        print *,'  Error1c in writeo, aname = ',aname
-        print *,nf90_strerror(status)
-        call stopcm1
-      endif
-      print *,'  ncid,aname,varid = ',ncid,aname,varid,var(1,1,1)
-      DO k=numk1,numk2
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j)
-        do j=1,numj
-        do i=1,numi
-          dat1(i,j)=var(i,j,k)
-        enddo
-        enddo
-        if(numk1.eq.numk2)then
-          status = nf90_put_var(ncid,varid,dat1,(/1,1,time_index/),(/numi,numj,1/))
-          if(status.ne.nf90_noerr)then
-            print *,'  Error2c in writeo, aname = ',aname
-            print *,'  ncid,varid,time_index = ',ncid,varid,time_index
-            print *,nf90_strerror(status)
-            call stopcm1
-          endif
-        else
-          status = nf90_put_var(ncid,varid,dat1,(/1,1,k,time_index/),(/numi,numj,1,1/))
-          if(status.ne.nf90_noerr)then
-            print *,'  Error3c in writeo, aname = ',aname
-            print *,'  ncid,varid,time_index = ',ncid,varid,time_index
-            print *,nf90_strerror(status)
-            call stopcm1
-          endif
-        endif
-      ENDDO
-#endif
     ENDIF
   ENDIF
-#endif
 
   !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   !-----------------------------------------------------------------------------
@@ -8068,111 +7974,9 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-#ifndef MPI
-
-
-      subroutine writeosp(numi,numj,nxr,nyr,numk1,numk2,ngxy,output_format,fileunit,irec,var,ncid,aname,time_index,dat2)
-#ifdef NETCDF
-      use netcdf
-      use writeout_nc_module , only : disp_err
-#endif
-      implicit none
-
-      integer, intent(in) :: numi,numj,nxr,nyr,numk1,numk2,ngxy,output_format,fileunit
-      integer, intent(inout) :: irec
-      real, intent(in), dimension(1-ngxy:numi+ngxy,1-ngxy:numj+ngxy,numk1:numk2) :: var
-      integer, intent(in) :: ncid
-      character(len=*), intent(in) :: aname
-      integer, intent(in) :: time_index
-      real, intent(inout), dimension(nxr,nyr) :: dat2
-
-      integer :: i,j,k
-#ifdef NETCDF
-      integer :: varid,status
-#endif
-#ifdef DP
-      real*4, dimension(nxr,nyr) :: vout
-#endif
-
-      ! writeo for single processor:
-
-#ifdef NETCDF
-      if( output_format.eq.2 )then
-        status = nf90_inq_varid(ncid,aname,varid)
-        if(status.ne.nf90_noerr)then
-          print *,'  Error1a in writeo, aname = ',aname
-          print *,nf90_strerror(status)
-          call stopcm1
-        endif
-        print *,'  ncid,aname,varid = ',ncid,aname,varid,var(1,1,1)
-      endif
-#endif
-
-      IF(output_format.eq.1)THEN
-
-        ! ----- grads format -----
-        DO k=numk1,numk2
-#ifdef DP
-          ! double precision:
-          do j=1,nyr
-          do i=1,nxr
-            vout(i,j) = var(i,j,k)
-          enddo
-          enddo
-          write(fileunit,rec=irec) ((vout(i,j),i=1,nxr),j=1,nyr)
-#else
-          ! normal:
-          write(fileunit,rec=irec) ((var(i,j,k),i=1,nxr),j=1,nyr)
-#endif
-          irec = irec+1
-        ENDDO
-
-#ifdef NETCDF
-      ELSEIF(output_format.eq.2)THEN
-
-        ! ----- netcdf format -----
-        if(numk1.eq.numk2)then
-          do j=1,nyr
-          do i=1,nxr
-            dat2(i,j) = var(i,j,1)
-          enddo
-          enddo
-          status = nf90_put_var(ncid,varid,dat2,(/1,1,time_index/),(/nxr,nyr,1/))
-          if(status.ne.nf90_noerr)then
-            print *,'  Error2 in writeo, aname = ',aname
-            print *,'  ncid,varid,time_index = ',ncid,varid,time_index
-            print *,nf90_strerror(status)
-            call stopcm1
-          endif
-        else
-          DO k=numk1,numk2
-            do j=1,nyr
-            do i=1,nxr
-              dat2(i,j) = var(i,j,k)
-            enddo
-            enddo
-            status = nf90_put_var(ncid,varid,dat2,(/1,1,k,time_index/),(/nxr,nyr,1,1/))
-            if(status.ne.nf90_noerr)then
-              print *,'  Error3 in writeo, aname = ',aname
-              print *,'  ncid,varid,time_index = ',ncid,varid,time_index
-              print *,nf90_strerror(status)
-              call stopcm1
-            endif
-          ENDDO
-        endif
-#endif
-
-      ENDIF
-
-
-      end subroutine writeosp
-
-
-#endif
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-#ifdef MPI
 
 
       subroutine writeocomm1(numi,numj,numk1,numk2,ngxy,d3i,d3j,nodemaster,dat1,var)
@@ -8211,11 +8015,9 @@
       end subroutine writeocomm1
 
 
-#endif
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-#ifdef MPI
 
 
       subroutine writeocomm2(numi,numj,numk1,numk2,ngxy,d3i,d3j,d3n,d3t,nodemaster,myid,ppnode,reqt,dat1,dat3,var)
@@ -8268,18 +8070,13 @@
       end subroutine writeocomm2
 
 
-#endif
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-#ifdef MPI
 
 
       subroutine writeocomm3(numi,numj,numk1,numk2,ngxy,d2i,d2j,d3i,d3j,d3n,d3t,nodemaster,myid,mynode,ppnode,nodes,numprocs,ni,nj,nxr,nyr,output_format,fileunit,irec,myi1p,myi2p,myj1p,myj2p,reqt,dat1,dat2,dat3,var,ncid,aname,time_index)
       use mpi
-#ifdef NETCDF
-      use netcdf
-#endif
       implicit none
 
       integer, intent(in) :: numi,numj,numk1,numk2,ngxy,d2i,d2j,d3i,d3j,d3n,d3t,nodemaster,myid,mynode,ppnode,nodes,numprocs,ni,nj,nxr,nyr,output_format,fileunit
@@ -8297,12 +8094,6 @@
       integer :: i,j,k,tag,reqs,ierr,proc
       integer :: index2,fooi,fooj,nn,nnn,ntot,n1,n2
       integer :: index,nitmp,njtmp
-#ifdef DP
-      real*4, dimension(nxr,nyr) :: vout
-#endif
-#ifdef NETCDF
-      integer :: varid,status
-#endif
 
       ! begin proc 0:
 
@@ -8319,17 +8110,6 @@
         call MPI_IRECV(dat3(1,1,proc),d3i*d3j*ppnode,MPI_REAL,proc,tag+1,MPI_COMM_WORLD,reqt(ppnode-1+nn),ierr)
       enddo
 
-#ifdef NETCDF
-      if( output_format.eq.2 )then
-        ! while we are waiting, get varid  (k=numk1 only)
-        status = nf90_inq_varid(ncid,aname,varid)
-        if(status.ne.nf90_noerr)then
-          print *,'  Error1b in writeo, aname = ',aname
-          print *,nf90_strerror(status)
-          call stopcm1
-        endif
-      endif
-#endif
 
       DO k=numk1,numk2
 
@@ -8402,21 +8182,6 @@
           ! ----- grads format -----
           write(fileunit,rec=irec) ((dat2(i,j),i=1,nxr),j=1,nyr)
           irec = irec+1
-#ifdef NETCDF
-        ELSEIF(output_format.eq.2)THEN
-          ! ----- netcdf format -----
-          if(numk1.eq.numk2)then
-            status = nf90_put_var(ncid,varid,dat2,(/1,1,time_index/),(/nxr,nyr,1/))
-          else
-            status = nf90_put_var(ncid,varid,dat2,(/1,1,k,time_index/),(/nxr,nyr,1,1/))
-          endif
-          if(status.ne.nf90_noerr)then
-            print *,'  Error2 in writeo, aname = ',aname
-            print *,'  ncid,varid,time_index = ',ncid,varid,time_index
-            print *,nf90_strerror(status)
-            call stopcm1
-          endif
-#endif
         ENDIF
       !-------------------- end write data --------------------!
 
@@ -8429,7 +8194,6 @@
       end subroutine writeocomm3
 
 
-#endif
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
