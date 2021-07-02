@@ -148,7 +148,7 @@
       use comm_module
       use adv_routines, only : movesfc
       use misclibs
-      use parcel_module, only : parcel_driver
+      use parcel_module, only : parcel_driver,droplet_driver
       use pdcomp_module, only : pidcomp
       use lsnudge_module
       use ib_module
@@ -190,7 +190,8 @@
                                                uavg,vavg,thavg,pavg,ulspg,vlspg
       real, intent(inout), dimension(kb:ke,numq) :: qavg
       double precision, intent(inout), dimension(kb:ke,3+numq) :: cavg
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: pi0,rho0,prs0,thv0,th0,rth0,qv0,qc0
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rho0,prs0,thv0,rth0,qv0,qc0
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: qi0,rr0,rf0,rrf0
       real, intent(in), dimension(ibb2:ibe2,jbb2:jbe2,kbb2:kbe2) :: thrd
       real, intent(in), dimension(ib:ie,jb:je) :: zs
@@ -862,8 +863,16 @@
 
         endif  prltrn
 
-        call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
-                               sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
+        if (prcl_droplet) then
+          call     droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                                 sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
+                                 tha,qa,th0,pi0,ppi,prs,                              &
+                                 pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
+                                 nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p)
+        else
+          call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                                 sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
+        endif
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
       ENDIF
 

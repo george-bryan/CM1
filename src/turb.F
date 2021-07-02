@@ -184,7 +184,7 @@
       integer :: i,j,k,k2,n,kval
       integer :: isfflx,ifsnow,ysu_topdown_pblmix
       real :: ep1,ep2,rovg,dtmin,dz1
-      real :: SVP1,SVP2,SVP3,SVPT0,p1000mb,eomeg,stbolt,tem,tem1,tem2,tem3
+      real :: SVP1,SVP2,SVP3,SVPT0,p1000mb,eomeg,stbolt,tem,temq,tem1,tem2,tem3
 
       logical :: flag_qi
       integer :: p_qi,p_first_scalar
@@ -918,7 +918,7 @@
               qvflux(i,j) = qfx(i,j)/rf(i,j,1)
             enddo
             enddo
-            if(myid.eq.0) print *,'  thflux,qvflux = ',thflux(1,1),qvflux(1,1)
+!!!            if(myid.eq.0) print *,'  thflux,qvflux = ',thflux(1,1),qvflux(1,1)
           ENDIF
 
         ENDIF
@@ -1340,6 +1340,7 @@
       IF( cm1setup.eq.3 )THEN
 
         tem = viscosity/pr_num
+        temq = viscosity/sc_num
 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
