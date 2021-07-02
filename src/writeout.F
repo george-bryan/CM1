@@ -240,7 +240,9 @@
       IF( numprocs.gt.nlim )THEN
         doit = .false.
         IF( myid.ge.nlim )THEN
+          !$acc host_data use_device(doit)
           call MPI_IRECV(doit,1,mpi_logical,myid-nlim,999999,MPI_COMM_WORLD,reqs,ierr)
+          !$acc end host_data
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
       ENDIF
@@ -2197,6 +2199,7 @@
       !$acc end parallel
 
 #ifdef MPI
+        !$acc host_data use_device(doit)
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
       print *,'domaindiag: after mpi_allreduce '
@@ -8194,6 +8197,7 @@
       IF( numprocs.gt.nlim )THEN
         doit = .true.
         IF( myid+nlim .le. (numprocs-1) )THEN
+          !$acc host_data use_device(doit)
           call MPI_ISEND(doit,1,mpi_logical,myid+nlim,999999,MPI_COMM_WORLD,reqs,ierr)
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
@@ -8547,7 +8551,9 @@
         enddo
         enddo
 
+        !$acc host_data use_device(dat1)
         call MPI_ISEND(dat1(1,1),d3i*d3j,MPI_REAL,nodemaster,tag,MPI_COMM_WORLD,reqs,ierr)
+        !$acc end host_data
         call MPI_WAIT(reqs,MPI_STATUS_IGNORE,ierr)
 
         tag = tag+2
