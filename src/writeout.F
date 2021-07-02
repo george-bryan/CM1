@@ -2199,8 +2199,8 @@
 #ifdef MPI
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
-
-      !$acc parallel default(present)
+      print *,'domaindiag: after mpi_allreduce '
+      !$acc parallel default(present) private(k)
       !$acc loop gang vector
       do k=1,nk
         dumk1(k) = dumk1(k)/dble(nx*ny)
@@ -2218,7 +2218,7 @@
         endif
       enddo
       !$acc end parallel
-
+      print *,'domaindiag before problematic loop'
       !JMD for some reason this loop has a race condition
       !--------
       !  Get zi:

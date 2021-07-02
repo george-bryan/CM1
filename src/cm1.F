@@ -2922,7 +2922,7 @@
 
 
 #ifdef _OPENACC
-        call nvtxStartRange("solve1 ",id=3)
+        call nvtxStartRange("solve1 ",id=0)
 #endif
         ! solve1: pre-RK terms
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
@@ -3003,7 +3003,7 @@
        !print *,'cm1: after solve1'
 
 #ifdef _OPENACC
-        call nvtxStartRange("solve2",id=4)
+        call nvtxStartRange("solve2",id=1)
 #endif
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
@@ -3087,7 +3087,7 @@
 
         ! cm1r20:  move calls to microphysics scheme into mp_driver.F
 #ifdef _OPENACC
-        call nvtxStartRange("mp_driver",id=5)
+        call nvtxStartRange("mp_driver",id=2)
 #endif
 
       if( ptype.eq.0 )then
@@ -3112,7 +3112,7 @@
 
 
 #ifdef _OPENACC
-        call nvtxStartRange("solve3",id=6)
+        call nvtxStartRange("solve3",id=3)
 #endif
         if(timestats.ge.1) time_nvtx=time_nvtx+mytime()
         ! solve3: finish primary dynamical solver
@@ -3246,7 +3246,7 @@
 
 #ifdef _OPENACC
         stop 'ERROR radiation_driver not support under OPENACC'
-        call nvtxStartRange("radiation_driver",id=7)
+        call nvtxStartRange("radiation_driver",id=4)
 #endif
         call     radiation_driver(mtime,radtim,dt,rbufsz,xh,yh,xf,yf,zf,rmh,c1,c2,     &
                    swten,lwten,swtenc,lwtenc,cldfra,o30,                               &
@@ -3294,7 +3294,7 @@
       if( startup .or. restarted ) update_sfc = .false.
 
 #ifdef _OPENACC
-        call nvtxStartRange("srf_and_turb",id=8)
+        call nvtxStartRange("srf_and_turb",id=5)
 #endif
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
@@ -3485,7 +3485,9 @@
 
 
       if( dowriteout )then
-#if 1
+#ifdef _OPENACC
+        call nvtxStartRange("writeout",id=6)
+#endif
       otype:  &
       IF(output_format.eq.1.or.output_format.eq.2)THEN
         nn = 1
@@ -3620,6 +3622,8 @@
           enddo
         endif
         if(myid.eq.0) print *,'  next taptim = ',taptim
+#ifdef _OPENACC
+      call nvtxEndRange()
 #endif
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
@@ -3676,9 +3680,9 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
-#if 0
+!#if 0
 #ifdef _OPENACC
-        call nvtxStartRange("domaindiag",id=9)
+        call nvtxStartRange("domaindiag",id=7)
 #endif
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
@@ -3736,7 +3740,7 @@
 #ifdef _OPENACC
         call nvtxEndRange()
 #endif
-#endif
+!#endif
 
       endif
     ENDIF

@@ -4268,6 +4268,7 @@
         if( qname(n).eq.'nci' ) nnci = n
         if( qname(n).eq.'ncc' ) nncc = n
       enddo
+      !$acc enter data copyin(nqr,nqi,nqs,nqg,nnci,nncc)
 
       if( ptype.eq.55 ) nqi = 4
 

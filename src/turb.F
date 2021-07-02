@@ -228,17 +228,6 @@
     !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih,  &
     !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
 
-    !!$acc data &
-    !!$acc copyin(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
-    !!$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0)                      &
-    !!$acc copy(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
-    !!$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,   &
-    !!$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
-    !!$acc      rrv,rrw,ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,     &
-    !!$acc      thterm,qa,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten,  &
-    !!$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
-    !!$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih,  &
-    !!$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
 !-----------------------------------------------------------------------------------
       turbfac = 1.0
       t2pfac = 1.0
@@ -2324,7 +2313,6 @@
 
 !-------------------------------------------------------------------
 
-    !!$acc end data
     !!ENDcopy
 
       end subroutine sfc_and_turb
@@ -4764,7 +4752,8 @@
       enddo
       ENDIF
 
-      !$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
+      !JMD
+      !JMD!$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
       DO n=1,numq
         IF( (n.eq.nqv) .or.                                 &
             (n.ge.nql1.and.n.le.nql2) .or.                  &
@@ -4780,7 +4769,7 @@
           enddo
         ENDIF
       ENDDO
-      !$acc end data
+      !JMD!$acc end data
 
       k = 1
 
@@ -5034,6 +5023,9 @@
       real, dimension(kb:ke) :: wspa
       double precision, dimension(kb:ke) :: shravg
 
+#ifdef _OPENACC
+    stop 'Subroutine t2psmm not ported to OpenACC'
+#endif
     !-------------------------------------------
     doingt2p:  &
     if( t2pfac.ge.0.001 )then

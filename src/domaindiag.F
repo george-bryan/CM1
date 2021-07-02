@@ -192,10 +192,18 @@
     real :: thvx
     real :: bri,ubar,vbar,thvflux,tmpprt,thf1,thf2,gamfac,ws
     real, dimension(ib:ie,jb:je) :: tmpqsfc,govthv,thvsfc,thv1
+    double precision :: tmasst,clwt,clit,plwt,plit,tmpw,tmpi
 
     !$acc data &
-    !$acc   create(wavg,wvar,ravg,tavg,thvavg,rhoavg,rfavg, &
-    !$acc          qvavg,qlavg,qtavg,thlavg,wsp,wspa,savg,qcrit)
+    !$acc   create(wstar,fbmin,zfbmin) &
+    !$acc   create(ravg,savg,tavg,uub,vvb,wwb,sfr,sfs,sfd,tmass,clw,cli,plw,pli) &
+    !$acc   create(wavg,wvar,thvavg,rhoavg,rfavg, &
+    !$acc     ufr,ufs,ufd,vfr,vfs,vfd,ptfr,ptfs, &
+    !$acc     ptfd,qvfr,qvfs,qvfd,temavg, &
+    !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,savg,qcrit, &
+    !$acc     u_hturb,u_vturb,u_hadv,u_vadv,u_pgrad,u_cor,u_hidiff,u_vidiff,u_rdamp, &
+    !$acc     v_hturb,v_vturb,v_hadv,v_vadv,v_pgrad,v_cor,v_hidiff,v_vidiff,v_rdamp, &
+    !$acc     w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,w_buoy,w_hidiff,w_vidiff,w_rdamp)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
@@ -227,6 +235,7 @@
       sfr(k)    = 0.0
       sfs(k)    = 0.0
       sfd(k)    = 0.0
+      w_hadv(k) = 0.0
     enddo
 
     !$acc parallel loop gang vector default(present) private(k)
@@ -1313,12 +1322,30 @@
           enddo
           enddo
         endif
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      enddo
+#ifdef _B4B
+      !$acc update host(dum1(1:ni,1:nj,5),rho,prs,th,pi0,pp3d,rmh)
+#else
+      !$acc parallel default(present) private(i,j)
+      !$acc loop seq
+#endif
+      do k=1,nk
+#ifndef _B4B
+        !$acc loop gang vector collapse(2)
+#endif
         do j=1,nj
         do i=1,ni
           dum1(i,j,5) = dum1(i,j,5) + rho(i,j,k)*rslf(prs(i,j,k),th(i,j,k)*(pi0(i,j,k)+pp3d(i,j,k)))*dz*rmh(i,j,k)
         enddo
         enddo
+      enddo
+#ifdef _B4B
+      !$acc update device(dum1(1:ni,1:nj,5))
+#else
+      !$acc end parallel
+#endif
+
+      do k=1,nk
         IF( iice.eq.1 )THEN
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
@@ -1524,11 +1551,18 @@
       enddo
       enddo
 
+#ifdef _B4B
+      !$acc update host(pavg,thavg)
+#else
       !$acc parallel loop gang vector default(present) private(i,j,k)
+#endif
       do k=1,nk
         ! use minimum of 1.0e-5 and 1% of saturation wrt liquid (using last known t,p)
         qcrit(k) = min( 1.0e-5 , 0.01*rslf(pavg(k),thavg(k)*((pavg(k)*rp00)**rovcp)) )
       enddo
+#ifdef _B4B
+      !$acc update device(qcrit)
+#endif
 
       !$acc parallel default(present) private(i,j,k)
       do k=nk,1,-1
@@ -1782,7 +1816,6 @@
     IF( imoist.eq.1 )THEN
       ! cloud top heights:
 
-        !PORTME
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
@@ -1793,9 +1826,12 @@
       enddo
 
         !PORTME
+        !$acc compare(q3d,qcrit,zh)
+        !$acc parallel  default(present) private(i,j)
         if( nqc.ge.1 )then
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          !$acc loop seq
           do k=1,nk
+          !$acc loop gang vector collapse(2)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqc).ge.qcrit(k) ) dum1(i,j,1) = zh(i,j,k)
@@ -1804,8 +1840,9 @@
           enddo
         endif
         if( nqr.ge.1 )then
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          !$acc loop seq
           do k=1,nk
+          !$acc loop gang vector collapse(2)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqr).ge.qcrit(k) ) dum1(i,j,2) = zh(i,j,k)
@@ -1813,16 +1850,18 @@
           enddo
           enddo
         endif
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc loop seq
         do k=1,nk
+          !$acc loop gang vector collapse(2)
           do j=1,nj
           do i=1,ni
             if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
           enddo
           enddo
         enddo
-
-      !$acc parallel default(present) private(i,j) 
+        !$acc end parallel
+      !$acc compare(dum1)
+      !$acc parallel default(present) private(i,j) copyout(qct,nct,qrt,nrt,qlt,nlt)
       qct = 0.0
       qrt = 0.0
       qlt = 0.0
@@ -1831,7 +1870,8 @@
       nrt = 0
       nlt = 0
 
-      !$acc loop gang vector collapse(2) reduction(+:qct,nct,qrt,nrt,qlt,nlt)
+      !$acc loop vector collapse(2) &
+      !$acc reduction(+:qct,nct,qrt,nrt,qlt,nlt)
       do j=1,nj
       do i=1,ni
         if( dum1(i,j,1).gt.0.01*zh(1,1,1) )then
@@ -1848,7 +1888,9 @@
         endif
       enddo
       enddo
+      !$acc compare(qct,nct,qrt,nrt,qlt,nlt)
       !$acc end parallel
+      !stop 'after calculation of qct,nct, etc...'
 
 #ifdef MPI
       call MPI_ALLREDUCE(MPI_IN_PLACE,qct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -1858,11 +1900,9 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
-      !$acc parallel 
       qct = qct/dble(max(1,nct))
       qrt = qrt/dble(max(1,nrt))
       qlt = qlt/dble(max(1,nlt))
-      !$acc end parallel
 
       nvar = nvar+1
       varname(nvar) = 'qct'
@@ -2289,18 +2329,21 @@
 
         ENDIF
       ENDIF
+!END-BLOCK02
+#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
       IF( imoist.eq.1 .and. th0(1,1,nk)*pi0(1,1,nk).lt.to )THEN
 
         !PORTME
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k,tx,tlast)
+        !$omp parallel do default(shared) private(i,j,k,tx,tlast)
+        !$acc parallel loop gang vector collapse(2) private(i,j,k,tx,tlast)
         do j=1,nj
         do i=1,ni
           tx = 1.0e30
           k = 1
+          !!$acc loop seq
           do while( tx.gt.273.15 .and. k.lt.nk )
             tlast = tx
             k = k + 1
@@ -2335,8 +2378,6 @@
 
       ENDIF
 
-!END-BLOCK02
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -3048,8 +3089,6 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-!BLOCK05
-#if 0
 
     IF( imoist.eq.1 )THEN
 
@@ -3064,62 +3103,133 @@
         pli(k)   = 0.0
       ENDDO
 
+!      !$acc parallel default(present) private(i,j,k,n,qflag) reduction(+:tmasst,clwt,clit,plwt,plit)
+      !$acc parallel default(present) private(i,j,k,n,qflag) reduction(+:tmasst,tmpw,tmpi)
+      !$acc loop gang
       DO k=1,nk
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+        tmasst = 0.0d0
+        !$acc loop vector reduction(+:tmasst)
         do j=1,nj
         do i=1,ni
-          tmass(k) = tmass(k)+rho(i,j,k)*(1.0+q3d(i,j,k,nqv)+ql(i,j,k)+qice(i,j,k))
+          tmasst = tmasst+rho(i,j,k)*(1.0+q3d(i,j,k,nqv)+ql(i,j,k)+qice(i,j,k))
         enddo
         enddo
+        tmass(k) = tmasst
+      ENDDO
+      print *,'domaindiag: nql1,nql2,nqs1,nqs2,nql1,nql2: ',nql1,nql2,nqs1,nqs2,nql1,nql2
+
+#if 1
+        !$acc loop seq
+        DO n=nql1,nql2
+          !$acc loop gang
+          DO k=1,nk
+            tmpw=0.0d0
+            !$acc loop vector collapse(2) reduction(+:tmpw)
+            do j=1,nj
+            do i=1,ni
+              tmpw = tmpw+rho(i,j,k)*q3d(i,j,k,n)
+            enddo
+            enddo
+            if(cloudvar(n)) then 
+               clw(k)=tmpw
+            else
+               plw(k)=tmpw
+            endif
+          ENDDO
+        ENDDO
+        !$acc loop seq
+        DO n=nqs1,nqs2
+          !$acc loop gang
+          DO k=1,nk
+            tmpi=0.0d0
+            !$acc loop vector collapse(2) reduction(+:tmpi)
+            do j=1,nj
+            do i=1,ni
+              tmpi = tmpi+rho(i,j,k)*q3d(i,j,k,n)
+            enddo
+            enddo
+            if(cloudvar(n)) then 
+               cli(k)=tmpi
+            else
+               pli(k)=tmpi
+            endif
+          ENDDO
+        ENDDO
+
+#else
+        !$acc loop seq
         DO n=1,numq
           qflag = 0
           if( qflag.eq.0 .and. cloudvar(n) .and. (n.ge.nql1) .and. (n.le.nql2) )then
             qflag = 1
-            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-            do j=1,nj
-            do i=1,ni
-              clw(k) = clw(k)+rho(i,j,k)*q3d(i,j,k,n)
-            enddo
-            enddo
+            !$acc loop gang
+            DO k=1,nk
+              clwt=0.0d0
+              !$acc loop vector collapse(2) reduction(+:clwt)
+              do j=1,nj
+              do i=1,ni
+                clwt = clwt+rho(i,j,k)*q3d(i,j,k,n)
+              enddo
+              enddo
+              clw(k)=clwt
+            ENDDO
           endif
           if( qflag.eq.0 .and. cloudvar(n) .and. (n.ge.nqs1) .and. (n.le.nqs2) )then
             qflag = 1
-            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-            do j=1,nj
-            do i=1,ni
-              cli(k) = cli(k)+rho(i,j,k)*q3d(i,j,k,n)
-            enddo
-            enddo
+            !$acc loop gang
+            DO k=1,nk
+              clit=0.0d0
+              !$acc loop vector collapse(2) reduction(+:clit)
+              do j=1,nj
+              do i=1,ni
+                clit = clit+rho(i,j,k)*q3d(i,j,k,n)
+              enddo
+              enddo
+              cli(k)=clit
+            ENDDO
           endif
           if( qflag.eq.0 .and. (n.ge.nql1) .and. (n.le.nql2) )then
             qflag = 1
-            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-            do j=1,nj
-            do i=1,ni
-              plw(k) = plw(k)+rho(i,j,k)*q3d(i,j,k,n)
-            enddo
-            enddo
+            !$acc loop gang
+            DO k=1,nk
+              plwt=0.0d0
+              !$acc loop vector collapse(2) reduction(+:plwt)
+              do j=1,nj
+              do i=1,ni
+                plwt = plwt+rho(i,j,k)*q3d(i,j,k,n)
+              enddo
+              enddo
+              plw(k)=plwt
+            ENDDO
           endif
           if( qflag.eq.0 .and. (n.ge.nqs1) .and. (n.le.nqs2) )then
             qflag = 1
-            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-            do j=1,nj
-            do i=1,ni
-              pli(k) = pli(k)+rho(i,j,k)*q3d(i,j,k,n)
-            enddo
-            enddo
+            !$acc loop gang
+            DO k=1,nk
+              plit=0.0d0
+              !$acc loop vector collapse(2) reduction(+:plit)
+              do j=1,nj
+              do i=1,ni
+                plit = plit+rho(i,j,k)*q3d(i,j,k,n)
+              enddo
+              enddo
+              pli(k)=plit
+            ENDDO
           endif
         ENDDO
-      ENDDO
+#endif
+      !$acc end parallel
 
 #ifdef MPI
+      !$acc update host(tmass,clw,cli,plw,pli)
       call MPI_ALLREDUCE(MPI_IN_PLACE,tmass(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,clw(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cli(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,plw(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,pli(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      !$acc update device(tmass,clw,cli,plw,pli)
 #endif
-
+      !$acc compare(clw)
       !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         clw(k) = clw(k)/tmass(k)
@@ -3127,6 +3237,7 @@
         plw(k) = plw(k)/tmass(k)
         pli(k) = pli(k)/tmass(k)
       enddo
+      !$acc compare(clw)
 
       nvar = nvar+1
       varname(nvar) = 'clw'
@@ -3184,12 +3295,19 @@
         varunit(nvar) = 'n.d.'
 
       if( imoist.eq.1 )then
+#ifdef _B4B
+        !$acc update host(psfc,tsk)
+#else
         !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+#endif
         do j=1,nj
         do i=1,ni
           tmpqsfc(i,j) = rslf(psfc(i,j),tsk(i,j))
         enddo
         enddo
+#ifdef _B4B
+        !$acc update device(tmpqsfc)    
+#endif
         !...
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
@@ -3231,7 +3349,11 @@
 
     !PORTME
     if( nloop.eq.1 )then
-      !!$acc parallel loop gang vector collapse(2) default(present) private(i,j,thvx)
+#ifdef _B4B
+      !$acc update host(th0,th3d,dum2,tsk,psfc,tmpqsfc,thflux,qvflux,ust,govthv,hpbl)
+#else
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,thvx)
+#endif
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3240,8 +3362,8 @@
       enddo
       enddo
     else
-      !!$acc parallel loop gang vector collapse(2) default(present) &
-      !!$acc private(i,j,thvx,thf1,thf2,thvflux,ws,gamfac,tmpprt)
+      !$acc parallel loop gang vector collapse(2) default(present) &
+      !$acc private(i,j,thvx,thf1,thf2,thvflux,ws,gamfac,tmpprt)
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3272,6 +3394,9 @@
       enddo
       enddo
       enddo
+#ifdef _B4B
+      !$acc update device(dum1)
+#endif
 
     ENDDO  hloop
 
@@ -3280,7 +3405,6 @@
 
       endif
 
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -3322,7 +3446,11 @@
         varunit(nvar) = 'K'
 
       if( ptype.eq.0 )then
+#ifdef _B4B
+        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
+#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
+#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3337,7 +3465,11 @@
         enddo
         enddo
       else
+#ifdef _B4B
+        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
+#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
+#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3356,6 +3488,9 @@
         enddo
         enddo
       endif
+#ifdef _B4B
+      !$acc update device(dum1)
+#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -3371,7 +3506,11 @@
         vardesc(nvar) = 'relative humidity (wrt liquid)'
         varunit(nvar) = 'nondimensional'
      
+#ifdef _B4B
+        !$acc update host(q3d,prs,th,pi0,pp3d)
+#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3379,6 +3518,9 @@
         enddo
         enddo
         enddo
+#ifdef _B4B
+        !$acc update device(dum1)
+#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -3392,7 +3534,11 @@
         varname(nvar) = 'rhi'
         vardesc(nvar) = 'relative humidity (wrt ice)'
         varunit(nvar) = 'nondimensional'
+#ifdef _B4B
+        !$acc update host(q3d,prs,th,pi0,pp3d)
+#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3400,6 +3546,9 @@
         enddo
         enddo
         enddo
+#ifdef _B4B
+        !$acc update device(dum1)
+#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4243,11 +4392,11 @@
         varunit(nvar) = 'm'
         vargrid(nvar) = 'w'
 
-        !PORTME
-        ! dum1 = 0.0
-
-        !PORTME
+#ifdef _B4B
+        !$acc update host(ruh,rvh,rmf,zf,znt)
+#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4259,6 +4408,9 @@
         enddo
         enddo
         enddo
+#ifdef _B4B
+        !$acc update device(dum1)
+#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -4539,12 +4691,12 @@
         do k=2,nk
         do j=1,nj
         do i=1,ni
-          dum1(i,j,k) = 0.5*(dum1(i,j,k-1)+dum1(i,j,k))
+          dum2(i,j,k) = 0.5*(dum1(i,j,k-1)+dum1(i,j,k))
         enddo
         enddo
         enddo
 
-        call getavg3d(dum1,savg)
+        call getavg3d(dum2,savg)
         !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
@@ -4558,10 +4710,17 @@
         vardesc(nvar) = 'analytic wind speed (neutral)'
         varunit(nvar) = 'm/s'
 
+#ifdef _B4B
+        !$acc update host(zh)
+#else
         !$acc parallel loop gang vector default(present) private(k)
+#endif
         do k=1,nk
           savg(k) = (ustbar/karman)*alog( (zh(1,1,k)+zntbar)/zntbar )
         enddo
+#ifdef _B4B
+        !$acc update device(savg)
+#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4572,7 +4731,11 @@
         vardesc(nvar) = 'analytic wind speed'
         varunit(nvar) = 'm/s'
 
+#ifdef _B4B
+        !$acc update host(zh)
+#else
         !$acc parallel loop gang vector default(present) private(k,zeta,tpsim)
+#endif
         do k=1,nk
           if( abs(molbar).gt.1.0e-6 )then
             zeta = zh(1,1,k)/molbar
@@ -4583,6 +4746,9 @@
           savg(k) = (ustbar/karman)*( alog(zh(1,1,k)/zntbar) - tpsim )
           wspa(k) = savg(k)
         enddo
+#ifdef _B4B
+        !$acc update device(savg,wspa)
+#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4607,8 +4773,6 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-!BLOCK05a
-#if 0
     IF( iptra.eq.1 )THEN
 
       !$acc parallel loop vector gang collapse(2) default(present) private(k,n)
@@ -4648,8 +4812,6 @@
 
     ENDIF
 
-!END-BLOCK05a
-#endif
       !c-c-c-c-c-c-c-c-c-c
 
       IF( testcase.eq.4 .or. testcase.eq.5 )THEN
@@ -5607,11 +5769,8 @@
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-!BLOCK06
-#if 0
       !c-c-c-c-c-c-c-c-c-c
 
-        !PORTME
         call     momentum_flux(u3d,v3d,w3d,t13,t23,m13,m23,rf,rf0,c1,c2,dum3,dum4,dum5,ufr,ufs,ufd,vfr,vfs,vfd)
 
         nvar = nvar+1
@@ -5620,6 +5779,7 @@
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
         call write3d(ufr,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+
 
         nvar = nvar+1
         varname(nvar) = 'ufs'
@@ -5641,11 +5801,13 @@
         vardesc(nvar) = 'vertical flux of u, wall model'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        savg = 0.0
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel default(present) private(k)
+        savg(1) = 0.0
+        !$acc loop gang vector
         do k=2,ntwk
           savg(k) = -kmw(k)*(u1b(k)-u1b(k-1))*rdz*mf(1,1,k)
         enddo
+        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
 
@@ -5678,13 +5840,16 @@
         vardesc(nvar) = 'vertical flux of v, wall model'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        savg = 0.0
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel default(present) private(k)
+        savg(1) = 0.0
+        !$acc loop gang vector
         do k=2,ntwk
           savg(k) = -kmw(k)*(v1b(k)-v1b(k-1))*rdz*mf(1,1,k)
         enddo
+        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
+
 
       !c-c-c-c-c-c-c-c-c-c
         ! theta fluxes:
@@ -5704,11 +5869,11 @@
           temavg(k) = thavg(k)-th0r
         enddo
 
+
         pdef = 0
         pdefweno = 0
         weps = 10.0*epsilon
 
-        !PORTME
         call     scalar_flux(weps,c1,c2,mf,rf0,dum2,dum3,dum4,dum5,w3d,khv,thflux,wavg,temavg,ptfr,ptfs,ptfd,dosfcflx,1,pdef,pdefweno)
 
         
@@ -5736,11 +5901,11 @@
 
       IF( imoist.eq.0 )THEN
 
-        !PORTME
         call     getwstar(zf,thv0,rth0s,ptfr,ptfs,ptfd,thfavg,qvfavg,wstar,fbmin,zfbmin)
 
       ENDIF
 
+!BLOCK06
       !c-c-c-c-c-c-c-c-c-c
         ! theta variance
 
@@ -5752,9 +5917,18 @@
         varunit(nvar) = 'K^2'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel default(present) private(i,j,k)
+        !$acc loop gang vector collapse(3) 
+        do k=1,nk
+        do j=1,nj
+        do i=1,ni
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc compare(lenscl,khv,th,mf,tkea)
+        !$acc loop gang vector collapse(3) 
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5766,6 +5940,7 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -5817,6 +5992,7 @@
         call     getwstar(zf,thv0,rth0s,sfr,sfs,sfd,thfavg,qvfavg,wstar,fbmin,zfbmin)
 
       ENDIF
+
 
       !c-c-c-c-c-c-c-c-c-c
         ! thetal fluxes:
@@ -7464,8 +7640,6 @@
         enddo
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-!END-BLOCK06 
-#endif
 
 
       !c-c-c-c-c-c-c-c-c-c
@@ -8374,8 +8548,6 @@
         call write3d(ravg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
 
-!BLOCK06b
-#if 0
       !c-c-c-c-c-c-c-c-c-c
 
       if( wd_buoy.ge.1 )then
@@ -8386,7 +8558,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
-        !PORTME
         call rtkeb_addw(dum1,wtk,wdiag,wd_buoy,w_buoy)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -8477,6 +8648,7 @@
 
       endif
 
+!BLOCK06b
       !c-c-c-c-c-c-c-c-c-c
 
       if( ud_hadv.ge.1 .and. vd_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
@@ -8573,6 +8745,7 @@
 
       endif
 
+
       !c-c-c-c-c-c-c-c-c-c
 
       if( ud_hidiff.ge.1 .and. vd_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
@@ -8592,6 +8765,7 @@
           wwb(k)  = 0.0
         enddo
 
+        !$acc compare(utk,udiag,u_hidiff)
         call rtkeb_addu(dum1,utk,udiag,ud_hidiff,u_hidiff)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -8625,6 +8799,7 @@
           uub(k) = uub(k) + savg(k)
         enddo
 
+        !$acc compare(vtk,vvb,vdiag,v_vidiff)
         call rtkeb_addv(dum1,vtk,vdiag,vd_vidiff,v_vidiff)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -8668,6 +8843,7 @@
         !......
 
       endif
+
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -8917,14 +9093,25 @@
       if( ud_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
           ud_vadv.ge.1 .and. wd_vadv.ge.1 )then
 
+        print *,'domaindiag: before uwb_adv'
         nvar = nvar+1
         varname(nvar) = 'uwb_adv'
         vardesc(nvar) = '<uw> budget: advection terms'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
+        !$acc compare(u_hadv,w_hadv)
+        print *,'domaindiag: before uwb_term'
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hadv,wd_hadv,u_hadv,w_hadv)
+        print *,'domaindiag: before uwb_term'
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vadv,wd_vadv,u_vadv,w_vadv)
 
         call getavg3d(dum1,savg)
@@ -8937,13 +9124,21 @@
       if( ud_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
           ud_vidiff.ge.1 .and. wd_vidiff.ge.1 )then
 
+        print *,'domaindiag: before uwb_idiff'
         nvar = nvar+1
         varname(nvar) = 'uwb_idiff'
         vardesc(nvar) = '<uw> budget: implicit diffusion'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hidiff,wd_hidiff,u_hidiff,w_hidiff)
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vidiff,wd_vidiff,u_vidiff,w_vidiff)
 
@@ -8957,13 +9152,21 @@
       if( ud_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
           ud_vturb.ge.1 .and. wd_vturb.ge.1 )then
 
+        print *,'domaindiag: before uwb_turb'
         nvar = nvar+1
         varname(nvar) = 'uwb_turb'
         vardesc(nvar) = '<uw> budget: subgrid turbulence'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hturb,wd_hturb,u_hturb,w_hturb)
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vturb,wd_vturb,u_vturb,w_vturb)
 
@@ -8976,13 +9179,21 @@
 
       if( ud_pgrad.ge.1 .and. wd_pgrad.ge.1 )then
 
+        print *,'domaindiag: before uwb_prs'
         nvar = nvar+1
         varname(nvar) = 'uwb_prs'
         vardesc(nvar) = '<uw> budget: pressure terms'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_pgrad,wd_pgrad,u_pgrad,w_pgrad)
 
         call getavg3d(dum1,savg)
@@ -8994,6 +9205,7 @@
 
       if( ud_cor.ge.1 )then
 
+        print *,'domaindiag: before uwb_cor'
         nvar = nvar+1
         varname(nvar) = 'uwb_cor'
         vardesc(nvar) = '<uw> budget: Coriolis'
@@ -9030,6 +9242,7 @@
 
       if( wd_buoy.ge.1 )then
 
+        print *,'domaindiag: before uwb_buoy'
         nvar = nvar+1
         varname(nvar) = 'uwb_buoy'
         vardesc(nvar) = '<uw> budget: buoyancy'
@@ -9072,13 +9285,21 @@
       if( vd_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
           vd_vadv.ge.1 .and. wd_vadv.ge.1 )then
 
+        print *,'domaindiag: before vwb_adv'
         nvar = nvar+1
         varname(nvar) = 'vwb_adv'
         vardesc(nvar) = '<vw> budget: advection terms'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_hadv,wd_hadv,v_hadv,w_hadv)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_vadv,wd_vadv,v_vadv,w_vadv)
 
@@ -9092,20 +9313,33 @@
       if( vd_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
           vd_vidiff.ge.1 .and. wd_vidiff.ge.1 )then
 
+        print *,'domaindiag: before vwb_idiff'
         nvar = nvar+1
         varname(nvar) = 'vwb_idiff'
         vardesc(nvar) = '<vw> budget: implicit diffusion'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc compare(v_hidiff,w_hidiff,v_vidiff,w_vidiff,vtk,wtk,vdiag,wdiag)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
+        !$acc compare(dum1)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_hidiff,wd_hidiff,v_hidiff,w_hidiff)
+        !$acc compare(dum1)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_vidiff,wd_vidiff,v_vidiff,w_vidiff)
+        !$acc compare(dum1)
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
+      ! stop 'domaindiag: after vwb_idiff'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9118,7 +9352,14 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_hturb,wd_hturb,v_hturb,w_hturb)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_vturb,wd_vturb,v_vturb,w_vturb)
 
@@ -9137,7 +9378,14 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        dum1 = 0.0
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        do k=kb,ke
+        do j=jb,je
+        do i=ib,ie
+          dum1(i,j,k) = 0.0
+        enddo
+        enddo
+        enddo
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_pgrad,wd_pgrad,v_pgrad,w_pgrad)
 
         call getavg3d(dum1,savg)
@@ -9254,7 +9502,7 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
 
-        call getmax(w3d(ib,jb,kb),savg,nk+1)
+        call getmax(w3d(ib,jb,kb),savg,nkp1)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9265,7 +9513,7 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
 
-        call getmin(w3d(ib,jb,kb),savg,nk+1)
+        call getmin(w3d(ib,jb,kb),savg,nkp1)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9276,9 +9524,11 @@
         varunit(nvar) = 'kg m/s'
         vargrid(nvar) = 's'
 
+        !$acc parallel default(present) reduction(+:temd)
+        !$acc loop gang
         do k=1,nk
           temd=0.0d0
-          !$acc parallel loop gang vector collapse(2) default(present) reduction(+:temd)
+          !$acc loop vector collapse(2)
           do j=1,nj
           do i=1,ni
             !savg(k)=savg(k)+rho(i,j,k)*0.5*max(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
@@ -9287,9 +9537,12 @@
           enddo
           savg(k)=temd*dx*dy
         enddo
+        !$acc end parallel
 
 #ifdef MPI
+        !$acc update host(savg)
         call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !$acc update device(savg)
 #endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -9302,9 +9555,11 @@
         varunit(nvar) = 'kg m/s'
         vargrid(nvar) = 's'
 
+        !$acc parallel default(present) reduction(+:temd)
+        !$acc loop gang
         do k=1,nk
           temd=0.0d0
-          !$acc parallel loop gang vector collapse(2) default(present) reduction(+:temd)
+          !$acc loop vector collapse(2)
           do j=1,nj
           do i=1,ni
             !savg(k)=savg(k)+rho(i,j,k)*0.5*min(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
@@ -9313,9 +9568,12 @@
           enddo
           savg(k)=temd*dx*dy
         enddo
+        !$acc end parallel
 
 #ifdef MPI
+        !$acc update host(savg)
         call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !$acc update device(savg)
 #endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -9442,8 +9700,6 @@
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF
-!END-BLOCK06b
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9644,6 +9900,7 @@
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
+    stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 
@@ -9673,18 +9930,26 @@
       integer :: i,j,k
       real :: mfr,mfs,mfd,wbar,wpbar,cc1,cc2
       double precision :: temd,weps
+      double precision :: ubart
       double precision, dimension(nk) :: ubar,vbar
+      double precision :: vbart,vfrt,vfdt,ufst,vfst,ufrt,ufdt
 
+      !$acc data create(ubar,vbar)
       weps = 100.0*epsilon
 
     !-------------------------------------------------------
     !  u component:
 
-      ufr = 0.0
-      ufs = 0.0
-      ufd = 0.0
+      !$acc parallel default(present) private(i,j,k,cc1,cc2)
+      !$acc loop gang vector 
+      do k=1,nk+1
+        ufr(k) = 0.0
+        ufs(k) = 0.0
+        ufd(k) = 0.0
+      enddo
 
       ! baseline algorithm:
+      !$acc loop gang vector collapse(3) 
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -9695,6 +9960,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
     IF( advwenov.ge.1 )THEN
 
@@ -9711,6 +9977,7 @@
         call vinterp_flx6(   2 ,ni+1,nj,nk,c1,c2,w3d,dum4, u3d )
       elseif( vadvordrs.eq.6 )then
         call vinterp_flx6(   2 ,ni+1,nj,nk,c1,c2,w3d,dum3, u3d )
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -9724,50 +9991,102 @@
 
   !----------------------
 
-    ubar = 0.0
 
+#ifndef _B4B
+    !$acc parallel default(present) private(i,j,k)
+    !$acc loop gang vector
+#endif
+    do k=1,nk
+      ubar(k) = 0.0
+    enddo
+
+#ifdef _B4B
+    !$acc update host(dum3)
+#else
+    !$acc loop gang 
+#endif
     do k=2,nk
-    do j=1,nj
-    do i=1,ni
-      ubar(k) = ubar(k)+dum3(i,j,k)
+      ubart = 0.0d0
+#ifndef _B4B
+      !$acc loop vector collapse(2)
+#endif
+      do j=1,nj
+      do i=1,ni
+        ubart = ubart+dum3(i,j,k)
+      enddo
+      enddo
+      ubar(k) = ubart
     enddo
-    enddo
-    enddo
+#ifdef _B4B
+    !$acc update device(ubar)
+#else
+    !$acc end parallel
+#endif
         !buh4
 
 #ifdef MPI
+    !$acc update host(ubar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ubar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    !$acc update device(ubar)
 #endif
 
+#ifndef _B4B
+    !$acc parallel default(present) private(i,j,k,wbar,cc1,cc2)
+#endif
     temd = 1.0d0/dble(nx*ny)
 
+#ifndef _B4B
+    !$acc loop gang vector
+#endif
     do k=2,nk
       ubar(k)  = ubar(k)*temd
     enddo
 
   !----------------------
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,wbar)
+#ifdef _B4B
+      !$acc update host(w3d,dum3,dum4)
+#else
+      !$omp parallel loop default(shared) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
+      !$acc loop gang 
+#endif
       do k=2,nk
+        ufrt=0.0d0
+        ufdt=0.0d0
+#ifndef _B4B
+        !$acc loop vector collapse(2) reduction(+:ufrt,ufdt)
+#endif
         do j=1,nj
         do i=1,ni
           wbar = 0.5*(w3d(i,j,k)+w3d(i-1,j,k))
-          ufr(k) = ufr(k) + wbar*(dum4(i,j,k)-ubar(k))
-          ufd(k) = ufd(k) + wbar*(dum3(i,j,k)-dum4(i,j,k))
+          ufrt = ufrt + wbar*(dum4(i,j,k)-ubar(k))
+          ufdt = ufdt + wbar*(dum3(i,j,k)-dum4(i,j,k))
         !buh5
         enddo
         enddo
+        ufr(k) =ufrt
+        ufd(k) =ufdt
       enddo
+#ifdef _B4B
+      !$acc update device(ufd,ufr)
+#endif
 
     !-------------------------------------------------------
     !  v component:
 
-      vfr = 0.0
-      vfs = 0.0
-      vfd = 0.0
+#ifndef _B4B
+      !$acc loop gang vector
+#endif
+      do k=1,nk+1
+        vfr(k) = 0.0
+        vfs(k) = 0.0
+        vfd(k) = 0.0
+      enddo
 
       ! baseline algorithm:
+#ifndef _B4B
+      !$acc loop gang vector collapse(3)
+#endif
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -9778,6 +10097,11 @@
       enddo
       enddo
       enddo
+#ifdef _B4B
+      !$acc update device(vfr,vfs,vfd,dum3,dum4) 
+#else
+      !$acc end parallel
+#endif
 
     IF( advwenov.ge.1 )THEN
 
@@ -9794,6 +10118,7 @@
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum4, v3d )
       elseif( vadvordrs.eq.6 )then
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d )
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -9807,82 +10132,157 @@
 
   !----------------------
 
-    vbar = 0.0
+    
+#ifndef _B4B
+    !$acc parallel default(present) private(i,j,k) reduction(+:vbart) reduction(+:vfrt,vfdt)
+    !$acc loop gang vector
+#endif
+    do k=1,nk
+      vbar(k) = 0.0
+    enddo
 
+#ifdef _B4B
+    !$acc update host(dum3)
+#else
+    !$acc loop gang
+#endif
     do k=2,nk
-    do j=1,nj
-    do i=1,ni
-      vbar(k) = vbar(k)+dum3(i,j,k)
+      vbart = 0.0d0
+      !$acc loop vector collapse(2) reduction(+:vbart)  
+      do j=1,nj
+      do i=1,ni
+        vbart = vbart+dum3(i,j,k)
+      enddo
+      enddo
+      vbar(k) = vbart
     enddo
-    enddo
-    enddo
+#ifdef _B4B
+    !$acc update device(vbar)
+#else
+    !$acc end parallel
+#endif
         !buh4
 
 #ifdef MPI
+    !$acc update host(vbar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    !$acc update device(vbar)
 #endif
 
+#ifndef _B4B
+    !$acc parallel default(present) private(i,j,k,wbar) reduction(+:vfrt,vfdt)
+#endif
     temd = 1.0d0/dble(nx*ny)
 
+#ifndef _B4B
+    !$acc loop gang vector
+#endif
     do k=2,nk
       vbar(k)  = vbar(k)*temd
     enddo
 
   !----------------------
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,wbar)
+#ifdef _B4B
+      !$acc update host(w3d,dum3,dum4)
+#else
+      !$omp parallel do default(shared) private(i,j,k,wbar)
+      !$acc loop gang
+#endif
       do k=2,nk
+        vfrt = 0.0d0
+        vfdt = 0.0d0
+        !$acc loop vector collapse(2) reduction(+:vfrt,vfdt)
         do j=1,nj
         do i=1,ni
           wbar = 0.5*(w3d(i,j,k)+w3d(i,j-1,k))
-          vfr(k) = vfr(k) + wbar*(dum4(i,j,k)-vbar(k))
-          vfd(k) = vfd(k) + wbar*(dum3(i,j,k)-dum4(i,j,k))
+          vfrt = vfrt + wbar*(dum4(i,j,k)-vbar(k))
+          vfdt = vfdt+ wbar*(dum3(i,j,k)-dum4(i,j,k))
         !buh5
         enddo
         enddo
+        vfr(k) = vfrt
+        vfd(k) = vfdt
       enddo
+#ifdef _B4B
+      !$acc update device(vfr,vfd)
+#else
+      !$acc end parallel
+#endif
 
     !-------------------------------------------------------
 
+#ifdef _B4B
+      !$acc update host(rf,m13,m23,t13,t23)
+#else
+      !$acc parallel default(present) private(i,j,k) reduction(+:ufst,vfst)
+#endif
       if( cm1setup.ge.1 .or. ipbl.eq.2 )then
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
           ! use mij:
-          !$omp parallel do default(shared)   &
-          !$omp private(i,j,k)
+          !$omp parallel do default(shared)  private(i,j,k) reduction(+:ufst,vfst)
+#ifndef _B4B
+          !$acc loop gang
+#endif
           do k=1,nk+1
+            ufst = 0.0d0
+            vfst = 0.0d0
+#ifndef _B4B
+            !$acc loop vector collapse(2) reduction(+:ufst,vfst)
+#endif
             do j=1,nj
             do i=1,ni
-              ufs(k) = ufs(k) - m13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
-              vfs(k) = vfs(k) - m23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
+              ufst = ufst - m13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
+              vfst = vfst - m23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
             enddo
             enddo
+            ufs(k) = ufst
+            vfs(k) = vfst
           enddo
         else
           ! use tij:
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
+#ifndef _B4B
+          !$acc loop gang
+#endif
           do k=1,nk+1
+            ufst = 0.0d0
+            vfst = 0.0d0
+#ifndef _B4B
+            !$acc loop vector collapse(2) reduction(+:ufst,vfst)
+#endif
             do j=1,nj
             do i=1,ni
-              ufs(k) = ufs(k) - t13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
-              vfs(k) = vfs(k) - t23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
+              ufst = ufst- t13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
+              vfst = vfst- t23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
             enddo
             enddo
+            ufs(k) = ufst
+            vfs(k) = vfst
           enddo
         endif
       else
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
+#ifndef _B4B
+        !$acc loop gang vector 
+#endif
         do k=1,nk+1
           ufs(k) = 0.0
           vfs(k) = 0.0
         enddo
       endif
+#ifdef _B4B
+      !$acc update device(ufs,vfs)
+#else
+      !$acc end parallel
+#endif
 
     !-------------------------------------------------------
 
 #ifdef MPI
+    !$acc update host(ufr,ufs,ufd,vfr,vfs,vfd)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ufr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ufs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ufd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -9890,9 +10290,12 @@
     call MPI_ALLREDUCE(MPI_IN_PLACE,vfr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vfs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vfd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    !$acc update device(ufr,ufs,ufd,vfr,vfs,vfd)
 #endif
 
+    !$acc parallel default(present) private(k)
     temd = 1.0d0/dble(nx*ny)
+    !$acc loop gang vector
     do k=1,nk+1
       ufr(k)  = ufr(k)*temd
       ufs(k)  = ufs(k)*temd
@@ -9902,7 +10305,9 @@
       vfs(k)  = vfs(k)*temd
       vfd(k)  = vfd(k)*temd
     enddo
-
+    !$acc end parallel
+      !$acc end data
+      !stop 'momentum_flux: at the end'
       end subroutine momentum_flux
 
 
@@ -9937,12 +10342,19 @@
       real :: wbar
       double precision :: temd
       double precision, dimension(nk) :: sbar
+      double precision :: sbart,sfrt,sfst,sfst1,sfst2,sfdt
 
-      sfr = 0.0
-      sfs = 0.0
-      sfd = 0.0
+      !$acc data create(sbar) 
+      !$acc parallel default(present) private(i,j,k)
+      !$acc loop gang vector
+      do k=1,nk+1
+        sfr(k) = 0.0
+        sfs(k) = 0.0
+        sfd(k) = 0.0
+      enddo
 
       ! baseline algorithm:
+      !$acc loop gang vector collapse(3)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -9951,6 +10363,8 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
+
 
     IF( advwenos.ge.1 )THEN
 
@@ -9967,6 +10381,7 @@
         call vinterp_flx6(   1 ,ni,nj,nk  ,c1,c2,w3d,dum4, s )
       elseif( vadvordrs.eq.6 )then
         call vinterp_flx6(   1 ,ni,nj,nk  ,c1,c2,w3d,dum3, s )
+        !$acc parallel loop gang vector collapse(3)  default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -9978,66 +10393,133 @@
 
     ENDIF
 
+
   !----------------------
 
-    sbar = 0.0
+#ifndef _B4B
+    !$acc parallel default(present) private(i,j,k) reduction(+:sbart)
+    !$acc loop vector gang 
+#endif
+    do k=1,nk+1
+      sbar(k) = 0.0
+    enddo
 
+#ifdef _B4B
+    !$acc update host(dum3)
+#else
+    !$acc loop gang
+#endif
     do k=2,nk
-    do j=1,nj
-    do i=1,ni
-      sbar(k) = sbar(k)+dum3(i,j,k)
+      sbart=0.d0
+      !$acc loop vector collapse(2) 
+      do j=1,nj
+      do i=1,ni
+        sbart = sbart+dum3(i,j,k)
+      enddo
+      enddo
+      sbar(k) = sbart
     enddo
-    enddo
-    enddo
+#ifdef _B4B
+    !$acc update device(sbar)
+#else
+    !$acc end parallel
+#endif
         !buh4
 
 #ifdef MPI
+    !$acc update host(sbar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,sbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    !$acc update device(sbar)
 #endif
 
+#ifndef _B4B
+    !$acc parallel default(present) private(i,j,k) reduction(+:sfrt,sfdt,sfst)
+#endif
     temd = 1.0d0/dble(nx*ny)
 
+#ifndef _B4B
+    !$acc loop gang vector 
+#endif
     do k=2,nk
       sbar(k)  = sbar(k)*temd
     enddo
 
   !----------------------
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
+#ifdef _B4B
+    !$acc update host(dum3,dum4,w3d)
+#else
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang 
+#endif
+    do k=2,nk
+      sfrt=0.0d0
+      sfdt=0.0d0
+#ifndef _B4B
+      !$acc loop vector collapse(2) reduction(+:sfrt,sfdt)
+#endif
+      do j=1,nj
+      do i=1,ni
+        sfrt = sfrt + w3d(i,j,k)*(dum4(i,j,k)-sbar(k))
+        sfdt = sfdt + w3d(i,j,k)*(dum3(i,j,k)-dum4(i,j,k))
+        !buh5
+      enddo
+      enddo
+      sfr(k) = sfrt
+      sfd(k) = sfdt
+    enddo
+    if( cm1setup.ge.1 .or. ipbl.eq.2 .or. cm1setup.eq.3 )then
+#ifndef _B4B
+      !$acc loop gang 
+#endif
       do k=2,nk
+        sfst=0.0d0
+#ifndef _B4B
+        !$acc loop vector collapse(2) reduction(+:sfst)
+#endif
         do j=1,nj
         do i=1,ni
-
-          sfr(k) = sfr(k) + w3d(i,j,k)*(dum4(i,j,k)-sbar(k))
-          sfd(k) = sfd(k) + w3d(i,j,k)*(dum3(i,j,k)-dum4(i,j,k))
-        !buh5
+          sfst = sfst - khv(i,j,k)*(s(i,j,k)-s(i,j,k-1))*rdz*mf(i,j,k)
         enddo
         enddo
-        if( cm1setup.ge.1 .or. ipbl.eq.2 .or. cm1setup.eq.3 )then
-          do j=1,nj
-          do i=1,ni
-            sfs(k) = sfs(k) - khv(i,j,k)*(s(i,j,k)-s(i,j,k-1))*rdz*mf(i,j,k)
-          enddo
-          enddo
-        else
-          sfs(k) = 0.0
-        endif
+        sfs(k) = sfst
       enddo
+    else
+#ifndef _B4B
+      !$acc loop gang vector
+#endif
+      do k=2,nk
+        sfs(k) = 0.0d0
+      enddo
+    endif
+#ifdef _B4B
+    !$acc update device(sfs,sfr,sfd)
+#else
+    !$acc end parallel
+#endif
 
       !-----------------------------
       ! 171122:  boundary conditions
 
+#ifdef _B4B
+      !$acc update host(sflux,mf,savg)
+#else
+      !$acc parallel default(present) private(i,j) reduction(+:sfst,sfst1,sfst2)
+#endif
       IF( cm1setup.eq.1 .or. cm1setup.eq.2 )THEN
 
         sfcfl:  &
         IF( iflux.eq.1 .and. dosfcflx )THEN
-
+          sfst = 0.0d0
+#ifndef _B4B
+          !$acc loop vector collapse(2) reduction(+:sfst)
+#endif
           do j=1,nj
           do i=1,ni
-            sfs(1) = sfs(1) + sflux(i,j)
+            sfst = sfst + sflux(i,j)
           enddo
           enddo
+          sfs(1) = sfst
 
         ELSE  sfcfl
 
@@ -10060,42 +10542,62 @@
           if(bc_temp.eq.1)then
             ! specified theta at boundary
 
+#ifndef _B4B
+            !$acc loop vector collapse(2) reduction(+:sfst1,sfst2) 
+#endif
             do j=1,nj
             do i=1,ni
-              sfs(1) = sfs(1)-(viscosity/pr_num)*2.0*(savg(1)-ptc_bot)*rdz*mf(1,1,1)
-              sfs(nk+1) = sfs(nk+1)-(viscosity/pr_num)*2.0*(ptc_top-savg(nk))*rdz*mf(1,1,nk+1)
+              sfst1 = sfst1-(viscosity/pr_num)*2.0*(savg(1)-ptc_bot)*rdz*mf(1,1,1)
+              sfst2 = sfst2-(viscosity/pr_num)*2.0*(ptc_top-savg(nk))*rdz*mf(1,1,nk+1)
             enddo
             enddo
+            sfs(1)=sfst1
+            sfs(nk+1)=sfst2
 
           elseif(bc_temp.eq.2)then
             ! specified flux at boundary
 
+#ifndef _B4B
+            !$acc loop vector collapse(2) reduction(+:sfst1,sfst2) 
+#endif
             do j=1,nj
             do i=1,ni
-              sfs(1) = sfs(1) + (viscosity/pr_num)*ptc_bot
-              sfs(nk+1) = sfs(nk+1) + (viscosity/pr_num)*ptc_top
+              sfst1 = sfst1 + (viscosity/pr_num)*ptc_bot
+              sfst2 = sfst2 + (viscosity/pr_num)*ptc_top
             enddo
             enddo
+            sfs(1)=sfst1
+            sfs(nk+1)=sfst2
 
           endif
 
       ENDIF
+#ifdef _B4B
+      !$acc update device(sfr,sfs,sfd)
+#else
+      !$acc end parallel
+#endif
 
 #ifdef MPI
+      !$acc update host(sfr,sfs,sfd)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      !$acc update device(sfr,sfs,sfd)
 #endif
 
+      !$acc parallel default(present) private(k)
       temd = 1.0d0/dble(nx*ny)
 
-      !$omp parallel do default(shared)   &
-      !$omp private(k)
+      !$omp parallel do default(shared) private(k)
+      !$acc loop gang vector 
       do k=1,nk+1
         sfr(k)  = sfr(k)*temd
         sfs(k)  = sfs(k)*temd
         sfd(k)  = sfd(k)*temd
       enddo
+      !$acc end parallel
+      !$acc end data
 
       end subroutine scalar_flux
 
@@ -10120,10 +10622,12 @@
       integer :: k
       real :: fb1,fb2
 
+        !$acc parallel default(present) private(k,fb1,fb2) reduction(+:wstar)
         wstar = 0.0
         fbmin = 1.0e30
         zfbmin = 0.0
 
+        !$acc loop vector reduction(+:wstar)
         do k=1,nk
           if( k.eq.1 )then
             fb1 = g*( thfavg*rth0s(1,1) + repsm1*qvfavg )
@@ -10139,13 +10643,17 @@
           wstar = wstar + (zf(1,1,k+1)-zf(1,1,k))*0.5*(fb1+fb2)
 
           if( fb1.lt.fbmin )then
+            !$acc atomic write
             fbmin = fb1
+            !$acc atomic write
             zfbmin = zf(1,1,k)
           endif
 
         enddo
-
+        
         wstar = 2.5*(max(0.0d0,wstar)**(1.0/3.0))
+        !$acc end parallel
+
 
       end subroutine getwstar
 
@@ -10171,8 +10679,12 @@
 
 
     savg2d = 0.0
+#ifdef _B4B
+    !$acc update host(s2d)
+#else
     !$acc parallel loop gang vector collapse(2) default(present) &
     !$acc private(i,j) copy(savg2d) reduction(+:savg2d)
+#endif
     do j=1,nj
     do i=1,ni
       savg2d = savg2d+s2d(i,j)
@@ -10211,8 +10723,12 @@
     double precision :: temd
     
 
+#ifndef _B4B
     !$acc parallel default(present) copyout(k2)
     !$acc loop 
+#else
+    !$acc update host(s)
+#endif
     do k=1,nk+1
       savg(k) = 0.0
     enddo
@@ -10224,10 +10740,14 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
+#ifndef _B4B
     !$acc loop gang
+#endif
     do k=1,k2
       stmp = 0.0
+#ifndef _B4B
       !$acc loop vector collapse(2) reduction(+:stmp)
+#endif
       do j=1,nj
       do i=1,ni
         stmp = stmp+s(i,j,k)
@@ -10235,7 +10755,9 @@
       enddo
       savg(k)=stmp
     enddo
+#ifndef _B4B
     !$acc end parallel
+#endif
 
 #ifdef MPI
     !$acc update host(savg)
@@ -10243,10 +10765,15 @@
     !$acc update device(savg)
 #endif
 
+#ifndef _B4B
     !$acc parallel loop gang vector private(k)
+#endif
     do k=1,k2
       savg(k) = savg(k)/dble(nx*ny)
     enddo
+#ifdef _B4B
+    !$acc update device(savg)
+#endif
     !print *,'getavg3d: nx*ny: ',dble(nx*ny)
 
     end subroutine getavg3d
@@ -10273,6 +10800,7 @@
     double precision :: temd
     !$acc declare present(s,savg)
 
+    !$acc parallel default(present) private(i,j,k) reduction(max:temd)
     savg = -1.0e30
 
     k2 = nk
@@ -10281,9 +10809,10 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
+    !$acc loop gang
     do k=1,k2
       temd = -1.0e30
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j) reduction(max:temd)
+      !$acc loop vector collapse(2) reduction(max:temd)
       do j=1,nj
       do i=1,ni
         !savg(k) = max(savg(k),s(i,j,k))
@@ -10293,6 +10822,7 @@
       savg(k)=temd
     enddo
 
+    !$acc end parallel
 #ifdef MPI
     !$acc update host(savg)
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),k2,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
@@ -10322,6 +10852,7 @@
     double precision :: temd
     !$acc declare present(s,savg)
 
+    !$acc parallel default(present) private(i,j,k) reduction(min:temd)
     savg = 1.0e30
 
     k2 = nk
@@ -10330,9 +10861,10 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
+    !$acc loop gang
     do k=1,k2
       temd = 1.0e30
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j) reduction(min:temd)
+      !$acc loop vector collapse(2) reduction(min:temd)
       do j=1,nj
       do i=1,ni
         !savg(k) = min(savg(k),s(i,j,k))
@@ -10341,6 +10873,7 @@
       enddo
       savg(k) = temd
     enddo
+    !$acc end parallel
 
 #ifdef MPI
     !$acc update host(savg)

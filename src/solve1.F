@@ -465,14 +465,9 @@
           enddo
         endif
 
-        !!$acc data copyin(xh,rxh,uh,xf,uf,vh,vf,mh,mf) &
-        !!$acc copyin(rho,rr,rf,rds,sigma) &
-        !!$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
-        !!$acc copyin(tkea,kmh,kmv)
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
                    rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,        &
                    dum1,dum2,dum3,dum4,dum5,sten,tkea,tketen,kmh,kmv)
-        !!$acc end data
 
         if( dotdwrite .and. kd_turb.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)

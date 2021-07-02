@@ -611,7 +611,6 @@
         enddo
         !$acc end parallel
 
-      !518 $acc data copyin(s,dum7,mh,rr,dumx,dumy,rho,turbx,turby) copy(dumz,turbz,sten)
       IF( axisymm.eq.0 )THEN
 
         k = nk
@@ -707,7 +706,6 @@
 !  Diagnostics:
 
       IF( dobud )THEN
-        !615 $acc data copyin(turbx,turby,turbz,rr) copy(diag)
         if( axisymm.eq.0 )then
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -731,7 +729,6 @@
           enddo
           enddo
         endif
-        !639 $acc end data
       ENDIF
 
 !---------------------------------------------------------------------
