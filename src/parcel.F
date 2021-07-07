@@ -11,7 +11,8 @@
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata,                 &
                                th_in,qa,th0,pi0,ppa,prs,                            &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
-                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p)
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p               &
+                               uten,vten,wten,thten,qten)
       use input
       use constants
       use bc_module
@@ -39,11 +40,11 @@
       real, intent(in), dimension(kb:ke+1) :: sigmaf
       real, intent(in), dimension(ib:ie,jb:je) :: znt
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
-      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
-      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa,thten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa,qten
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua,uten
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va,vten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa,wten
       real, intent(inout), dimension(nparcels,npvals) :: pdata
 
       real, intent(inout), dimension(jmp,kmp) :: pw1,pw2,pe1,pe2
@@ -51,10 +52,12 @@
       real, intent(inout), dimension(kmt) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
       integer, intent(inout), dimension(rmp) :: reqs_p
 
+
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
 
       integer :: n,np,i,j,k,iflag,jflag,kflag
+      integer :: iflag_s,jflag_s,kflag_s
       real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
       real :: qval,tval,rhoval,prsval
       real :: rxu,ryv,rzw,rxs,rys,rzs
@@ -284,6 +287,8 @@
         ENDIF
         i=iflag
         j=jflag
+        iflag_s = iflag
+        jflag_s = jflag
       ENDIF
 
         IF(debug)THEN
@@ -311,6 +316,7 @@
             kflag = kflag+1
           enddo
         endif
+        kflag_s = kflag
 
         IF(debug)THEN
         if( kflag.le.0 .or. kflag.ge.(nk+1) )then
@@ -542,6 +548,10 @@
             k=k-1
           endif
         endif
+
+        iflag_s=i
+        jflag_s=j
+        kflag_s=k
 
         rx = rxs
         ry = rys
@@ -867,6 +877,7 @@
         pdata(np,prrp) = -1.0e30
         pdata(np,prtp) = -1.0e30
         pdata(np,prms) = -1.0e30
+        pdata(np,prmult) = -1.0e30
 #endif
 
       ENDIF  myparcel
@@ -2849,6 +2860,11 @@
          name_prcl(prcl_out) = 'tp'
          desc_prcl(prcl_out) = 'temperature of droplet'
          unit_prcl(prcl_out) = 'K'
+
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'mult'
+         desc_prcl(prcl_out) = 'droplet multiplicity'
+         unit_prcl(prcl_out) = ' '
 
       endif
 

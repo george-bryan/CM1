@@ -1094,6 +1094,8 @@
 
  pr_num - value for Prandtl number (unitless)
 
+ sc_num - value for Schmidt number (unitless)
+
 -------------------------------------------------------------------------
   param8 section - flex variables
 

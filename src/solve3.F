@@ -868,7 +868,8 @@
                                  sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
                                  tha,qa,th0,pi0,ppi,prs,                              &
                                  pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
-                                 nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p)
+                                 nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p               &
+                                 uten,vten,wten,thten,qten)
         else
           call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                  sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)

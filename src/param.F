@@ -6029,6 +6029,10 @@
           npvars = npvars+1
           prtp = npvals  !Droplet temperature
 
+          npvals = npvals+1
+          npvars = npvars+1
+          prmult = npvals  !Droplet multiplicity
+
         end if
 
         npvals = npvals+1
@@ -6201,6 +6205,7 @@
       if(dowr) write(outfile,*) '    prrp     = ',prrp
       if(dowr) write(outfile,*) '    prms     = ',prms
       if(dowr) write(outfile,*) '    prtp     = ',prtp
+      if(dowr) write(outfile,*) '    prmult   = ',prmult
       if(dowr) write(outfile,*)
 
 !--------------------------------------------------------------

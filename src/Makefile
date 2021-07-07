@@ -8,10 +8,10 @@
 #              (NOTE: Don't change lines 3 and 4!)
 #  Note:  you may need to remove -DNCFPLUS if you use an old version of netcdf
 #
-#OUTPUTINC = -I$(NETCDF)/include
-#OUTPUTLIB = -L$(NETCDF)/lib
-#OUTPUTOPT = -DNETCDF -DNCFPLUS
-#LINKOPTS  = -lnetcdf -lnetcdff
+OUTPUTINC = -I$(NETCDFBASE)/include
+OUTPUTLIB = -L$(NETCDFBASE)/lib
+OUTPUTOPT = -DNETCDF -DNCFPLUS
+LINKOPTS  = -lnetcdf -lnetcdff
 #-----------------------------------------------------------------------------
 
 
@@ -28,10 +28,10 @@
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Intel compiler 
 #      (eg, NCAR's yellowstone/cheyenne)
-#FC   = mpif90
-#OPTS = -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DM   = -DMPI
+FC   = mpif90
+OPTS = -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+DM   = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), Intel compiler 
 #      (eg, NCAR's yellowstone/cheyenne)
@@ -44,11 +44,6 @@
 #FC   = pgf90
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#-----------------------------------------------------------------------------
-#  single processor + GPU, Portland Group compiler
-FC   = pgf90
-OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel -ta=tesla:cc70,lineinfo
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
@@ -248,7 +243,7 @@ diff2.o: constants.o input.o
 domaindiag.o: constants.o input.o interp_routines.o cm1libs.o getcape.o sfcphys.o turb.o lsnudge.o writeout_nc.o
 eddy_recycle.o: constants.o input.o
 goddard.o: constants.o input.o cm1libs.o
-hifrq.o: input.o constants.o cm1libs.o adv_routines.o ib_module.o writeout_nc.o comm.o adv.o
+hifrq.o: input.o constants.o cm1libs.o adv_routines.o ib_module.o writeout_nc.o comm.o
 ib_module.o: input.o constants.o bc.o comm.o
 init3d.o:  constants.o input.o misclibs.o cm1libs.o bc.o comm.o module_mp_nssl_2mom.o poiss.o parcel.o ib_module.o turb.o
 init_physics.o: constants.o input.o sfclay.o sfclayrev.o slab.o radtrns3d.o irrad3d.o goddard.o module_ra_rrtmg_lw.o module_ra_rrtmg_sw.o module_sf_gfdl.o module_sf_mynn.o module_bl_mynn.o module_sf_myjsfc.o
