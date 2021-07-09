@@ -11,7 +11,7 @@
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata,                 &
                                th_in,qa,th0,pi0,ppa,prs,                            &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
-                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p               &
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
                                uten,vten,wten,thten,qten)
       use input
       use constants
@@ -57,6 +57,7 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
 
       integer :: n,np,i,j,k,iflag,jflag,kflag
+      integer :: ix,iy,iz
       integer :: iflag_s,jflag_s,kflag_s
       real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
       real :: qval,tval,rhoval,prsval
@@ -71,7 +72,9 @@
       real :: k1xp(3),k2xp(3),k1vp(3),k2vp(3)
       real :: k1tp,k2tp,k1rp,k2rp
       real :: taup,th_tmp,Rep,Nup,Shp,diff(3),diffnorm
-      real :: rhop,volp
+      real :: rhop,volp,rhop0,taup0,rp0,tp0
+      real :: dvpdt(3),drpdt,dtpdt,dmvdt
+      real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
 
       logical, parameter :: debug = .false.
 
@@ -250,6 +253,45 @@
       myparcel:  IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
                      (jflag.ge.1.and.jflag.le.nj) )THEN
 
+      kflag = 1
+      if( .not. terrain_flag )then
+        do while( z3d.ge.zf(iflag,jflag,kflag+1) )
+          kflag = kflag+1
+        enddo
+      else
+        do while( sig3d.ge.sigmaf(kflag+1) )
+          kflag = kflag+1
+        enddo
+      endif
+
+      !Store these for two-way coupling
+      iflag_s=iflag
+      jflag_s=jflag
+      kflag_s=kflag
+
+      if( x3d.lt.xh(iflag) )then
+        iflag_s=iflag_s-1
+      endif
+      if( y3d.lt.yh(jflag) )then
+        jflag_s=jflag_s-1
+      endif
+      if( .not. terrain_flag )then
+        if( z3d.lt.zh(iflag,jflag,kflag) )then
+          kflag_s=kflag_s-1
+        endif
+      else
+        if( sig3d.lt.sigma(kflag) )then
+          kflag_s=kflag_s-1
+        endif
+      endif
+
+      dvpdt(1) = pdata(np,prvpx)
+      dvpdt(2) = pdata(np,prvpy)
+      dvpdt(3) = pdata(np,prvpz)
+      dtpdt    = pdata(np,prtp)
+      drpdt    = pdata(np,prrp)
+      dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
+
       rkloop:  DO nrkp = 1,2
 
       IF( nrkp.eq.1 )THEN
@@ -287,8 +329,6 @@
         ENDIF
         i=iflag
         j=jflag
-        iflag_s = iflag
-        jflag_s = jflag
       ENDIF
 
         IF(debug)THEN
@@ -316,7 +356,6 @@
             kflag = kflag+1
           enddo
         endif
-        kflag_s = kflag
 
         IF(debug)THEN
         if( kflag.le.0 .or. kflag.ge.(nk+1) )then
@@ -549,9 +588,6 @@
           endif
         endif
 
-        iflag_s=i
-        jflag_s=j
-        kflag_s=k
 
         rx = rxs
         ry = rys
@@ -654,6 +690,11 @@
 
         xrhs = (/ pdata(np,prvpx),pdata(np,prvpy),pdata(np,prvpz) /)
 
+        rhop0 = rhop
+        taup0 = taup
+        rp0 = pdata(np,prrp)
+        tp0 = pdata(np,prtp)
+
         volp = 4.0/3.0*pi*pdata(np,prrp)**3
         rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
         taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
@@ -750,9 +791,6 @@
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
-        Nup = 2.0
-        Shp = 2.0
-
         vrhs(1) = 1.0/taup*(uf(1) - vtmp(1))
         vrhs(2) = 1.0/taup*(uf(2) - vtmp(2))
         vrhs(3) = 1.0/taup*(uf(3) - vtmp(3))
@@ -828,6 +866,63 @@
 
 
       ENDDO  rkloop
+
+
+!-----------------------------------------------------
+!  Now perform the two-way coupling based on the changes in droplet momentum,
+!  temp, and size
+!-----------------------------------------------------
+
+      !Recall that the "old" value is stored here
+      dvpdt(1) = (dvpdt(1)-pdata(np,prvpx))/dt   !Remember to deal with gravity later!
+      dvpdt(2) = (dvpdt(2)-pdata(np,prvpy))/dt
+      dvpdt(3) = (dvpdt(3)-pdata(np,prvpz))/dt
+
+      drpdt = (drpdt - pdata(np,prrp))/dt
+      !Only the sensible component of energy (subtract off the latent)
+      dtpdt = (dtpdt - pdata(np,prtp))/dt - 3.0*lhv/cpl/rp0*drpdt
+      dmvdt = (dmvdt - rhow*4.0/3.0*pi*pdata(np,prrp)**3)/dt
+
+      !At this point, iflag_s,jflag_s,kflag_s is the node beneath droplet
+
+      !Volume where the droplet finds itself
+      dV = (xh(iflag_s+1)-xh(iflag_s))*   &
+           (yh(jflag_s+1)-yh(jflag_s))*   &
+           (zh(iflag_s,jflag_s,kflag_s+1)-zh(iflag_s,jflag_s,kflag_s))
+       
+      !Loop over all nodes surrounding droplet
+      do i=0,1
+      do j=0,1
+      do k=0,1
+
+        ix = iflag_s+i
+        iy = jflag_s+j
+        iz = kflag_s+k
+
+        xv = xh(ix)
+        yv = yh(iy)
+        zv = zh(iflag_s,jflag_s,iz)
+
+
+        wtx = 1.0 - abs(x3d-xv)/(xh(iflag_s+1)-xh(iflag_s))
+        wty = 1.0 - abs(y3d-yv)/(yh(jflag_s+1)-yh(jflag_s))
+        wtz = 1.0 - abs(z3d-zv)/(zh(iflag_s,jflag_s,kflag_s+1)-zh(iflag_s,jflag_s,kflag_s))
+        wtt = wtx*wty*wtz
+
+        qten(ix,iy,iz,nqv) = qten(ix,iy,iz,nqv) - &
+            dmvdt/rhoval/dV*wtt*pdata(np,prmult)
+
+        !Ignoring the enthalpy contained in the vapor -- this has been shown to
+        !be negligible
+        thten(ix,iy,iz) = thten(ix,iy,iz) - &
+            (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
+        
+
+      enddo
+      enddo
+      enddo
+       
+
 
 !-----------------------------------------------------
 !  Account for boundary conditions (if necessary)
