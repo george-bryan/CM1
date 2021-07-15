@@ -174,7 +174,6 @@
   enddo
 
 
-  !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
   call prepcorners(ta,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                    pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
   call prepcorners(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
@@ -874,14 +873,14 @@
 !-----------------------------------------------------
 
       !Recall that the "old" value is stored here
-      dvpdt(1) = (dvpdt(1)-pdata(np,prvpx))/dt   !Remember to deal with gravity later!
-      dvpdt(2) = (dvpdt(2)-pdata(np,prvpy))/dt
-      dvpdt(3) = (dvpdt(3)-pdata(np,prvpz))/dt
+      dvpdt(1) = (pdata(np,prvpx)-dvpdt(1))/dt   !Remember to deal with gravity later!
+      dvpdt(2) = (pdata(np,prvpy)-dvpdt(2))/dt
+      dvpdt(3) = (pdata(np,prvpz)-dvpdt(3))/dt
 
-      drpdt = (drpdt - pdata(np,prrp))/dt
+      drpdt = (pdata(np,prrp)-drpdt)/dt
       !Only the sensible component of energy (subtract off the latent)
-      dtpdt = (dtpdt - pdata(np,prtp))/dt - 3.0*lhv/cpl/rp0*drpdt
-      dmvdt = (dmvdt - rhow*4.0/3.0*pi*pdata(np,prrp)**3)/dt
+      dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
+      dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3 - dmvdt)/dt
 
       !At this point, iflag_s,jflag_s,kflag_s is the node beneath droplet
 
@@ -911,6 +910,7 @@
 
         qten(ix,iy,iz,nqv) = qten(ix,iy,iz,nqv) - &
             dmvdt/rhoval/dV*wtt*pdata(np,prmult)
+
 
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
