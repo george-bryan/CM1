@@ -12,6 +12,8 @@
                                th_in,qa,th0,pi0,ppa,prs,                            &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
+                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
+                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
                                uten,vten,wten,thten,qten)
       use input
       use constants
@@ -40,8 +42,9 @@
       real, intent(in), dimension(kb:ke+1) :: sigmaf
       real, intent(in), dimension(ib:ie,jb:je) :: znt
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa,thten
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa,qten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa
+      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
       real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua,uten
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va,vten
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa,wten
@@ -51,6 +54,11 @@
       real, intent(inout), dimension(imp,kmp) :: ps1,ps2,pn1,pn2
       real, intent(inout), dimension(kmt) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
       integer, intent(inout), dimension(rmp) :: reqs_p
+
+      real, intent(inout), dimension(cmp,jmp,kmp)   :: sw31,sw32,se31,se32
+      real, intent(inout), dimension(imp,cmp,kmp)   :: ss31,ss32,sn31,sn32
+      real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
+      integer, intent(inout), dimension(rmp) :: reqs_s
 
 
       !Need to compute the true temperature
@@ -174,15 +182,14 @@
   enddo
 
 
-  call prepcorners(ta,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
-                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-  call prepcorners(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
-                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-  call prepcorners(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
-                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-  call prepcorners(qa(ib,jb,kb,nqv),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
-                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
-
+    call prepcorners3( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+                          n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
+    call prepcorners3(rho,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+                          n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
+    call prepcorners3(prs,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+                          n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
+    call prepcorners3(qa(ib,jb,kb,nqv),sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+                          n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
 
 
 
@@ -263,26 +270,26 @@
         enddo
       endif
 
-      !Store these for two-way coupling
-      iflag_s=iflag
-      jflag_s=jflag
-      kflag_s=kflag
-
-      if( x3d.lt.xh(iflag) )then
-        iflag_s=iflag_s-1
-      endif
-      if( y3d.lt.yh(jflag) )then
-        jflag_s=jflag_s-1
-      endif
-      if( .not. terrain_flag )then
-        if( z3d.lt.zh(iflag,jflag,kflag) )then
-          kflag_s=kflag_s-1
-        endif
-      else
-        if( sig3d.lt.sigma(kflag) )then
-          kflag_s=kflag_s-1
-        endif
-      endif
+!      !Store these for two-way coupling
+!      iflag_s=iflag
+!      jflag_s=jflag
+!      kflag_s=kflag
+!
+!      if( x3d.lt.xh(iflag) )then
+!        iflag_s=iflag_s-1
+!      endif
+!      if( y3d.lt.yh(jflag) )then
+!        jflag_s=jflag_s-1
+!      endif
+!      if( .not. terrain_flag )then
+!        if( z3d.lt.zh(iflag,jflag,kflag) )then
+!          kflag_s=kflag_s-1
+!        endif
+!      else
+!        if( sig3d.lt.sigma(kflag) )then
+!          kflag_s=kflag_s-1
+!        endif
+!      endif
 
       dvpdt(1) = pdata(np,prvpx)
       dvpdt(2) = pdata(np,prvpy)
@@ -347,11 +354,11 @@
 
         kflag = 1
         if( .not. terrain_flag )then
-          do while( z3d.ge.zf(iflag,jflag,kflag+1) )
+          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
         else
-          do while( sig3d.ge.sigmaf(kflag+1) )
+          do while( sig3d.gt.sigmaf(kflag+1) )
             kflag = kflag+1
           enddo
         endif
@@ -571,18 +578,18 @@
         j=jflag
         k=kflag
 
-        if( pdata(np,prx).lt.xh(i) )then
+        if( x3d.lt.xh(i) )then
           i=i-1
         endif
-        if( pdata(np,pry).lt.yh(j) )then
+        if( y3d.lt.yh(j) )then
           j=j-1
         endif
         if( .not. terrain_flag )then
-          if( pdata(np,prz).lt.zh(iflag,jflag,k) )then
+          if( z3d.lt.zh(iflag,jflag,k) )then
             k=k-1
           endif
         else
-          if( pdata(np,prsig).lt.sigma(k) )then
+          if( z3d.lt.sigma(k) )then
             k=k-1
           endif
         endif
@@ -608,8 +615,8 @@
             rz.lt.-0.0001 .or. rz.gt.1.0001 .or.  &
             wsum.le.0.99999 .or.                  &
             wsum.ge.1.00001 .or.                  &
-            i.lt.-1 .or. i.gt.ni   .or.           &
-            j.lt.-1 .or. j.gt.nj   .or.           &
+            i.lt.-1 .or. i.gt.(ni+1)   .or.       &
+            j.lt.-1 .or. j.gt.(nj+1)   .or.       &
             k.lt.0 .or. k.gt.nk                   )then
           print *
           print *,'  15558: '
@@ -757,6 +764,15 @@
         else
           k1xp(3) = dt*xrhs(3)
           z3d = pdata(np,prz)+k1xp(3)
+
+          ! GHB, 210713: check for top/bot bc on 1st RK step:
+          !Wall BCs:
+          if ( z3d .gt. maxz ) then
+             z3d = maxz - (z3d - maxz)
+          elseif ( z3d .lt. 0.0 ) then
+             z3d = -z3d
+          endif
+
           xtmp(3)=z3d
 
           k1vp(3) = dt*vrhs(3)
@@ -872,6 +888,84 @@
 !  temp, and size
 !-----------------------------------------------------
 
+      ! GHB, 210714:
+      ! get i,j,k for final parcel location:
+
+        iflag = -100
+        jflag = -100
+        IF(nx.eq.1)THEN
+          iflag = 1
+        ELSE
+          ! cm1r19:
+          i = ni+2
+          do while( iflag.lt.0 .and. i.gt.0 )
+            i = i-1
+            if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
+              iflag = i
+            endif
+          enddo
+        ENDIF
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          jflag = 1
+        ELSE
+          do j=0,nj+1
+            if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) ) jflag=j
+          enddo
+          ! cm1r19:
+          j = nj+2
+          do while( jflag.lt.0 .and. j.gt.0 )
+            j = j-1
+            if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
+              jflag = j
+            endif
+          enddo
+          i=iflag
+          j=jflag
+        ENDIF
+
+
+        IF(debug)THEN
+        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
+          print *,'  myid,i,j = ',myid,i,j
+          print *,'  x,x1     = ',x3d,pdata(np,prx)
+          print *,'  y,y1     = ',y3d,pdata(np,pry)
+          do i=0,ni+1
+            print *,i,abs(xh(i)-x3d),0.5*dx*ruh(i)
+          enddo
+          do j=0,nj+1
+            print *,j,abs(yh(j)-y3d),0.5*dy*rvh(j)
+          enddo
+          print *,'  16665 '
+          call stopcm1
+        endif
+        ENDIF
+
+        kflag = 1
+        if( .not. terrain_flag )then
+          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+            kflag = kflag+1
+          enddo
+        else
+          do while( sig3d.gt.sigmaf(kflag+1) )
+            kflag = kflag+1
+          enddo
+        endif
+
+        IF(debug)THEN
+        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
+          print *,myid,nrkp
+          print *,iflag,jflag,kflag
+          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
+          print *,x3d,y3d,z3d
+          print *,uval,vval,wval
+          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
+          print *,'  16667 '
+          call stopcm1
+        endif
+        ENDIF
+
+      !--------
+
       !Recall that the "old" value is stored here
       dvpdt(1) = (pdata(np,prvpx)-dvpdt(1))/dt   !Remember to deal with gravity later!
       dvpdt(2) = (pdata(np,prvpy)-dvpdt(2))/dt
@@ -882,33 +976,33 @@
       dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
       dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3 - dmvdt)/dt
 
-      !At this point, iflag_s,jflag_s,kflag_s is the node beneath droplet
+      !At this point, iflag,jflag,kflag is the node beneath droplet
 
       !Volume where the droplet finds itself
-      dV = (xh(iflag_s+1)-xh(iflag_s))*   &
-           (yh(jflag_s+1)-yh(jflag_s))*   &
-           (zh(iflag_s,jflag_s,kflag_s+1)-zh(iflag_s,jflag_s,kflag_s))
-       
+      dV = (xh(iflag+1)-xh(iflag))*   &
+           (yh(jflag+1)-yh(jflag))*   &
+           (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+
       !Loop over all nodes surrounding droplet
       do i=0,1
       do j=0,1
       do k=0,1
 
-        ix = iflag_s+i
-        iy = jflag_s+j
-        iz = kflag_s+k
+        ix = iflag+i
+        iy = jflag+j
+        iz = kflag+k
 
         xv = xh(ix)
         yv = yh(iy)
-        zv = zh(iflag_s,jflag_s,iz)
+        zv = zh(iflag,jflag,iz)
 
 
-        wtx = 1.0 - abs(x3d-xv)/(xh(iflag_s+1)-xh(iflag_s))
-        wty = 1.0 - abs(y3d-yv)/(yh(jflag_s+1)-yh(jflag_s))
-        wtz = 1.0 - abs(z3d-zv)/(zh(iflag_s,jflag_s,kflag_s+1)-zh(iflag_s,jflag_s,kflag_s))
+        wtx = 1.0 - abs(x3d-xv)/(xh(iflag+1)-xh(iflag))
+        wty = 1.0 - abs(y3d-yv)/(yh(jflag+1)-yh(jflag))
+        wtz = 1.0 - abs(z3d-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
         wtt = wtx*wty*wtz
 
-        qten(ix,iy,iz,nqv) = qten(ix,iy,iz,nqv) - &
+        qten(ix,iy,iz) = qten(ix,iy,iz) - &
             dmvdt/rhoval/dV*wtt*pdata(np,prmult)
 
 
@@ -916,7 +1010,12 @@
         !be negligible
         thten(ix,iy,iz) = thten(ix,iy,iz) - &
             (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
-        
+
+!        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
+!        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
+!        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
+!        if(np.eq.1) print *,'    rhow,cpl,cp  = ',rhow,cpl,cp
+!        if(np.eq.1) print *,'    dtpdt        = ',dtpdt
 
       enddo
       enddo
@@ -1250,11 +1349,11 @@
 
         kflag = 1
         if( .not. terrain_flag )then
-          do while( z3d.ge.zf(iflag,jflag,kflag+1) )
+          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
         else
-          do while( sig3d.ge.sigmaf(kflag+1) )
+          do while( sig3d.gt.sigmaf(kflag+1) )
             kflag = kflag+1
           enddo
         endif

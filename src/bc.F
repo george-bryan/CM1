@@ -1007,6 +1007,88 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+      subroutine bcs_tend_halo(s)
+      use input
+      implicit none
+
+      double precision, dimension(ib:ie,jb:je,kb:ke) :: s
+
+      integer i,j,k
+
+      ! For periodic lateral boundary conditions only:  
+      ! account for tendencies from halo zones. 
+
+#ifndef MPI
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+      if(wbc.eq.1)then
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+          s(1,j,k)=s(1,j,k)+s(ni+1,j,k)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+      if(ebc.eq.1)then
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k)
+        do k=1,nk
+        do j=1,nj
+          s(ni,j,k)=s(ni,j,k)+s(0,j,k)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+      if(sbc.eq.1)then
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k)
+        do k=1,nk
+        do i=1,ni
+          s(i,1,k)=s(i,1,k)+s(i,nj+1,k)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+      if(nbc.eq.1)then
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k)
+        do k=1,nk
+        do i=1,ni
+          s(i,nj,k)=s(i,nj,k)+s(i,0,k)
+        enddo
+        enddo
+      endif
+
+#endif
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcs_tend_halo
+
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
       subroutine extrapbcs(s)
       use input
       implicit none
