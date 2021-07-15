@@ -3625,6 +3625,7 @@
       time_mps4=0.0
       time_mpq2=0.0
       time_mpb=0.0
+      time_dpc=0.0
 #endif
 
       end subroutine set_time_to_zero

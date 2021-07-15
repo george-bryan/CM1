@@ -158,6 +158,7 @@
       integer, dimension(:), allocatable :: reqt
       integer :: reqc,reqk
       real, dimension(:,:), allocatable :: pdata,ploc
+      double precision, dimension(:,:,:,:), allocatable :: dpten
       logical, dimension(:,:,:), allocatable :: flag
 
 !--- arrays for MPI ---
@@ -352,7 +353,7 @@
 !    No other changes are necessary:  output file will contain the 
 !    variables "out1", "out2", "out3", ... etc.
 
-      nout3d =   0
+      nout3d =   2
 
 !----------------------------------------------------------------------
 !  For arbitrary 2d output array:  
@@ -2173,6 +2174,9 @@
       allocate(   ploc(nparcels,  3   ) )
       ploc = 0.0
 
+      allocate( dpten(ib:ie,jb:je,kb:ke,2) )
+      dpten = 0.0
+
       allocate( flag(ib:ie,jb:je,kb:ke) )
       flag = .false.
 
@@ -3031,7 +3035,7 @@
                    CK,CKA,CDA,USTM,QSFC,T2,Q2,TH2,EMISS,THC,ALBD,     &
                    gsw,glw,chklowq,capg,snowc,dsxy,wstar,delta,fm,fh,zntmp,   &
                    slab_zs,slab_dzs,tslb,tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml,        &
-                   pta,pt3d,ptten,pdata,                              &
+                   pta,pt3d,ptten,pdata,dpten,                        &
                    cfb,cfa,cfc, d1, d2,pdt,lgbth,lgbph,rhs,trans,flag,  &
                    gamk,gamwall,kmw,u1b,v1b,u2pt,v2pt,               &
                    reqs_u,reqs_v,reqs_w,reqs_s,reqs_p,reqs_p2,reqs_p3, &
@@ -3716,7 +3720,7 @@
                     time_mpu1+time_mpv1+time_mpw1+time_mpp1+                &
                     time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
-                    time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
+                    time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+time_dpc+       &
 #endif
                     time_advs+time_advu+time_advv+time_advw
           write(6,157) nstep,steptime2-steptime1
@@ -3971,6 +3975,9 @@
         sum = 0.0
         call MPI_REDUCE(time_mpb     ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_mpb = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_dpc     ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_dpc = sum/float(numprocs)
       ENDIF
 #endif
 
@@ -3985,7 +3992,7 @@
                   time_mpu1+time_mpv1+time_mpw1+time_mpp1+                &
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                   time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
-                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
+                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+time_dpc+       &
 #endif
                   time_advs+time_advu+time_advv+time_advw
       time_solve0 = time_solve
@@ -3994,7 +4001,7 @@
       mp_total=time_mpu1+time_mpv1+time_mpw1+time_mpp1+                   &
                time_mpu2+time_mpv2+time_mpw2+time_mpp2+                   &
                time_mps1+time_mps3+time_mpq1+time_mptk1+                            &
-               time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb
+               time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+time_dpc
 #endif
 
       if(dowr) write(outfile,*)
@@ -4063,6 +4070,7 @@
       write(outfile,100) 'mptk1   ',time_mptk1,time_mptk1/time_solve
       write(outfile,100) 'mptk2   ',time_mptk2,time_mptk2/time_solve
       write(outfile,100) 'mpb     ',time_mpb,time_mpb/time_solve
+      write(outfile,100) 'dpc     ',time_dpc,time_dpc/time_solve
 #endif
       write(outfile,*)
     ENDIF
