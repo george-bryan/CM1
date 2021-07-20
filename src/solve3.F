@@ -909,8 +909,10 @@
 
         endif  prltrn
 
+!$acc update host(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
         call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
+!$acc update device(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
       ENDIF
 

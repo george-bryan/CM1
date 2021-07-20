@@ -75,6 +75,8 @@
 
 !---------------------------------------------------------------------
 
+    !$acc compare(u3d,v3d,w3d,pp3d)
+
     IF( nrkmax.eq.3 )THEN
       if(nrk.eq.1)then
 !!!        nloop=1
@@ -293,7 +295,7 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          call comm_1p_end(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
         endif
 #endif
@@ -985,7 +987,7 @@
           ! 210613: call bcp, only set 1 row/column
           call bcp(ppd)
 #ifdef MPI
-          call comm_1p_start(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif
         ENDIF
@@ -1042,7 +1044,6 @@
         enddo
       ENDIF
       if(timestats.ge.1) time_sound=time_sound+mytime()
-
 
       !stop 'sounde: at the end of the subroutine'
 

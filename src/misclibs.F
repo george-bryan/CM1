@@ -2459,10 +2459,12 @@
       enddo
 
 #ifdef MPI
+!$acc host_data use_device(bot,top)
       call MPI_REDUCE(bot,var,1,MPI_REAL,MPI_MIN,0,MPI_COMM_WORLD,ierr)
       bot=var
       call MPI_REDUCE(top,var,1,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
       top=var
+!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -2639,9 +2641,11 @@
     ENDIF
     ENDIF  kcheck
 #ifdef MPI
+!$acc host_data use_device(vmax)
         call MPI_REDUCE(vmax,var,1,MPI_REAL,MPI_MAX,0,   &
                         MPI_COMM_WORLD,ierr)
         vmax=var
+!$acc end host_data
         if(myid.eq.0)then
 #endif
         write(6,100) text,vmax
@@ -2774,6 +2778,7 @@
       enddo
 
 #ifdef MPI
+!$acc host_data use_device(mmax,fmax,myid,imax,jmax,kmax,nmax)
       mmax(1)=fmax
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
@@ -2785,7 +2790,7 @@
       call MPI_BCAST(jmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       fmax=nmax(1)
-
+!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -2848,10 +2853,14 @@
 
       fmax=-99999999.
 
-      !$acc data copy(fmax) copyin(dtdx,dtdy,dtdz)
+#ifndef _B4B
+      !$acc data copy(fmax,cflmax) copyin(dtdx,dtdy,dtdz)
+#endif
       if(nx.gt.1.and.ny.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+#ifndef _B4B
         !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+#endif
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2865,7 +2874,9 @@
         enddo
       elseif(nx.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+#ifndef _B4B
         !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+#endif
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2878,7 +2889,9 @@
         enddo
       elseif(axisymm.eq.0.and.ny.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
+#ifndef _B4B
         !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+#endif
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2890,12 +2903,20 @@
           enddo
         enddo
       endif
-      !$acc end data
 
       cflmax = fmax
+#ifndef _B4B
+      !$acc end data
+#endif
 
 #ifdef MPI
-      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
+#ifndef _B4B
+!$acc host_data use_device(cflmax)
+#endif 
+     call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
+#ifndef _B4B
+!$acc end host_data
+#endif
 #endif
 
 !!!      if(cflmax.ge.1.50) stopit=.true.
@@ -2930,7 +2951,7 @@
       real :: dtdx,dtdy,fmax,tem1,tem2,tem3
       real, dimension(nk) :: ks
       real :: kstmp
-      !$acc data create(ks)
+      !$acc data create(ks,fmax) copy(cflmax,ksmax,kmh,kmv,khh,khv,reqk)
  
       dtdx=dt*rdx*rdx
       dtdy=dt*rdy*rdy
@@ -2938,12 +2959,20 @@
       if(nx.gt.1.and.ny.gt.1)then
         ! 3d:
         !$omp parallel do default(shared) private(i,j,k,tem1,tem2,tem3)
+#ifdef _B4B
+        !$acc update host(uh,vh,kmh,kmv,khh,khv)
+#else
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
+#endif
         ks(1)=0.0
+#ifndef _B4B
         !$acc loop gang 
+#endif
         do k=2,nk
            kstmp = 0.0
+#ifndef _B4B
            !$acc loop vector collapse(2) reduction(max:kstmp)
+#endif
            do j=1,nj
            do i=1,ni
              tem1 = sqrt( (kmh(i,j,k)*dtdx*uh(i)*uh(i))**2 &
@@ -2957,7 +2986,11 @@
           enddo
           ks(k) = kstmp
         enddo
+#ifdef _B4B
+        !$acc update device(ks)
+#else
         !$acc end parallel
+#endif
       elseif(nx.gt.1)then
         ! 2d (including axisymm):
         !$omp parallel do default(shared) private(i,j,tem1,tem2,tem3)
@@ -2982,13 +3015,15 @@
         stop 1112
       endif
 
+      !$acc parallel default(present) private(k) reduction(max:fmax)
       fmax=-99999999.
-      !$acc parallel loop gang vector private(k) reduction(max:fmax)
+      !$acc loop private(k) reduction(max:fmax)
       do k=2,nk
         fmax = max( fmax , ks(k) )
       enddo
 
       ksmax = fmax
+      !$acc end parallel
       !$acc end data
 
 #ifdef MPI
@@ -3146,6 +3181,7 @@
       endif
 
 #ifdef MPI
+!$acc host_data use_device(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
       mmax(1)=fhmax
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
@@ -3169,7 +3205,7 @@
       call MPI_BCAST(jmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       fvmax=nmax(1)
-
+!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3323,16 +3359,18 @@
         tmass=tmass+foo(k)
       enddo
       !$acc end parallel
+      !$acc end data
 
 #ifdef MPI
+!$acc host_data use_device(tmass)
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
+!$acc end host_data
       if(myid.eq.0)then
 #endif
 
-      !$acc end data
       tmass=tmass*(dx*dy*dz)
  
       write(6,100) 'TMASS ',tmass
@@ -3404,10 +3442,12 @@
 !$acc end parallel
 
 #ifdef MPI
+!$acc host_data use_device(tmass)
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
+!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3485,10 +3525,12 @@
 !$acc end parallel
 
 #ifdef MPI
+!$acc host_data use_device(tmass)
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
+!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3586,6 +3628,7 @@
       le=le*(dx*dy*dz)
 
 #ifdef MPI
+!$acc host_data use_device(ek,ei,ep,le)
       var=0.0d0
       call MPI_REDUCE(ek,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
@@ -3602,6 +3645,7 @@
       call MPI_REDUCE(le,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       le=var
+!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3690,6 +3734,7 @@
       
 
 #ifdef MPI
+!$acc host_data use_device(tmu,tmv,tmw,var)
       var=0.0d0
       call MPI_REDUCE(tmu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
@@ -3702,6 +3747,7 @@
       call MPI_REDUCE(tmw,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmw=var
+!$acc end host_data
       if(myid.eq.0)then
 #endif
  
@@ -3786,6 +3832,7 @@
       !$acc end parallel
 
 #ifdef MPI
+!$acc host_data use_device(tmfu,tmfd,var)
       var=0.0d0
       call MPI_REDUCE(tmfu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
@@ -3794,6 +3841,7 @@
       call MPI_REDUCE(tmfd,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmfd=var
+!$acc end host_data
       if(myid.eq.0)then
 #endif
       tmfu=tmfu*dx*dy
