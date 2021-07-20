@@ -3,9 +3,854 @@
   implicit none
 
   private
-  public :: parcel_driver,parcel_interp,parcel_write,setup_parcel_vars,getparcelzs
+  public :: droplet_driver,parcel_driver,parcel_interp,parcel_write,setup_parcel_vars,getparcelzs
 
   CONTAINS
+
+      subroutine droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                               sigma,sigmaf,znt,rho,ua,va,wa,pdata,                 &
+                               th_in,qa,th0,pi0,ppa,prs,                            &
+                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p)
+      use input
+      use constants
+      use bc_module
+      use comm_module
+      use cm1libs , only : rslf
+#ifdef MPI
+      use mpi
+#endif
+      implicit none
+
+!-----------------------------------------------------------------------
+!  This subroutine updates the parcel locations
+!-----------------------------------------------------------------------
+
+      real, intent(in) :: dt
+      real, intent(in), dimension(ib:ie) :: xh,uh,ruh
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je) :: yh,vh,rvh
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: mh,rmh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf,mf
+      real, intent(in), dimension(ib:ie,jb:je) :: zs
+      real, intent(in), dimension(kb:ke) :: sigma
+      real, intent(in), dimension(kb:ke+1) :: sigmaf
+      real, intent(in), dimension(ib:ie,jb:je) :: znt
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(inout), dimension(nparcels,npvals) :: pdata
+
+      real, intent(inout), dimension(jmp,kmp) :: pw1,pw2,pe1,pe2
+      real, intent(inout), dimension(imp,kmp) :: ps1,ps2,pn1,pn2
+      real, intent(inout), dimension(kmt) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
+      integer, intent(inout), dimension(rmp) :: reqs_p
+
+      !Need to compute the true temperature
+      real, dimension(ib:ie,jb:je,kb:ke) :: ta
+
+      integer :: n,np,i,j,k,iflag,jflag,kflag
+      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
+      real :: qval,tval,rhoval,prsval
+      real :: rxu,ryv,rzw,rxs,rys,rzs
+      real :: x3d,y3d,z3d
+      integer :: nrkp
+      real :: dt2,uu1,vv1,ww1
+      real :: z0,rznt,var
+      real :: sigdot,sig1,zsp,sig3d
+      real :: xrhs1,xrhs2,xrhs3,tprhs,tptmp
+      real :: vtmp1,vtmp2,vtmp3
+      real :: vrhs1,vrhs2,vrhs3
+      real :: rprhs,rptmp,qstar,einf,lhv,qinf
+      real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
+      real :: k1tp,k2tp,k1rp,k2rp
+      real :: taup,th_tmp,Rep,Nup,Shp
+      real :: diffnorm
+      real :: rhop,volp
+      real :: esl
+
+      logical, parameter :: debug = .false.
+
+      integer nip1,njp1
+
+
+!----------------------------------------------------------------------
+!  apply bottom/top boundary conditions:
+!  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
+!     (for the parcel subroutines only!)
+      !$acc data create(ta)
+
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector default(present) private(i,j)
+  DO j=jb,je+1
+
+    IF(bbc.eq.1)THEN
+      ! free slip ... extrapolate:
+      IF(j.le.je)THEN
+      do i=ib,ie+1
+        ua(i,j,0) = cgs1*ua(i,j,1)+cgs2*ua(i,j,2)+cgs3*ua(i,j,3)
+      enddo
+      ENDIF
+      do i=ib,ie
+        va(i,j,0) = cgs1*va(i,j,1)+cgs2*va(i,j,2)+cgs3*va(i,j,3)
+      enddo
+    ELSEIF(bbc.eq.2)THEN
+      ! no slip:
+      if( imove.eq.1 )then
+        IF(j.le.je)THEN
+        do i=ib,ie+1
+          ua(i,j,0) = 0.0 - umove
+        enddo
+        ENDIF
+        do i=ib,ie
+          va(i,j,0) = 0.0 - vmove
+        enddo
+      else
+        IF(j.le.je)THEN
+        do i=ib,ie+1
+          ua(i,j,0) = 0.0
+        enddo
+        ENDIF
+        do i=ib,ie
+          va(i,j,0) = 0.0
+        enddo
+      endif
+    ELSEIF(bbc.eq.3)THEN
+      ! u,v near sfc are determined below using log-layer equations
+    ENDIF
+
+!----------
+
+    IF(tbc.eq.1)THEN
+      ! free slip ... extrapolate:
+      IF(j.le.je)THEN
+      do i=ib,ie+1
+        ua(i,j,nk+1) = cgt1*ua(i,j,nk)+cgt2*ua(i,j,nk-1)+cgt3*ua(i,j,nk-2)
+      enddo
+      ENDIF
+      do i=ib,ie
+        va(i,j,nk+1) = cgt1*va(i,j,nk)+cgt2*va(i,j,nk-1)+cgt3*va(i,j,nk-2)
+      enddo
+    ELSEIF(tbc.eq.2)THEN
+      ! no slip:
+      IF(j.le.je)THEN
+      do i=ib,ie+1
+        ua(i,j,nk+1) = 0.0
+      enddo
+      ENDIF
+      do i=ib,ie
+        va(i,j,nk+1) = 0.0
+      enddo
+    ENDIF
+
+!----------
+
+      IF(j.le.je)THEN
+      do i=ib,ie
+        wa(i,j,nk+1) = 0.0
+      enddo
+      ENDIF
+
+
+    !NEED SCALARS
+    
+
+  ENDDO
+
+
+  !$acc compare(pi0,th_in,th0,ppa)
+  !Compute temperature for interpolation
+  !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,th_tmp)
+  do k=1,nk
+    do j=1,nj
+    do i=1,ni
+
+      !th_tmp = (th0(i,j,k)+th_in(i,j,k))
+      !ta(i,j,k) = th_tmp*(pi0(i,j,k)+ppa(i,j,k))
+      ta(i,j,k) = (th0(i,j,k)+th_in(i,j,k))*(pi0(i,j,k)+ppa(i,j,k))
+
+    enddo
+    enddo
+  enddo
+
+  !$acc compare(ta,pi0,th_in,th0,ppa)
+  !stop 'droplet_driver: after first compare'
+  !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
+  call prepcorners(ta,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+  call prepcorners(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+  call prepcorners(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+  call prepcorners(qa(ib,jb,kb,nqv),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
+  if(timestats.ge.1) time_droplet=time_droplet+mytime()
+
+  print *,'droplet_driver: number of parcels: ',nparcels
+  !stop 'droplet_driver: after call to prepcorners'
+
+
+
+    nip1=ni+1
+
+!----------------------------------------------------------------------
+!  Loop through all parcels:  if you have it, update it's properties
+
+    dt2 = dt/2.0
+
+    !JMD WARNING: Loop does not yet match CPU version.
+    !$acc parallel &
+    !$acc default(present) &
+    !$acc private(i,j,k,rx,ry,rz,rxu,ryv,rxs,rys,rzs,rzw,x3d,y3d,z3d, &
+    !$acc     w1,w2,w3,w4,w5,w6,w7,w8,sig3d,iflag,jflag,kflag,nrkp, &
+    !$acc     uval,vval,wval,qval,tval,rhoval,prsval,sigdot,zsp,rznt,var, &
+    !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,taup,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3,qinf, &
+    !$acc     lhv,qstar,rprhs,tprhs,vtmp1,vtmp2,vtmp3,k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3, &
+    !$acc     sig1,k1tp,esl, &
+    !$acc     tptmp,k1rp,rptmp)
+
+    !$acc loop gang vector 
+    nploop:  &
+    DO np=1,nparcels
+
+      x3d = pdata(np,prx)
+      y3d = pdata(np,pry)
+      if( .not. terrain_flag )then
+        z3d = pdata(np,prz)
+      else
+        sig3d = pdata(np,prsig)
+      endif
+
+      iflag = -100
+      jflag = -100
+      kflag = 0
+
+  ! cm1r19:  skip if we already know this processor doesnt have this parcel
+  haveit1:  &
+  IF( x3d.ge.xf(1) .and. x3d.le.xf(ni+1) .and.  &
+      y3d.ge.yf(1) .and. y3d.le.yf(nj+1) )THEN
+
+    IF(nx.eq.1)THEN
+      iflag = 1
+    ELSE
+      ! cm1r19:
+      i = ni+1
+      do while( iflag.lt.0 .and. i.gt.1 )
+        i = i-1
+        if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
+          iflag = i
+        endif
+      enddo
+    ENDIF
+
+    IF(axisymm.eq.1.or.ny.eq.1)THEN
+      jflag = 1
+    ELSE
+      ! cm1r19:
+      j = nj+1
+      do while( jflag.lt.0 .and. j.gt.1 )
+        j = j-1
+        if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
+          jflag = j
+        endif
+      enddo
+    ENDIF
+
+  ENDIF  haveit1
+
+#ifdef MPI
+      ! check for conflict:
+    IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
+        (jflag.ge.1.and.jflag.le.nj) )THEN
+      IF( iflag.eq.ni .and. pdata(np,prx).eq.xf(iflag+1) .and. nodex.gt.1 .and.  myi.ne.nodex ) iflag = -1
+      IF( jflag.eq.nj .and. pdata(np,pry).eq.yf(jflag+1) .and. nodey.gt.1 .and.  myj.ne.nodey ) jflag = -1
+    ENDIF
+#endif
+
+      myparcel:  IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
+                     (jflag.ge.1.and.jflag.le.nj) )THEN
+
+
+      !$acc loop seq
+      rkloop:  DO nrkp = 1,2
+
+      IF( nrkp.eq.1 )THEN
+        i=iflag
+        j=jflag
+      ELSE
+        iflag = -100
+        jflag = -100
+        IF(nx.eq.1)THEN
+          iflag = 1
+        ELSE
+          ! cm1r19:
+          i = ni+2
+          do while( iflag.lt.0 .and. i.gt.0 )
+            i = i-1
+            if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
+              iflag = i
+            endif
+          enddo
+        ENDIF
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          jflag = 1
+        ELSE
+          !$acc loop seq
+          do j=0,nj+1
+            if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) ) jflag=j
+          enddo
+          ! cm1r19:
+          j = nj+2
+          do while( jflag.lt.0 .and. j.gt.0 )
+            j = j-1
+            if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
+              jflag = j
+            endif
+          enddo
+        ENDIF
+        i=iflag
+        j=jflag
+      ENDIF
+
+        kflag = 1
+        if( .not. terrain_flag )then
+          do while( z3d.ge.zf(iflag,jflag,kflag+1) )
+            kflag = kflag+1
+          enddo
+        else
+          do while( sig3d.ge.sigmaf(kflag+1) )
+            kflag = kflag+1
+          enddo
+        endif
+
+
+!JMD-debug
+!----------------------------------------------------------------------
+!  Data on u points
+
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( y3d.lt.yh(j) )then
+          j=j-1
+        endif
+        if( .not. terrain_flag )then
+          if( z3d.lt.zh(iflag,jflag,k) )then
+            k=k-1
+          endif
+          rz = ( z3d-zh(iflag,jflag,k) )/( zh(iflag,jflag,k+1)-zh(iflag,jflag,k) )
+        else
+          if( sig3d.lt.sigma(k) )then
+            k=k-1
+          endif
+          rz = ( sig3d-sigma(k) )/( sigma(k+1)-sigma(k) )
+        endif
+
+        rx = ( x3d-xf(i) )/( xf(i+1)-xf(i) )
+        ry = ( y3d-yh(j) )/( yh(j+1)-yh(j) )
+
+        ! saveit:
+        rxu = rx
+        rys = ry
+        rzs = rz
+
+
+        w1 = calcW1(rx,ry,rz)
+        w2 = calcW2(rx,ry,rz)
+        w3 = calcW3(rx,ry,rz)
+        w4 = calcW4(rx,ry,rz)
+        w5 = calcW5(rx,ry,rz)
+        w6 = calcW6(rx,ry,rz)
+        w7 = calcW7(rx,ry,rz)
+        w8 = calcW8(rx,ry,rz)
+        uval = tri_interp(nip1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ua)
+
+!----------------------------------------------------------------------
+!  Data on v points
+
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( x3d.lt.xh(i) )then
+          i=i-1
+        endif
+        if( .not. terrain_flag )then
+          if( z3d.lt.zh(iflag,jflag,k) )then
+            k=k-1
+          endif
+        else
+          if( sig3d.lt.sigma(k) )then
+            k=k-1
+          endif
+        endif
+
+        rx = ( x3d-xh(i) )/( xh(i+1)-xh(i) )
+        ry = ( y3d-yf(j) )/( yf(j+1)-yf(j) )
+        rz = rzs
+
+        ! saveit:
+        rxs = rx
+        ryv = ry
+
+        w1 = calcW1(rx,ry,rz)
+        w2 = calcW2(rx,ry,rz)
+        w3 = calcW3(rx,ry,rz)
+        w4 = calcW4(rx,ry,rz)
+        w5 = calcW5(rx,ry,rz)
+        w6 = calcW6(rx,ry,rz)
+        w7 = calcW7(rx,ry,rz)
+        w8 = calcW8(rx,ry,rz)
+        vval = tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,va)
+
+!----------------------------------------------------------------------
+!  Data on w points
+
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( x3d.lt.xh(i) )then
+          i=i-1
+        endif
+        if( y3d.lt.yh(j) )then
+          j=j-1
+        endif
+
+        rx = rxs
+        ry = rys
+        if( .not. terrain_flag )then
+          rz = ( z3d-zf(iflag,jflag,k) )/( zf(iflag,jflag,k+1)-zf(iflag,jflag,k) )
+        else
+          rz = ( sig3d-sigmaf(k) )/( sigmaf(k+1)-sigmaf(k) )
+        endif
+
+        ! saveit:
+        rzw = rz
+
+        w1 = calcW1(rx,ry,rz)
+        w2 = calcW2(rx,ry,rz)
+        w3 = calcW3(rx,ry,rz)
+        w4 = calcW4(rx,ry,rz)
+        w5 = calcW5(rx,ry,rz)
+        w6 = calcW6(rx,ry,rz)
+        w7 = calcW7(rx,ry,rz)
+        w8 = calcW8(rx,ry,rz)
+        wval = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
+
+        if( terrain_flag )then
+          sigdot = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
+          zsp = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs)
+          z3d = zsp + sig3d*((zt-zsp)*rzt)
+        endif
+
+
+!----------------------------------------------------------------------
+!  Data on scalar points
+
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( pdata(np,prx).lt.xh(i) )then
+          i=i-1
+        endif
+        if( pdata(np,pry).lt.yh(j) )then
+          j=j-1
+        endif
+        if( .not. terrain_flag )then
+          if( pdata(np,prz).lt.zh(iflag,jflag,k) )then
+            k=k-1
+          endif
+        else
+          if( pdata(np,prsig).lt.sigma(k) )then
+            k=k-1
+          endif
+        endif
+
+        rx = rxs
+        ry = rys
+        rz = rzs
+
+        w1 = calcW1(rx,ry,rz)
+        w2 = calcW2(rx,ry,rz)
+        w3 = calcW3(rx,ry,rz)
+        w4 = calcW4(rx,ry,rz)
+        w5 = calcW5(rx,ry,rz)
+        w6 = calcW6(rx,ry,rz)
+        w7 = calcW7(rx,ry,rz)
+        w8 = calcW8(rx,ry,rz)
+
+      if(imoist.eq.1)then
+        qval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,qa(ib,jb,kb,nqv))
+      endif
+        tval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ta)
+        rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
+        prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
+
+
+!----------------------------------------------------------------------
+!  uv for parcels below lowest model level:
+
+      IF( bbc.eq.3 )THEN
+        ! semi-slip lower boundary condition:
+        if( z3d.lt.zh(1,1,1) )then
+          ! re-calculate velocities if parcel is below lowest model level:
+          !------
+          ! u at lowest model level:
+          i=iflag
+          j=jflag
+          if( y3d.lt.yh(j) )then
+            j=j-1
+          endif
+          uval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 0, 1, 0,ua(ib,jb,1))
+          !------
+          ! v at lowest model level:
+          i=iflag
+          j=jflag
+          if( x3d.lt.xh(i) )then
+            i=i-1
+          endif
+          vval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 1, 0, 1,va(ib,jb,1))
+          !------
+          ! z0:
+          i=iflag
+          j=jflag
+          if( x3d.lt.xh(i) )then
+            i=i-1
+          endif
+          if( y3d.lt.yh(j) )then
+            j=j-1
+          endif
+          z0 = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,znt)
+          !------
+          ! get u,v from (neutral) log-layer equation:
+          rznt = 1.0/z0
+          var = alog((z3d+z0)*rznt)/alog((zh(1,1,1)+z0)*rznt)
+          if( imove.eq.1 )then
+            uval = (uval+umove)*var - umove
+            vval = (vval+vmove)*var - vmove
+          else
+            uval = uval*var
+            vval = vval*var
+          endif
+        endif
+      ENDIF
+
+      qinf = rslf(prsval,tval)
+      lhv=lv1-lv2*tval
+
+#if 1
+!-----------------------------------------------------
+!  Update droplet position, velocity, etc.
+!-----------------------------------------------------
+
+
+      ! RK2 scheme:
+      IF(nrkp.eq.1)THEN
+
+        xrhs1 = pdata(np,prvpx)
+        xrhs2 = pdata(np,prvpy)
+        xrhs3 = pdata(np,prvpz)
+
+        volp = 4.0/3.0*pi*pdata(np,prrp)**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+
+        diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
+                         (vval-pdata(np,prvpy))**2+ &
+                         (wval-pdata(np,prvpz))**2)
+
+        Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
+        !JMD This does not look right
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        Nup = 2.0
+        Shp = 2.0
+
+        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx))
+        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy))
+        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz))
+
+#if 0
+        ! einf = qinf*rhoval/mw*ru*tval
+
+        qstar = qinf*exp(                                                   &
+                     mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
+                    +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
+                    -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
+                        )
+#endif
+
+        rprhs = Shp/9.0/sc_num*rhop/rhow*pdata(np,prrp)/taup*(qval-qstar)
+
+        tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
+                3.0*lhv/cpl/pdata(np,prrp)*rprhs
+
+
+
+        IF(nx.eq.1)THEN
+          x3d=0.0
+          vtmp1 = 0.0
+        ELSE
+          k1xp1 = dt*xrhs1
+          x3d=pdata(np,prx)+k1xp1
+
+          k1vp1 = dt*vrhs1
+          vtmp1 = pdata(np,prvpx) + k1vp1
+
+        ENDIF
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          y3d=0.0
+          vtmp2 = 0.0
+        ELSE
+          k1xp2 = dt*xrhs2
+          y3d=pdata(np,pry)+k1xp2
+
+          k1vp2 = dt*vrhs2
+          vtmp2 = pdata(np,prvpy) + k1vp2
+        ENDIF
+        if( terrain_flag )then
+          sig3d = pdata(np,prsig) + dt*sigdot
+          sig1 = sigdot
+        else
+          k1xp3 = dt*xrhs3
+          z3d = pdata(np,prz)+k1xp3
+          !xtmp3=z3d
+
+          k1vp3 = dt*vrhs3
+          vtmp3 = pdata(np,prvpz) + k1vp3
+        endif
+
+        k1tp = dt*tprhs
+        tptmp = pdata(np,prtp) + k1tp
+
+        k1rp = dt*rprhs
+        rptmp = pdata(np,prrp) + k1rp
+
+
+      ELSE
+
+        xrhs1 = vtmp1
+        xrhs2 = vtmp2
+        xrhs3 = vtmp3
+
+        volp = 4.0/3.0*pi*rptmp**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*rptmp)**2/18.0/rhoval/viscosity
+
+        diffnorm = sqrt((uval-vtmp1)**2+ &
+                        (vval-vtmp2)**2+ &
+                        (wval-vtmp3)**2)
+
+        Rep = 2.0*rptmp*diffnorm/viscosity
+        !JMD THis looks strange
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        Nup = 2.0
+        Shp = 2.0
+
+        vrhs1 = 1.0/taup*(uval - vtmp1)
+        vrhs2 = 1.0/taup*(vval - vtmp2)
+        vrhs3 = 1.0/taup*(wval - vtmp3)
+
+#if 0
+        qstar = qinf*exp(                                                   &
+                     mw*lhv/ru*(1.0/tval - 1.0/tptmp)                       &
+                    +2.0*ms*surften/(ru*rhow*rptmp*tptmp)                   &
+                    -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
+                        )
+#endif
+
+        rprhs = Shp/9.0/sc_num*rhop/rhow*rptmp/taup*(qval-qstar)
+
+        tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-tptmp) + &
+                3.0*lhv/cpl/rptmp*rprhs
+!PREVIOUS
+
+        IF(nx.eq.1)THEN
+          x3d=0.0
+          pdata(np,prvpx) = 0.0
+        ELSE
+          !k2xp(1) = dt*xrhs(1)
+          x3d=pdata(np,prx)+0.5*(k1xp1+dt*xrhs1)
+
+          !k2vp(1) = dt*vrhs1
+          pdata(np,prvpx) = pdata(np,prvpx) + 0.5*(k1vp1+dt*vrhs1)
+
+        ENDIF
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          y3d=0.0
+          pdata(np,prvpy) = 0.0
+        ELSE
+          !k2xp(2) = dt*xrhs(2)
+          y3d=pdata(np,pry)+0.5*(k1xp2+dt*xrhs2)
+
+          !k2vp(2) = dt*vrhs2
+          pdata(np,prvpy) = pdata(np,prvpy) + 0.5*(k1vp2+dt*vrhs2)
+        ENDIF
+
+        if( terrain_flag )then
+          sig3d = pdata(np,prsig) + dt2*(sig1+sigdot)
+          IF( sig3d.lt.0.0 )THEN
+            print *,'  parcel is below surface:  np,x3d,y3d,sig3d = ',np,x3d,y3d,sig3d
+            sig3d=1.0e-6
+          ENDIF
+          sig3d=min(sig3d,maxz)
+        else
+          !k2xp(3) = dt*xrhs(3)
+          !JMD-BUG z3d = pdata(np,prz)+0.5*(k1xp(3)+k1xp(3))
+          z3d = pdata(np,prz)+0.5*(k1xp3+dt*xrhs3)
+
+          !k2vp(3) = dt*vrhs3
+          pdata(np,prvpz) = pdata(np,prvpz) + 0.5*(k1vp3+dt*vrhs3)
+
+          !Wall BCs:
+          if ( z3d .gt. maxz ) then
+             z3d = maxz - (z3d - maxz)
+             pdata(np,prvpz) = -pdata(np,prvpz)
+          elseif ( z3d .lt. 0.0 ) then
+             z3d = -z3d
+             pdata(np,prvpz) = -pdata(np,prvpz)
+          endif
+        endif
+
+        pdata(np,prtp) = pdata(np,prtp) + 0.5*(k1tp+dt*tprhs)
+        pdata(np,prrp) = pdata(np,prrp) + 0.5*(k1rp+dt*rprhs)
+
+      ENDIF
+#else
+      !KLUDGE do something basic to check code generation 
+      pdata(np,prvpy) = pdata(np,prvpy) + .01
+      pdata(np,prvpx) = pdata(np,prvpx) + .01
+#endif
+
+
+
+      ENDDO  rkloop
+
+!-----------------------------------------------------
+!  Account for boundary conditions (if necessary)
+!-----------------------------------------------------
+
+        ! New for cm1r17:  if parcel exits domain,
+        ! just assume periodic lateral boundary conditions
+        ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
+
+        if(x3d.lt.minx)then
+          x3d=x3d+(maxx-minx)
+        endif
+        if(x3d.gt.maxx)then
+          x3d=x3d-(maxx-minx)
+        endif
+
+        if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
+          y3d=y3d-(maxy-miny)
+        endif
+        if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
+          y3d=y3d+(maxy-miny)
+        endif
+
+        pdata(np,prx)=x3d
+        pdata(np,pry)=y3d
+        if( .not. terrain_flag )then
+          pdata(np,prz)=z3d
+        else
+          pdata(np,prsig)=sig3d
+        endif
+
+#ifdef MPI
+
+      ELSE
+
+        ! set to really small number (so we can use the allreduce command below)
+        pdata(np,prx) = -1.0e30
+        pdata(np,pry) = -1.0e30
+        if( .not. terrain_flag )then
+          pdata(np,prz) = -1.0e30
+        else
+          pdata(np,prsig) = -1.0e30
+        endif
+        pdata(np,prvpx) = -1.0e30
+        pdata(np,prvpy) = -1.0e30
+        pdata(np,prvpz) = -1.0e30
+        pdata(np,prrp) = -1.0e30
+        pdata(np,prtp) = -1.0e30
+        pdata(np,prms) = -1.0e30
+#endif
+
+      ENDIF  myparcel
+
+    ENDDO  nploop
+    !$acc end parallel
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
+
+  !!$acc update &
+  !!$acc  host(xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,sigma,sigmaf,znt, &
+  !!$acc    rho,prs,qa,ua,va,wa,ta,pdata)
+  !if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
+!----------------------------------------------------------------------
+!  communicate data  (for MPI runs)
+
+#ifdef MPI
+      if( .not. terrain_flag )then
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+      else
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+      endif
+      if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
+     
+#endif
+
+!----------------------------------------------------------------------
+!  get height ASL:
+
+      if( terrain_flag )then
+            call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
+            DO np=1,nparcels
+              ! get z from sigma:
+              ! (see Section 3 of "The governing equations for CM1", 
+              !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
+              pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
+            ENDDO
+      endif
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
+    !!$acc update &
+    !!$acc  device(rho,prs,qa,ua,va,wa,pdata)
+    !if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
+
+      !!$acc compare(pdata(:nparcels,:prx))
+      !!$acc compare(pdata(:nparcels,:pry))
+      !!$acc compare(pdata(:nparcels,:prz))
+      !!$acc compare(pdata(:nparcels,:prvpx))
+      !!$acc compare(pdata(:nparcels,:prvpy))
+      !!$acc compare(pdata(:nparcels,:prvpz))
+      !!$acc compare(pdata(:nparcels,:prrp))
+      !!$acc compare(pdata(:nparcels,:prms))
+      !!$acc compare(pdata(:nparcels,:prtp))
+
+      !!$acc compare(pdata(:nparcels,:pru))
+      !!$acc compare(pdata(:nparcels,:prv))
+      !!$acc compare(pdata(:nparcels,:prw))
+      !!$acc compare(pdata(:nparcels,:prtime))
+      !!$acc compare(pdata(:nparcels,:prth))
+      !!$acc compare(pdata(:nparcels,:prprs))
+      !!$acc compare(pdata(:nparcels,:prqv))
+!
+      !!$acc compare(pdata)
+!----------------------------------------------------------------------
+      !$acc end data
+
+      end subroutine droplet_driver
 
       subroutine parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata)
@@ -302,14 +1147,15 @@
         rys = ry
         rzs = rz
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -335,7 +1181,7 @@
         endif
         ENDIF
 
-        call tri_interp(ni+1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ua,uval)
+        uval = tri_interp(ni+1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ua)
 
 !----------------------------------------------------------------------
 !  Data on v points
@@ -365,14 +1211,15 @@
         rxs = rx
         ryv = ry
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -398,7 +1245,7 @@
         endif
         ENDIF
 
-        call tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,va,vval)
+        vval = tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,va)
 
 !----------------------------------------------------------------------
 !  Data on w points
@@ -425,14 +1272,15 @@
         ! saveit:
         rzw = rz
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -458,11 +1306,11 @@
         endif
         ENDIF
 
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa,wval)
+        wval = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
 
         if( terrain_flag )then
-          call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa,sigdot)
-          call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs,zsp)
+          sigdot =  tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
+          zsp = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs)
           z3d = zsp + sig3d*((zt-zsp)*rzt)
         endif
 
@@ -480,7 +1328,7 @@
           if( y3d.lt.yh(j) )then
             j=j-1
           endif
-          call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 0, 1, 0,ua(ib,jb,1),uval)
+          uval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 0, 1, 0,ua(ib,jb,1))
           !------
           ! v at lowest model level:
           i=iflag
@@ -488,7 +1336,7 @@
           if( x3d.lt.xh(i) )then
             i=i-1
           endif
-          call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 1, 0, 1,va(ib,jb,1),vval)
+          vval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 1, 0, 1,va(ib,jb,1))
           !------
           ! z0:
           i=iflag
@@ -499,7 +1347,7 @@
           if( y3d.lt.yh(j) )then
             j=j-1
           endif
-          call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,znt,z0)
+          z0 = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,znt)
           !------
           ! get u,v from (neutral) log-layer equation:
           rznt = 1.0/z0
@@ -617,15 +1465,16 @@
       ENDIF  myparcel
 
     ENDDO  nploop
+    if(timestats.ge.1) time_parcels=time_parcels+mytime()
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
 #ifdef MPI
       if( .not. terrain_flag )then
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),3*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       else
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),2*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
 #endif
@@ -725,6 +1574,14 @@
       real :: x3d,y3d,z3d,z0,rznt,var
 
       logical, parameter :: debug = .false.
+      !$acc update  &
+      !$acc host(xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,zh,mh,rmh,zf,mf,znt,ust, &
+      !$acc      c1,c2,zs,sigma,sigmaf,rds,gz,pi0,th0,thv0,qv0,qc0,qi0,rth0, &
+      !$acc      dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
+      !$acc      vpg,pp3d,th3d,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
+      !$acc      tdiag,qdiag,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,nw1,nw2,ne1,ne2, &
+      !$acc      sw1,sw2,se1,se2,tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+      if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
 !----------------------------------------------------------------------
 !  Get derived variables:
@@ -741,6 +1598,7 @@
         qt(i,j,k)=q3d(i,j,k,nqv)
       enddo
       enddo
+    if(nql1.ge.1)then
       do n=nql1,nql2
         do j=1,nj
         do i=1,ni
@@ -748,6 +1606,7 @@
         enddo
         enddo
       enddo
+    endif
       IF(iice.eq.1)THEN
         do n=nqs1,nqs2
         do j=1,nj
@@ -827,7 +1686,7 @@
       enddo
       enddo
       enddo
-      if(timestats.ge.1) time_parcels=time_parcels+mytime()
+      if(timestats.ge.1) time_parceli=time_parceli+mytime()
       call    prepcornert(buoy,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,1)
       do j=0,nj+1
@@ -863,7 +1722,7 @@
       enddo
       enddo
     endif
-      if(timestats.ge.1) time_parcels=time_parcels+mytime()
+      if(timestats.ge.1) time_parceli=time_parceli+mytime()
       call    prepcornert(vpg ,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,1)
       ! cmr18:  at top/bottom boundaries, vpg + buoy = 0
@@ -875,7 +1734,7 @@
       enddo
     ENDIF
 
-    if(timestats.ge.1) time_parcels=time_parcels+mytime()
+    if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
 !----------------------------------------------------------------------
 !  get corner info for MPI runs
@@ -974,56 +1833,67 @@
 
   ENDDO
 
-      if(timestats.ge.1) time_parcels=time_parcels+mytime()
+      if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
+      print *,'parcel_interp: point #1'
       if( prth.ge.1 )then
         call prepcorners(th ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       endif
+      print *,'parcel_interp: point #2'
       if( prt.ge.1 )then
         call prepcorners(t  ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       endif
+      print *,'parcel_interp: point #3'
       if( prprs.ge.1 )then
         call prepcorners(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       endif
+      print *,'parcel_interp: point #4'
       if( prrho.ge.1 )then
         call prepcorners(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       endif
+      print *,'parcel_interp: point #5'
       if(prpt1.ge.1)then
         do n=1,npt
           call prepcorners(pt3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
       endif
+      print *,'parcel_interp: point #6'
       if( prqv.ge.1 )then
         call prepcorners(q3d(ib,jb,kb,nqv),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                            pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
       endif
+      print *,'parcel_interp: point #7'
       if( prq1.ge.1 .or. prnc1.ge.1 )then
         do n = 1,numq
           call prepcorners(q3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                            pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
       endif
+      print *,'parcel_interp: point #8'
       if( prkm.ge.1 )then
         call prepcornert(kmh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
         call prepcornert(kmv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
+      print *,'parcel_interp: point #9'
       if( prkh.ge.1 )then
         call prepcornert(khh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
         call prepcornert(khv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
+      print *,'parcel_interp: point #10'
       if( prtke.ge.1 )then
         call prepcornert(tke3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
+      print *,'parcel_interp: point #11'
       if( prdbz.ge.1 )then
         call prepcorners(qdiag(ibdq,jbdq,kbdq,qd_dbz),  &
                              nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
@@ -1032,6 +1902,7 @@
 
 !----------------------------------------------------------------------
 
+      print *,'parcel_interp: point #12'
     IF( prqsl.ge.1 )THEN
       do k=1,nk
       do j=1,nj
@@ -1040,7 +1911,7 @@
       enddo
       enddo
       enddo
-      if(timestats.ge.1) time_parcels=time_parcels+mytime()
+      if(timestats.ge.1) time_parceli=time_parceli+mytime()
       call prepcorners(dum1,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
     ENDIF
@@ -1052,10 +1923,11 @@
       enddo
       enddo
       enddo
-      if(timestats.ge.1) time_parcels=time_parcels+mytime()
+      if(timestats.ge.1) time_parceli=time_parceli+mytime()
       call prepcorners(dum2,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
     ENDIF
+      print *,'parcel_interp: point #13'
 
 !----------------------------------------------------------------------
 !  Get zvort at appropriate C-grid location:
@@ -1188,14 +2060,15 @@
         rys = ry
         rzs = rz
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -1221,7 +2094,7 @@
         endif
         ENDIF
 
-        call tri_interp(ni+1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,u3d,uval)
+        uval =  tri_interp(ni+1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,u3d)
 
 !----------------------------------------------------------------------
 !  Data on v points
@@ -1251,14 +2124,15 @@
         rxs = rx
         ryv = ry
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -1284,7 +2158,7 @@
         endif
         ENDIF
 
-        call tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,v3d,vval)
+        vval = tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,v3d)
 
 !----------------------------------------------------------------------
 !  Data on w points
@@ -1313,14 +2187,15 @@
         ! saveit:
         rzw = rz
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -1346,23 +2221,23 @@
         endif
         ENDIF
 
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,w3d ,wval)
+        wval = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,w3d)
       if(prkm.ge.1)then
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,kmh,pdata(np,prkm  ))
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,kmv,pdata(np,prkm+1))
+        pdata(np,prkm  ) = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,kmh)
+        pdata(np,prkm+1) = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,kmv)
       endif
       if(prkh.ge.1)then
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,khh,pdata(np,prkh  ))
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,khv,pdata(np,prkh+1))
+        pdata(np,prkh  ) = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,khh)
+        pdata(np,prkh+1) = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,khv)
       endif
       if( prtke.ge.1 )then
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,tke3d,pdata(np,prtke))
+        pdata(np,prtke) = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,tke3d)
       endif
       if( prb.ge.1 )then
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,buoy,pdata(np,prb))
+        pdata(np,prb) = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,buoy)
       endif
       if( prvpg.ge.1 )then
-        call tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,vpg,pdata(np,prvpg))
+        pdata(np,prvpg) = tri_interp(ni,nj,nk+1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,vpg)
       endif
 
 !----------------------------------------------------------------------
@@ -1392,14 +2267,15 @@
         ry = rys
         rz = rzs
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -1424,37 +2300,37 @@
 
       if(imoist.eq.1)then
         if(prdbz.ge.1)  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,qdiag(ibdq,jbdq,kbdq,qd_dbz),pdata(np,prdbz))
+        pdata(np,prdbz) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,qdiag(ibdq,jbdq,kbdq,qd_dbz))
         if(prqv.ge.1)  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,q3d(ib,jb,kb,nqv),pdata(np,prqv))
-        if(prq1.ge.1)then
+        pdata(np,prqv) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,q3d(ib,jb,kb,nqv))
+        if( prq1.ge.1 .and. nql1.ge.1 )then
           do n=nql1,nql1+(prq2-prq1)
-            call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,q3d(ib,jb,kb,n),pdata(np,prq1+(n-nql1)))
+            pdata(np,prq1+(n-nql1)) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,q3d(ib,jb,kb,n))
           enddo
         endif
         if(prnc1.ge.1)then
           do n=nnc1,nnc1+(prnc2-prnc1)
-            call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,q3d(ib,jb,kb,n),pdata(np,prnc1+(n-nnc1)))
+            pdata(np,prnc1+(n-nnc1)) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,q3d(ib,jb,kb,n))
           enddo
         endif
         if( prqsl.ge.1 )  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,dum1,pdata(np,prqsl))
+        pdata(np,prqsl) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,dum1)
         if( prqsi.ge.1 )  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,dum2,pdata(np,prqsi))
+        pdata(np,prqsi) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,dum2)
       endif
 
         if( prth.ge.1 )  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,th ,pdata(np,prth))
+        pdata(np,prth) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,th)
         if( prt.ge.1 )  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,t  ,pdata(np,prt ))
+        pdata(np,prt ) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,t)
         if( prprs.ge.1 )  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs,pdata(np,prprs))
+        pdata(np,prprs) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
         if( prrho.ge.1 )  &
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho,pdata(np,prrho))
+        pdata(np,prrho) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
 
         if(prpt1.ge.1)then
           do n=1,npt
-          call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,pt3d(ib,jb,kb,n),pdata(np,prpt1+n-1))
+          pdata(np,prpt1+n-1) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,pt3d(ib,jb,kb,n))
           enddo
         endif
 
@@ -1481,14 +2357,15 @@
         ry = ryv
         rz = rzs
 
-        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2=rx*(1.0-ry)*(1.0-rz)
-        w3=(1.0-rx)*ry*(1.0-rz)
-        w4=(1.0-rx)*(1.0-ry)*rz
-        w5=rx*(1.0-ry)*rz
-        w6=(1.0-rx)*ry*rz
-        w7=rx*ry*(1.0-rz)
-        w8=rx*ry*rz
+        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        ! w2=rx*(1.0-ry)*(1.0-rz)
+        ! w3=(1.0-rx)*ry*(1.0-rz)
+        ! w4=(1.0-rx)*(1.0-ry)*rz
+        ! w5=rx*(1.0-ry)*rz
+        ! w6=(1.0-rx)*ry*rz
+        ! w7=rx*ry*(1.0-rz)
+        ! w8=rx*ry*rz
+        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -1511,7 +2388,7 @@
         endif
         ENDIF
 
-        call tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,zv,pdata(np,przv))
+        pdata(np,przv) = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,zv)
 
       ENDIF
 
@@ -1527,10 +2404,10 @@
         if( y3d.lt.yh(j) )then
           j=j-1
         endif
-        call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,znt,z0)
+        z0 = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,znt)
         if( prznt.ge.1 ) pdata(np,prznt) = z0
         if( prust.ge.1 )  &
-        call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,ust,pdata(np,prust))
+        pdata(np,prust) = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,ust)
       ENDIF
 
       IF( bbc.eq.3 )THEN
@@ -1544,7 +2421,7 @@
           if( y3d.lt.yh(j) )then
             j=j-1
           endif
-          call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 0, 1, 0,u3d(ib,jb,1),uval)
+          uval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 0, 1, 0,u3d(ib,jb,1))
           !------
           ! v at lowest model level:
           i=iflag
@@ -1552,7 +2429,7 @@
           if( x3d.lt.xh(i) )then
             i=i-1
           endif
-          call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 1, 0, 1,v3d(ib,jb,1),vval)
+          vval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 1, 0, 1,v3d(ib,jb,1))
           !------
           ! get u,v from (neutral) log-layer equation:
           rznt = 1.0/z0
@@ -1583,7 +2460,7 @@
             enddo
             i=iflag
             j=jflag
-            call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 1, 0, 0,dum7(ib,jb,1),pdata(np,przv))
+            pdata(np,przv) = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 1, 0, 0,dum7(ib,jb,1))
           ENDIF
         endif
       ENDIF
@@ -1599,7 +2476,7 @@
       ELSE
 
         ! set to really small number (so we can use the allreduce command below)
-        do n=4,npvals
+        do n=npvars+1,npvals
           pdata(np,n) = -1.0e30
         enddo
 #endif
@@ -1607,11 +2484,12 @@
       ENDIF  myprcl
 
     ENDDO  nploop2
+    if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
 !----------------------------------------------------------------------
 !  communicate data
 #ifdef MPI
-  do np=4,npvals
+  do np=npvars+1,npvals
     if( myid.eq.0 )then
       call MPI_REDUCE(MPI_IN_PLACE,pdata(1,np),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
     else
@@ -1620,6 +2498,13 @@
   enddo
 #endif
 !----------------------------------------------------------------------
+
+      !$acc update &
+      !$acc device(dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
+      !$acc      vpg,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
+      !$acc      tdiag,qdiag,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,nw1,nw2,ne1,ne2, &
+      !$acc      sw1,sw2,se1,se2,tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+      if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
       end subroutine parcel_interp
 
@@ -1696,25 +2581,25 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine tri_interp(iz,jz,kz,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,s,pdata)
+      real function tri_interp(iz,jz,kz,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,s)
+      !$acc routine vector
       use input
       implicit none
 
       integer :: iz,jz,kz,i,j,k
       real :: w1,w2,w3,w4,w5,w6,w7,w8
       real, dimension(1-ngxy:iz+ngxy,1-ngxy:jz+ngxy,1-ngz:kz+ngz) :: s
-      real :: pdata
 
-      pdata=s(i  ,j  ,k  )*w1    &
-           +s(i+1,j  ,k  )*w2    &
-           +s(i  ,j+1,k  )*w3    &
-           +s(i  ,j  ,k+1)*w4    &
-           +s(i+1,j  ,k+1)*w5    &
-           +s(i  ,j+1,k+1)*w6    &
-           +s(i+1,j+1,k  )*w7    &
-           +s(i+1,j+1,k+1)*w8
+      tri_interp = s(i  ,j  ,k  )*w1    &
+                 + s(i+1,j  ,k  )*w2    &
+                 + s(i  ,j+1,k  )*w3    &
+                 + s(i  ,j  ,k+1)*w4    &
+                 + s(i+1,j  ,k+1)*w5    &
+                 + s(i  ,j+1,k+1)*w6    &
+                 + s(i+1,j+1,k  )*w7    &
+                 + s(i+1,j+1,k+1)*w8
 
-      end subroutine tri_interp
+      end function tri_interp
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1722,7 +2607,8 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-    subroutine get2d(i,j,x3d,y3d,xh,xf,yh,yf,xs,ys,is,js,s,sval)
+    real function get2d(i,j,x3d,y3d,xh,xf,yh,yf,xs,ys,is,js,s)
+    !$acc routine vector
     use input
     implicit none
 
@@ -1739,7 +2625,6 @@
     integer, intent(in) :: is,js
 
     real, intent(in), dimension(ib:ie+is,jb:je+js) :: s
-    real, intent(out) :: sval
 
     real :: wg1,wg2,wg3,wg4
     real :: x13,x23,x33,x43
@@ -1783,14 +2668,14 @@
         endif
       ENDIF
 
-      sval =s(i  ,j  )*w1    &
+      get2d =s(i  ,j  )*w1    &
            +s(i+1,j  )*w2    &
            +s(i  ,j+1)*w3    &
            +s(i+1,j+1)*w7
 
 !-----------------------------------------------------------------------
 
-    end subroutine get2d
+    end function get2d
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1879,7 +2764,7 @@
           j=j-1
         endif
 
-        call get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs,pdata(np,przs))
+        pdata(np,przs) = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs)
 
       ELSE  zsmyparcel
 
@@ -1928,6 +2813,39 @@
       name_prcl(prcl_out) = 'z'
       desc_prcl(prcl_out) = 'z position (above sea level)'
       unit_prcl(prcl_out) = 'm'
+
+      if (prcl_droplet) then
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'vpx'
+         desc_prcl(prcl_out) = 'u velocity of droplet'
+         unit_prcl(prcl_out) = 'm/s'
+
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'vpy'
+         desc_prcl(prcl_out) = 'v velocity of droplet'
+         unit_prcl(prcl_out) = 'm/s'
+
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'vpz'
+         desc_prcl(prcl_out) = 'w velocity of droplet'
+         unit_prcl(prcl_out) = 'm/s'
+
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'rp'
+         desc_prcl(prcl_out) = 'radius of droplet'
+         unit_prcl(prcl_out) = 'm'
+
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'ms'
+         desc_prcl(prcl_out) = 'solute mass in droplet'
+         unit_prcl(prcl_out) = 'kg'
+
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'tp'
+         desc_prcl(prcl_out) = 'temperature of droplet'
+         unit_prcl(prcl_out) = 'K'
+
+      endif
 
       prcl_out = prcl_out+1
       name_prcl(prcl_out) = 'u'
@@ -1998,7 +2916,7 @@
         unit_prcl(prcl_out) = 'kg/kg'
       endif
 
-      if(prq1.ge.1)then
+      if( prq1.ge.1 .and. nql1.ge.1 )then
         n2 = nql2
         if( iice.eq.1 ) n2 = nqs2
         do n=nql1,n2
@@ -2028,6 +2946,7 @@
           unit_prcl(prcl_out) = '1/kg'
         enddo
       endif
+
 
       if( prkm.ge.1 )then
         prcl_out = prcl_out+1
@@ -2137,6 +3056,7 @@
         unit_prcl(prcl_out) = 'nondimensional'
       endif
 
+
 !-----------------------------------------------------------------------
 
       end subroutine setup_parcel_vars
@@ -2215,6 +3135,70 @@
 410   format('endvars')
 
       end subroutine write_prclctl
+
+      real function calcW1(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+      end function calcW1
+
+      real function calcW2(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW2=rx*(1.0-ry)*(1.0-rz)
+      end function calcW2
+
+      real function calcW3(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW3=(1.0-rx)*ry*(1.0-rz)
+      end function calcW3
+
+      real function calcW4(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW4=(1.0-rx)*(1.0-ry)*rz
+      end function calcW4
+
+      real function calcW5(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW5=rx*(1.0-ry)*rz
+      end function calcW5
+
+      real function calcW6(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW6=(1.0-rx)*ry*rz
+      end function calcW6
+
+      real function calcW7(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW7=rx*ry*(1.0-rz)
+      end function calcW7
+
+      real function calcW8(rx,ry,rz)
+      !$acc routine vector 
+      real, intent(in) :: rx,ry,rz
+        calcW8=rx*ry*rz
+      end function calcW8
+
+      subroutine calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
+      !$acc routine vector 
+        real, intent(in)  :: rx,ry,rz
+        real, intent(inout) :: w1,w2,w3,w4,w5,w6,w7,w8
+
+        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2=rx*(1.0-ry)*(1.0-rz)
+        w3=(1.0-rx)*ry*(1.0-rz)
+        w4=(1.0-rx)*(1.0-ry)*rz
+        w5=rx*(1.0-ry)*rz
+        w6=(1.0-rx)*ry*rz
+        w7=rx*ry*(1.0-rz)
+        w8=rx*ry*rz
+ 
+      end subroutine calcWeights
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

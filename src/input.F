@@ -79,6 +79,7 @@
               prx,pry,prz,pru,prv,prw,prth,prt,prprs,prtime,                  &
               prpt1,prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh,prtke,         &
               prdbz,prb,prvpg,przv,prrho,prqsl,prqsi,prznt,prust,przs,prsig,  &
+              prvpx,prvpy,prvpz,prrp,prms,prtp,                               &
               nql1,nql2,nqs1,nqs2,nnc1,nnc2,nvl1,nvl2,nzl1,nzl2,              &
               nbudget,budrain,cm1setup,testcase,                              &
               adapt_dt,irst,rstnum,iconly,                                    &
@@ -93,7 +94,7 @@
               irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,          &
               iprcl,nparcels,                                                 &
               stretch_x,stretch_y,stretch_z,                                  &
-              bc_temp,ibw,ibe,ibs,ibn,npvals,                                 &
+              bc_temp,ibw,ibe,ibs,ibn,npvals,npvars,                          &
               outfile,myid,numprocs,myi,myj,nf,nu,nv,nw,                      &
               mywest,myeast,mysouth,mynorth,mysw,mynw,myne,myse,              &
               myi1,myi2,myj1,myj2,nimax,njmax,                                &
@@ -120,6 +121,7 @@
               prcl_th,prcl_t,prcl_prs,prcl_ptra,prcl_q,prcl_nc,               &
               prcl_km,prcl_kh,prcl_tke,prcl_dbz,prcl_b,prcl_vpg,prcl_vort,    &
               prcl_rho,prcl_qsat,prcl_sfc,                                    &
+              prcl_droplet,                                                   &
               n_out,s_out,u_out,v_out,w_out,z_out,sout2d,sout3d,              &
               stat_w,stat_wlevs,stat_u,stat_v,stat_rmw,                       &
               stat_pipert,stat_prspert,stat_thpert,stat_q,                    &
@@ -159,6 +161,8 @@
               nutk,nvtk,nwtk
 
 !$acc declare copyin(ptype)
+!$acc declare copyin(ngxy,ngz)
+!$acc declare copyin(ib,ie,jb,je,kb,ke)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -168,7 +172,7 @@
            dx_inner,dx_outer,nos_x_len,tot_x_len,                             &
            dy_inner,dy_outer,nos_y_len,tot_y_len,                             &
            ztop,str_bot,str_top,dz_bot,dz_top,                                &
-           ptc_top,ptc_bot,viscosity,pr_num,                                  &
+           ptc_top,ptc_bot,viscosity,pr_num,sc_num,                           &
            rdx,rdy,rdz,rdx2,rdy2,rdz2,rdx4,rdy4,rdz4,                         &
            minx,maxx,miny,maxy,maxz,zt,rzt,pmin,                              &
            sfctheta,thec_mb,qt_mb,smeps,tsmall,qsmall,cflmax,ksmax,           &
@@ -190,7 +194,9 @@
            ddr,rlen,centerx,centery,                                          &
            gam_cp,gam_dr,                                                     &
            rad_solcon,rad_jday,rad_zenangle,rad_declin,rad_hrang,             &
-           adapt_move_frq
+           adapt_move_frq,                                                    &
+           base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
+           base_tbot,base_ttop,base_pibot,base_pitop
 
 !$acc declare create(alph,kdiv)
 !-----------------------------------------------------------------------
@@ -223,7 +229,8 @@
            time_mpu2,time_mpv2,time_mpw2,time_mpp2,                  &
            time_mps1,time_mps3,time_mpq1,time_mptk1,                 &
            time_mps2,time_mps4,time_mpq2,time_mptk2,time_mpb,        &
-           time_parcels,time_rad,time_pbl,time_swath,time_pdef,      &
+           time_parcels,time_parceli,time_droplet,time_droplet_reduce, &
+           time_rad,time_pbl,time_swath,time_pdef,      &
            time_prsrho,time_restart,time_poiss,time_diag,            &
            time_azimavg,time_hifrq,time_ercyl
       integer count_last
@@ -251,7 +258,7 @@
       namelist /param4/ stretch_x,dx_inner,dx_outer,nos_x_len,tot_x_len
       namelist /param5/ stretch_y,dy_inner,dy_outer,nos_y_len,tot_y_len
       namelist /param6/ stretch_z,ztop,str_bot,str_top,dz_bot,dz_top
-      namelist /param7/ bc_temp,ptc_top,ptc_bot,viscosity,pr_num
+      namelist /param7/ bc_temp,ptc_top,ptc_bot,viscosity,pr_num,sc_num
       namelist /param8/ var1,var2,var3,var4,var5,var6,var7,var8,var9,var10,   &
                         var11,var12,var13,var14,var15,var16,var17,var18,var19,var20
       namelist /param9/                                                       &
@@ -299,7 +306,7 @@
       namelist /param13/                                                      &
               prcl_th,prcl_t,prcl_prs,prcl_ptra,prcl_q,prcl_nc,               &
               prcl_km,prcl_kh,prcl_tke,prcl_dbz,prcl_b,prcl_vpg,prcl_vort,    &
-              prcl_rho,prcl_qsat,prcl_sfc
+              prcl_rho,prcl_qsat,prcl_sfc,prcl_droplet
       namelist /param14/                                                      &
               dodomaindiag,diagfrq
       namelist /param15/                                                      &

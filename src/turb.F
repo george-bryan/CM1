@@ -192,7 +192,7 @@
       integer :: i,j,k,k2,n,kval
       integer :: isfflx,ifsnow,ysu_topdown_pblmix
       real :: ep1,ep2,rovg,dtmin,dz1
-      real :: SVP1,SVP2,SVP3,SVPT0,p1000mb,eomeg,stbolt,tem,tem1,tem2,tem3
+      real :: SVP1,SVP2,SVP3,SVPT0,p1000mb,eomeg,stbolt,tem,temq,tem1,tem2,tem3
 
       logical :: flag_qi
       integer :: p_qi,p_first_scalar
@@ -324,6 +324,7 @@
           enddo
         ENDIF
       ENDIF
+    !$acc compare(dum1,dum2)
 
 
       IF( (sfcmodel.eq.2) .or. (sfcmodel.eq.3) .or. (sfcmodel.eq.4) .or. (sfcmodel.eq.6) .or. (sfcmodel.eq.7) .or. use_pbl .or. (oceanmodel.eq.2) )THEN
@@ -534,6 +535,7 @@
 !-----------------------------------------------------------------------
 
     if(timestats.ge.1) time_turb=time_turb+mytime()
+    !$acc compare(dum1,dum2)
 
     dosfc:  IF( getsfc )THEN
 
@@ -1003,7 +1005,7 @@
               qvflux(i,j) = qfx(i,j)/rf(i,j,1)
             enddo
             enddo
-            if(myid.eq.0) print *,'  thflux,qvflux = ',thflux(1,1),qvflux(1,1)
+!!!            if(myid.eq.0) print *,'  thflux,qvflux = ',thflux(1,1),qvflux(1,1)
           ENDIF
 
         ENDIF
@@ -1244,6 +1246,7 @@
                      dum1,dum2,ua,va,wa,t11,t12,t13,t22,t23,t33,gx,gy,rho,rr,rf)
 
       ENDIF
+    !$acc compare(dum1,dum2)
 
 !--------------------------------------
 !  LES subgrid models:
@@ -1292,6 +1295,7 @@
                    ks1(1,1,3),ks2(1,1,3),kn1(1,1,3),kn2(1,1,3),       &
                    kw1(1,1,4),kw2(1,1,4),ke1(1,1,4),ke2(1,1,4),       &
                    ks1(1,1,4),ks2(1,1,4),kn1(1,1,4),kn2(1,1,4))
+    !$acc compare(dum1,dum2)
 
         if( do_ib )then
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1485,6 +1489,7 @@
       IF( cm1setup.eq.3 )THEN
 
         tem = viscosity/pr_num
+        temq = viscosity/sc_num
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -1535,6 +1540,7 @@
         !  now, get turbulent stresses:
         call     gettau(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,ustt,ut,vt,st,rf,mf,dum1,dum2,dum3,dum4,dum5,dum6, &
                         kmh,kmv,t11,t12,t13,t22,t23,t33,ua,ugr,va,vgr,wa,avgsfcu,avgsfcv,avgsfcs,bndy,kbdy)
+    !$acc compare(dum1,dum2)
 
         if( do_ib )then
 #ifdef _OPENACC
@@ -1576,6 +1582,7 @@
 
     ENDIF  tau
 
+    !$acc compare(dum1,dum2)
     IF( cm1setup.eq.1 .and. sgsmodel.ge.1 )THEN
 
 
@@ -1600,6 +1607,7 @@
           ENDIF
 
     ENDIF
+    !$acc compare(dum1,dum2)
 
 
 !-------------------------------------------------------------------
@@ -1728,6 +1736,7 @@
           ENDDO
         endif
 
+        !$acc compare(ugr)
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector default(present) private(i,j,k)
         DO j=1,nj

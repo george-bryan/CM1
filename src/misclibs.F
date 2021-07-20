@@ -3926,6 +3926,9 @@
       time_satadj=0.0
       time_sfcphys=0.0
       time_parcels=0.0
+      time_parceli=0.0
+      time_droplet=0.0
+      time_droplet_reduce=0.0
       time_rad=0.0
       time_pbl=0.0
       time_swath=0.0

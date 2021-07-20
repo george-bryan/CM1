@@ -7,7 +7,7 @@
     real :: g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp,                                 &
             cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1,       &
             cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2,  &
-            rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo
+            rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo,mw,ms,surften,ion,os,ru
 !$acc declare create(g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp) &
 !$acc create(cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1) &
 !$acc create(cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2) &
@@ -151,12 +151,22 @@
       ls1    = xls+(cpi-cpv)*to
       ls2    = cpi-cpv
       rhow   = 1.0e3
+      mw     = 0.018015  !kg/mol, molecular weight water
+      ms     = 0.05844   !kg/mol, molecular weight of salt (or droplet solute)
+      surften= 7.28e-2   !Droplet surface tension
+      ion    = 2.0       !# of ions available in solute
+      os     = 1.093     !Droplet osmotic coefficient
+      ru     = 8.3144    !J/mol-K Universal gas constant
+
 
 
       IF( testcase.eq.4 .or. testcase.eq.5 )THEN
         lv1 = xlv
         lv2 = 0.0
       ENDIF
+
+
+      !DATA FOR LAGRANGIAN DROPLETS
 
 
       ! DO NOT CHANGE THESE:

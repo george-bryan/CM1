@@ -4129,6 +4129,7 @@
 
   !.............................................
 
+    !$acc compare(ua)
     if(output_uinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'uinterp '
@@ -4151,6 +4152,7 @@
 
   !.............................................
 
+    !$acc compare(va)
     if(output_vinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'vinterp '
@@ -4173,6 +4175,7 @@
 
   !.............................................
 
+    !$acc compare(wa)
     if(output_winterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'winterp '
@@ -9030,13 +9033,13 @@
 202   format('title CM1 output, using version ',a,'; units of x,y,z are km; time is generic, see cm1out_metadata for actual times')
 221   format('options template')
 203   format('undef ',f10.1)
-204   format('xdef ',i6,' linear ',f13.6,1x,f13.6)
+204   format('xdef ',i6,' linear ',f16.9,1x,f16.9)
 214   format('xdef ',i6,' levels ')
-205   format('ydef ',i6,' linear ',f13.6,1x,f13.6)
+205   format('ydef ',i6,' linear ',f16.9,1x,f16.9)
 215   format('ydef ',i6,' levels ')
-206   format('zdef ',i6,' linear ',f13.6,1x,f13.6)
+206   format('zdef ',i6,' linear ',f16.9,1x,f16.9)
 216   format('zdef ',i6,' levels ')
-217   format(2x,f13.6)
+217   format(2x,f16.9)
 227   format('tdef ',i10,' linear 00:00Z01JAN0001 1YR')
 208   format('vars ',i6)
 209   format(a12,1x,i6,' 99 ',a60,1x,a12)
