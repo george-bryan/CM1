@@ -910,6 +910,7 @@
 
         endif  prltrn
 
+
         if (prcl_droplet) then
           !$acc compare(tha)
           call     droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
@@ -923,6 +924,7 @@
           call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                  sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
         endif
+
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
       ENDIF
 

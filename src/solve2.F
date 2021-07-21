@@ -389,6 +389,7 @@
        !$acc present(bndy,kbdy)
 
 !--------------------------------------------------------------------
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 #ifdef MPI
       nf=0
       nu=0
@@ -417,6 +418,7 @@
 
         dttmp=dt/float(nrkmax+1-nrk)
 
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !--------------------------------------------------------------------
 !  Calculate misc. variables
 !
@@ -595,6 +597,7 @@
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
 !--------------------------------------------------------------------
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
         IF(nrk.ge.2)THEN
 #ifdef MPI
           call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
@@ -609,6 +612,7 @@
             call bc2d_GPU(w3d(ib,jb,1))
           endif
         ENDIF
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !--------------------------------------------------------------------
 !  Get rru,rrv,rrw,divx
 !  (NOTE:  do not change these arrays until after small steps)
@@ -1018,6 +1022,7 @@
           call bcs2_GPU(rho)
         ENDIF
 #endif
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !--------------------------------------------------------------------
 !  advection:
           call advu(nrk   ,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
@@ -1028,6 +1033,7 @@
                       dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx,                       &
                       rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       dowbud ,wdiag,hadvordrv,vadvordrv,advwenov,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 
 !--------------------------------------------------------------------
 !  Buoyancy
@@ -1209,21 +1215,25 @@
         enddo
         weps = epsilon
         diffit = 0
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
         call advs(nrk,0,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,           &
                    rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                    rru,rrv,rrw,ppi,sadv,sten ,0,0,dttmp,weps,                             &
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                    .false.,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,1,1,1,              &
                    1,1,1,wprof,dumk1,dumk2,2,2,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
       endif
 
       ENDIF
 
+!$acc compare(u3d,v3d,w3d)
 !--------------------------------------------------------------------
 #ifdef MPI
         call comm_1s_end_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
 !--------------------------------------------------------------------
+!$acc compare(u3d,v3d,w3d)
 !  call sound
 
         get_time_avg = .false.
@@ -1248,7 +1258,21 @@
                          bndy,kbdy)
 
         ELSEIF( psolver.eq.2 .or. psolver.eq.7 )THEN
-
+!$acc compare(xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf)     
+!$acc compare(rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf)
+!$acc compare(pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs)
+!$acc compare(gz,rgz,gzu,rgzu,gzv,rgzv)
+!$acc compare(dzdx,dzdy,gx,gxu,gy,gyv)
+!$acc compare(radbcw,radbce,radbcs,radbcn,dtu,dtu0,dtv,dtv0)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(dum7,dum8,t12,t13,t23,t33)
+!$acc compare(u0,rru,ua,u3d,uten)
+!$acc compare(v0,rrv,va,v3d,vten)
+!$acc compare(rrw,wa,w3d,wten)
+!$acc compare(ppi,pp3d,sadv ,ppten,ppx)
+!$acc compare(t11,t22)
+!$acc compare(bndy,kbdy)
+!$acc compare(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2)
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1265,7 +1289,21 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-
+!$acc compare(xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf)     
+!$acc compare(rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf)
+!$acc compare(pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs)
+!$acc compare(gz,rgz,gzu,rgzu,gzv,rgzv)
+!$acc compare(dzdx,dzdy,gx,gxu,gy,gyv)
+!$acc compare(radbcw,radbce,radbcs,radbcn,dtu,dtu0,dtv,dtv0)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(dum7,dum8,t12,t13,t23,t33)
+!$acc compare(u0,rru,ua,u3d,uten)
+!$acc compare(v0,rrv,va,v3d,vten)
+!$acc compare(rrw,wa,w3d,wten)
+!$acc compare(ppi,pp3d,sadv ,ppten,ppx)
+!$acc compare(t11,t22)
+!$acc compare(bndy,kbdy)
+!$acc compare(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2)
         ELSEIF(psolver.eq.3)THEN
 
           

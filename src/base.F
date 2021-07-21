@@ -1990,7 +1990,7 @@
       nu=0
       nv=0
       nw=0
-      call comm_all_s( pi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+     call comm_all_s( pi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                            n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
       call comm_all_s(prs0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                            n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
@@ -2618,7 +2618,7 @@
                           us31,us32,un31,un32,reqs_u)
       call getcorneru3(u0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                           s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      !$acc data copy(u0
+      !$acc data copy(u0)
       call bcu2_GPU(u0)
       !$acc end data
 #endif

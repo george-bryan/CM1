@@ -226,9 +226,13 @@
     !$acc      thterm,qa,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten,  &
     !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
     !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih,  &
+#ifdef MPI
+    !$acc      nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,   &
+#endif
     !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
 
 !-----------------------------------------------------------------------------------
+!$acc compare(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       turbfac = 1.0
       t2pfac = 1.0
     facheck:  &
@@ -1029,39 +1033,33 @@
     !-------------!
     call bc2d_GPU(ust)
 #ifdef MPI
-    !$acc update host(ust)
-    call comm_1s2d_start(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
+    call comm_1s2d_start_GPU(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                              us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
 #endif
     call bc2d_GPU(u1)
 #ifdef MPI
-    !$acc update host(u1)
-    call comm_1s2d_start(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
+    call comm_1s2d_start_GPU(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                              us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
 #endif
     call bc2d_GPU(v1)
 #ifdef MPI
-    !$acc update host(v1)
-    call comm_1s2d_start(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
+    call comm_1s2d_start_GPU(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                              us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
 #endif
     call bc2d_GPU(s1)
 #ifdef MPI
-    !$acc update host(s1)
-    call comm_1s2d_start(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
+    call comm_1s2d_start_GPU(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                              us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
 #endif
     call bc2d_GPU(znt)
 #ifdef MPI
-    !$acc update host(znt)
-    call comm_1s2d_start(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
+    call comm_1s2d_start_GPU(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
                              us31(1,1,5),us32(1,1,5),un31(1,1,5),un32(1,1,5),reqs_p)
 #endif
   if( sfcmodel.eq.4 )then
     call bc2d_GPU(mznt)
 #ifdef MPI
-    !$acc update host(mznt)
-    call comm_1s2d_start(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
+    call comm_1s2d_start_GPU(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
                               us31(1,1,6),us32(1,1,6),un31(1,1,6),un32(1,1,6),reqs_x)
 #endif
   endif
@@ -1069,41 +1067,41 @@
 
 #ifdef MPI
     !-------------!
-    call comm_1s2d_end(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
+    call comm_1s2d_end_GPU(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                            us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
-    call bcs2_2d(ust)
+    call bcs2_2d_GPU(ust)
 
-    call comm_1s2d_end(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
+    call comm_1s2d_end_GPU(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                            us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
-    call bcs2_2d(u1 )
+    call bcs2_2d_GPU(u1 )
 
-    call comm_1s2d_end(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
+    call comm_1s2d_end_GPU(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                            us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
-    call bcs2_2d(v1 )
+    call bcs2_2d_GPU(v1 )
 
-    call comm_1s2d_end(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
+    call comm_1s2d_end_GPU(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                            us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
-    call bcs2_2d(s1 )
+    call bcs2_2d_GPU(s1 )
 
-    call comm_1s2d_end(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
+    call comm_1s2d_end_GPU(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
                            us31(1,1,5),us32(1,1,5),un31(1,1,5),un32(1,1,5),reqs_p)
-    call bcs2_2d(znt)
+    call bcs2_2d_GPU(znt)
 
   if( sfcmodel.eq.4 )then
-    call comm_1s2d_end(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
+    call comm_1s2d_end_GPU(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
                             us31(1,1,6),us32(1,1,6),un31(1,1,6),un32(1,1,6),reqs_x)
-    call bcs2_2d(mznt)
+    call bcs2_2d_GPU(mznt)
   endif
     !-------------!
 
     !-------------!
-    call comm_2d_corner(ust)
-    call comm_2d_corner(u1)
-    call comm_2d_corner(v1)
-    call comm_2d_corner(s1)
-    call comm_2d_corner(znt)
+    call comm_2d_corner_GPU(ust)
+    call comm_2d_corner_GPU(u1)
+    call comm_2d_corner_GPU(v1)
+    call comm_2d_corner_GPU(s1)
+    call comm_2d_corner_GPU(znt)
   if( sfcmodel.eq.4 )then
-    call comm_2d_corner(mznt)
+    call comm_2d_corner_GPU(mznt)
     !$acc update device(mznt) 
   endif
     !-------------!
@@ -1136,57 +1134,52 @@
     !-------------!
     call bc2d_GPU(ustt)
 #ifdef MPI
-    !$acc update host(ustt)
-    call comm_1s2d_start(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
+    call comm_1s2d_start_GPU(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                               us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
 #endif
     call bc2d_GPU(ut)
 #ifdef MPI
-    !$acc update host(ut)
-    call comm_1s2d_start(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
+    call comm_1s2d_start_GPU(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                              us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
 #endif
     call bc2d_GPU(vt)
 #ifdef MPI
-    !$acc update host(vt)
-    call comm_1s2d_start(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
+    call comm_1s2d_start_GPU(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                              us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
 #endif
     call bc2d_GPU(st)
 #ifdef MPI
-    !$acc update host(st)
-    call comm_1s2d_start(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
+    call comm_1s2d_start_GPU(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                              us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
 #endif
     !-------------!
 
 #ifdef MPI
     !-------------!
-    call comm_1s2d_end(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
+    call comm_1s2d_end_GPU(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                             us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
-    call bcs2_2d(ustt)
+    call bcs2_2d_GPU(ustt)
 
-    call comm_1s2d_end(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
+    call comm_1s2d_end_GPU(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                            us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
-    call bcs2_2d(ut )
+    call bcs2_2d_GPU(ut )
 
-    call comm_1s2d_end(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
+    call comm_1s2d_end_GPU(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                            us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
-    call bcs2_2d(vt )
+    call bcs2_2d_GPU(vt )
 
-    call comm_1s2d_end(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
+    call comm_1s2d_end_GPU(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                            us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
-    call bcs2_2d(st )
+    call bcs2_2d_GPU(st )
 
     !-------------!
 
     !-------------!
-    call comm_2d_corner(ustt)
-    call comm_2d_corner(ut)
-    call comm_2d_corner(vt)
-    call comm_2d_corner(st)
+    call comm_2d_corner_GPU(ustt)
+    call comm_2d_corner_GPU(ut)
+    call comm_2d_corner_GPU(vt)
+    call comm_2d_corner_GPU(st)
     !-------------!
-    !$acc update device(ustt,ut,vt,st)
 #endif
 
   ENDIF  tbc3b
@@ -1282,6 +1275,7 @@
 
 
 
+!$acc compare(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
          ! Deardorff TKE:
         call tkekm(nstep,rtime,dt,ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z, &
                    nm,defv,defh,dum1,dum2,dum3,dum4,dum5,             &
@@ -1295,7 +1289,9 @@
                    ks1(1,1,3),ks2(1,1,3),kn1(1,1,3),kn2(1,1,3),       &
                    kw1(1,1,4),kw2(1,1,4),ke1(1,1,4),ke2(1,1,4),       &
                    ks1(1,1,4),ks2(1,1,4),kn1(1,1,4),kn2(1,1,4))
-    !$acc compare(dum1,dum2)
+
+!$acc compare(dum1,dum2,tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)
+
 
         if( do_ib )then
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1311,12 +1307,13 @@
           enddo
           enddo
         endif
+!$acc compare(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)
         call     tkebc(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,          &
                        kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                        ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),  &
                        kw1(1,1,2),kw2(1,1,2),ke1(1,1,2),ke2(1,1,2),  &
                        ks1(1,1,2),ks2(1,1,2),kn1(1,1,2),kn2(1,1,2))
-
+!$acc compare(kmh,kmv,khh,khv)
        
         !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=0,nj+1
@@ -1485,14 +1482,17 @@
 
 !--------------------------------------
 !   DNS (constant viscosity)
+!$acc compare(kmh,kmv,khh,khv)
 
       IF( cm1setup.eq.3 )THEN
-
+       
+        !$acc data copy(viscosity,pr_num)
+        !$acc parallel default(present) private(i,j,k)
         tem = viscosity/pr_num
         temq = viscosity/sc_num
 
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc loop gang vector collapse(3)
         do k=1,nk+1
         do j=0,nj+1
         do i=0,ni+1
@@ -1503,9 +1503,11 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
+        !$acc end data
 
       ENDIF
-
+!$acc compare(kmh,kmv,khh,khv)
 !--------------------------------------
 !  Check for numerical stability:
 
@@ -1520,20 +1522,12 @@
 
       if( do_ib )then
 #ifdef MPI
-        !$acc update host(ua,va,wa)
-        call getcorneru(ua,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        !$acc data copy(ua) 
+        call getcorneru_GPU(ua,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcu2_GPU(ua)
-        !$acc end data
-        call getcornerv(va,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        !$acc data copy(va) 
+        call getcornerv_GPU(va,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcv2_GPU(va)
-        !$acc end data
-        call getcornerw(wa,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        !$acc data copy(wa) 
+        call getcornerw_GPU(wa,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcw2_GPU(wa)
-        !$acc end data
-        !$acc update device(ua,va,wa)
 #endif
       endif
 
@@ -2290,13 +2284,11 @@
       if( use_pbl )then
         call bcs_GPU(upten)
 #ifdef MPI
-        !$acc update host(upten)
-        call comm_1s_start(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+        call comm_1s_start_GPU(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
         call bcs_GPU(vpten)
 #ifdef MPI
-        !$acc update host(vpten)
-        call comm_1s_start(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
+        call comm_1s_start_GPU(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
 #endif
         IF( axisymm.eq.1 )THEN
           ! cm1r19 bug fix:
@@ -2312,8 +2304,8 @@
           enddo
         ENDIF
 #ifdef MPI
-        call comm_1s_end(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-        call comm_1s_end(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
+        call comm_1s_end_GPU(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+        call comm_1s_end_GPU(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
         !$acc update device(upten,vpten)
 #endif
       endif
@@ -2386,11 +2378,21 @@
 #endif
     !$acc declare &
     !$acc present(ruh,rvh,rmf,csz,tkea,nm,tk,cmz,ce1z,ce2z) &
-    !$acc present(grdscl,rgrdscl,tk,lenscl,dissten,kmh,kmv,khh,khv)
+    !$acc present(grdscl,rgrdscl,tk,lenscl,dissten,kmh,kmv,khh,khv) &
+    !$acc present(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2) &
+    !$acc present(khcw1,khcw2,khce1,khce2) &
+    !$acc present(khcs1,khcs2,khcn1,khcn2) &
+    !$acc present(khdw1,khdw2,khde1,khde2) &
+    !$acc present(khds1,khds2,khdn1,khdn2) &
+    !$acc present(kvcw1,kvcw2,kvce1,kvce2) &
+    !$acc present(kvcs1,kvcs2,kvcn1,kvcn2) &
+    !$acc present(kvdw1,kvdw2,kvde1,kvde2) &
+    !$acc present(kvds1,kvds2,kvdn1,kvdn2) 
 
 !------------------------------------------------------------------
 !  Get length scales:
     !  get grid scale
+!$acc compare(kmh,kmv,khh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
     IF(tconfig.eq.1)THEN
 
       ! single length scale:  appropriate if dx,dy are nearly the same as dz
@@ -2453,13 +2455,19 @@
 #ifdef _B4B03
       !$acc update device(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
 #endif
+!$acc compare(kmh,kmv,khh)
 
     ELSEIF(tconfig.eq.2)THEN
 
+!$acc compare(kmh,kmv,khh)
       ! two length scales:  one for horizontal, one for vertical
 
       !$omp parallel do default(shared) private(i,j,k,prinv,rcs)
+#ifdef _B4B03
+      !$acc update host(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
+#else
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
+#endif
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -2509,6 +2517,10 @@
       enddo
       enddo
       enddo
+#ifdef _B4B03
+      !$acc update device(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
+#endif
+!$acc compare(kmh,kmv,khh)
 
     ENDIF
      
@@ -2529,30 +2541,35 @@
 !------------------------------------------------------------
 ! Set values at boundaries, start comms:
 
-      call bcw_GPU(kmh,1)
+!$acc update host(ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z) & 
+!$acc host(nm,defv,defh,tk,dum2  ,lenh,grdscl,rgrdscl)        &
+!$acc host(kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d)         &
+!$acc host(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)                   &
+!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)   &
+!$acc host(khdw1,khdw2,khde1,khde2,khds1,khds2,khdn1,khdn2)   &
+!$acc host(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)   &
+!$acc host(kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
+!$acc compare(kmh,kmv,khh)
+      call bcw(kmh,1)
 #ifdef MPI
-      !$acc update host(kmh)
       call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
 #endif
 
-      call bcw_GPU(kmv,1)
+      call bcw(kmv,1)
 #ifdef MPI
-      !$acc update host(kmv)
       call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
 #endif
 
-      call bcw_GPU(khh,1)
+      call bcw(khh,1)
 #ifdef MPI
-      !$acc update host(khh)
       call comm_1t_start(khh,khdw1,khdw2,khde1,khde2,   &
                              khds1,khds2,khdn1,khdn2,reqs_khd)
 #endif
 
-      call bcw_GPU(khv,1)
+      call bcw(khv,1)
 #ifdef MPI
-      !$acc update host(khv)
       call comm_1t_start(khv,kvdw1,kvdw2,kvde1,kvde2,   &
                              kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
 #endif
@@ -2572,8 +2589,16 @@
                            kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
       call getcornert(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call getcornert(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      !$acc update device(kmh,kmv,khh,khv)
 #endif
+!$acc update device(ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z) & 
+!$acc device(nm,defv,defh,tk,dum2  ,lenh,grdscl,rgrdscl)        &
+!$acc device(kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d)         &
+!$acc device(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)                   &
+!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)   &
+!$acc device(khdw1,khdw2,khde1,khde2,khds1,khds2,khdn1,khdn2)   &
+!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)   &
+!$acc device(kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
+!$acc compare(kmh,kmv,khh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 !--------------------------------------------------------------
 !   finished
@@ -2615,6 +2640,7 @@
 !--------------------------------------------------------------
 !  lower surface:
 
+!$acc compare(kmh,kmv,khh,khv)
       IF( bbc.eq.2 .or. bbc.eq.3 )THEN
         ! no slip (fix/check this later)
         ! semi-slip
@@ -2628,6 +2654,7 @@
           kmh(i,j,1) = karman*zntmp(i,j)*ust(i,j)
         enddo
         enddo
+!$acc compare(kmh,kmv,khh,khv)
       ELSE
         ! free slip
  
@@ -2639,6 +2666,7 @@
           kmh(i,j,1) = 0.0
         enddo
         enddo
+!$acc compare(kmh,kmv,khh,khv)
 
       ENDIF
 
@@ -2648,31 +2676,37 @@
         call bc2d_GPU(tkea(ibt,jbt,1))
         !call bc2d(tkea(ibt,jbt,1))
 #ifdef MPI
-        !$acc update host(tkea(ibt:iet,jbt:jet,1))
-        call comm_1s2d_start(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
+        call comm_1s2d_start_GPU(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                              kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
 #endif
         call bc2d_GPU(kmh(ibc,jbc,1))
+!$acc compare(kmh,kmv,khh,khv)
         !call bc2d(kmh(ibc,jbc,1))
 #ifdef MPI
-        !$acc update host(kmh(ibc:iec,jbc:jec,1))
-        call comm_1s2d_start(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call comm_1s2d_start_GPU(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
+!$acc compare(kvcw2,kvcw1,kmh,kmv,khh,khv)
         !-----
+!$acc update host(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
+!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
+!$acc host(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
         call comm_1s2d_end(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                            kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
         call bcs2_2d(tkea(ibt,jbt,1))
+!!!! Problem with comm_1s2d_end_GPU
         call comm_1s2d_end(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        
         call bcs2_2d(kmh(ibc,jbc,1))
         !-----
         call comm_2d_corner(tkea(ibt,jbt,1))
         call comm_2d_corner(kmh(ibc,jbc,1))
+!$acc update device(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
+!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
+!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
+!$acc compare(kmh,kmv,khh,khv)
         !-----
-        !$acc update device(tkea(ibt:iet,jbt:jet,1))
-        !$acc update device(kmh(ibc:iec,jbc:jec,1))
 #endif
+!$acc compare(kmh,kmv,khh,khv)
 
         !$omp parallel do default(shared) private(i,j)
         !$acc parallel loop gang vector default(present) private(i,j)
@@ -2683,6 +2717,7 @@
           khh(i,j,1) = kmh(i,j,1)*(khh(i,j,2)/(1.0e-10+kmh(i,j,2)))
         enddo
         enddo
+!$acc compare(kmh,kmv,khh,khv)
 
         if(timestats.ge.1) time_turb=time_turb+mytime()
 
@@ -2701,6 +2736,7 @@
           kmh(i,j,nk+1) = karman*zntmp(i,j)*ustt(i,j)
         enddo
         enddo
+!$acc compare(kmh,kmv,khh,khv)
 
         if(timestats.ge.1) time_turb=time_turb+mytime()
 
@@ -2708,30 +2744,27 @@
         call bc2d_GPU(tkea(ibt,jbt,nk+1))
         !call bc2d(tkea(ibt,jbt,nk+1))
 #ifdef MPI
-        !$acc update host(tkea(ibt:iet,jbt:jet,nk+1))
-        call comm_1s2d_start(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
+        call comm_1s2d_start_GPU(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                                 kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
 #endif
         call bc2d_GPU(kmh(ibc,jbc,nk+1))
         !call bc2d(kmh(ibc,jbc,nk+1))
 #ifdef MPI
-        !$acc update host(kmh(ibc:iec,jbc:jec,nk+1))
-        call comm_1s2d_start(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call comm_1s2d_start_GPU(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                                khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         !-----
-        call comm_1s2d_end(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
+        call comm_1s2d_end_GPU(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                               kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-        call bcs2_2d(tkea(ibt,jbt,nk+1))
-        call comm_1s2d_end(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call bcs2_2d_GPU(tkea(ibt,jbt,nk+1))
+        call comm_1s2d_end_GPU(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                              khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call bcs2_2d(kmh(ibc,jbc,nk+1))
+        call bcs2_2d_GPU(kmh(ibc,jbc,nk+1))
         !-----
-        call comm_2d_corner(tkea(ibt,jbt,nk+1))
-        call comm_2d_corner(kmh(ibc,jbc,nk+1))
+        call comm_2d_corner_GPU(tkea(ibt,jbt,nk+1))
+        call comm_2d_corner_GPU(kmh(ibc,jbc,nk+1))
         !-----
-        !$acc update device(tkea(ibt:iet,jbt:jet,nk+1))
-        !$acc update device(kmh(ibc:iec,jbc:jec,nk+1))
 #endif
+!$acc compare(kmh,kmv,khh,khv)
 
         !$omp parallel do default(shared) private(i,j)
         !$acc parallel loop gang vector default(present) private(i,j)
@@ -2742,6 +2775,7 @@
           khh(i,j,nk+1) = kmh(i,j,nk+1)*(khh(i,j,nk)/(1.0e-10+kmh(i,j,nk)))
         enddo
         enddo
+!$acc compare(kmh,kmv,khh,khv)
 
         if(timestats.ge.1) time_turb=time_turb+mytime()
 
@@ -2901,18 +2935,18 @@
       call bcw_GPU(kmv,1)
       !$acc end data
 #ifdef MPI
-      call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
+      call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
-      call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
+      call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call comm_1t_end(kmh,khcw1,khcw2,khce1,khce2,   &
+      call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                            khcs1,khcs2,khcn1,khcn2,reqs_khc)
-      call comm_1t_end(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
+      call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                            kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call getcornert(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call getcornert(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2(kmh)
-      call bct2(kmv)
+      call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      call bct2_GPU(kmh)
+      call bct2_GPU(kmv)
 #endif
 
 !--------------------------------------------------------------
@@ -2969,12 +3003,12 @@
         call bc2d_GPU(kmv(ibc,jbc,1))
         !$acc end data
 #ifdef MPI
-        call comm_1s2d_start(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call comm_1s2d_end(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call comm_2d_corner(kmv(ibc,jbc,1))
-        call bcs2_2d(kmv(ibc,jbc,1))
+        call comm_2d_corner_GPU(kmv(ibc,jbc,1))
+        call bcs2_2d_GPU(kmv(ibc,jbc,1))
 #endif
 
       IF( tconfig.eq.1 )THEN
@@ -3117,12 +3151,12 @@
       call bcw_GPU(kmh,1)
       !$acc end data
 #ifdef MPI
-      call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
+      call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
-      call comm_1t_end(kmh,khcw1,khcw2,khce1,khce2,   &
+      call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                            khcs1,khcs2,khcn1,khcn2,reqs_khc)
-      call getcornert(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2(kmh)
+      call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      call bct2_GPU(kmh)
 #endif
 
         ! Extrapolate:
@@ -3252,12 +3286,12 @@
       !$acc end data
 
 #ifdef MPI
-      call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
+      call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call comm_1t_end(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
+      call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                            kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call getcornert(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2(kmv)
+      call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      call bct2_GPU(kmv)
 #endif
 
 !--------------------------------------------------------------
@@ -3300,12 +3334,12 @@
         call bc2d_GPU(kmv(ibc,jbc,1))
         !$acc end data
 #ifdef MPI
-        call comm_1s2d_start(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call comm_1s2d_end(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call comm_2d_corner(kmv(ibc,jbc,1))
-        call bcs2_2d(kmv(ibc,jbc,1))
+        call comm_2d_corner_GPU(kmv(ibc,jbc,1))
+        call bcs2_2d_GPU(kmv(ibc,jbc,1))
 #endif
 
         do j=0,nj+1
