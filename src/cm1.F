@@ -3701,7 +3701,7 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
-#if 0
+!#if 0
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=7)
 #endif
@@ -3761,7 +3761,8 @@
 #ifdef _OPENACC
         call nvtxEndRange()
 #endif
-#endif
+      !stop 'cm1: after call to domaindiag'
+!#endif
 
       endif
     ENDIF

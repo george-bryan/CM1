@@ -490,9 +490,9 @@
       if(imoist.eq.1)then
         qval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,qa(ib,jb,kb,nqv))
       endif
-        tval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ta)
-        rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
-        prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
+      tval   = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ta)
+      rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
+      prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
 
 
 !----------------------------------------------------------------------
@@ -623,7 +623,6 @@
         else
           k1xp3 = dt*xrhs3
           z3d = pdata(np,prz)+k1xp3
-          !xtmp3=z3d
 
           k1vp3 = dt*vrhs3
           vtmp3 = pdata(np,prvpz) + k1vp3

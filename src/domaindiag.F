@@ -236,6 +236,7 @@
       sfs(k)    = 0.0
       sfd(k)    = 0.0
       w_hadv(k) = 0.0
+      u_hidiff(k) = 0.0
     enddo
 
     !$acc parallel loop gang vector default(present) private(k)
@@ -2506,6 +2507,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !stop 'domaindiag: after calculation of wavg'
 
+
       !c-c-c-c-c-c-c-c-c-c
 
         nvar = nvar+1
@@ -3111,8 +3113,7 @@
         pli(k)   = 0.0
       ENDDO
 
-!      !$acc parallel default(present) private(i,j,k,n,qflag) reduction(+:tmasst,clwt,clit,plwt,plit)
-      !$acc parallel default(present) private(i,j,k,n,qflag) reduction(+:tmasst,tmpw,tmpi)
+      !$acc parallel default(present) private(i,j,k) reduction(+:tmasst)
       !$acc loop gang
       DO k=1,nk
         tmasst = 0.0d0
@@ -3124,8 +3125,10 @@
         enddo
         tmass(k) = tmasst
       ENDDO
-      print *,'domaindiag: nql1,nql2,nqs1,nqs2,nql1,nql2: ',nql1,nql2,nqs1,nqs2,nql1,nql2
+      !$acc end parallel
 
+#if 0
+      !$acc parallel default(present) private(i,j,k,n,qflag) reduction(+:tmpw,tmpi)
 #if 1
         !$acc loop seq
         DO n=nql1,nql2
@@ -3227,9 +3230,10 @@
         ENDDO
 #endif
       !$acc end parallel
+#endif
 
 #ifdef MPI
-      !$acc host_data use_device(tmax_clw,cli,plw,pli)
+      !$acc host_data use_device(tmass,clw,cli,plw,pli)
       call MPI_ALLREDUCE(MPI_IN_PLACE,tmass(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,clw(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cli(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -5227,6 +5231,8 @@
     !dum6 = 0.0
 
         !PORTME
+    ! BUG:
+    ! wavg(k+1) is never set
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
     do j=1,nj
@@ -5591,7 +5597,7 @@
       !dum6(i,j,nk+1) = 0.0
     enddo
     enddo
-
+    !$acc compare(w3d,wavg)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
@@ -5649,6 +5655,7 @@
         vardesc(nvar) = '< w-prime w-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
+        !$acc compare(dum6)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
@@ -5657,8 +5664,9 @@
         enddo
         enddo
         enddo
+        !$acc compare(dum1)
         call getavg3d(dum1,savg)
-
+        !$acc compare(savg)
         !$acc parallel default(present)
         wvar(1) = 0.0
         !$acc loop gang vector private(k)
@@ -7707,10 +7715,14 @@
 
         call getavg3d(dum1,savg)
 
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel default(present) private(k)
+        v_vadv(0) = 0.0
+        v_vadv(nkp1) = 0.0
+        !$acc loop gang vector
         do k=1,nk
           v_vadv(k) = savg(k)
         enddo
+        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
@@ -7736,10 +7748,14 @@
 
         call getavg3d(dum1,savg)
 
-        !$acc parallel loop gang vector default(present) private(k)
+        !$acc parallel default(present) private(k)
+        v_hidiff(0) = 0.0
+        v_hidiff(nkp1) = 0.0
+        !$acc loop gang vector
         do k=1,nk
           v_hidiff(k) = savg(k)
         enddo
+        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
@@ -9101,7 +9117,6 @@
       if( ud_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
           ud_vadv.ge.1 .and. wd_vadv.ge.1 )then
 
-        print *,'domaindiag: before uwb_adv'
         nvar = nvar+1
         varname(nvar) = 'uwb_adv'
         vardesc(nvar) = '<uw> budget: advection terms'
@@ -9117,9 +9132,7 @@
         enddo
         enddo
         !$acc compare(u_hadv,w_hadv)
-        print *,'domaindiag: before uwb_term'
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hadv,wd_hadv,u_hadv,w_hadv)
-        print *,'domaindiag: before uwb_term'
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vadv,wd_vadv,u_vadv,w_vadv)
 
         call getavg3d(dum1,savg)
@@ -9132,7 +9145,6 @@
       if( ud_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
           ud_vidiff.ge.1 .and. wd_vidiff.ge.1 )then
 
-        print *,'domaindiag: before uwb_idiff'
         nvar = nvar+1
         varname(nvar) = 'uwb_idiff'
         vardesc(nvar) = '<uw> budget: implicit diffusion'
@@ -9160,7 +9172,6 @@
       if( ud_hturb.ge.1 .and. wd_hturb.ge.1 .and.  &
           ud_vturb.ge.1 .and. wd_vturb.ge.1 )then
 
-        print *,'domaindiag: before uwb_turb'
         nvar = nvar+1
         varname(nvar) = 'uwb_turb'
         vardesc(nvar) = '<uw> budget: subgrid turbulence'
@@ -9187,7 +9198,6 @@
 
       if( ud_pgrad.ge.1 .and. wd_pgrad.ge.1 )then
 
-        print *,'domaindiag: before uwb_prs'
         nvar = nvar+1
         varname(nvar) = 'uwb_prs'
         vardesc(nvar) = '<uw> budget: pressure terms'
@@ -9213,7 +9223,6 @@
 
       if( ud_cor.ge.1 )then
 
-        print *,'domaindiag: before uwb_cor'
         nvar = nvar+1
         varname(nvar) = 'uwb_cor'
         vardesc(nvar) = '<uw> budget: Coriolis'
@@ -9250,7 +9259,6 @@
 
       if( wd_buoy.ge.1 )then
 
-        print *,'domaindiag: before uwb_buoy'
         nvar = nvar+1
         varname(nvar) = 'uwb_buoy'
         vardesc(nvar) = '<uw> budget: buoyancy'
@@ -9293,7 +9301,6 @@
       if( vd_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
           vd_vadv.ge.1 .and. wd_vadv.ge.1 )then
 
-        print *,'domaindiag: before vwb_adv'
         nvar = nvar+1
         varname(nvar) = 'vwb_adv'
         vardesc(nvar) = '<vw> budget: advection terms'
@@ -9321,7 +9328,6 @@
       if( vd_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
           vd_vidiff.ge.1 .and. wd_vidiff.ge.1 )then
 
-        print *,'domaindiag: before vwb_idiff'
         nvar = nvar+1
         varname(nvar) = 'vwb_idiff'
         vardesc(nvar) = '<vw> budget: implicit diffusion'
@@ -9908,7 +9914,7 @@
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
-    stop 'domaindiag: at the end of the subroutine'
+    !stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 
