@@ -465,14 +465,9 @@
           enddo
         endif
 
-        !!$acc data copyin(xh,rxh,uh,xf,uf,vh,vf,mh,mf) &
-        !!$acc copyin(rho,rr,rf,rds,sigma) &
-        !!$acc copyin(gz,rgz,gzu,rgzu,gzv,rgzv) &
-        !!$acc copyin(tkea,kmh,kmv)
         call turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,  &
                    rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,        &
                    dum1,dum2,dum3,dum4,dum5,sten,tkea,tketen,kmh,kmv)
-        !!$acc end data
 
         if( dotdwrite .and. kd_turb.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)
@@ -1373,7 +1368,7 @@
         call turbs(1,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,thflux,   &
                    rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                    dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,sadv,thten1,khh,khv,dum7,dum8, &
-                   dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hturb,td_vturb)
+                   dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hturb,td_vturb,1)
 
         IF( imoist.eq.1 )THEN
           ! moisture:
@@ -1382,12 +1377,12 @@
               call turbs(1,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,qvflux,   &
                          rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                          dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,qa(ib,jb,kb,n),qten(ib,jb,kb,n),khh,khv,dum7,dum8, &
-                         doqbud,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,qd_hturb,qd_vturb)
+                         doqbud,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,qd_hturb,qd_vturb,2)
             else
               call turbs(0,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,qvflux,   &
                          rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                          dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,qa(ib,jb,kb,n),qten(ib,jb,kb,n),khh,khv,dum7,dum8, &
-                         .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
+                         .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,0)
             endif
           enddo
         ENDIF
@@ -1398,7 +1393,7 @@
             call turbs(0,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,qvflux,   &
                        rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                        dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,pta(ib,jb,kb,n),ptten(ib,jb,kb,n),khh,khv,dum7,dum8, &
-                       .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1)
+                       .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,0)
           enddo
         ENDIF
 

@@ -192,7 +192,7 @@
       integer :: i,j,k,k2,n,kval
       integer :: isfflx,ifsnow,ysu_topdown_pblmix
       real :: ep1,ep2,rovg,dtmin,dz1
-      real :: SVP1,SVP2,SVP3,SVPT0,p1000mb,eomeg,stbolt,tem,tem1,tem2,tem3
+      real :: SVP1,SVP2,SVP3,SVPT0,p1000mb,eomeg,stbolt,tem,temq,tem1,tem2,tem3
 
       logical :: flag_qi
       integer :: p_qi,p_first_scalar
@@ -231,17 +231,6 @@
 #endif
     !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
 
-    !!$acc data &
-    !!$acc copyin(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
-    !!$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0)                      &
-    !!$acc copy(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
-    !!$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,   &
-    !!$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
-    !!$acc      rrv,rrw,ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,     &
-    !!$acc      thterm,qa,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten,  &
-    !!$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
-    !!$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih,  &
-    !!$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
 !-----------------------------------------------------------------------------------
 !$acc compare(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       turbfac = 1.0
@@ -339,6 +328,7 @@
           enddo
         ENDIF
       ENDIF
+    !$acc compare(dum1,dum2)
 
 
       IF( (sfcmodel.eq.2) .or. (sfcmodel.eq.3) .or. (sfcmodel.eq.4) .or. (sfcmodel.eq.6) .or. (sfcmodel.eq.7) .or. use_pbl .or. (oceanmodel.eq.2) )THEN
@@ -549,6 +539,7 @@
 !-----------------------------------------------------------------------
 
     if(timestats.ge.1) time_turb=time_turb+mytime()
+    !$acc compare(dum1,dum2)
 
     dosfc:  IF( getsfc )THEN
 
@@ -1018,7 +1009,7 @@
               qvflux(i,j) = qfx(i,j)/rf(i,j,1)
             enddo
             enddo
-            if(myid.eq.0) print *,'  thflux,qvflux = ',thflux(1,1),qvflux(1,1)
+!!!            if(myid.eq.0) print *,'  thflux,qvflux = ',thflux(1,1),qvflux(1,1)
           ENDIF
 
         ENDIF
@@ -1248,6 +1239,7 @@
                      dum1,dum2,ua,va,wa,t11,t12,t13,t22,t23,t33,gx,gy,rho,rr,rf)
 
       ENDIF
+    !$acc compare(dum1,dum2)
 
 !--------------------------------------
 !  LES subgrid models:
@@ -1297,7 +1289,9 @@
                    ks1(1,1,3),ks2(1,1,3),kn1(1,1,3),kn2(1,1,3),       &
                    kw1(1,1,4),kw2(1,1,4),ke1(1,1,4),ke2(1,1,4),       &
                    ks1(1,1,4),ks2(1,1,4),kn1(1,1,4),kn2(1,1,4))
-!$acc compare(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)
+
+!$acc compare(dum1,dum2,tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)
+
 
         if( do_ib )then
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1495,6 +1489,7 @@
         !$acc data copy(viscosity,pr_num)
         !$acc parallel default(present) private(i,j,k)
         tem = viscosity/pr_num
+        temq = viscosity/sc_num
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc loop gang vector collapse(3)
@@ -1539,6 +1534,7 @@
         !  now, get turbulent stresses:
         call     gettau(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,ustt,ut,vt,st,rf,mf,dum1,dum2,dum3,dum4,dum5,dum6, &
                         kmh,kmv,t11,t12,t13,t22,t23,t33,ua,ugr,va,vgr,wa,avgsfcu,avgsfcv,avgsfcs,bndy,kbdy)
+    !$acc compare(dum1,dum2)
 
         if( do_ib )then
 #ifdef _OPENACC
@@ -1580,6 +1576,7 @@
 
     ENDIF  tau
 
+    !$acc compare(dum1,dum2)
     IF( cm1setup.eq.1 .and. sgsmodel.ge.1 )THEN
 
 
@@ -1604,6 +1601,7 @@
           ENDIF
 
     ENDIF
+    !$acc compare(dum1,dum2)
 
 
 !-------------------------------------------------------------------
@@ -1732,6 +1730,7 @@
           ENDDO
         endif
 
+        !$acc compare(ugr)
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector default(present) private(i,j,k)
         DO j=1,nj
@@ -2315,7 +2314,6 @@
 
 !-------------------------------------------------------------------
 
-    !!$acc end data
     !!ENDcopy
 
       end subroutine sfc_and_turb
@@ -4797,7 +4795,8 @@
       enddo
       ENDIF
 
-      !$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
+      !JMD
+      !JMD!$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
       DO n=1,numq
         IF( (n.eq.nqv) .or.                                 &
             (n.ge.nql1.and.n.le.nql2) .or.                  &
@@ -4813,7 +4812,7 @@
           enddo
         ENDIF
       ENDDO
-      !$acc end data
+      !JMD!$acc end data
 
       k = 1
 
@@ -5067,6 +5066,9 @@
       real, dimension(kb:ke) :: wspa
       double precision, dimension(kb:ke) :: shravg
 
+#ifdef _OPENACC
+    stop 'Subroutine t2psmm not ported to OpenACC'
+#endif
     !-------------------------------------------
     doingt2p:  &
     if( t2pfac.ge.0.001 )then

@@ -1758,6 +1758,7 @@
     ! new for cm1r19:  use "_prcl" arrays, which are
     !                  defined in parcel.F
 
+        if(myid.eq.0) print *,prcl_out
       prclloop:  &
       do n = 1,prcl_out
         if(myid.eq.0) print *,n,trim(name_prcl(n))

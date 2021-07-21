@@ -148,7 +148,7 @@
       use comm_module
       use adv_routines, only : movesfc
       use misclibs
-      use parcel_module, only : parcel_driver
+      use parcel_module, only : parcel_driver,droplet_driver
       use pdcomp_module, only : pidcomp
       use lsnudge_module
       use ib_module
@@ -190,7 +190,8 @@
                                                uavg,vavg,thavg,pavg,ulspg,vlspg
       real, intent(inout), dimension(kb:ke,numq) :: qavg
       double precision, intent(inout), dimension(kb:ke,3+numq) :: cavg
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: pi0,rho0,prs0,thv0,th0,rth0,qv0,qc0
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rho0,prs0,thv0,rth0,qv0,qc0
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: qi0,rr0,rf0,rrf0
       real, intent(in), dimension(ibb2:ibe2,jbb2:jbe2,kbb2:kbe2) :: thrd
       real, intent(in), dimension(ib:ie,jb:je) :: zs
@@ -399,7 +400,7 @@
 
         elseif( psolver.eq.6 )then
 
-           print *, 'Here 3 -- Not being executed'
+          ! print *, 'Here 3 -- Not being executed'
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
@@ -470,7 +471,7 @@
           u0(1,1,k) = u0(1,1,k)-tem*(umove+u0(1,1,k)-lsnudge_u(k,lsnudge_count))
         enddo
         !-----
-        print *, 'Here 5 -- Not being executed'
+        !print *, 'Here 5 -- Not being executed'
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=jb,je
@@ -550,7 +551,7 @@
           ! 180713:  now saved in ten1 arrays
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-            print *, 'Here 5 -- Not being executed'
+            !print *, 'Here 5 -- Not being executed'
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
@@ -560,7 +561,7 @@
             enddo
             enddo
             IF(axisymm.eq.0)THEN
-              print *, 'Here 6 -- Not being executed'
+              !print *, 'Here 6 -- Not being executed'
               ! Cartesian grid:
               !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
               do k=1,nk
@@ -571,8 +572,8 @@
               enddo
               enddo
             ENDIF
-            IF(k.gt.1)THEN
-              print *, 'Here 7 -- Not being executed'
+            !JMD IF(k.gt.1)THEN
+              !print *, 'Here 7 -- Not being executed'
               !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
               do k=1,nk
               do j=1,nj
@@ -581,7 +582,7 @@
               enddo
               enddo
               enddo
-            ENDIF
+            !JMD ENDIF
         ELSE
           ! psolver=1,4,5:
 !$omp parallel do default(shared)   &
@@ -909,10 +910,21 @@
 
         endif  prltrn
 
-!$acc update host(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
-        call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
-                               sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
-!$acc update device(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
+
+        if (prcl_droplet) then
+          !$acc compare(tha)
+          call     droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                                 sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
+                                 tha,qa,th0,pi0,ppi,prs,                              &
+                                 pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
+                                 nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p)
+          !stop 'solve3: after call to droplet_driver'
+        else
+          stop 'solve3: before call to parcel_driver'
+          call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                                 sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
+        endif
+
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
       ENDIF
 

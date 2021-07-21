@@ -2741,9 +2741,9 @@
     !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
     !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
     !$acc   kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
-    !$acc copy(udiag,vdiag,wdiag,kdiag,tdiag,qdiag) &
-    !$acc copy(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
-    !$acc copy(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
+    !$acc copyin(udiag,vdiag,wdiag,kdiag,tdiag,qdiag) &
+    !$acc copyin(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
+    !$acc copyin(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
     !$acc copyin(defv,defh,lenscl,dissten, &
     !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
     !$acc      wspd,gz1oz0,br,brcr,phim,phih,swspd,cpmm,zol,mavail,mol,rmol,dsxy,cda,psim,psih, &
@@ -2754,6 +2754,7 @@
     !$acc copyin(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
     !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
     !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
+    !$acc copyin(pdata) &
     !$acc copyin(lu_index) &
     !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
     !$acc copyin(rho,rr,rf,prs,o30,zir)  &
@@ -2776,8 +2777,9 @@
     !$acc copyin(dt) &
     !$acc copyin(reqs_s,reqs_u,reqs_p3, &
     !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) &
-    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,vten,vten1,rrw,wa,w3d,wten,wten1)
+    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1)
 
+    !$acc compare(lu_index)
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
     !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
@@ -2786,6 +2788,8 @@
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
+      print *,'cm1: at the top of the do-while loop'
+      !$acc compare(dum1)
       ifsolve:  &
       if( dosolve )then
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
@@ -2926,7 +2930,7 @@
 
 
 #ifdef _OPENACC
-        call nvtxStartRange("solve1 ",id=3)
+        call nvtxStartRange("solve1 ",id=0)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
@@ -3007,11 +3011,12 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
+       print *,'cm1: after solve1'
+       !$acc compare(dum1)
        !call flush(6)
-       !print *,'cm1: after solve1'
 
 #ifdef _OPENACC
-        call nvtxStartRange("solve2",id=4)
+        call nvtxStartRange("solve2",id=1)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
@@ -3092,6 +3097,8 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
+      print *,'cm1: after call to solve2'
+      !$acc compare(dum1)
 
       IF(imoist.eq.1)THEN
 
@@ -3099,7 +3106,7 @@
 
         ! cm1r20:  move calls to microphysics scheme into mp_driver.F
 #ifdef _OPENACC
-        call nvtxStartRange("mp_driver",id=5)
+        call nvtxStartRange("mp_driver",id=2)
 #endif
 
       if( ptype.eq.0 )then
@@ -3124,7 +3131,7 @@
 
 
 #ifdef _OPENACC
-        call nvtxStartRange("solve3",id=6)
+        call nvtxStartRange("solve3",id=3)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
@@ -3132,8 +3139,10 @@
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
 
+print *,'cm1: before call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
                    dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,asq,bsq, &
@@ -3207,8 +3216,11 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
+
+print *,'cm1: after call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+
 
 
         !--------------------------------
@@ -3227,8 +3239,10 @@
         !--------------------------------
 
       endif  ifsolve
+      
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+
 
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !cc   Adaptive domain-moving option for TCs  ccccccccccccccccccccccccccc
@@ -3255,6 +3269,7 @@
         ENDIF
 
       ENDIF
+      !$acc compare(dum1,dum2)
 
 
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3268,7 +3283,7 @@
 
 #ifdef _OPENACC
         stop 'ERROR radiation_driver not support under OPENACC'
-        call nvtxStartRange("radiation_driver",id=7)
+        call nvtxStartRange("radiation_driver",id=4)
 #endif
         call     radiation_driver(mtime,radtim,dt,rbufsz,xh,yh,xf,yf,zf,rmh,c1,c2,     &
                    swten,lwten,swtenc,lwtenc,cldfra,o30,                               &
@@ -3315,9 +3330,10 @@
 
       update_sfc = .true.
       if( startup .or. restarted ) update_sfc = .false.
+      !$acc compare(dum1,dum2)
 
 #ifdef _OPENACC
-        call nvtxStartRange("srf_and_turb",id=8)
+        call nvtxStartRange("srf_and_turb",id=5)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
@@ -3377,6 +3393,7 @@
 #ifdef _OPENACC
       call nvtxEndRange()
 #endif
+      !$acc compare(dum1,dum2)
 
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
@@ -3512,7 +3529,10 @@
 
 
       if( dowriteout )then
-#if 1
+#if 0
+#ifdef _OPENACC
+        call nvtxStartRange("writeout",id=6)
+#endif
       otype:  &
       IF(output_format.eq.1.or.output_format.eq.2)THEN
         nn = 1
@@ -3627,6 +3647,7 @@
                         nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,myi1p,myi2p,myj1p,myj2p)
                         ! end_writeout
                         !stop 'cm1: after call to writout'
+                        
 #endif 
           if(n.eq.1)then
             srec = frec
@@ -3649,6 +3670,9 @@
           enddo
         endif
         if(myid.eq.0) print *,'  next taptim = ',taptim
+#ifdef _OPENACC
+      call nvtxEndRange()
+#endif
 #endif
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
@@ -3661,9 +3685,11 @@
 
       if(iprcl.eq.1)then
       IF( doprclout )THEN
+      
 #ifdef _OPENACC
         stop 'ERROR: parcel_{interp,write} not supported in OpenACC'
 #endif
+#if 0
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
@@ -3678,9 +3704,15 @@
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+
+#ifdef _OPENACC
+        stop 'ERROR: parcel_write not supported in OpenACC'
+#endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+
         call     parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
+#endif
         prec = prec+1
         if(prclfrq.gt.0.0)then
           doit = .true.
@@ -3692,7 +3724,7 @@
           enddo
         endif
         if(myid.eq.0) print *,'  next prcltim = ',prcltim
-        if(timestats.ge.1) time_parcels=time_parcels+mytime()
+        !if(timestats.ge.1) time_parcels=time_parcels+mytime()
       ELSE
         if( startup )then
           if(myid.eq.0) print *
@@ -3709,8 +3741,9 @@
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
+
 #ifdef _OPENACC
-        call nvtxStartRange("domaindiag",id=9)
+        call nvtxStartRange("domaindiag",id=7)
 #endif
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
@@ -3768,6 +3801,9 @@
 #ifdef _OPENACC
         call nvtxEndRange()
 #endif
+
+      !stop 'cm1: after call to domaindiag'
+
 
       endif
     ENDIF
@@ -3982,7 +4018,8 @@
                     time_diffu+time_microphy+time_stat+time_cflq+           &
                     time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+    &
                     time_write+time_restart+time_ttend+time_cor+time_fall+  &
-                    time_satadj+time_dbz+time_sfcphys+time_parcels+         &
+                    time_satadj+time_dbz+time_sfcphys+                      &
+                    time_parcels+time_parceli+time_droplet+                 &
                     time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
                     time_diag+time_azimavg+time_hifrq+time_ercyl+           &
 #ifdef MPI
@@ -3990,6 +4027,7 @@
                     time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
+                    time_droplet_reduce+                                    &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
                     time_phys_H2D + time_phys_D2H
@@ -4211,9 +4249,20 @@
         sum = 0.0
         call MPI_REDUCE(time_ercyl ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_ercyl = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_parcels ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_parcels = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_parceli ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_parceli = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_droplet ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_droplet = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_droplet_reduce ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_droplet_reduce = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_mpu1    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_mpu1 = sum/float(numprocs)
@@ -4270,9 +4319,10 @@
 
       time_solve=time_sound+time_poiss+time_buoyan+time_turb+             &
                   time_diffu+time_microphy+time_stat+time_cflq+           &
-                  time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+    &
+                  time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+ &
                   time_write+time_restart+time_ttend+time_cor+time_fall+  &
-                  time_satadj+time_dbz+time_sfcphys+time_parcels+         &
+                  time_satadj+time_dbz+time_sfcphys+                      &
+                  time_parcels+time_parceli+time_droplet+                 &
                   time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
                   time_diag+time_azimavg+time_hifrq+time_ercyl+           &
 #ifdef MPI
@@ -4280,6 +4330,7 @@
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                   time_mps1+time_mps3+time_mpq1+time_mptk1+                     &
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
+                  time_droplet_reduce+                                    &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
                   time_phys_H2D+time_phys_D2H
@@ -4335,6 +4386,8 @@
       write(outfile,100) 'pdef    ',time_pdef,time_pdef/time_solve
       write(outfile,100) 'prsrho  ',time_prsrho,time_prsrho/time_solve
       write(outfile,100) 'parcels ',time_parcels,time_parcels/time_solve
+      write(outfile,100) 'parceli ',time_parceli,time_parceli/time_solve
+      write(outfile,100) 'droplet ',time_droplet,time_droplet/time_solve
       if( dodomaindiag )  &
       write(outfile,100) 'domndiag',time_diag,time_diag/time_solve
       if( doazimavg )  &
@@ -4363,6 +4416,7 @@
       write(outfile,100) 'mptk1   ',time_mptk1,time_mptk1/time_solve
       write(outfile,100) 'mptk2   ',time_mptk2,time_mptk2/time_solve
       write(outfile,100) 'mpb     ',time_mpb,time_mpb/time_solve
+      write(outfile,100) 'dropletA',time_droplet_reduce,time_droplet_reduce/time_solve
 #endif
       write(outfile,*)
     ENDIF

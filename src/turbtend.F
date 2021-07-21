@@ -18,9 +18,10 @@
       subroutine turbs(iflux,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,sflux,  &
                        rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                        turbx,turby,turbz,dumx,dumy,dumz,rho,rr,rf,s,sten,khh,khv,dum7,dum8, &
-                       dobud,ibd,ied,jbd,jed,kbd,ked,ndiag,diag,sd_hturb,sd_vturb)
+                       dobud,ibd,ied,jbd,jed,kbd,ked,ndiag,diag,sd_hturb,sd_vturb,ivar)
       use input
       use constants
+      use cm1libs , only : rslf,rsif
       implicit none
 
       integer, intent(in) :: iflux
@@ -45,9 +46,13 @@
       integer, intent(in) :: ibd,ied,jbd,jed,kbd,ked,ndiag,sd_hturb,sd_vturb
       real, intent(inout) , dimension(ibd:ied,jbd:jed,kbd:ked,ndiag) :: diag
 
+      integer, intent(in) :: ivar    ! 1 = potential temperature
+                                     ! 2 = water vapor mixing ratio
+
       integer :: i,j,k,k1,k2
       real :: rdt,tema,temb,temc
       real :: tem,r1,r2,cfa,cfb,cfc,cfd,kappa,ptcb,ptct
+      real :: tem,r1,r2,cfa,cfb,cfc,cfd,kappa,ptcb,ptct,le_num
       !$acc declare present(xh,rxh,arh1,arh2,uh) &
       !$acc present(xf,arf1,arf2,uf,vh,vf) &
       !$acc present(sflux, rds,sigma,rdsf,sigmaf,mh,mf) &
@@ -58,6 +63,14 @@
       !$acc present(rho,rr,rf,s,khh,khv,dum7,dum8)
 
 !---------------------------------------------------------------
+
+  !First off, define the Lewis number, which is ratio of Schmidt to Prandtl:
+  if (cm1setup.eq.3) then
+    le_num = 1.0
+    if (ivar.eq.2) le_num = sc_num/max(pr_num,1.0e-10)
+  else
+    le_num = 1.0
+  endif
 
   dohoriz:  &
   IF( dohturb )THEN
@@ -74,12 +87,12 @@
         do j=1,nj+1
         do i=1,ni+1
           !  x-direction
-          dumx(i,j,k)= -0.125*( rho(i,j,k)+rho(i-1,j,k) )           &
+          dumx(i,j,k)= -0.125*( rho(i,j,k)+rho(i-1,j,k) )*le_num    &
                              *(  (khh(i,j,k  )+ khh(i-1,j,k  ))     &
                                 +(khh(i,j,k+1)+ khh(i-1,j,k+1)) )   &
                              *(    s(i,j,k)-   s(i-1,j,k) )*rdx*uf(i)
           !  y-direction
-          dumy(i,j,k)= -0.125*( rho(i,j,k)+rho(i,j-1,k) )           &
+          dumy(i,j,k)= -0.125*( rho(i,j,k)+rho(i,j-1,k) )*le_num    &
                              *(  (khh(i,j,k  )+ khh(i,j-1,k  ))     &
                                 +(khh(i,j,k+1)+ khh(i,j-1,k+1)) )   &
                             *(    s(i,j,k)-   s(i,j-1,k) )*rdy*vf(j)
@@ -144,7 +157,7 @@
       do k=1,nk
       do j=1,nj
         do i=1,ni+1
-          dumx(i,j,k)= -0.125*( rho(i,j,k)+rho(i-1,j,k) )           &
+          dumx(i,j,k)= -0.125*( rho(i,j,k)+rho(i-1,j,k) )*le_num    &
                              *(  (khh(i,j,k  )+ khh(i-1,j,k  ))     &
                                 +(khh(i,j,k+1)+ khh(i-1,j,k+1)) )   &
                              *(    s(i,j,k)-   s(i-1,j,k) )*rdx*uf(i)
@@ -242,7 +255,7 @@
         ! x-flux
         do j=1,nj
         do i=1,ni+1
-          dumx(i,j,k)= -0.125*( gz(i,j)*rho(i,j,k)+gz(i-1,j)*rho(i-1,j,k) )  &
+          dumx(i,j,k)= -0.125*( gz(i,j)*rho(i,j,k)+gz(i-1,j)*rho(i-1,j,k) )*le_num  &
                              *(  (khh(i,j,k  )+ khh(i-1,j,k  ))     &
                                 +(khh(i,j,k+1)+ khh(i-1,j,k+1)) )*( &
                   (s(i,j,k)*rgz(i,j)-s(i-1,j,k)*rgz(i-1,j))         &
@@ -260,7 +273,7 @@
         ! y-flux
         do j=1,nj+1
         do i=1,ni
-          dumy(i,j,k)= -0.125*( gz(i,j)*rho(i,j,k)+gz(i,j-1)*rho(i,j-1,k) )  &
+          dumy(i,j,k)= -0.125*( gz(i,j)*rho(i,j,k)+gz(i,j-1)*rho(i,j-1,k) )*le_num  &
                              *(  (khh(i,j,k  )+ khh(i,j-1,k  ))     &
                                 +(khh(i,j,k+1)+ khh(i,j-1,k+1)) )*( &
                   (s(i,j,k)*rgz(i,j)-s(i,j-1,k)*rgz(i,j-1))         &
@@ -401,9 +414,22 @@
   IF( dovturb )THEN
 
     if( cm1setup.eq.3 )then
-      kappa = viscosity/pr_num
-      ptcb = ptc_bot - th0r
-      ptct = ptc_top - th0r
+      ! bottom/top boundary conditions:
+      if( ivar.eq.1 )then
+        ! potential temperature:
+        ptcb = ptc_bot - th0r
+        ptct = ptc_top - th0r
+        kappa = viscosity/pr_num
+      elseif( ivar.eq.2 )then
+        ! water vapor mixing ratio:
+        ! (assume saturation)
+        ptcb = rslf( base_pbot , ptc_bot*base_pibot )
+        ptct = 0.9*rslf( base_ptop , ptc_top*base_pitop )
+        kappa = viscosity/sc_num
+      else
+        ptcb = 0.0
+        ptct = 0.0
+      endif
     endif
 
   ifimpls:  &
@@ -416,7 +442,7 @@
 
         do k=2,nk
         do i=1,ni
-          dumz(i,j,k)= -khv(i,j,k)*(s(i,j,k)-s(i,j,k-1))*rdz*mf(i,j,k)*rf(i,j,k)
+          dumz(i,j,k)= -le_num*khv(i,j,k)*(s(i,j,k)-s(i,j,k-1))*rdz*mf(i,j,k)*rf(i,j,k)
         enddo
         enddo
       ENDDO
@@ -531,8 +557,8 @@
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
-            dumz(i,j,1) = -khv(i,j,2)*(s(i,j,2)-s(i,j,1))*rdz*mf(i,j,2)*rf(i,j,2)
-            dumz(i,j,nk+1) = -khv(i,j,nk)*(s(i,j,nk)-s(i,j,nk-1))*rdz*mf(i,j,nk)*rf(i,j,nk)
+            dumz(i,j,1) = -le_num*khv(i,j,2)*(s(i,j,2)-s(i,j,1))*rdz*mf(i,j,2)*rf(i,j,2)
+            dumz(i,j,nk+1) = -le_num*khv(i,j,nk)*(s(i,j,nk)-s(i,j,nk-1))*rdz*mf(i,j,nk)*rf(i,j,nk)
           enddo
           enddo
           !442 $acc end data
@@ -611,7 +637,6 @@
         enddo
         !$acc end parallel
 
-      !518 $acc data copyin(s,dum7,mh,rr,dumx,dumy,rho,turbx,turby) copy(dumz,turbz,sten)
       IF( axisymm.eq.0 )THEN
 
         k = nk
@@ -707,7 +732,6 @@
 !  Diagnostics:
 
       IF( dobud )THEN
-        !615 $acc data copyin(turbx,turby,turbz,rr) copy(diag)
         if( axisymm.eq.0 )then
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -731,7 +755,6 @@
           enddo
           enddo
         endif
-        !639 $acc end data
       ENDIF
 
 !---------------------------------------------------------------------

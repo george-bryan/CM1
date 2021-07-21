@@ -76,7 +76,7 @@
       !$acc present(divx,rru,rrv,rrw) &
       !$acc present(s0,s,sten,rho,ri,diag,wprof,dumk1,dumk2)
 
-      !$acc data copyin(dt,sd_hadv,sd_vadv,sd_hidiff) 
+      !JMD!$acc data copyin(dt,sd_hadv,sd_vadv,sd_hidiff) 
 !----------------------------------------------------------------
 
       doweno = .false.
@@ -906,7 +906,7 @@
     ENDIF  getvidiffs
     !--------
   ENDIF
-      !$acc end data
+      !JMD !$acc end data
 !----------------------------------------------------------------
  
       if(timestats.ge.1) time_advs=time_advs+mytime()

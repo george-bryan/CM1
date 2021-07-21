@@ -337,6 +337,7 @@
       call MPI_BCAST(ptc_bot  ,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(viscosity,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(pr_num   ,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(sc_num   ,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
 
       call MPI_BCAST(var1     ,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(var2     ,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
@@ -488,6 +489,7 @@
       call MPI_BCAST(prcl_rho    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(prcl_qsat   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(prcl_sfc    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(prcl_droplet,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 
       call MPI_BCAST(radopt   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(dtrad  ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
@@ -1314,7 +1316,7 @@
         call stopcm1
       ENDIF
       !-----
-      IF(imoist.eq.1 .and. ( isnd.eq.2 .or. isnd.eq.3 ) )THEN
+      IF(imoist.eq.1 .and. ( isnd.eq.3 ) )THEN
         if(myid.eq.0)then
         print *
         print *,'  imoist = ',imoist
@@ -2754,6 +2756,7 @@
       if(dowr) write(outfile,*) 'ptc_bot   =',ptc_bot
       if(dowr) write(outfile,*) 'viscosity =',viscosity
       if(dowr) write(outfile,*) 'pr_num    =',pr_num
+      if(dowr) write(outfile,*) 'sc_num    =',sc_num
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'var1      =',var1
       if(dowr) write(outfile,*) 'var2      =',var2
@@ -4268,6 +4271,7 @@
         if( qname(n).eq.'nci' ) nnci = n
         if( qname(n).eq.'ncc' ) nncc = n
       enddo
+      !$acc enter data copyin(nqr,nqi,nqs,nqg,nnci,nncc)
 
       if( ptype.eq.55 ) nqi = 4
 
@@ -5851,6 +5855,7 @@
       prcl_rho      = max(0,min(1,prcl_rho))
       prcl_qsat     = max(0,min(1,prcl_qsat))
       prcl_sfc      = max(0,min(1,prcl_sfc))
+      prcl_droplet  = max(0,min(1,prcl_droplet))
 
 
       if( iptra.eq.0 )then
@@ -5898,6 +5903,7 @@
       if(dowr) write(outfile,*) 'prcl_rho     = ',prcl_rho
       if(dowr) write(outfile,*) 'prcl_qsat    = ',prcl_qsat
       if(dowr) write(outfile,*) 'prcl_sfc     = ',prcl_sfc
+      if(dowr) write(outfile,*) 'prcl_droplet = ',prcl_droplet
       if(dowr) write(outfile,*)
 
 !------------------------------------------------------------------
@@ -5994,18 +6000,54 @@
       ! for parcels:
       if(iprcl.eq.1)then
 
-        ! 7 basic variables for all simulations:
-        ! (x,y,z,u,v,w,t)
-        !  1 2 3 4 5 6 7
-        npvals = 7
+        npvals = 3
+
+        !Parcel information that isn't just diagnostic
+        npvars = 3
 
         prx = 1
         pry = 2
         prz = 3
-        pru = 4
-        prv = 5
-        prw = 6
-        prtime = 7
+
+        !Droplet properties
+        if (prcl_droplet) then
+          npvals = npvals+1
+          npvars = npvars+1
+          prvpx = npvals  !Droplet x-velocity
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prvpy = npvals  !Droplet y-velocity
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prvpz = npvals  !Droplet y-velocity
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prrp = npvals  !Droplet radius
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prms = npvals  !Droplet solute (i.e. salt) mass
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prtp = npvals  !Droplet temperature
+
+        end if
+
+        npvals = npvals+1
+        pru = npvals
+
+        npvals = npvals+1
+        prv = npvals
+
+        npvals = npvals+1
+        prw = npvals
+
+        npvals = npvals+1
+        prtime = npvals
 
         if( prcl_th.eq.1 )then
           npvals = npvals+1
@@ -6028,19 +6070,29 @@
         endif
 
         ! moisture variables:
-        if( prcl_q.eq.1 )then
-          !---
-          npvals = npvals+1
-          prqv = npvals
-          prq1 = npvals+1
-          !---
-          npvals = npvals+(nql2-nql1+1)
-          if( iice.eq.1 )then
-            npvals = npvals+(nqs2-nqs1+1)
+
+        !If you have water vapor but no microphysics
+        if (ptype .eq. 0) then
+          if( prcl_q.eq.1 )then
+            npvals = npvals+1
+            prqv = npvals
+          end if
+        else
+        !Moisture including microphysics
+          if( prcl_q.eq.1 )then
+            !---
+            npvals = npvals+1
+            prqv = npvals
+            prq1 = npvals+1
+            !---
+            npvals = npvals+(nql2-nql1+1)
+            if( iice.eq.1 )then
+              npvals = npvals+(nqs2-nqs1+1)
+            endif
+            !---
+            prq2 = npvals
           endif
-          !---
-          prq2 = npvals
-        endif
+        end if
         if( prcl_nc.eq.1 .and. idm.eq.1 )then
           prnc1 = npvals+1
           npvals = npvals+(nnc2-nnc1+1)
@@ -6107,6 +6159,7 @@
           prsig = npvals
         endif
 
+
       else
 
         nparcels = 1
@@ -6116,6 +6169,7 @@
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  nparcels = ',nparcels
       if(dowr) write(outfile,*) '  npvals   = ',npvals
+      if(dowr) write(outfile,*) '  npvars   = ',npvars
       if(dowr) write(outfile,*) '    prx      = ',prx
       if(dowr) write(outfile,*) '    pry      = ',pry
       if(dowr) write(outfile,*) '    prz      = ',prz
@@ -6147,6 +6201,12 @@
       if(dowr) write(outfile,*) '    prust    = ',prust
       if(dowr) write(outfile,*) '    przs     = ',przs
       if(dowr) write(outfile,*) '    prsig    = ',prsig
+      if(dowr) write(outfile,*) '    prvpx    = ',prvpx
+      if(dowr) write(outfile,*) '    prvpy    = ',prvpy
+      if(dowr) write(outfile,*) '    prvpz    = ',prvpz
+      if(dowr) write(outfile,*) '    prrp     = ',prrp
+      if(dowr) write(outfile,*) '    prms     = ',prms
+      if(dowr) write(outfile,*) '    prtp     = ',prtp
       if(dowr) write(outfile,*)
 
 !--------------------------------------------------------------
@@ -6371,6 +6431,7 @@
         !                and modified compressible equations (psolver=7)
         csound = 300.0
         if( testcase.eq.11 ) csound = 50.0
+        if( testcase.eq.14 ) csound = 10.0
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) 'csound=',csound
         if(dowr) write(outfile,*)

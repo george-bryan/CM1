@@ -50,11 +50,11 @@ FC   = pgf90
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
 #OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
 # flipping the next two for debugging
-OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
 
-#VERIFY OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+#OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
+OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 

@@ -240,7 +240,9 @@
       IF( numprocs.gt.nlim )THEN
         doit = .false.
         IF( myid.ge.nlim )THEN
+          !$acc host_data use_device(doit)
           call MPI_IRECV(doit,1,mpi_logical,myid-nlim,999999,MPI_COMM_WORLD,reqs,ierr)
+          !$acc end host_data
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
       ENDIF
@@ -2197,10 +2199,11 @@
       !$acc end parallel
 
 #ifdef MPI
+        !$acc host_data use_device(doit)
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
-
-      !$acc parallel default(present)
+      print *,'domaindiag: after mpi_allreduce '
+      !$acc parallel default(present) private(k)
       !$acc loop gang vector
       do k=1,nk
         dumk1(k) = dumk1(k)/dble(nx*ny)
@@ -2218,7 +2221,7 @@
         endif
       enddo
       !$acc end parallel
-
+      print *,'domaindiag before problematic loop'
       !JMD for some reason this loop has a race condition
       !--------
       !  Get zi:
@@ -4126,6 +4129,7 @@
 
   !.............................................
 
+    !$acc compare(ua)
     if(output_uinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'uinterp '
@@ -4148,6 +4152,7 @@
 
   !.............................................
 
+    !$acc compare(va)
     if(output_vinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'vinterp '
@@ -4170,6 +4175,7 @@
 
   !.............................................
 
+    !$acc compare(wa)
     if(output_winterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'winterp '
@@ -8194,6 +8200,7 @@
       IF( numprocs.gt.nlim )THEN
         doit = .true.
         IF( myid+nlim .le. (numprocs-1) )THEN
+          !$acc host_data use_device(doit)
           call MPI_ISEND(doit,1,mpi_logical,myid+nlim,999999,MPI_COMM_WORLD,reqs,ierr)
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
@@ -8547,7 +8554,9 @@
         enddo
         enddo
 
+        !$acc host_data use_device(dat1)
         call MPI_ISEND(dat1(1,1),d3i*d3j,MPI_REAL,nodemaster,tag,MPI_COMM_WORLD,reqs,ierr)
+        !$acc end host_data
         call MPI_WAIT(reqs,MPI_STATUS_IGNORE,ierr)
 
         tag = tag+2
@@ -9024,13 +9033,13 @@
 202   format('title CM1 output, using version ',a,'; units of x,y,z are km; time is generic, see cm1out_metadata for actual times')
 221   format('options template')
 203   format('undef ',f10.1)
-204   format('xdef ',i6,' linear ',f13.6,1x,f13.6)
+204   format('xdef ',i6,' linear ',f16.9,1x,f16.9)
 214   format('xdef ',i6,' levels ')
-205   format('ydef ',i6,' linear ',f13.6,1x,f13.6)
+205   format('ydef ',i6,' linear ',f16.9,1x,f16.9)
 215   format('ydef ',i6,' levels ')
-206   format('zdef ',i6,' linear ',f13.6,1x,f13.6)
+206   format('zdef ',i6,' linear ',f16.9,1x,f16.9)
 216   format('zdef ',i6,' levels ')
-217   format(2x,f13.6)
+217   format(2x,f16.9)
 227   format('tdef ',i10,' linear 00:00Z01JAN0001 1YR')
 208   format('vars ',i6)
 209   format(a12,1x,i6,' 99 ',a60,1x,a12)

@@ -113,6 +113,7 @@
       real :: th1,th2,th3,th4,th5
       real :: qv1,qv2,qv3,qv4,qv5
       real :: pilast,thvlast,zlast,qt,thl,z_inv,th0last,lwp
+      real(kind=dp) :: dpi1,dpi2,dthv1,dthv2,dqv1,dqv2,dprs,esl
       real :: qsfc,zq1,zq2,tv0,tsfc,tvsfc,psfc,lr,tvtrop,ptrop
       real :: rhval
 
@@ -207,6 +208,67 @@
         tsurf = t_sfc
         qsurf = 0.0
 
+
+!-----------------------------------------------------------------------
+!  isnd = 23
+!  Isothermal, satutated
+
+      ELSEIF(isnd.eq.23)THEN
+
+        t_sfc    =   300.0    ! Temperature of atmosphere (K)
+        prs_sfc  =   p00      ! Pressure at surface (Pa)
+
+        pi_sfc = ( prs_sfc * rp00 )**rddcp
+        qv_sfc = rslf(prs_sfc,t_sfc)
+        thv_sfc = (t_sfc/pi_sfc)*(1.0+reps*qv_sfc)/(1.0+qv_sfc)
+
+  print *,pi_sfc,qv_sfc,thv_sfc
+
+        do j=jb,je
+        do i=ib,ie
+
+        do n = 1 , 20
+
+          dpi1 = pi_sfc
+          dthv1 = thv_sfc
+          dthv2 = thv_sfc
+          zlast = zf(i,j,1)
+
+          do k=1,nk
+
+            dpi2=dpi1-g*(zh(i,j,k)-zlast)/(cp*0.5*(dthv1+dthv2))
+            dprs=p00*(dpi2**(cp/rd))
+            th0(i,j,k)=t_sfc/dpi2
+            t0(i,j,k)=t_sfc
+            rh0(i,j,k)=1.0
+            esl=611.2 * EXP( 17.67 * ( t_sfc  - 273.15 ) / ( t_sfc  - 29.65 ) )
+            dqv2= eps * ESL /(dprs-ESL)
+            dthv2=(t_sfc/dpi2)*(1.0+reps*dqv2)/(1.0+dqv2)
+
+            pi0(i,j,k)=dpi2
+            qv0(i,j,k)=dqv2
+            thv0(i,j,k)=dthv2
+            prs0(i,j,k)=dprs
+
+!!!            print *,zh(i,j,k),prs0(i,j,k),pi0(i,j,k)
+!!!            print *,zh(i,j,k)-zlast,dpi2,th0(i,j,k),1000.0*dqv2
+
+            pilast = dpi2
+            zlast = zh(i,j,k)
+            thvlast = dthv2
+
+          enddo
+
+          if(i.eq.ib.and.j.eq.jb) print *,'  n,prs0 = ',prs0(1,1,nk)
+
+        enddo
+
+        enddo
+        enddo
+
+        psurf = prs_sfc
+        tsurf = t_sfc
+        qsurf = rslf(prs_sfc,t_sfc)
 
 !-----------------------------------------------------------------------
 !  isnd = 3
@@ -2866,6 +2928,16 @@
 
     !-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-!
 
+    IF( testcase.eq.14 )THEN
+
+      ! Peng & Richter (2017) open channel flow with droplets
+
+      ulspg = 0.3322
+      vlspg = 0.0
+
+    ENDIF
+
+    !-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-!
 
     do k=kb,ke
       ug(k) = ug(k) - umove
@@ -3146,6 +3218,34 @@
 
       ENDIF
       ENDIF
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      base_pbot = cgs1*prs0(1,1,1)+cgs2*prs0(1,1,2)+cgs3*prs0(1,1,3)
+      base_ptop = cgt1*prs0(1,1,nk)+cgt2*prs0(1,1,nk-1)+cgt3*prs0(1,1,nk-2)
+
+      base_pibot = cgs1*pi0(1,1,1)+cgs2*pi0(1,1,2)+cgs3*pi0(1,1,3)
+      base_pitop = cgt1*pi0(1,1,nk)+cgt2*pi0(1,1,nk-1)+cgt3*pi0(1,1,nk-2)
+
+      base_tbot = cgs1*t0(1,1,1)+cgs2*t0(1,1,2)+cgs3*t0(1,1,3)
+      base_ttop = cgt1*t0(1,1,nk)+cgt2*t0(1,1,nk-1)+cgt3*t0(1,1,nk-2)
+
+      base_thbot = cgs1*th0(1,1,1)+cgs2*th0(1,1,2)+cgs3*th0(1,1,3)
+      base_thtop = cgt1*th0(1,1,nk)+cgt2*th0(1,1,nk-1)+cgt3*th0(1,1,nk-2)
+
+      base_qvbot = cgs1*qv0(1,1,1)+cgs2*qv0(1,1,2)+cgs3*qv0(1,1,3)
+      base_qvtop = cgt1*qv0(1,1,nk)+cgt2*qv0(1,1,nk-1)+cgt3*qv0(1,1,nk-2)
+
+      if( myid.eq.0 )then
+        print *
+        print *,'  base_pbot, base_ptop  = ',base_pbot,base_ptop
+        print *,'  base_pibot,base_pitop = ',base_pibot,base_pitop
+        print *,'  base_tbot, base_ttop  = ',base_tbot,base_ttop
+        print *,'  base_thbot,base_thtop = ',base_thbot,base_thtop
+        print *,'  base_qvbot,base_qvtop = ',base_qvbot,base_qvtop
+        print *
+      endif
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
