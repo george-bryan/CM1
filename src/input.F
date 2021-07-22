@@ -43,7 +43,7 @@
 !-----------------------------------------------------------------------
 
       integer nx,ny,nz,nodex,nodey,ppnode,timeformat,timestats,               &
-              ni,nj,nk,nkp1,ngxy,ngz,                                         &
+              ni,nj,nk,nip1,njp1,nkp1,ngxy,ngz,                               &
               ib,ie,jb,je,kb,ke,                                              &
               ibm,iem,jbm,jem,kbm,kem,                                        &
               ibi,iei,jbi,jei,kbi,kei,iice,idm,idmplus,                       &
@@ -160,6 +160,9 @@
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk
 
+!$acc declare copyin(ptype)
+!$acc declare create(ngxy,ngz)
+!$acc declare copyin(ib,ie,jb,je,kb,ke)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -195,6 +198,7 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
+!$acc declare create(alph,kdiv)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
@@ -215,15 +219,18 @@
 
       real clock_rate,time_sound,time_buoyan,time_turb,              &
            time_diffu,time_microphy,time_stat,time_cflq,time_bc,     &
-           time_misc,time_integ,time_rdamp,time_divx,time_write,     &
+           time_misc,time_integ,time_rdamp,time_divx,time_write,time_nvtx,     &
            time_ttend,time_cor,time_fall,time_satadj,                &
            time_sfcphys,time_dbz,time_last,                          &
            time_advs,time_advu,time_advv,time_advw,                  &
+           time_phys_H2D,time_phys_D2H,                                &
+           time_H2D,time_D2H, &     
            time_mpu1,time_mpv1,time_mpw1,time_mpp1,                  &
            time_mpu2,time_mpv2,time_mpw2,time_mpp2,                  &
            time_mps1,time_mps3,time_mpq1,time_mptk1,                 &
-           time_mps2,time_mps4,time_mpq2,time_mptk2,time_mpb,time_dpc, &
-           time_parcels,time_rad,time_pbl,time_swath,time_pdef,      &
+           time_mps2,time_mps4,time_mpq2,time_mptk2,time_mpb,time_dpc        &
+           time_parcels,time_parceli,time_droplet,time_droplet_reduce, &
+           time_rad,time_pbl,time_swath,time_pdef,      &
            time_prsrho,time_restart,time_poiss,time_diag,            &
            time_azimavg,time_hifrq,time_ercyl
       integer count_last
@@ -304,6 +311,7 @@
               dodomaindiag,diagfrq
       namelist /param15/                                                      &
               doazimavg,azimavgfrq,rlen,do_adapt_move,adapt_move_frq
+
 
     CONTAINS
 

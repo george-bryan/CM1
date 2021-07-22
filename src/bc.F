@@ -9,6 +9,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bc2d(s)
       use input
       implicit none
@@ -170,6 +171,7 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bc2d
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -177,6 +179,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcs(s)
       use input
       implicit none
@@ -184,12 +187,10 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: s
 
       integer i,j,k
-
 !-----------------------------------------------------------------------
 !  west boundary condition
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+    !$omp parallel do default(shared) private(i,j,k)
     DO k=1,nk
 
 #ifndef MPI
@@ -219,9 +220,13 @@
         enddo
         enddo
       endif
+    ENDDO
 
 !-----------------------------------------------------------------------
 !  east boundary condition
+
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
 
 #ifndef MPI
       if(ebc.eq.1)then
@@ -251,8 +256,13 @@
         enddo
       endif
 
+    ENDDO
+
 !-----------------------------------------------------------------------
 !  south boundary condition
+
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
 
 #ifndef MPI
       if(sbc.eq.1)then
@@ -281,9 +291,13 @@
         enddo
         enddo
       endif
+    ENDDO
 
 !-----------------------------------------------------------------------
 !  north boundary condition
+
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
 
 #ifndef MPI
       if(nbc.eq.1)then
@@ -320,6 +334,7 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcs
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -334,6 +349,7 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: p
 
       integer i,j,k
+      !$acc declare present(p)
 
 !-----------------------------------------------------------------------
 !  west boundary condition
@@ -341,6 +357,7 @@
 #ifndef MPI
       if(wbc.eq.1)then
         !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do j=0,nj+1
           p(0,j,k)=p(ni,j,k)
@@ -351,6 +368,7 @@
       if(ibw.eq.1.and.wbc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do j=0,nj+1
           p(0,j,k)=p(1,j,k)
@@ -362,6 +380,7 @@
       elseif(wbc.eq.3.or.wbc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do j=0,nj+1
           p(0,j,k)=p(1,j,k)
@@ -375,6 +394,7 @@
 #ifndef MPI
       if(ebc.eq.1)then
         !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do j=0,nj+1
           p(ni+1,j,k)=p(1,j,k)
@@ -385,6 +405,7 @@
       if(ibe.eq.1.and.ebc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do j=0,nj+1
           p(ni+1,j,k)=p(ni,j,k)
@@ -396,6 +417,7 @@
       elseif(ebc.eq.3.or.ebc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do j=0,nj+1
           p(ni+1,j,k)=p(ni,j,k)
@@ -409,6 +431,7 @@
 #ifndef MPI
       if(sbc.eq.1)then
         !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do i=0,ni+1
           p(i,0,k)=p(i,nj,k)
@@ -419,6 +442,7 @@
       if(ibs.eq.1.and.sbc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do i=0,ni+1
           p(i,0,k)=p(i,1,k)
@@ -430,6 +454,7 @@
       elseif(sbc.eq.3.or.sbc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do i=0,ni+1
           p(i,0,k)=p(i,1,k)
@@ -443,6 +468,7 @@
 #ifndef MPI
       if(nbc.eq.1)then
         !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do i=0,ni+1
           p(i,nj+1,k)=p(i,1,k)
@@ -453,6 +479,7 @@
       if(ibn.eq.1.and.nbc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do i=0,ni+1
           p(i,nj+1,k)=p(i,nj,k)
@@ -464,6 +491,7 @@
       elseif(nbc.eq.3.or.nbc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(i,k)
+        !$acc parallel loop gang vector collapse(2)
         do k=1,nk
         do i=0,ni+1
           p(i,nj+1,k)=p(i,nj,k)
@@ -483,13 +511,14 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcu(u)
       use input
       implicit none
 
       real, dimension(ib:ie+1,jb:je,kb:ke) :: u
 
-      integer i,j,k  
+      integer i,j,k
 
 !-----------------------------------------------------------------------
 !  west boundary condition
@@ -626,21 +655,24 @@
 !-----------------------------------------------------------------------
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
- 
+
       end subroutine bcu
 
+#endif
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcv(v)
       use input
       implicit none
 
       real, dimension(ib:ie,jb:je+1,kb:ke) :: v
- 
+
       integer i,j,k
 
 !-----------------------------------------------------------------------
@@ -796,9 +828,9 @@
 !-----------------------------------------------------------------------
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
- 
-      end subroutine bcv
 
+      end subroutine bcv
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -811,16 +843,15 @@
 
       real, dimension(ib:ie,jb:je,kb:ke+1) :: w
       integer flag
- 
+
       integer i,j,k
 
 !-----------------------------------------------------------------------
 !  west boundary condition
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+!$omp parallel do default(shared) private(i,j,k)
     DO k=2,nk
- 
+
 #ifndef MPI
       if(wbc.eq.1)then
         do j=jb,je
@@ -877,7 +908,7 @@
         do i=1,ngxy
           w(ni+i,j,k)=w(ni+1-i,j,k)
         enddo
-        enddo 
+        enddo
       endif
 
 !-----------------------------------------------------------------------
@@ -949,8 +980,7 @@
 
     IF(flag.eq.1)THEN
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
       do j=0,nj+1
       do i=0,ni+1
         w(i,j, 1)=0.0
@@ -963,7 +993,7 @@
 !-----------------------------------------------------------------------
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
- 
+
       end subroutine bcw
 
 
@@ -981,13 +1011,14 @@
       real, intent(in), dimension(ib:ie+1,jb:je,kb:ke) :: u
       real, intent(in), dimension(ib:ie,jb:je+1,kb:ke) :: v
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: w
+      !$acc declare present(gz,dzdx,dzdy,u,v,w)
 
       integer :: i,j
 
 !-----------------------------------------------------------------------
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
       do j=0,nj+1
       do i=0,ni+1
         w(i,j,1) = 0.5*( ( u(i,j,1)+u(i+1,j,1) )*dzdx(i,j) &
@@ -1094,14 +1125,15 @@
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
+      !$acc declare present(s)
 
       integer :: i,j
 
       ! cm1r18 extrapolation formulation:
       ! assumes zh(0) is same as zf(1), and zh(nk+1) is same as zf(nk+1)
 
-!$omp parallel do default(shared)   &
-!$omp private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=jb,je
       do i=ib,ie
         s(i,j,0)    = cgs1*s(i,j,1)+cgs2*s(i,j,2)+cgs3*s(i,j,3)
@@ -1118,6 +1150,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine bcs2(s)
       use input
       implicit none
@@ -1237,6 +1270,7 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcs2
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1370,7 +1404,140 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine bcu2(u)
+      subroutine bct2_GPU(t)
+      use input
+      implicit none
+
+      real t(ib:ie,jb:je,kb:ke+1)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk+1
+          do i=1-ngxy,0
+            t(i,j,k)=t(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+1
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+!$acc parallel loop gang vector default(present)  collapse(2) private(i,k)
+          do k=1,nk+1
+          do i=1-ngxy,0
+            t(i,j,k)=t(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk+1
+          do i=ni+1,ni+ngxy
+            t(i,j,k)=t(ni,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+1
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+!$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk+1
+          do i=ni+1,ni+ngxy
+            t(i,j,k)=t(ni,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          do k=1,nk+1
+          do j=1-ngxy,0
+            t(i,j,k)=t(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+1
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          do k=1,nk+1
+          do j=1-ngxy,0
+            t(i,j,k)=t(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          do k=1,nk+1
+          do j=nj+1,nj+ngxy
+            t(i,j,k)=t(i,nj,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+1
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+!$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          do k=1,nk+1
+          do j=nj+1,nj+ngxy
+            t(i,j,k)=t(i,nj,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bct2_GPU
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine bcu2_GPU(u)
       use input
       implicit none
 
@@ -1386,6 +1553,7 @@
 
         if(patchsww)then
           j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1397,6 +1565,7 @@
 
         if(patchnww)then
           j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1412,6 +1581,7 @@
 
         if(patchsee)then
           j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1423,6 +1593,7 @@
 
         if(patchnee)then
           j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1438,6 +1609,7 @@
 
         if(patchsws)then
           i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1449,6 +1621,7 @@
 
         if(patchses)then
           i=ni+2
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1464,6 +1637,7 @@
 
         if(patchnwn)then
           i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1475,6 +1649,7 @@
 
         if(patchnen)then
           i=ni+2
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1488,7 +1663,8 @@
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
-      end subroutine bcu2
+      end subroutine bcu2_GPU
+
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1496,7 +1672,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine bcv2(v)
+      subroutine bcv2_GPU(v)
       use input
       implicit none
 
@@ -1512,6 +1688,7 @@
 
         if(patchsww)then
           j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1523,6 +1700,7 @@
 
         if(patchnww)then
           j=nj+2
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1538,6 +1716,7 @@
 
         if(patchsee)then
           j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1549,6 +1728,7 @@
 
         if(patchnee)then
           j=nj+2
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
           do k=1,nk
@@ -1564,6 +1744,7 @@
 
         if(patchsws)then
           i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1575,6 +1756,7 @@
 
         if(patchses)then
           i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1590,6 +1772,7 @@
 
         if(patchnwn)then
           i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1601,6 +1784,7 @@
 
         if(patchnen)then
           i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
           do k=1,nk
@@ -1614,13 +1798,15 @@
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
-      end subroutine bcv2
+      end subroutine bcv2_GPU
+
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+#if 0
 
       subroutine bcw2(w)
       use input
@@ -1741,6 +1927,140 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine bcw2
+#endif
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine bcw2_GPU(w)
+      use input
+      implicit none
+
+      real w(ib:ie,jb:je,kb:ke+1)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=1-ngxy,0
+            w(i,j,k)=w(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=1-ngxy,0
+            w(i,j,k)=w(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=ni+1,ni+ngxy
+            w(i,j,k)=w(ni,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+1
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk+1
+          do i=ni+1,ni+ngxy
+            w(i,j,k)=w(ni,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=1-ngxy,0
+            w(i,j,k)=w(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=1-ngxy,0
+            w(i,j,k)=w(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=nj+1,nj+ngxy
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+1
+!$acc parallel loop gang vector collapse(2) default(present) private(k,j)
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk+1
+          do j=nj+1,nj+ngxy
+            w(i,j,k)=w(i,nj,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcw2_GPU
+
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1844,6 +2164,114 @@
 
       end subroutine bcs2_2d
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine bcs2_2d_GPU(s)
+      use input
+      implicit none
+
+      real s(ib:ie,jb:je)
+
+      integer i,j
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=-2,0
+          do i=1-ngxy,0
+          s(i,j)=s(1,j)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=nj+1,nj+3
+          do i=1-ngxy,0
+          s(i,j)=s(1,j)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=-2,0
+          do i=ni+1,ni+ngxy
+          s(i,j)=s(ni,j)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=nj+1,nj+3
+          do i=ni+1,ni+ngxy
+          s(i,j)=s(ni,j)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=1-ngxy,0
+          do i=-2,0
+          s(i,j)=s(i,1)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=1-ngxy,0
+          do i=ni+1,ni+3
+          s(i,j)=s(i,1)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=nj+1,nj+ngxy
+          do i=-2,0
+          s(i,j)=s(i,nj)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          do j=nj+1,nj+ngxy
+          do i=ni+1,ni+3
+          s(i,j)=s(i,nj)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcs2_2d_GPU
 
 #endif
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1861,10 +2289,11 @@
  
       integer j,k
       real cbcw,cbce
+      !$acc declare present(radbcw,radbce,ua)
  
       if(ibw.eq.1.and.wbc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(j,k,cbcw)
+        !$omp parallel do default(shared) private(j,k,cbcw)
+        !$acc parallel loop gang vector collapse(2) private(j,k,cbcw)
         do k=1,nk
         do j=1,nj
           cbcw=ua(1,j,k)-cstar
@@ -1878,8 +2307,8 @@
       endif
  
       if(ibe.eq.1.and.ebc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(j,k,cbce)
+        !$omp parallel do default(shared) private(j,k,cbce)
+        !$acc parallel loop gang vector collapse(2) private(j,k,cbce)
         do k=1,nk
         do j=1,nj
           cbce=ua(ni+1,j,k)+cstar
@@ -1914,10 +2343,11 @@
  
       integer i,k
       real cbcs,cbcn
+      !$acc declare present(radbcs,radbcn,va)
 
       if(ibs.eq.1.and.sbc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(i,k,cbcs)
+        !$omp parallel do default(shared) private(i,k,cbcs)
+        !$acc parallel loop gang vector collapse(2) private(i,k,cbcs)
         do k=1,nk
         do i=1,ni
           cbcs=va(i,1,k)-cstar
@@ -1931,8 +2361,8 @@
       endif
  
       if(ibn.eq.1.and.nbc.eq.2)then
-!$omp parallel do default(shared)  &
-!$omp private(i,k,cbcn)
+        !$omp parallel do default(shared) private(i,k,cbcn)
+        !$acc parallel loop gang vector collapse(2) private(i,k,cbcn)
         do k=1,nk
         do i=1,ni
           cbcn=va(i,nj+1,k)+cstar
@@ -1969,12 +2399,13 @@
 
       integer j,k
       real umax,avgw,avge,foo,cbcw,cbce
+      !$acc declare present(radbcw,radbce,u1,u2)
 
       umax=csmax
 
       if(ibw.eq.1.and.wbc.eq.2)then
-!$omp parallel do default(shared)   &
-!$omp private(j,k,foo,avgw,cbcw)
+       !$omp parallel do default(shared) private(j,k,foo,avgw,cbcw)
+       !$acc parallel loop gang vector private(j,k,foo,avgw,cbcw)
         do j=1,nj
           avgw=0.
           do k=1,nk
@@ -1992,8 +2423,8 @@
       endif
 
       if(ibe.eq.1.and.ebc.eq.2)then
-!$omp parallel do default(shared)   &
-!$omp private(j,k,foo,avge,cbce)
+        !$omp parallel do default(shared) private(j,k,foo,avge,cbce)
+        !$acc parallel loop gang vector private(j,k,foo,avge,cbce)
         do j=1,nj
           avge=0.
           do k=1,nk
@@ -2032,12 +2463,13 @@
 
       integer i,k
       real umax,avgs,avgn,foo,cbcs,cbcn
+      !$acc declare present(radbcs,radbcn,v1,v2)
 
       umax=csmax
 
       if(ibs.eq.1.and.sbc.eq.2)then
-!$omp parallel do default(shared)   &
-!$omp private(i,k,avgs,foo,cbcs)
+        !$omp parallel do default(shared) private(i,k,avgs,foo,cbcs)
+        !$acc parallel loop gang vector private(i,k,avgs,foo,cbcs)
         do i=1,ni
           avgs=0.
           do k=1,nk
@@ -2055,8 +2487,8 @@
       endif
 
       if(ibn.eq.1.and.nbc.eq.2)then
-!$omp parallel do default(shared)   &
-!$omp private(i,k,avgn,foo,cbcn)
+        !$omp parallel do default(shared) private(i,k,avgn,foo,cbcn)
+        !$acc parallel loop gang vector private(i,k,avgn,foo,cbcn)
         do i=1,ni
           avgn=0.
           do k=1,nk
@@ -2097,10 +2529,14 @@
 
       integer i,j,k
       double precision :: fluxout,fluxin,tem,u1,t3
+      double precision :: temp1,temp2
       double precision, dimension(nk) :: temout,temin
+      !$acc declare present(rvh,rmh,rho0,u3d) &
+      !$acc present(fluxout,fluxin)
 
-!$omp parallel do default(shared)   &
-!$omp private(k)
+      !$acc data create(temout,temin)
+      !$omp parallel do default(shared) private(k)
+      !$acc parallel loop gang vector private(k)
       do k=1,nk
         temout(k) = 0.0d0
         temin(k)  = 0.0d0
@@ -2108,31 +2544,51 @@
 
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !$omp parallel do default(shared) private(j,k,temp1,temp2)
+        !$acc parallel loop gang vector private(j,k,temp1,temp2)
         do k=1,nk
-        do j=1,nj
-          temout(k)=temout(k)-min(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
-          temin(k) =temin(k) +max(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
-        enddo
+          temp1 = temout(k)
+          temp2 = temin(k)
+          !$acc loop reduction(+:temp1,temp2)
+          do j=1,nj
+            temp1 = temp1 - min(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
+            temp2 = temp2 + max(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
+          enddo
+          temout(k) = temp1
+          temin(k)  = temp2
         enddo
       endif
 
       if(ebc.eq.2.and.ibe.eq.1)then
         i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+        !!$omp parallel do default(shared) private(j,k)
+        !do k=1,nk
+        !do j=1,nj
+        !  temout(k)=temout(k)+max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+        !  temin(k) =temin(k) -min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+        !enddo
+        !enddo
+
+        !$omp parallel do default(shared) private(j,k)
+        !$acc parallel loop gang vector private(j,k,temp1,temp2)
         do k=1,nk
-        do j=1,nj
-          temout(k)=temout(k)+max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
-          temin(k) =temin(k) -min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+          temp1 = temout(k)
+          temp2 = temin(k)
+          !$acc loop reduction(+:temp1,temp2)
+          do j=1,nj
+            temp1 = temp1 + max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+            temp2 = temp2 - min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
+          enddo
+          temout(k) = temp1
+          temin(k)  = temp2
         enddo
-        enddo
+
       endif
 
       fluxout = 0.0d0
       fluxin  = 0.0d0
 
+      !$acc parallel loop reduction(+:fluxout,fluxin)
       do k=1,nk
         fluxout = fluxout + temout(k)
         fluxin  = fluxin  + temin(k)
@@ -2153,8 +2609,8 @@
 
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
-!$omp parallel do default(shared)   &
-!$omp private(j,k,u1)
+        !$omp parallel do default(shared) private(j,k,u1)
+        !$acc parallel loop gang vector collapse(2) private(j,k,u1)
         do k=1,nk
         do j=1,nj
           u1=rho0(1,j,k)*u3d(i,j,k)
@@ -2167,8 +2623,8 @@
 
       if(ebc.eq.2.and.ibe.eq.1)then
         i=ni+1
-!$omp parallel do default(shared)   &
-!$omp private(j,k,u1)
+        !$omp parallel do default(shared) private(j,k,u1)
+        !$acc parallel loop gang vector collapse(2) private(j,k,u1)
         do k=1,nk
         do j=1,nj
           u1=rho0(ni,j,k)*u3d(i,j,k)
@@ -2178,6 +2634,7 @@
         enddo
         enddo
       endif
+      !$acc end data
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
@@ -2312,11 +2769,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(uh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzu,gx,radbcw) &
+      !$acc present(dum1,u3d,uten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+            !$omp parallel do default(shared) private(j,k)
+            !$acc parallel loop gang vector collapse(2) private(j,k)
             do k=1,nk
             do j=1,nj
               u3d(1,j,k)=u3d(1,j,k)+dts*( -radbcw(j,k)       &
@@ -2327,8 +2787,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores u at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=1,nj
               ! lowest model level:
               do i=1,2
@@ -2347,8 +2807,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(2) private(i,j,k)
             do k=1,nk
             do j=1,nj
               u3d(1,j,k)=u3d(1,j,k)+dts*( -radbcw(j,k)*(                            &
@@ -2387,11 +2847,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(uh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzu,gx,radbce) &
+      !$acc present(dum1,u3d,uten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(j,k)
+            !$omp parallel do default(shared) private(j,k)
+            !$acc parallel loop gang vector collapse(2) private(j,k)
             do k=1,nk
             do j=1,nj
               u3d(ni+1,j,k)=u3d(ni+1,j,k)+dts*( -radbce(j,k)           &
@@ -2402,8 +2865,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores u at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=1,nj
               ! lowest model level:
               do i=ni,ni+1
@@ -2422,8 +2885,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(2) private(i,j,k)
             do k=1,nk
             do j=1,nj
               u3d(ni+1,j,k)=u3d(ni+1,j,k)+dts*( -radbce(j,k)*(                                &
@@ -2462,11 +2925,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(vh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzv,gy,radbcs) &
+      !$acc present(dum1,v3d,vten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+            !$omp parallel do default(shared) private(i,k)
+            !$acc parallel loop gang vector collapse(2) private(i,k)
             do k=1,nk
             do i=1,ni
               v3d(i,1,k)=v3d(i,1,k)+dts*( -radbcs(i,k)      &
@@ -2477,8 +2943,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores v at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=1,2
               ! lowest model level:
               do i=1,ni
@@ -2497,8 +2963,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(2) private(i,j,k)
             do k=1,nk
             do i=1,ni
               v3d(i,1,k)=v3d(i,1,k)+dts*( -radbcs(i,k)*(                            &
@@ -2537,11 +3003,14 @@
 
       integer :: i,j,k
       real :: r1,r2
+      !$acc declare present(vh,rds,sigma,rdsf,sigmaf) &
+      !$acc present(gz,rgzv,gy,radbcn) &
+      !$acc present(dum1,v3d,vten)
 
           IF(.not.terrain_flag)THEN
             ! no terrain:
-!$omp parallel do default(shared)   &
-!$omp private(i,k)
+            !$omp parallel do default(shared) private(i,k)
+            !$acc parallel loop gang vector collapse(2) private(i,k)
             do k=1,nk
             do i=1,ni
               v3d(i,nj+1,k)=v3d(i,nj+1,k)+dts*( -radbcn(i,k)        &
@@ -2552,8 +3021,8 @@
           ELSE
             ! with terrain:
             ! dum1 stores v at w points:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k,r1,r2)
+            !$omp parallel do default(shared) private(i,j,k,r1,r2)
+            !$acc parallel loop gang vector private(i,j,k,r1,r2)
             do j=nj,nj+1
               ! lowest model level:
               do i=1,ni
@@ -2572,8 +3041,8 @@
               enddo
               enddo
             enddo
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(2) private(i,j,k)
             do k=1,nk
             do i=1,ni
               v3d(i,nj+1,k)=v3d(i,nj+1,k)+dts*( -radbcn(i,k)*(                                &
@@ -2588,6 +3057,1424 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
       end subroutine ssopenbcn
+!GPU================================================================================================
+!GPU ported subroutine below here 
+!GPU================================================================================================
+
+      subroutine bc2d_GPU(s)
+      use input
+      implicit none
+
+      real, dimension(ib:ie,jb:je) :: s
+
+      integer i,j
+      !$acc declare present(s)
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+#ifndef MPI
+      if(wbc.eq.1)then
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(1-i,j)=s(ni+1-i,j)
+        enddo
+        enddo
+      elseif(wbc.eq.2)then
+#else
+      if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=jb,je
+        do i=1-ngxy,0
+          s(i,j)=s(1,j)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+      elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(1-i,j)=s(i,j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+      if(ebc.eq.1)then
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(ni+i,j)=s(i,j)
+        enddo
+        enddo
+      elseif(ebc.eq.2)then
+#else
+      if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=jb,je
+        do i=ni+1,ni+ngxy
+          s(i,j)=s(ni,j)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+      elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(ni+i,j)=s(ni+1-i,j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+#ifndef MPI
+      if(sbc.eq.1)then
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,1-j)=s(i,nj+1-j)
+        enddo
+        enddo
+      elseif(sbc.eq.2)then
+#else
+      if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=1-ngxy,0
+        do i=ib,ie
+          s(i,j)=s(i,1)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+      elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,1-j)=s(i,j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+#ifndef MPI
+      if(nbc.eq.1)then
+!$omp parallel do default(shared)  &
+!$omp private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,nj+j)=s(i,j)
+        enddo
+        enddo
+      elseif(nbc.eq.2)then
+#else
+      if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+!$omp parallel do default(shared)  &
+!$omp private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=nj+1,nj+ngxy
+        do i=ib,ie
+          s(i,j)=s(i,nj)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+      elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+!$omp parallel do default(shared)  &
+!$omp private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,nj+j)=s(i,nj+1-j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bc2d_GPU
+
+      subroutine bcs(s)
+      use input
+      implicit none
+
+      real, dimension(ib:ie,jb:je,kb:ke) :: s
+
+      integer i,j,k
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+
+#ifndef MPI
+      if(wbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          s(1-i,j,k)=s(ni+1-i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(wbc.eq.2)then
+#else
+      if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1-ngxy,0
+          s(i,j,k)=s(1,j,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+      elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          s(1-i,j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+
+#ifndef MPI
+      if(ebc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          s(ni+i,j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(ebc.eq.2)then
+#else
+      if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=ni+1,ni+ngxy
+          s(i,j,k)=s(ni,j,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+      elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          s(ni+i,j,k)=s(ni+1-i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+
+#ifndef MPI
+      if(sbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,1-j,k)=s(i,nj+1-j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(sbc.eq.2)then
+#else
+      if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=1-ngxy,0
+        do i=0,ni+1
+          s(i,j,k)=s(i,1,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+      elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          s(i,1-j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+
+#ifndef MPI
+      if(nbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,nj+j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(nbc.eq.2)then
+#else
+      if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=nj+1,nj+ngxy
+        do i=0,ni+1
+          s(i,j,k)=s(i,nj,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+      elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          s(i,nj+j,k)=s(i,nj+1-j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcs
+
+      subroutine bcs_GPU(s)
+      use input
+      implicit none
+
+      real, dimension(ib:ie,jb:je,kb:ke) :: s
+
+      integer i,j,k
+      !$acc declare present(s)
+
+    !$acc parallel default(present) private(i,j,k)
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+
+#ifndef MPI
+      if(wbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          s(1-i,j,k)=s(ni+1-i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(wbc.eq.2)then
+#else
+      if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1-ngxy,0
+          s(i,j,k)=s(1,j,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+      elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          s(1-i,j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+    !$acc end parallel
+
+    !$acc parallel private(i,j,k)
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+
+#ifndef MPI
+      if(ebc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          s(ni+i,j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(ebc.eq.2)then
+#else
+      if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=ni+1,ni+ngxy
+          s(i,j,k)=s(ni,j,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+      elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          s(ni+i,j,k)=s(ni+1-i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+    !$acc end parallel
+
+    !$acc parallel private(i,j,k)
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+
+#ifndef MPI
+      if(sbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,1-j,k)=s(i,nj+1-j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(sbc.eq.2)then
+#else
+      if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=1-ngxy,0
+        do i=0,ni+1
+          s(i,j,k)=s(i,1,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+      elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          s(i,1-j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+   !$acc end parallel
+
+    !$acc parallel private(i,j,k)
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+
+#ifndef MPI
+      if(nbc.eq.1)then
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,nj+j,k)=s(i,j,k)
+        enddo
+        enddo
+    ENDDO
+      elseif(nbc.eq.2)then
+#else
+      if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=nj+1,nj+ngxy
+        do i=0,ni+1
+          s(i,j,k)=s(i,nj,k)
+        enddo
+        enddo
+    ENDDO
+#ifdef MPI
+      elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+      elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc loop gang vector collapse(3)
+    DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          s(i,nj+j,k)=s(i,nj+1-j,k)
+        enddo
+        enddo
+    ENDDO
+      endif
+   !$acc end parallel
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcs_GPU
+
+      subroutine bcu_GPU(u)
+      use input
+      implicit none
+
+      real, dimension(ib:ie+1,jb:je,kb:ke) :: u
+
+      integer i,j,k  
+      !$acc declare present(u)
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+
+#ifndef MPI
+    if(wbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          u(1-i,j,k)=u(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(wbc.eq.2)then
+#else
+    if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+1
+        do i=1-ngxy,0
+          u(i,j,k)=u(1,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+    elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+1
+          u(1,j,k)=0.
+        do i=1,ngxy
+          u(1-i,j,k)=-u(1+i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+    if(ebc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=jb,je
+        do i=1,ngxy
+          u(ni+1+i,j,k)=u(1+i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(ebc.eq.2)then
+#else
+    if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+1
+        do i=ni+2,ni+1+ngxy
+          u(i,j,k)=u(ni+1,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+    elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+1
+          u(ni+1,j,k)=0.0
+        do i=1,ngxy
+          u(ni+1+i,j,k)=-u(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+#ifndef MPI
+    if(sbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie+1
+          u(i,1-j,k)=u(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(sbc.eq.2)then
+#else
+    if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1-ngxy,0
+        do i=0,ni+2
+          u(i,j,k)=u(i,1,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+    elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+2
+          u(i,1-j,k)=u(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+#ifndef MPI
+    if(nbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie+1
+          u(i,nj+j,k)=u(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(nbc.eq.2)then
+#else
+    if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=nj+1,nj+ngxy
+        do i=0,ni+2
+          u(i,j,k)=u(i,nj,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+    elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+2
+          u(i,nj+j,k)=u(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+ 
+      end subroutine bcu_GPU
+
+      subroutine bcv_GPU(v)
+      use input
+      implicit none
+
+      real, dimension(ib:ie,jb:je+1,kb:ke) :: v
+ 
+      integer i,j,k
+      !$acc declare present(v)
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+
+#ifndef MPI
+    if(sbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          v(i,1-j,k)=v(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(sbc.eq.2)then
+#else
+    if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1-ngxy,0
+        do i=0,ni+1
+          v(i,j,k)=v(i,1,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+    elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          v(i,1-j,k)=-v(i,j+1,k)
+        enddo
+        enddo
+      ENDDO
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
+      DO k=1,nk
+        do i=0,ni+1
+          v(i,   1,k)=0.
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+    IF(axisymm.eq.1)THEN
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
+      DO k=1,nk
+        do i=ib,ie
+          v(i,2,k)=v(i,1,k)
+        enddo
+      ENDDO
+    ENDIF
+
+#ifndef MPI
+    if(nbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          v(i,nj+1+j,k)=v(i,1+j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(nbc.eq.2)then
+#else
+    if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=nj+2,nj+1+ngxy
+        do i=0,ni+1
+          v(i,j,k)=v(i,nj+1,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+    elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          v(i,nj+1+j,k)=-v(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+      !$acc parallel loop gang vector collapse(2) private(i,j,k)
+      DO k=1,nk
+        do i=0,ni+1
+          v(i,nj+1,k)=0.
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+#ifndef MPI
+    if(wbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=jb,je+1
+        do i=1,ngxy
+          v(1-i,j,k)=v(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(wbc.eq.2)then
+#else
+    if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1-ngxy,0
+          v(i,j,k)=v(1,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+    elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1,ngxy
+          v(1-i,j,k)=v(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+    IF(axisymm.eq.1)THEN
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1,ngxy
+          v(1-i,j,k) = -v(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    ENDIF
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+    if(ebc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=jb,je+1
+        do i=1,ngxy
+          v(ni+i,j,k)=v(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(ebc.eq.2)then
+#else
+    if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=ni+1,ni+ngxy
+          v(i,j,k)=v(ni,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+    elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1,ngxy
+          v(ni+i,j,k)=v(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+
+!-----------------------------------------------------------------------
+
+    if(timestats.ge.1) time_bc=time_bc+mytime()
+ 
+      end subroutine bcv_GPU
+
+      subroutine bcw_GPU(w,flag)
+      use input
+      implicit none
+
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: w
+      integer flag
+ 
+      integer i,j,k
+      !$acc declare present(w)
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+ 
+#ifndef MPI
+    if(wbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=jb,je
+        do i=1,ngxy
+          w(1-i,j,k)=w(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(wbc.eq.2)then
+#else
+    if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=1-ngxy,0
+          w(i,j,k)=w(1,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+    elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          w(1-i,j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+    if(ebc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=jb,je
+        do i=1,ngxy
+          w(ni+i,j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(ebc.eq.2)then
+#else
+    if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=ni+1,ni+ngxy
+          w(i,j,k)=w(ni,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+    elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          w(ni+i,j,k)=w(ni+1-i,j,k)
+        enddo
+        enddo 
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+#ifndef MPI
+    if(sbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=ib,ie
+          w(i,1-j,k)=w(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(sbc.eq.2)then
+#else
+    if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=1-ngxy,0
+        do i=0,ni+1
+          w(i,j,k)=w(i,1,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+    elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          w(i,1-j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+#ifndef MPI
+    if(nbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=ib,ie
+          w(i,nj+j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(nbc.eq.2)then
+#else
+    if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=nj+1,nj+ngxy
+        do i=0,ni+1
+          w(i,j,k)=w(i,nj,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+    elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          w(i,nj+j,k)=w(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+
+!-----------------------------------------------------------------------
+!  top/bottom boundary condition
+
+    IF(flag.eq.1)THEN
+
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) private(i,j)
+      do j=0,nj+1
+      do i=0,ni+1
+        w(i,j, 1)=0.0
+        w(i,j,nk+1)=0.0
+      enddo
+      enddo
+
+    ENDIF
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+ 
+      end subroutine bcw_GPU
+
+
+   subroutine bcs2(s)
+      use input
+      implicit none
+
+      real s(ib:ie,jb:je,kb:ke)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            s(i,j,k)=s(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+1
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            s(i,j,k)=s(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            s(i,j,k)=s(ni,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+1
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            s(i,j,k)=s(ni,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            s(i,j,k)=s(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+1
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            s(i,j,k)=s(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            s(i,j,k)=s(i,nj,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+1
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            s(i,j,k)=s(i,nj,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcs2
+
+
+
+      subroutine bcs2_GPU(s)
+      use input
+      implicit none
+
+      real s(ib:ie,jb:je,kb:ke)
+
+      integer i,j,k
+      !$acc declare present(s)
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            s(i,j,k)=s(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+1
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            s(i,j,k)=s(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            s(i,j,k)=s(ni,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+1
+!$omp parallel do default(shared)   &
+!$omp private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            s(i,j,k)=s(ni,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            s(i,j,k)=s(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+1
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            s(i,j,k)=s(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            s(i,j,k)=s(i,nj,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+1
+!$omp parallel do default(shared)   &
+!$omp private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            s(i,j,k)=s(i,nj,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcs2_GPU
+
+
+
 
 
   END MODULE bc_module

@@ -323,6 +323,7 @@
 
         call     getdiv(arh1,arh2,uh,vh,mh,u3d,v3d,w3d,dum1,dum2,dum3,div,   &
                         rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
+       
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)

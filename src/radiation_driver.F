@@ -129,7 +129,9 @@
           rtime=sngl(mtime+dt)
           if(dowr) write(outfile,*) '  Calculating radiation tendency:'
           if(timestats.ge.1) time_rad=time_rad+mytime()
-          call bcs(prs)
+          !$acc data copy(prs)
+          call bcs_GPU(prs)
+          !$acc end data
           CALL zenangl( ni,nj,      zf(1,1,1),    &
                 rad2d(1,1,ncosz), rad2d(1,1,ncosss), radsw,              &
                 dum1(1,1,1),dum1(1,1,2),dum1(1,1,3),dum1(1,1,4),        &

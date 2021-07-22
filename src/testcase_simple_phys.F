@@ -1,3 +1,6 @@
+#ifdef _B4B
+#define _B4B01
+#endif
   MODULE simple_phys_module
 
   implicit none
@@ -23,6 +26,7 @@
     real, parameter :: kappa   =  85.0
     real, parameter :: alphaz  =  1.0
     real, parameter :: rhoi    =  1.12
+
 
   CONTAINS
 
@@ -64,7 +68,10 @@
 
       integer :: i,j,k,n
       real :: tem
-
+      !$acc declare present(rho0,zh,zf,qa) &
+      !$acc present(ufrc,vfrc,thfrc,qvfrc) &
+      !$acc present(dum1,dum2,dum3,dum4,frad,zir) &
+      !$acc present(uten1,vten1,thten1,qten)
 
 !-----------------------------------------------------------------------
 !     nonprecipitating stratoCu  (Stevens et al, 2005, MWR)
@@ -75,8 +82,8 @@
         ! simple radiation (Stevens et al 2005)
         call     simplerad(rho0,zh,zf,dum1,dum2,dum3,dum4,qa,frad,zir)
 
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -93,6 +100,9 @@
 
       IF( testcase.eq.6 .or. testcase.eq.10 )THEN
 
+#ifdef _OPENACC
+        print *,'WARNING: testcase_simple_phys: testcase={6 or 10} not supported'
+#endif
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
 
@@ -101,8 +111,8 @@
         !  Mesoscale Tendency terms:
         !  (radial advection and centrifugal accel terms)
 
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !!$acc parallel loop gang vector default(present) private(i,j,k)
         DO k=1,nk
           ufrc(k) = +uavg(k)*uavg(k)*tem  &
                     +vavg(k)*v0(1,1,k)*tem
@@ -117,32 +127,45 @@
 
     IF( testcase.ge.1 )THEN
 
-      !$omp parallel do default(shared)  &
-      !$omp private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       DO k=1,nk
         do j=1,nj
         do i=1,ni+1
           uten1(i,j,k) = uten1(i,j,k) + ufrc(k)
         enddo
         enddo
+      ENDDO
+      !
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      DO k=1,nk
         do j=1,nj+1
         do i=1,ni
           vten1(i,j,k) = vten1(i,j,k) + vfrc(k)
         enddo
         enddo
+      ENDDO
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      DO k=1,nk
         do j=1,nj
         do i=1,ni
           thten1(i,j,k) = thten1(i,j,k) + thfrc(k)
         enddo
         enddo
-        IF( imoist.eq.1 )THEN
+      ENDDO
+      IF( imoist.eq.1 )THEN
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        DO k=1,nk
           do j=1,nj
           do i=1,ni
             qten(i,j,k,nqv) = qten(i,j,k,nqv) + qvfrc(k)
           enddo
           enddo
-        ENDIF
-      ENDDO
+        ENDDO
+      ENDIF
 
     ENDIF
 
@@ -177,17 +200,25 @@
       integer :: i,j,k,n
       real :: tem
       double precision :: temd
-
+      !double precision :: tmp1,tmp2,tmp3
+      !!$acc declare present(uavg,vavg,thavg,cavg) &
+      !!$acc present(th0,ua,va,tha,ruh,ruf,rvh,rvf)
+      print *,'get_avg_uvt: Entered subroutine'
       ! 180612:  area-weighted average
       tem = dx*dy
 
       ! Get domain-averages:
+      !!$acc parallel default(present) private(i,j,k,tmp1,tmp2,tmp3) reduction(+:tmp1,tmp2,tmp3)
       do k=1,nk
         !----
         do n=1,3
           cavg(k,n) = 0.0
         enddo
+        !tmp1=0.0
+        !tmp2=0.0
+        !tmp3=0.0
         !----
+        !!$acc loop gang vector collapse(2) reduction(+:tmp1,tmp2,tmp3)
         do j=1,nj
         do i=1,ni
           cavg(k,1) = cavg(k,1) + ua(i,j,k)*tem*ruf(i)*rvh(j)
@@ -195,15 +226,21 @@
           cavg(k,3) = cavg(k,3) + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
         enddo
         enddo
+        !cavg(k,1) = tmp1
+        !cavg(k,2) = tmp2
+        !cavg(k,3) = tmp3
         !----
       enddo
+      !!$acc end parallel
 
 #ifdef MPI
+      !!$acc update self(cavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*3       ,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
+      !!$acc parallel loop gang vector private(k)
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
@@ -241,41 +278,95 @@
       integer :: i,j,k,n
       real :: tem
       double precision :: temd
+      double precision :: cavg1,cavg2,cavg3,cavgt
 
       ! 180612:  area-weighted average
+
+      !KLUDGE
+#ifdef _B4B
+      !$acc update host(th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
+#else
+      !$acc parallel default(present)
+#endif
       tem = dx*dy
 
       ! Get domain-averages:
-      do k=1,nk
         !----
+      !!$acc loop gang vector collapse(2) private(k,n)
+#ifndef _B4B
+      !$acc loop gang vector private(k,n)
+#endif
+      do k=1,nk
         do n=1,(3+numq)
           cavg(k,n) = 0.0
         enddo
+      enddo
         !----
+#ifndef _B4B
+      !$acc end parallel
+#endif
+      !!$acc parallel default(present) private(i,j,k) reduction(+:cavg1,cavg2,cavg3)
+#ifndef _B4B
+      !$acc parallel default(present) private(i,j,k,cavg1,cavg2,cavg3)
+#endif
+      do k=1,nk
+        cavg1 = 0.0
+        cavg2 = 0.0
+        cavg3 = 0.0
+#ifndef _B4B
+        !$acc loop gang vector collapse(2) reduction(+:cavg1,cavg2,cavg3)
+#endif
         do j=1,nj
         do i=1,ni
-          cavg(k,1) = cavg(k,1) + ua(i,j,k)*tem*ruf(i)*rvh(j)
-          cavg(k,2) = cavg(k,2) + va(i,j,k)*tem*ruh(i)*rvf(j)
-          cavg(k,3) = cavg(k,3) + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
+          cavg1 = cavg1 + ua(i,j,k)*tem*ruf(i)*rvh(j)
+          cavg2 = cavg2 + va(i,j,k)*tem*ruh(i)*rvf(j)
+          cavg3 = cavg3 + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
         enddo
         enddo
+        cavg(k,1) = cavg1
+        cavg(k,2) = cavg2
+        cavg(k,3) = cavg3
+      enddo
+#ifndef _B4B
+      !$acc end parallel
+#endif
+
+#ifndef _B4B
+      !!$acc parallel default(present) private(i,j,k,n) reduction(+:cavg1,cavg2,cavg3)
+      !$acc parallel default(present) private(i,j,k,n,cavgt)
+#endif
+      do k=1,nk
         !----
         do n=1,numq
-        do j=1,nj
-        do i=1,ni
-          cavg(k,3+n) = cavg(k,3+n) + qa(i,j,k,n)*tem*ruh(i)*rvh(j)
-        enddo
-        enddo
+          cavgt = 0.0
+#ifndef _B4B
+          !$acc loop gang vector collapse(2) reduction(+:cavgt)
+#endif
+          do j=1,nj
+          do i=1,ni
+            cavgt = cavgt + qa(i,j,k,n)*tem*ruh(i)*rvh(j)
+          enddo
+          enddo
+          cavg(k,3+n) = cavgt
         enddo
         !----
       enddo
+#ifndef _B4B
+      !$acc end parallel
+#endif
 
 #ifdef MPI
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*(3+numq),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
+#ifndef _B4B
+      !$acc parallel default(present)
+#endif
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
+#ifndef _B4B
+      !$acc loop gang vector
+#endif
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
@@ -284,6 +375,11 @@
           qavg(k,n) = cavg(k,3+n)*temd
         enddo
       enddo
+#ifdef _B4B
+      !$acc update device(qavg,uavg,vavg,thavg,cavg)
+#else
+      !$acc end parallel
+#endif
 
 
       end subroutine get_avg_uvtq
@@ -309,7 +405,11 @@
       integer :: i,j,k,n
       real :: fr1,fr2,fr3
       integer, dimension(ni,nj) :: kzi
+      !$acc declare create(kzi) &
+      !$acc present(rho0,zh,zf,qa) &
+      !$acc present(dum1,dum2,ql,qt,zir,frad)
 
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,1) = 0.0
@@ -318,6 +418,7 @@
       enddo
       enddo
 
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
       do k=1,nk
         ! qt = total water mixing ratio
         ! ql = liquid water mixing ratio
@@ -328,14 +429,23 @@
         enddo
         enddo
         !----
-        do n=nql1,nql2
+      enddo
+      !$acc parallel default(present) private(i,j,k)
+      do n=nql1,nql2
+      !$acc loop gang vector collapse(3)
+      do k=1,nk
         do j=1,nj
         do i=1,ni
           ql(i,j,k) = ql(i,j,k)+qa(i,j,k,n)
         enddo
         enddo
         enddo
-        !----
+      enddo
+      !$acc end parallel
+      !----
+      !$acc parallel default(present) private(i,j,k)
+      do k=1,nk
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           qt(i,j,k) = qa(i,j,k,nqv)+ql(i,j,k)
@@ -343,10 +453,13 @@
           dum2(i,j,k+1) = dum2(i,j,k) + kappa*rho0(i,j,k)*ql(i,j,k)*(zf(i,j,k+1)-zf(i,j,k))
         enddo
         enddo
-        !----
       enddo
+      !$acc end parallel
+      !----
+
 
       ! interpolate:
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k)
       do j=1,nj
       do i=1,ni
         k = kzi(i,j)
@@ -366,7 +479,16 @@
 !!!        print *
 !!!      endif
 
+#ifdef _B4B01
+      !$acc update host(dum1,dum2,rho0,ql,zf,zir)
+#else
+      !non-B4B due to EXP and PWR functions
+      !$acc parallel default(present) private(i,j,k,fr1,fr2,fr3)
+#endif
       do k=nk+1,1,-1
+#ifndef _B4B01
+      !$acc loop gang vector collapse(2)
+#endif
       do j=1,nj
       do i=1,ni
         dum1(i,j,k) = dum1(i,j,min(nk+1,k+1))  &
@@ -383,6 +505,11 @@
       enddo
       enddo
       enddo
+#ifdef _B4B01
+      !$acc update device(frad,dum1) 
+#else
+      !$acc end parallel
+#endif
 
       end subroutine simplerad
 

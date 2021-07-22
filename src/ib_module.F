@@ -185,7 +185,9 @@
 
     !---  DO NOT CHANGE ANYTHING BELOW HERE  ---!
 
-        call bc2d(zsfoo)
+        !$acc data copy(zsfoo)
+        call bc2d_GPU(zsfoo)
+        !$acc end data
 #ifdef MPI
       nf=0
       nu=0
@@ -196,7 +198,9 @@
       call comm_2dew_end(zsfoo,west,newwest,east,neweast,reqs_p)
       call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p)
       call bcs2_2d(zsfoo)
-      call bc2d(zsfoo)
+      !$acc data copy(zsfoo)
+      call bc2d_GPU(zsfoo)
+      !$acc end data
       call getcorner3_2d(zsfoo)
 #endif
 
@@ -268,8 +272,10 @@
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: v3d
 
       integer :: i,j,k
+      !$acc declare present(bndy,kbdy,u3d,v3d) 
 
           ! set u to zero on east/west faces of immersed gridpoints:
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=0,nj+1
           do i=0,ni+1
@@ -284,6 +290,7 @@
           enddo
 
           ! set u to zero on east/west faces of immersed gridpoints:
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=1,nj
           do i=1,ni+1
@@ -293,6 +300,7 @@
           enddo
 
           ! set v to zero on south/north faces of immersed gridpoints:
+          !$acc parallel loop gang vector private(i,j,k)
           do k=1,kmaxib
           do j=1,nj+1
           do i=1,ni
@@ -315,8 +323,10 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: w3d
 
       integer :: i,j,k
+      !$acc declare present(bndy,kbdy,w3d) 
 
         ! set gridpoints in/on immersed gridpoints to zero:
+        !$acc parallel loop gang vector private(i,j,k)
         do j=1,nj
         do i=1,ni
           do k = 1,kbdy(i,j)
@@ -519,6 +529,7 @@
 
       !dir$ attributes forceinline :: flx3
       real function flx3(s1,s2,s3)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3
@@ -554,6 +565,7 @@
 
       !dir$ attributes forceinline :: flx5
       real function flx5(s1,s2,s3,s4,s5)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5
@@ -630,6 +642,7 @@
 
       !dir$ attributes forceinline :: weno5
       real function weno5(s1,s2,s3,s4,s5,weps)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5
@@ -672,6 +685,7 @@
 
       !dir$ attributes forceinline :: upstrpd
       real function upstrpd(s1,s2,s3,weps)
+      !$acc routine vector
       implicit none
 
       real, intent(in) :: s1,s2,s3
@@ -794,6 +808,11 @@
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a) &
+    !$acc present(bndy,hflxw,hflxe,hflxs,hflxn)
+
 
     doit = .true.
 !!!    if( doit )then
@@ -1180,6 +1199,10 @@
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
     logical :: doit
+    !$acc declare present(c1,c2) &
+    !$acc present(rru,rrv) &
+    !$acc present(dumx,dumy,a) &
+    !$acc present(hflxw,hflxe,hflxs,hflxn)
 
     doit = .true.
 !!!    if( doit )then
@@ -1561,6 +1584,8 @@
 
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a,kbdy)
 
   IF( stag.eq.1 )THEN
 
@@ -1738,6 +1763,8 @@
 
     integer :: i,j,k,i1,i2,j1,j2,kval
     real :: wbar,cc1,cc2
+    !$acc declare present(c1,c2) &
+    !$acc present(rrw,dumz,a,kbdy)
 
   IF( stag.eq.1 )THEN
    

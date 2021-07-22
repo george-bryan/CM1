@@ -240,7 +240,9 @@
                        dum1,dum2,dum3,dum4,divx,phi2,uten,vten,wten,  &
                        cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans,dttmp)
 
-        call bcs(phi2)
+        !$acc data copy(phi2)
+        call bcs_GPU(phi2)
+        !$acc end data
 
 !---------------------------------------------------------------------
 
