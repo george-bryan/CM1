@@ -1986,23 +1986,20 @@
 !------------------------------------------------------------------
 !  fill in ghost cells
 
-      !$acc data copy(pi0,prs0,th0,qv0,qc0,qi0,rh0)
-      call bcs_GPU(pi0)
-      call bcs_GPU(prs0)
-      call bcs_GPU(th0)
-      call bcs_GPU(qv0)
-      call bcs_GPU(qc0)
-      call bcs_GPU(qi0)
-      call bcs_GPU(rh0)
-      !$acc end data
-       
+      call bcs(pi0)
+      call bcs(prs0)
+      call bcs(th0)
+      call bcs(qv0)
+      call bcs(qc0)
+      call bcs(qi0)
+      call bcs(rh0)
 
 #ifdef MPI
       nf=0
       nu=0
       nv=0
       nw=0
-     call comm_all_s( pi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+      call comm_all_s( pi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                            n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
       call comm_all_s(prs0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                            n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
@@ -2018,7 +2015,6 @@
                            n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 #endif
 
-      !$acc data copy(pi0,prs0,th0,qv0,qc0,qi0,rh0)
       call extrapbcs(pi0)
       call extrapbcs(prs0)
       call extrapbcs(th0)
@@ -2026,7 +2022,6 @@
       call extrapbcs(qc0)
       call extrapbcs(qi0)
       call extrapbcs(rh0)
-      !$acc end data
 
     do j=jb,je
     do i=ib,ie
@@ -2087,16 +2082,12 @@
     enddo
     enddo
 
-      !$acc data copy(rho0)
-      call bcs_GPU(rho0)
-      !$acc end data
+      call bcs(rho0)
 #ifdef MPI
       call comm_all_s(rho0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                            n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 #endif
-      !$acc data copy(rho0)
       call extrapbcs(rho0)
-      !$acc end data
 
       IF( psolver.eq.5 .or. psolver.eq.6 )THEN   
         ! incompressible or compressible-Boussinesq:  set rho0 to a constant
@@ -2617,10 +2608,8 @@
 !-----------------------------------------------------------------------
 !  Fill in ghost cells
 
-      !$acc data copy(u0,v0)
-      call bcu_GPU(u0)
-      call bcv_GPU(v0)
-      !$acc end data
+      call bcu(u0)
+      call bcv(v0)
 
       !--------
 #ifdef MPI
@@ -2630,9 +2619,7 @@
                           us31,us32,un31,un32,reqs_u)
       call getcorneru3(u0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                           s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      !$acc data copy(u0)
-      call bcu2_GPU(u0)
-      !$acc end data
+      call bcu2(u0)
 #endif
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
@@ -2650,9 +2637,7 @@
                           vs31,vs32,vn31,vn32,reqs_v)
       call getcornerv3(v0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                           s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      !$acc data copy(v0)
-      call bcv2_GPU(v0)
-      !$acc end data
+      call bcv2(v0)
 #endif
 !$omp parallel do default(shared)   &
 !$omp private(i,j)

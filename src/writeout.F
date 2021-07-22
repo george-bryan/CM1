@@ -176,7 +176,6 @@
       real, intent(inout), dimension(kmt) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
       integer, intent(in), dimension(numprocs) :: myi1p,myi2p,myj1p,myj2p
 
-      double precision :: dumkt
       integer :: i,j,k,n,nn,im,ip,nloop,nmax
       integer :: ncid,time_index,varid
       real :: tnew,pnew,thold,thnew,rdt,qv,ql,thv
@@ -205,7 +204,6 @@
 
       ! write effective radii:
       logical, parameter :: doeff = .false.
-      !$acc declare present(tlh)
 
 !!!#ifdef MPI
 !!!      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
@@ -240,9 +238,7 @@
       IF( numprocs.gt.nlim )THEN
         doit = .false.
         IF( myid.ge.nlim )THEN
-          !$acc host_data use_device(doit)
           call MPI_IRECV(doit,1,mpi_logical,myid-nlim,999999,MPI_COMM_WORLD,reqs,ierr)
-          !$acc end host_data
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
       ENDIF
@@ -270,8 +266,8 @@
 !-----------------------------------------------------------------------
 
       IF( imove.eq.1 )THEN
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         do k=1,nk
         do j=jb,je
         do i=ib,ie
@@ -282,8 +278,8 @@
         enddo
         enddo
       ELSE
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         do k=1,nk
         do j=jb,je
         do i=ib,ie
@@ -320,8 +316,6 @@
         ! netcdf stuff:
         if( output_filetype.eq.3 .or. myid.eq.0 )then
             if(dowr) write(outfile,*) '  calling netcdf_prelim ... '
-            !$acc update host(xh,xf,yh,yf,xfref,yfref,sigma,sigmaf, &
-            !$acc           zs,zh,zf,dum1,dum2,dum3,dum4,dum4,dum5)
             call netcdf_prelim(rtime,nwrite,fnum,ncid,time_index,qname,                      &
                                name_output,desc_output,unit_output,grid_output,cmpr_output,  &
                                xh,xf,yh,yf,xfref,yfref,sigma,sigmaf,zs,zh,zf,                &
@@ -365,8 +359,8 @@
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
       cmpr_output(n_out) = .true.
 
-          !$omp parallel do default(shared) private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = prate(i,j)
@@ -385,8 +379,8 @@
       unit_output(n_out) = 'm/s'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !$omp parallel do default(shared) private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sws(i,j,1)
@@ -405,8 +399,8 @@
       unit_output(n_out) = '1/s'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !$omp parallel do default(shared) private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = svs(i,j,1)
@@ -425,8 +419,8 @@
       unit_output(n_out) = 'Pa'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !$omp parallel do default(shared) private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sps(i,j,1)
@@ -445,8 +439,8 @@
       unit_output(n_out) = 'kg/kg'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !$omp parallel do default(shared) private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$omp parallel do default(shared)  &
+          !$omp private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = srs(i,j,1)
@@ -467,7 +461,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sgs(i,j,1)
@@ -488,7 +481,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sus(i,j,1)
@@ -509,7 +501,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = shs(i,j,1)
@@ -531,7 +522,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = rain(i,j,2)
@@ -554,7 +544,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sws(i,j,2)
@@ -577,7 +566,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = svs(i,j,2)
@@ -600,7 +588,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sps(i,j,2)
@@ -623,7 +610,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = srs(i,j,2)
@@ -646,7 +632,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sgs(i,j,2)
@@ -669,7 +654,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = sus(i,j,2)
@@ -692,7 +676,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = shs(i,j,2)
@@ -717,7 +700,6 @@
           if( terrain_flag )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk+1
             do j=1,nj
             do i=1,ni
@@ -729,7 +711,6 @@
           else
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk+1
             do j=1,nj
             do i=1,ni
@@ -740,13 +721,11 @@
             enddo
           endif
           if(timestats.ge.1) time_write=time_write+mytime()
-          !VERIFY correctness
           call calcuh(uf,vf,dum3,dumw,ua,va,wa,dum1(ib,jb,1),dum2,dum5,dum6, &
                       zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf)
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,1)
@@ -761,9 +740,6 @@
 
     if(output_coldpool.eq.1)then
           if(timestats.ge.1) time_write=time_write+mytime()
-#ifdef _OPENACC
-         print *,'WARNING: calccpch not ported to GPU'
-#endif
           call calccpch(zh,zf,th0,qv0,dum1(ib,jb,1),dum1(ib,jb,2),tha,qa)
     endif
 
@@ -779,7 +755,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,1)
@@ -802,7 +777,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,2)
@@ -825,7 +799,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = thflux(i,j)
@@ -848,7 +821,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = qvflux(i,j)
@@ -871,7 +843,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tsk(i,j)
@@ -894,7 +865,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = cd(i,j)
@@ -917,7 +887,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = ch(i,j)
@@ -940,7 +909,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = cq(i,j)
@@ -963,7 +931,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tlh(i,j)
@@ -986,7 +953,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = f2d(i,j)
@@ -1009,7 +975,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = psfc(i,j)
@@ -1032,7 +997,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = psmth(i,j)
@@ -1055,7 +1019,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = zs(i,j)
@@ -1082,7 +1045,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,1)
@@ -1104,7 +1066,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = xland(i,j)
@@ -1125,7 +1086,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = float( lu_index(i,j) )
@@ -1146,7 +1106,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = mavail(i,j)
@@ -1167,7 +1126,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tmn(i,j)
@@ -1188,7 +1146,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = hfx(i,j)
@@ -1209,7 +1166,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = qfx(i,j)
@@ -1230,7 +1186,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = gsw(i,j)
@@ -1251,7 +1206,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = glw(i,j)
@@ -1272,7 +1226,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tslb(i,j,1)
@@ -1293,7 +1246,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tslb(i,j,2)
@@ -1314,7 +1266,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tslb(i,j,3)
@@ -1335,7 +1286,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tslb(i,j,4)
@@ -1356,7 +1306,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tslb(i,j,5)
@@ -1377,7 +1326,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tml(i,j)
@@ -1398,7 +1346,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = hml(i,j)
@@ -1419,7 +1366,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = huml(i,j)
@@ -1440,7 +1386,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = hvml(i,j)
@@ -1463,7 +1408,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = radsw(i,j)
@@ -1486,7 +1430,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = rnflx(i,j)
@@ -1509,7 +1452,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = radswnet(i,j)
@@ -1532,7 +1474,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = radlwin(i,j)
@@ -1555,7 +1496,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = olr(i,j)
@@ -1578,7 +1518,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dsr(i,j)
@@ -1601,7 +1540,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = lwupt(i,j)
@@ -1624,7 +1562,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = lwdnt(i,j)
@@ -1647,7 +1584,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = lwupb(i,j)
@@ -1670,7 +1606,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = lwdnb(i,j)
@@ -1693,7 +1628,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = swupt(i,j)
@@ -1716,7 +1650,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = swdnt(i,j)
@@ -1739,7 +1672,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = swupb(i,j)
@@ -1762,7 +1694,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = swdnb(i,j)
@@ -1786,7 +1717,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = lwcf(i,j)
@@ -1809,7 +1739,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = swcf(i,j)
@@ -1849,7 +1778,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = u10(i,j)
@@ -1874,7 +1802,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = v10(i,j)
@@ -1895,7 +1822,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = s10(i,j)
@@ -1916,7 +1842,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = t2(i,j)
@@ -1937,7 +1862,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = q2(i,j)
@@ -1962,7 +1886,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = znt(i,j)
@@ -1984,7 +1907,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = z0t(i,j)
@@ -2007,7 +1929,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = z0q(i,j)
@@ -2029,7 +1950,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = ust(i,j)
@@ -2050,7 +1970,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = ustt(i,j)
@@ -2071,7 +1990,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = stau(i,j)
@@ -2094,7 +2012,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tst(i,j)
@@ -2119,7 +2036,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = qst(i,j)
@@ -2146,7 +2062,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = hpbl(i,j)
@@ -2167,81 +2082,64 @@
       unit_output(n_out) = 'm'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-      !$acc data create(tmax,zibar)
       !--------
       !  Get zi from avg theta:
-      !$acc parallel default(present) 
+
       if( imoist.eq.1 )then
-        !$acc loop gang 
         do k=1,nk
-          dumkt = 0.0
-          !$acc loop vector collapse(2) reduction(+:dumkt)
+          dumk1(k) = 0.0
           do j=1,nj
           do i=1,ni
-            dumkt = dumkt + (th0(i,j,k)+tha(i,j,k))*(1.0+repsm1*qa(i,j,k,nqv))
+            dumk1(k) = dumk1(k) + (th0(i,j,k)+tha(i,j,k))*(1.0+repsm1*qa(i,j,k,nqv))
           enddo
           enddo
-          dumk1(k) = dumkt
         enddo
       else
-        !$acc loop gang 
         do k=1,nk
-          dumkt = 0.0
-          !$acc loop vector collapse(2) reduction(+:dumkt)
+          dumk1(k) = 0.0
           do j=1,nj
           do i=1,ni
-            dumkt = dumkt + (th0(i,j,k)+tha(i,j,k))
+            dumk1(k) = dumk1(k) + (th0(i,j,k)+tha(i,j,k))
           enddo
           enddo
-          dumk1(k) = dumkt
         enddo
       endif
-      !$acc end parallel
 
 #ifdef MPI
-        !$acc host_data use_device(doit)
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
-      print *,'domaindiag: after mpi_allreduce '
-      !$acc parallel default(present) private(k)
-      !$acc loop gang vector
-      do k=1,nk
-        dumk1(k) = dumk1(k)/dble(nx*ny)
-      enddo
 
-      tmax = -1.0e30
-      !$acc loop
-      do k=nk,2,-1
-        dtdz = (dumk1(k)-dumk1(k-1))*rdz*mf(1,1,k)
-        if( dtdz .gt. tmax )then
-          !$acc atomic write
-          tmax = dtdz
-          !$acc atomic write
-          zibar = zf(1,1,k)
-        endif
-      enddo
-      !$acc end parallel
-      print *,'domaindiag before problematic loop'
-      !JMD for some reason this loop has a race condition
-      !--------
-      !  Get zi:
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,tmax,dtdz)
-      do j=1,nj
-      do i=1,ni
+        do k=1,nk
+          dumk1(k) = dumk1(k)/dble(nx*ny)
+        enddo
+
         tmax = -1.0e30
-        !$acc loop seq
         do k=nk,2,-1
-          dtdz = ((th0(i,j,k)+tha(i,j,k))-(th0(i,j,k-1)+tha(i,j,k-1)))*rdz*mf(i,j,k)
-          if( dtdz .ge. tmax .and. abs(zf(i,j,k)-zibar).le.(0.5*zibar) )then
+          dtdz = (dumk1(k)-dumk1(k-1))*rdz*mf(1,1,k)
+          if( dtdz .gt. tmax )then
             tmax = dtdz
-            dum2d(i,j) = zf(i,j,k)
+            zibar = zf(1,1,k)
           endif
         enddo
-      enddo
-      enddo
-      !$acc end data
 
-      call   write2d(dum2d,fnum,srec,nwrite,nloop,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,ncid,time_index,name_output(n_out))
+      !--------
+      !  Get zi:
+
+        do j=1,nj
+        do i=1,ni
+          dum2d(i,j) = 0.0
+          tmax = -1.0e30
+          do k=nk,2,-1
+            dtdz = ((th0(i,j,k)+tha(i,j,k))-(th0(i,j,k-1)+tha(i,j,k-1)))*rdz*mf(i,j,k)
+            if( dtdz .ge. tmax .and. abs(zf(i,j,k)-zibar).le.(0.5*zibar) )then
+              tmax = dtdz
+              dum2d(i,j) = zf(i,j,k)
+            endif
+          enddo
+        enddo
+        enddo
+
+        call   write2d(dum2d,fnum,srec,nwrite,nloop,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,ncid,time_index,name_output(n_out))
 
     ENDIF
     ENDIF
@@ -2258,7 +2156,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = zol(i,j)
@@ -2279,7 +2176,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             if( abs(rmol(i,j)).le.1.0e-10 )then
@@ -2304,7 +2200,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = br(i,j)
@@ -2325,7 +2220,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = brcr(i,j)
@@ -2346,7 +2240,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = wstar(i,j)
@@ -2367,7 +2260,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = delta(i,j)
@@ -2388,7 +2280,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = prkpp(i,j)
@@ -2409,7 +2300,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = wscale(i,j)
@@ -2430,7 +2320,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = wscaleu(i,j)
@@ -2451,7 +2340,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = psim(i,j)
@@ -2472,7 +2360,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = psih(i,j)
@@ -2493,7 +2380,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = psiq(i,j)
@@ -2514,7 +2400,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = fm(i,j)
@@ -2535,7 +2420,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = fh(i,j)
@@ -2556,7 +2440,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = qsfc(i,j)
@@ -2577,7 +2460,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = wspd(i,j)
@@ -2598,7 +2480,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = mznt(i,j)
@@ -2619,7 +2500,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = taux(i,j)
@@ -2640,7 +2520,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = tauy(i,j)
@@ -2661,7 +2540,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = z0base(i,j)
@@ -2682,7 +2560,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = thz0(i,j)
@@ -2703,7 +2580,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = qz0(i,j)
@@ -2724,7 +2600,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = uz0(i,j)
@@ -2745,7 +2620,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = vz0(i,j)
@@ -2766,7 +2640,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = u10e(i,j)
@@ -2787,7 +2660,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = v10e(i,j)
@@ -2810,28 +2682,21 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
             enddo
-          enddo
-          if( nqc.ge.1 )then
-            !$acc parallel default(present)
-            do k=1,nk
-              !$acc loop gang vector collapse(2)
-              do j=1,nj
+            if( nqc.ge.1 )then
+              do k=1,nk
               do i=1,ni
                 dum1(i,j,1) = dum1(i,j,1) + rho(i,j,k)*qa(i,j,k,nqc)*dz*rmh(i,j,k)
               enddo
               enddo
-            enddo
-            !$acc end parallel
-          endif
+            endif
+          enddo
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,1)
@@ -2854,28 +2719,21 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
             enddo
-          enddo
-          if( nqc.ge.1 .and. nqr.ge.1 )then
-            !$acc parallel default(present)
-            do k=1,nk
-              !$acc loop gang vector collapse(2)
-              do j=1,nj
+            if( nqc.ge.1 .and. nqr.ge.1 )then
+              do k=1,nk
               do i=1,ni
                 dum1(i,j,1) = dum1(i,j,1) + rho(i,j,k)*(qa(i,j,k,nqc)+qa(i,j,k,nqr))*dz*rmh(i,j,k)
               enddo
               enddo
-            enddo
-            !$acc end parallel
-          endif
+            endif
+          enddo
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,1)
@@ -2898,28 +2756,22 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
             enddo
-          enddo
-          if( nqv.ge.1 )then
-            !$acc parallel default(present)
-            do k=1,nk
-              !$acc loop gang vector collapse(2)
-              do j=1,nj
+            if( nqv.ge.1 )then
+              do k=1,nk
               do i=1,ni
+                                                                                ! 1000 kg/m3
                 dum1(i,j,1) = dum1(i,j,1) + rho(i,j,k)*qa(i,j,k,nqv)*dz*rmh(i,j,k)/1000.0
               enddo
               enddo
-            enddo
-            !$acc end parallel
-          endif
+            endif
+          enddo
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,1)
@@ -2935,7 +2787,6 @@
     IF( imoist.eq.1 )THEN
     IF( output_cape.eq.1 .or. output_cin.eq.1 .or. output_lcl.eq.1 .or. output_lfc.eq.1 )THEN
 
-          !PORTME
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k,pfoo,tfoo,qfoo,zel,psource,tsource,qvsource)
           DO j=1,nj
@@ -2960,7 +2811,6 @@
             ! dum2(1) = lcl
             ! dum2(2) = lfc
 
-            !PORTME
             call getcape( 3 , nk+1 , pfoo , tfoo , qfoo , dum1(i,j,1) , dum1(i,j,2) ,   &
                           dum2(i,j,1), dum2(i,j,2), zel , psource , tsource , qvsource )
 
@@ -2987,7 +2837,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,1)
@@ -3012,7 +2861,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum1(i,j,2)
@@ -3037,7 +2885,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum2(i,j,1)
@@ -3062,7 +2909,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = dum2(i,j,2)
@@ -3117,7 +2963,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2d(i,j) = kbdy(i,j)
@@ -3156,7 +3001,6 @@
 
                 !$omp parallel do default(shared)  &
                 !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
                 do j=1,nj
                 do i=1,ni
                   dum2d(i,j) = out2d(i,j,n)
@@ -3189,7 +3033,6 @@
           if( fnum.eq.71 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -3200,7 +3043,6 @@
           else
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -3223,7 +3065,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3246,7 +3087,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3268,7 +3108,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3290,7 +3129,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3313,7 +3151,6 @@
           if( psolver.eq.6 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -3324,7 +3161,6 @@
           else
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -3348,7 +3184,6 @@
           if( psolver.eq.6 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -3359,7 +3194,6 @@
           else
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -3391,7 +3225,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3413,7 +3246,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3435,7 +3267,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3472,7 +3303,6 @@
 
                 !$omp parallel do default(shared)  &
                 !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
                 do k=1,maxk
                 do j=1,nj
                 do i=1,ni
@@ -3498,7 +3328,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3520,7 +3349,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3557,7 +3385,6 @@
 
                 !$omp parallel do default(shared)  &
                 !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
                 do k=1,maxk
                 do j=1,nj
                 do i=1,ni
@@ -3592,7 +3419,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3618,7 +3444,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3644,7 +3469,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3670,7 +3494,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3696,7 +3519,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3722,7 +3544,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3753,7 +3574,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3779,7 +3599,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3805,7 +3624,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3831,7 +3649,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3857,7 +3674,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3883,7 +3699,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3909,7 +3724,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3935,7 +3749,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3961,7 +3774,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -3987,7 +3799,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4013,7 +3824,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4039,7 +3849,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4067,7 +3876,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4088,7 +3896,6 @@
       unit_output(n_out) = 'm/s^2'
       grid_output(n_out) = 's'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-          !PORTME
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k,nn)
           do k=1,maxk
@@ -4129,7 +3936,6 @@
 
   !.............................................
 
-    !$acc compare(ua)
     if(output_uinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'uinterp '
@@ -4139,7 +3945,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4152,7 +3957,6 @@
 
   !.............................................
 
-    !$acc compare(va)
     if(output_vinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'vinterp '
@@ -4162,7 +3966,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4175,7 +3978,6 @@
 
   !.............................................
 
-    !$acc compare(wa)
     if(output_winterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'winterp '
@@ -4185,7 +3987,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4217,7 +4018,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4239,7 +4039,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4261,7 +4060,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4289,7 +4087,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4312,7 +4109,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4334,7 +4130,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4356,7 +4151,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4378,7 +4172,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4400,7 +4193,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4422,7 +4214,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4444,7 +4235,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4466,7 +4256,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4489,7 +4278,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4512,7 +4300,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4535,7 +4322,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4560,7 +4346,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4572,7 +4357,6 @@
           if( radopt.eq.2 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -4600,7 +4384,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4612,7 +4395,6 @@
           if( radopt.eq.2 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -4640,7 +4422,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4652,7 +4433,6 @@
           if( radopt.eq.2 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -4681,7 +4461,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4693,7 +4472,6 @@
           if( radopt.eq.2 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -4723,7 +4501,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4735,7 +4512,6 @@
           if( radopt.eq.2 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -4765,7 +4541,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4777,7 +4552,6 @@
           if( radopt.eq.2 )then
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,maxk
             do j=1,nj
             do i=1,ni
@@ -4813,7 +4587,6 @@
       allocate(  thvsfc(ib:ie,jb:je) )
       thvsfc = 0.0
 
-          !PORTME
       if( imoist.eq.1 )then
         do j=1,nj
         do i=1,ni
@@ -4837,7 +4610,6 @@
         dum2 = 0.0
       endif
 
-          !PORTME
       do j=1,nj
       do i=1,ni
         thv = (th0(i,j,1)+tha(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -4851,7 +4623,6 @@
       k = 1
 
     if( hloop.eq.1 )then
-          !PORTME
       do j=1,nj
       do i=1,ni
         thv = (th0(i,j,1)+tha(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -4862,7 +4633,6 @@
       enddo
       enddo
     else
-          !PORTME
       do j=1,nj
       do i=1,ni
         thv = (th0(i,j,1)+tha(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -4883,7 +4653,6 @@
       enddo
     endif
 
-          !PORTME
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -4938,7 +4707,6 @@
 
                 !$omp parallel do default(shared)  &
                 !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
                 do k=1,maxk
                 do j=1,nj
                 do i=1,ni
@@ -4969,7 +4737,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -4997,7 +4764,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5021,7 +4787,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5045,7 +4810,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5069,7 +4833,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5093,7 +4856,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5117,7 +4879,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5141,7 +4902,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5165,7 +4925,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5189,7 +4948,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5213,7 +4971,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5237,7 +4994,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5261,7 +5017,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5289,7 +5044,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5317,7 +5071,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5341,7 +5094,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5366,7 +5118,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5392,7 +5143,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5418,7 +5168,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5444,7 +5193,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5470,7 +5218,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5496,7 +5243,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5522,7 +5268,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5547,7 +5292,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5571,7 +5315,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5596,7 +5339,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5621,7 +5363,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5646,7 +5387,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5671,7 +5411,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5700,7 +5439,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5728,7 +5466,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5751,7 +5488,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5775,7 +5511,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5799,7 +5534,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5823,7 +5557,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5847,7 +5580,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5871,7 +5603,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5896,7 +5627,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5920,7 +5650,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5944,7 +5673,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5968,7 +5696,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -5993,7 +5720,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6019,7 +5745,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6045,7 +5770,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6071,7 +5795,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6097,7 +5820,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6122,7 +5844,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6144,7 +5865,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6166,7 +5886,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6190,7 +5909,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6213,7 +5931,6 @@
 
           dum1 = 0.0
 
-          !PORTME
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6257,7 +5974,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6282,7 +5998,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6307,7 +6022,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6332,7 +6046,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6357,7 +6070,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6382,7 +6094,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6407,7 +6118,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6432,7 +6142,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6457,7 +6166,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6482,7 +6190,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6507,7 +6214,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6531,7 +6237,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6555,7 +6260,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6579,7 +6283,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
@@ -6601,13 +6304,13 @@
         unit_output(n_out) = 'unitless'
         grid_output(n_out) = 's'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
+          dum1 = 0.0
+
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni
-            dum1(i,j,k)=0.0
             if( bndy(i,j,k) ) dum1(i,j,k) = 1.0
           enddo
           enddo
@@ -6647,7 +6350,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6686,7 +6388,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6714,7 +6415,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6737,7 +6437,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6761,7 +6460,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6785,7 +6483,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6809,7 +6506,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6833,7 +6529,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6857,7 +6552,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6882,7 +6576,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6906,7 +6599,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6930,7 +6622,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6955,7 +6646,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -6980,7 +6670,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -7004,7 +6693,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj
           do i=1,ni+1
@@ -7047,7 +6735,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7086,7 +6773,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7114,7 +6800,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7138,7 +6823,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7162,7 +6846,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7186,7 +6869,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7210,7 +6892,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7234,7 +6915,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7258,7 +6938,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7282,7 +6961,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7306,7 +6984,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7330,7 +7007,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7355,7 +7031,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7380,7 +7055,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7404,7 +7078,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk
           do j=1,nj+1
           do i=1,ni
@@ -7520,7 +7193,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7542,7 +7214,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7564,7 +7235,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7586,7 +7256,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7608,7 +7277,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7630,7 +7298,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7652,7 +7319,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7674,7 +7340,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7696,7 +7361,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7718,7 +7382,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7817,7 +7480,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7845,7 +7507,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7869,7 +7530,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7893,7 +7553,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7917,7 +7576,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7941,7 +7599,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7965,7 +7622,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -7989,7 +7645,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -8013,7 +7668,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -8037,7 +7691,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -8061,7 +7714,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,maxk+1
           do j=1,nj
           do i=1,ni
@@ -8084,8 +7736,7 @@
         grid_output(n_out) = 'w'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
           !$omp parallel do default(shared)  &
-          !$omp private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$omp private(i,j,k)
           do j=1,nj
           do i=1,ni
             dumw(i,j,1) = 0.0
@@ -8095,7 +7746,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,min(nk,maxk+1)
           do j=1,nj
           do i=1,ni
@@ -8119,7 +7769,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,min(nk,maxk+1)
           do j=1,nj
           do i=1,ni
@@ -8142,7 +7791,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,min(nk,maxk+1)
           do j=1,nj
           do i=1,ni
@@ -8166,7 +7814,6 @@
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,min(nk,maxk+1)
           do j=1,nj
           do i=1,ni
@@ -8200,7 +7847,6 @@
       IF( numprocs.gt.nlim )THEN
         doit = .true.
         IF( myid+nlim .le. (numprocs-1) )THEN
-          !$acc host_data use_device(doit)
           call MPI_ISEND(doit,1,mpi_logical,myid+nlim,999999,MPI_COMM_WORLD,reqs,ierr)
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
@@ -8260,7 +7906,6 @@
       if( output_format.eq.1 )then
 
         ! write GrADS descriptor files:
-        !PORTME
         call write_outputctl(xh,xf,yh,yf,xfref,yfref,sigma,sigmaf,name_output,desc_output,unit_output,grid_output,nwrite)
 
       endif
@@ -8554,9 +8199,7 @@
         enddo
         enddo
 
-        !$acc host_data use_device(dat1)
         call MPI_ISEND(dat1(1,1),d3i*d3j,MPI_REAL,nodemaster,tag,MPI_COMM_WORLD,reqs,ierr)
-        !$acc end host_data
         call MPI_WAIT(reqs,MPI_STATUS_IGNORE,ierr)
 
         tag = tag+2
@@ -9584,8 +9227,7 @@
     integer, intent(inout) :: ncid
     integer, intent(in) :: time_index
     character(len=40), intent(in) :: name_output
-    !$acc declare present(var2d)
-    !$acc update host(var2d)
+
     nout = n_out  ! kludge
     IF( .not. opens .and. output_format.eq.1 )THEN
       call open_file('s',snum,nwrite)
@@ -9627,8 +9269,6 @@
     real, intent(in), dimension(ib:ie,jb:je) :: zs
     real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
     real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: dum9
-    !$acc declare present(vars)
-    !$acc update host(vars)
 
     nout = n_out  ! kludge
     IF( .not. opens .and. output_format.eq.1 )THEN
@@ -9668,8 +9308,6 @@
     integer, intent(inout) :: ncid
     integer, intent(in) :: time_index
     character(len=40), intent(in) :: name_output
-    !$acc declare present(varu)
-    !$acc update host(varu)
 
     nout = n_out  ! kludge
   if( .not. dointerp )then
@@ -9709,8 +9347,6 @@
     integer, intent(inout) :: ncid
     integer, intent(in) :: time_index
     character(len=40), intent(in) :: name_output
-    !$acc declare present(varv)
-    !$acc update host(varv)
 
     nout = n_out  ! kludge
   if( .not. dointerp )then
@@ -9750,8 +9386,6 @@
     integer, intent(inout) :: ncid
     integer, intent(in) :: time_index
     character(len=40), intent(in) :: name_output
-    !$acc declare present(varw)
-    !$acc update host(varw)
 
     nout = n_out  ! kludge
   if( .not. dointerp )then

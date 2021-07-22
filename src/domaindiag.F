@@ -112,8 +112,6 @@
     real, intent(in), dimension(itb:ite,jtb:jte,ktb:kte) :: gx,gxu,gy,gyv
     real, intent(in), dimension(ib:ie,jb:je) :: tsk,znt,ust,stau,tst,qst,z0t,z0q,thflux,qvflux,  &
                                                 cd,ch,cq,u1,v1,s1,xland,psfc,tlh,prate,ustt,ut,vt,st
-
-
     real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: dum1,dum2,dum3,dum4,dum5,dum6,th,ql
     real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: divx,rho,rr,rf,prs
     real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: t11,t12,t13,t22,t23,t33
@@ -143,7 +141,6 @@
     real, intent(inout), dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: tsq,qsq,cov,sh3d,el_pbl,qc_bl,qi_bl,cldfra_bl, &
                                                                 qnipten,qncpten,qWT,qSHEAR,qBUOY,qDISS,dqke,qke_adv,qke,  &
                                                                 edmf_a,edmf_w,edmf_qt,edmf_thl,edmf_ent,edmf_qc
- 
     real, intent(inout), dimension(ibmynn:iemynn,jbmynn:jemynn) :: vdfg,maxmf
     integer, intent(inout), dimension(ibmynn:iemynn,jbmynn:jemynn) :: nupdraft,ktop_plume
     real, intent(inout), dimension(ibmyj:iemyj,jbmyj:jemyj) :: thz0,qz0,uz0,vz0
@@ -192,59 +189,36 @@
     real :: thvx
     real :: bri,ubar,vbar,thvflux,tmpprt,thf1,thf2,gamfac,ws
     real, dimension(ib:ie,jb:je) :: tmpqsfc,govthv,thvsfc,thv1
-    double precision :: tmasst,clwt,clit,plwt,plit,tmpw,tmpi
-
-    !$acc data &
-    !$acc   create(wstar,fbmin,zfbmin) &
-    !$acc   create(ravg,savg,tavg,uub,vvb,wwb,sfr,sfs,sfd,tmass,clw,cli,plw,pli) &
-    !$acc   create(wavg,wvar,thvavg,rhoavg,rfavg, &
-    !$acc     ufr,ufs,ufd,vfr,vfs,vfd,ptfr,ptfs, &
-    !$acc     ptfd,qvfr,qvfs,qvfd,temavg, &
-    !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,savg,qcrit, &
-    !$acc     u_hturb,u_vturb,u_hadv,u_vadv,u_pgrad,u_cor,u_hidiff,u_vidiff,u_rdamp, &
-    !$acc     v_hturb,v_vturb,v_hadv,v_vadv,v_pgrad,v_cor,v_hidiff,v_vidiff,v_rdamp, &
-    !$acc     w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,w_buoy,w_hidiff,w_vidiff,w_rdamp)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
     if( myid.eq.0 ) print *
 
-    !$acc parallel loop gang vector default(present) private(k)
-    do k=kb,ke
-      uavg(k) = 0.0
-      vavg(k) = 0.0
-    enddo
+    uavg = 0.0
+    vavg = 0.0
+    wavg = 0.0
+    prsavg = 0.0
+    piavg = 0.0
+    thvavg = 0.0
+    thlavg = 0.0
+    rhoavg = 0.0
+    rfavg = 0.0
+    qvavg = 0.0
+    qlavg = 0.0
+    qtavg = 0.0
+    wsp = 0.0
+    wspa = 0.0
+    stke = 0.0
+    rtke = 0.0
+    wvar = 0.0
 
-    !$acc parallel loop gang vector default(present) private(k)
-    do k=0,nk+1
-      wavg(k)   = 0.0
-      prsavg(k) = 0.0
-      piavg(k)  = 0.0
-      thvavg(k) = 0.0
-      thlavg(k) = 0.0
-      rhoavg(k) = 0.0
-      rfavg(k)  = 0.0
-      qvavg(k)  = 0.0
-      qlavg(k)  = 0.0
-      qtavg(k)  = 0.0
-      wsp(k)    = 0.0
-      wspa(k)   = 0.0
-      stke(k)   = 0.0
-      rtke(k)   = 0.0
-      wvar(k)   = 0.0
-      sfr(k)    = 0.0
-      sfs(k)    = 0.0
-      sfd(k)    = 0.0
-      w_hadv(k) = 0.0
-      u_hidiff(k) = 0.0
-    enddo
+    sfr = 0.0
+    sfs = 0.0
+    sfd = 0.0
 
-    !$acc parallel loop gang vector default(present) private(k)
-    do k=1,nk+1
-      ptfr(k) = 0.0
-      ptfs(k) = 0.0
-      ptfd(k) = 0.0
-    enddo
+    ptfr = 0.0
+    ptfs = 0.0
+    ptfd = 0.0
 
     ! by default, assume 3d and scalar levels:
     varlvls = nk
@@ -328,18 +302,10 @@
     !                ql  =  total liquid water (usually qc+qr)
 
     IF( imoist.eq.0 )THEN
-      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-      do k=1,nk
-      do j=1,nj
-      do i=1,ni
-        ql(i,j,k)   = 0.0
-        qice(i,j,k) = 0.0
-      enddo
-      enddo
-      enddo
+      ql = 0.0
+      qice = 0.0
     ELSE
       do k=1,nk
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           ql(i,j,k) = 0.0
@@ -347,7 +313,6 @@
         enddo
       IF( nql1.gt.0 )THEN
         do n=nql1,nql2
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           ql(i,j,k) = ql(i,j,k)+q3d(i,j,k,n)
@@ -356,14 +321,12 @@
         enddo
       ENDIF
         if( iice.eq.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             qice(i,j,k) = 0.0
           enddo
           enddo
           do n=nqs1,nqs2
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             qice(i,j,k) = qice(i,j,k)+q3d(i,j,k,n)
@@ -376,7 +339,6 @@
 
     IF( imoist.eq.1 )THEN
 
-      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
       do j=0,nj+1
       do i=0,ni+1
@@ -390,7 +352,6 @@
 
     ELSE
 
-      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
       do j=0,nj+1
       do i=0,ni+1
@@ -407,26 +368,21 @@
       !c-c-c-c-c-c-c-c-c-c
 
       call getavg3d(th,savg)
-      !$acc parallel loop default(present) private(k)
       do k=1,nk
         thavg(k) = savg(k)
       enddo
-      
 
       call getavg3d(thv,savg)
-      !$acc parallel loop default(present) private(k)
       do k=1,nk
         thvavg(k) = savg(k)
       enddo
 
       call getavg3d(prs,savg)
-      !$acc parallel loop default(present) private(k)
       do k=1,nk
         pavg(k) = savg(k)
       enddo
 
       call getavg3d(dum1,savg)
-      !$acc parallel loop default(present) private(k)
       do k=1,nk
         wsp(k) = savg(k)
       enddo
@@ -492,7 +448,6 @@
 
         savg2d = vmove
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -869,8 +824,6 @@
     sfcstuff:  &
     IF( sfcmodel.ge.1 )THEN
 
-
-      !this causes a code bug
       nvar = nvar+1
       varname(nvar) = 'wspd'
       vardesc(nvar) = 'sfc layer wind speed (with gust)'
@@ -879,7 +832,6 @@
       vargrid(nvar) = '2'
       call getavg2d( wspd  ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -915,6 +867,7 @@
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
+
       nvar = nvar+1
       varname(nvar) = 'phim'
       vardesc(nvar) = 'similarity nondimen wind shear at lowest model level'
@@ -989,7 +942,6 @@
       varunit(nvar) = 'm'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         if( abs(rmol(i,j)).le.1.0e-10 )then
@@ -1030,7 +982,6 @@
       varunit(nvar) = 'K'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = thz0(i,j)
@@ -1047,7 +998,6 @@
       varunit(nvar) = 'kg/kg'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = qz0(i,j)
@@ -1064,7 +1014,6 @@
       varunit(nvar) = 'm/s'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = uz0(i,j)
@@ -1081,7 +1030,6 @@
       varunit(nvar) = 'm/s'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = vz0(i,j)
@@ -1089,6 +1037,8 @@
       enddo
       call getavg2d( dum1(ib,jb,1) ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+
+      !----
 
     endif
 
@@ -1098,14 +1048,11 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-!BLOCK01a
-#if 0
     ziflag:  &
     IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 )THEN
 
         zimin =  1.0e30
         zimax = -1.0e30
-        !PORTME
         do j=1,nj
         do i=1,ni
           zi = 0.0
@@ -1124,10 +1071,8 @@
         enddo
 
 #ifdef MPI
-      !$acc host_data use_device(zimin,zimax)
       call MPI_ALLREDUCE(mpi_in_place,zimin,1,MPI_REAL,MPI_MIN,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(mpi_in_place,zimax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-      !$acc end host_data
 #endif
 
       !c-c-c-c-c-c-c-c-c-c
@@ -1172,7 +1117,6 @@
       varunit(nvar) = 'm'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,2) = (dum1(i,j,1)-zibar)**2
@@ -1182,8 +1126,6 @@
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF  ziflag
-!END-BLOCK01a
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -1196,11 +1138,9 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel default(present)
       tmax = -1.0e30
       zi = 0.0
 
-      !$acc loop seq
       do k=nk,2,-1
         dtdz = (thvavg(k)-thvavg(k-1))*rdz*mf(1,1,k)
         if( dtdz .ge. tmax )then
@@ -1211,7 +1151,6 @@
 
       savg2d = zi
       zitb = zi
-      !$acc end parallel
 
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -1228,17 +1167,14 @@
         varlvls(nvar) = 0
         vargrid(nvar) = '2'
 
-        !$acc parallel default(present)
         tmax = -1.0e30
 
-        !$acc loop seq
         do k=nk,1,-1
           if( wsp(k) .ge. tmax )then
             tmax = wsp(k)
             savg2d = zh(1,1,k)
           endif
         enddo
-        !$acc end parallel
 
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -1259,15 +1195,13 @@
 
     ENDIF
 
-
       !c-c-c-c-c-c-c-c-c-c
-
 
     IF( imoist.eq.1 )THEN
 
       nvar = nvar+1
       varname(nvar) = 'prate'
-      vardesc(nvar) = 'domain-averaged surface precipitation rate'
+      vardesc(nvar) = 'domain-averaged surface precipitatin rate'
       varunit(nvar) = 'kg/m2/s'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
@@ -1277,25 +1211,28 @@
 
     ENDIF
 
-
       !c-c-c-c-c-c-c-c-c-c
 
     IF( imoist.eq.1 )THEN
       ! water paths, precipitable water:
 
-      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-      do k=1,5
       do j=1,nj
       do i=1,ni
-        dum1(i,j,k) = 0.0
-        dum2(i,j,k) = 0.0
-      enddo
+        dum1(i,j,1) = 0.0
+        dum1(i,j,2) = 0.0
+        dum1(i,j,3) = 0.0
+        dum1(i,j,4) = 0.0
+        dum1(i,j,5) = 0.0
+        dum2(i,j,1) = 0.0
+        dum2(i,j,2) = 0.0
+        dum2(i,j,3) = 0.0
+        dum2(i,j,4) = 0.0
+        dum2(i,j,5) = 0.0
       enddo
       enddo
 
       do k=1,nk
         if( nqc.ge.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,1) = dum1(i,j,1) + rho(i,j,k)*q3d(i,j,k,nqc)*dz*rmh(i,j,k)
@@ -1303,21 +1240,18 @@
           enddo
         endif
         if( nqr.ge.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,2) = dum1(i,j,2) + rho(i,j,k)*q3d(i,j,k,nqr)*dz*rmh(i,j,k)
           enddo
           enddo
         endif
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum1(i,j,3) = dum1(i,j,3) + rho(i,j,k)*ql(i,j,k)*dz*rmh(i,j,k)
         enddo
         enddo
         if( nqv.ge.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
                                                                             ! 1000 kg/m3
@@ -1325,39 +1259,18 @@
           enddo
           enddo
         endif
-      enddo
-#ifdef _B4B
-      !$acc update host(dum1(1:ni,1:nj,5),rho,prs,th,pi0,pp3d,rmh)
-#else
-      !$acc parallel default(present) private(i,j)
-      !$acc loop seq
-#endif
-      do k=1,nk
-#ifndef _B4B
-        !$acc loop gang vector collapse(2)
-#endif
         do j=1,nj
         do i=1,ni
           dum1(i,j,5) = dum1(i,j,5) + rho(i,j,k)*rslf(prs(i,j,k),th(i,j,k)*(pi0(i,j,k)+pp3d(i,j,k)))*dz*rmh(i,j,k)
         enddo
         enddo
-      enddo
-#ifdef _B4B
-      !$acc update device(dum1(1:ni,1:nj,5))
-#else
-      !$acc end parallel
-#endif
-
-      do k=1,nk
         IF( iice.eq.1 )THEN
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2(i,j,1) = dum2(i,j,1) + rho(i,j,k)*qice(i,j,k)*dz*rmh(i,j,k)
           enddo
           enddo
           if( nqi.ge.1 )then
-           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               dum2(i,j,2) = dum2(i,j,2) + rho(i,j,k)*q3d(i,j,k,nqi)*dz*rmh(i,j,k)
@@ -1365,7 +1278,6 @@
             enddo
           endif
           if( nqs.ge.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               dum2(i,j,3) = dum2(i,j,3) + rho(i,j,k)*q3d(i,j,k,nqs)*dz*rmh(i,j,k)
@@ -1373,14 +1285,12 @@
             enddo
           endif
           if( nqg.ge.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               dum2(i,j,4) = dum2(i,j,4) + rho(i,j,k)*q3d(i,j,k,nqg)*dz*rmh(i,j,k)
             enddo
             enddo
           endif
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum2(i,j,5) = dum2(i,j,5) + rho(i,j,k)*(ql(i,j,k)+qice(i,j,k))*dz*rmh(i,j,k)
@@ -1429,7 +1339,6 @@
       vargrid(nvar) = '2'
       call getavg2d(dum1(ib,jb,4),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-      !stop 'after call to getavg2d(pwat) '
 
       nvar = nvar+1
       varname(nvar) = 'spwr'
@@ -1439,7 +1348,6 @@
       vargrid(nvar) = '2'
       call getavg2d(dum1(ib,jb,5),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-      !stop 'after call to getavg2d(spwr) '
 
       nvar = nvar+1
       varname(nvar) = 'fwp'
@@ -1497,7 +1405,6 @@
       varunit(nvar) = 'kg^2/(m^4)'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,1) = (dum1(i,j,1)-cwp)**2
@@ -1512,7 +1419,6 @@
       varunit(nvar) = 'kg^2/(m^4)'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,2) = (dum1(i,j,2)-rwp)**2
@@ -1527,7 +1433,6 @@
       varunit(nvar) = 'kg^2/(m^4)'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,3) = (dum1(i,j,3)-lwp)**2
@@ -1543,7 +1448,6 @@
     IF( imoist.eq.1 )THEN
       ! fraction of cloudy/rainy grid points:
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = 0.0
@@ -1554,25 +1458,11 @@
       enddo
       enddo
 
-#ifdef _B4B
-      !$acc update host(pavg,thavg)
-#else
-      !$acc parallel loop gang vector default(present) private(i,j,k)
-#endif
-      do k=1,nk
-        ! use minimum of 1.0e-5 and 1% of saturation wrt liquid (using last known t,p)
-        qcrit(k) = min( 1.0e-5 , 0.01*rslf(pavg(k),thavg(k)*((pavg(k)*rp00)**rovcp)) )
-      enddo
-#ifdef _B4B
-      !$acc update device(qcrit)
-#endif
-
-      !$acc parallel default(present) private(i,j,k)
       do k=nk,1,-1
         ! use minimum of 1.0e-5 and 1% of saturation wrt liquid (using last known t,p)
-        !qcrit(k) = min( 1.0e-5 , 0.01*rslf(pavg(k),thavg(k)*((pavg(k)*rp00)**rovcp)) )
+        qcrit(k) = min( 1.0e-5 , 0.01*rslf(pavg(k),thavg(k)*((pavg(k)*rp00)**rovcp)) )
+!!!        if( myid.eq.0 ) print *,'  qcrit: k,z,tavg,qcrit = ',k,zh(1,1,k),thavg(k)*((pavg(k)*rp00)**rovcp),qcrit(k)
         if( nqc.ge.1 )then
-          !$acc loop gang vector collapse(2)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqc).ge.qcrit(k) ) dum1(i,j,1) = zh(i,j,k)
@@ -1580,35 +1470,30 @@
           enddo
         endif
         if( nqr.ge.1 )then
-          !$acc loop gang vector collapse(2)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqr).ge.qcrit(k) ) dum1(i,j,2) = zh(i,j,k)
           enddo
           enddo
         endif
-        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
         enddo
         enddo
         if( iice.eq.1 )then
-        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           if( qice(i,j,k).ge.qcrit(k) ) dum1(i,j,4) = zh(i,j,k)
         enddo
         enddo
         endif
-        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           if( (ql(i,j,k)+qice(i,j,k)).ge.qcrit(k) ) dum1(i,j,5) = zh(i,j,k)
         enddo
         enddo
       enddo
-      !$acc end parallel
 
       qcfrac = 0.0
       qrfrac = 0.0
@@ -1616,9 +1501,6 @@
       qifrac = 0.0
       qtfrac = 0.0
 
-      !$acc data copy(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j) &
-      !$acc    reduction(+:qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
       do j=1,nj
       do i=1,ni
         if( dum1(i,j,1).gt.0.01*zh(1,1,1) ) qcfrac = qcfrac+1.0
@@ -1628,16 +1510,13 @@
         if( dum1(i,j,5).gt.0.01*zh(1,1,1) ) qtfrac = qtfrac+1.0
       enddo
       enddo
-      !$acc end data
 
 #ifdef MPI
-      !$acc host_data use_device(qcfrac,qrfrac,qlfrac,qifrac,qtfrac) 
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qifrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qtfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc end host_data
 #endif
 
       temd = 1.0d0/dble(nx*ny)
@@ -1704,8 +1583,6 @@
       nrb = 0
       nlb = 0
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j) &
-      !$acc    reduction(+:qcb,ncb,qrb,nrb,qlb,nlb) 
       do j=1,nj
       do i=1,ni
         if( dum1(i,j,1).gt.0.01*zh(1,1,1) )then
@@ -1724,14 +1601,12 @@
       enddo
 
 #ifdef MPI
-      !$acc host_data use_device(qcb,qrb,qlb,ncb,nrb,nlb)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,ncb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc end host_data
 #endif
 
       qcb = qcb/dble(max(1,ncb))
@@ -1774,12 +1649,12 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,1) = (dum1(i,j,1)-qcb)**2
       enddo
       enddo
+
       call getavg2d(dum2(ib,jb,1),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -1790,12 +1665,12 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,2) = (dum1(i,j,2)-qrb)**2
       enddo
       enddo
+
       call getavg2d(dum2(ib,jb,2),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -1806,7 +1681,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,3) = (dum1(i,j,3)-qlb)**2
@@ -1823,7 +1697,6 @@
     IF( imoist.eq.1 )THEN
       ! cloud top heights:
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = 0.0
@@ -1832,43 +1705,28 @@
       enddo
       enddo
 
-        !PORTME
-        !$acc compare(q3d,qcrit,zh)
-        !$acc parallel  default(present) private(i,j)
+      do k=1,nk
         if( nqc.ge.1 )then
-          !$acc loop seq
-          do k=1,nk
-          !$acc loop gang vector collapse(2)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqc).ge.qcrit(k) ) dum1(i,j,1) = zh(i,j,k)
           enddo
           enddo
-          enddo
         endif
         if( nqr.ge.1 )then
-          !$acc loop seq
-          do k=1,nk
-          !$acc loop gang vector collapse(2)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqr).ge.qcrit(k) ) dum1(i,j,2) = zh(i,j,k)
           enddo
           enddo
-          enddo
         endif
-        !$acc loop seq
-        do k=1,nk
-          !$acc loop gang vector collapse(2)
-          do j=1,nj
-          do i=1,ni
-            if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
-          enddo
-          enddo
+        do j=1,nj
+        do i=1,ni
+          if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
         enddo
-        !$acc end parallel
-      !$acc compare(dum1)
-      !$acc parallel default(present) private(i,j) copyout(qct,nct,qrt,nrt,qlt,nlt)
+        enddo
+      enddo
+
       qct = 0.0
       qrt = 0.0
       qlt = 0.0
@@ -1877,8 +1735,6 @@
       nrt = 0
       nlt = 0
 
-      !$acc loop vector collapse(2) &
-      !$acc reduction(+:qct,nct,qrt,nrt,qlt,nlt)
       do j=1,nj
       do i=1,ni
         if( dum1(i,j,1).gt.0.01*zh(1,1,1) )then
@@ -1895,20 +1751,16 @@
         endif
       enddo
       enddo
-      !$acc compare(qct,nct,qrt,nrt,qlt,nlt)
-      !$acc end parallel
-      !stop 'after calculation of qct,nct, etc...'
 
 #ifdef MPI
-      !$acc host_data use_device(qct,qrt,qlt,ncr,nrt,nlt)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nct,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc end host_data
 #endif
+
       qct = qct/dble(max(1,nct))
       qrt = qrt/dble(max(1,nrt))
       qlt = qlt/dble(max(1,nlt))
@@ -1949,7 +1801,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,1) = (dum1(i,j,1)-qct)**2
@@ -1966,7 +1817,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,2) = (dum1(i,j,2)-qrt)**2
@@ -1983,7 +1833,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,3) = (dum1(i,j,3)-qlt)**2
@@ -2006,7 +1855,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-     
       call getavg2d( zir ,savg2d)
       zibar = savg2d
       call write2d(zibar,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -2020,7 +1868,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj
       do i=1,ni
         dum2(i,j,1) = (zir(i,j)-zibar)**2
@@ -2256,10 +2103,8 @@
 
     ENDIF
 
-!BLOCK02
-#if 0
       !c-c-c-c-c-c-c-c-c-c
-      !PORTME
+
       doit = .true.
       IF( doit )THEN
         IF( imoist.eq.1 )THEN
@@ -2338,21 +2183,17 @@
 
         ENDIF
       ENDIF
-!END-BLOCK02
-#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
       IF( imoist.eq.1 .and. th0(1,1,nk)*pi0(1,1,nk).lt.to )THEN
 
-        !PORTME
-        !$omp parallel do default(shared) private(i,j,k,tx,tlast)
-        !$acc parallel loop gang vector collapse(2) private(i,j,k,tx,tlast)
+        !$omp parallel do default(shared)  &
+        !$omp private(i,j,k,tx,tlast)
         do j=1,nj
         do i=1,ni
           tx = 1.0e30
           k = 1
-          !!$acc loop seq
           do while( tx.gt.273.15 .and. k.lt.nk )
             tlast = tx
             k = k + 1
@@ -2387,7 +2228,6 @@
 
       ENDIF
 
-
       !c-c-c-c-c-c-c-c-c-c
 
       nvar2d = nvar
@@ -2403,7 +2243,6 @@
         varname(nvar) = 'u'
         vardesc(nvar) = 'u component of velocity (grid-relative)'
         varunit(nvar) = 'm/s'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2412,15 +2251,12 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !print *,'after calculation of uavg'
-        !! save uavg:
-        !$acc parallel loop gang vector default(present) private(k)
+        ! save uavg:
         do k=1,nk
           uavg(k) = savg(k)
         enddo
-        !stop 'after calclation of uavg'
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2429,7 +2265,6 @@
         vardesc(nvar) = 'u component of velocity (grid-relative)'
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -2438,10 +2273,8 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -2450,7 +2283,6 @@
         varname(nvar) = 'v'
         vardesc(nvar) = 'v component of velocity (grid-relative)'
         varunit(nvar) = 'm/s'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2459,13 +2291,12 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save vavg:
-        !$acc parallel loop gang vector private(k)
         do k=1,nk
           vavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2474,7 +2305,6 @@
         vardesc(nvar) = 'v component of velocity (grid-relative)'
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -2483,11 +2313,8 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
-
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -2498,15 +2325,12 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
         call getavg3d(w3d(ib,jb,kb),savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !! save wavg:
-        !$acc parallel loop gang vector default(present) private(k)
+        ! save wavg:
         do k=1,nk
           wavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-        !stop 'domaindiag: after calculation of wavg'
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2515,13 +2339,12 @@
         vardesc(nvar) = 'potential temperature'
         varunit(nvar) = 'K'
         call getavg3d(th,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save thavg:
-        !$acc parallel loop default(present) private(k)
         do k=1,nk
           thavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
 
       !c-c-c-c-c-c-c-c-c-c
@@ -2532,7 +2355,6 @@
         varunit(nvar) = 'K'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -2543,10 +2365,8 @@
         enddo
 
         call getavg3d(dum1,savg)
-        !$acc parallel
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -2555,7 +2375,6 @@
         varname(nvar) = 't'
         vardesc(nvar) = 'temperature'
         varunit(nvar) = 'K'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2573,13 +2392,12 @@
         vardesc(nvar) = 'pressure'
         varunit(nvar) = 'Pa'
         call getavg3d(prs,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save prsavg:
-        !$acc parallel loop private(k)
         do k=1,nk
           prsavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2589,7 +2407,6 @@
         varunit(nvar) = 'Pa'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -2599,10 +2416,8 @@
         enddo
 
         call getavg3d(dum1,savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -2612,15 +2427,13 @@
         vardesc(nvar) = 'dry air density'
         varunit(nvar) = 'kg/m3'
 
-        
         call getavg3d(rho,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save rhoavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           rhoavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2630,14 +2443,13 @@
         varunit(nvar) = 'kg/m3'
         vargrid(nvar) = 'w'
 
-        call getavg3d(rf,savg,nkp1)
+        call getavg3d(rf,savg,nk+1)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save rfavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           rfavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2645,7 +2457,6 @@
         varname(nvar) = 'ppi'
         vardesc(nvar) = 'nondimensional pressure'
         varunit(nvar) = 'nondimensional'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2654,13 +2465,12 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save piavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           piavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2674,17 +2484,15 @@
           vardesc(nvar) = qname(n)
           varunit(nvar) = qunit(n)
 
-
           call getavg3d(q3d(ib,jb,kb,n),savg)
+          call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
           if( n.eq.nqv )then
             ! save qvavg:
-            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               qvavg(k) = savg(k)
             enddo
           endif
-          call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ENDDO
 
@@ -2695,6 +2503,7 @@
       ! specific humidities:
       doit = .true.
       IF( doit .and. imoist.eq.1 )THEN
+
         DO n=1,numq
 
           do2 = .false.
@@ -2744,7 +2553,6 @@
 
           IF( do2 )THEN
 
-            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -2771,13 +2579,12 @@
         vardesc(nvar) = 'liquid water mixing ratio'
         varunit(nvar) = 'g/g'
         call getavg3d(ql,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save qlavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           qlavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
 
@@ -2802,7 +2609,6 @@
         varname(nvar) = 'qt'
         vardesc(nvar) = 'total water mixing ratio'
         varunit(nvar) = 'g/g'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2811,13 +2617,12 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save qtavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           qtavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
 
@@ -2889,21 +2694,13 @@
 
       IF( imoist.eq.1 .and. ptype.eq.5 .and. getvt )THEN
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-        do k=1,nk
-        do j=1,nj
-        do i=1,ni
-          dum2(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum2 = 0.0
 
       if( qd_vtc.ge.1 )then
         nvar = nvar+1
         varname(nvar) = 'precc'
         vardesc(nvar) = 'precip flux for qc'
         varunit(nvar) = 'kg m-2 s-1'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2921,7 +2718,6 @@
         varname(nvar) = 'precr'
         vardesc(nvar) = 'precip flux for qr'
         varunit(nvar) = 'kg m-2 s-1'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2939,7 +2735,6 @@
         varname(nvar) = 'preci'
         vardesc(nvar) = 'precip flux for qi'
         varunit(nvar) = 'kg m-2 s-1'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2957,7 +2752,6 @@
         varname(nvar) = 'precs'
         vardesc(nvar) = 'precip flux for qs'
         varunit(nvar) = 'kg m-2 s-1'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -2975,7 +2769,6 @@
         varname(nvar) = 'precg'
         vardesc(nvar) = 'precip flux for qg'
         varunit(nvar) = 'kg m-2 s-1'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3010,22 +2803,15 @@
 !!!          savg(k) = qcrit(k)
 !!!        enddo
 !!!        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-      do k=1,nk
-      do j=1,nj
-      do i=1,ni
-        dum1(i,j,k) = 0.0
-        dum2(i,j,k) = 0.0
-        dum3(i,j,k) = 0.0
-        dum4(i,j,k) = 0.0
-        dum5(i,j,k) = 0.0
-      enddo
-      enddo
-      enddo
+
+      dum1 = 0.0
+      dum2 = 0.0
+      dum3 = 0.0
+      dum4 = 0.0
+      dum5 = 0.0
 
       do k=1,nk
         if( nqc.ge.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqc).ge.qcrit(k) ) dum1(i,j,k) = dum1(i,j,k)+1.0
@@ -3033,26 +2819,22 @@
           enddo
         endif
         if( nqr.ge.1 )then
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             if( q3d(i,j,k,nqr).ge.qcrit(k) ) dum2(i,j,k) = dum2(i,j,k)+1.0
           enddo
           enddo
         endif
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           if( ql(i,j,k).ge.qcrit(k) ) dum3(i,j,k) = dum3(i,j,k)+1.0
         enddo
         enddo
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           if( qice(i,j,k).ge.qcrit(k) ) dum4(i,j,k) = dum4(i,j,k)+1.0
         enddo
         enddo
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           if( (ql(i,j,k)+qice(i,j,k)).ge.qcrit(k) ) dum5(i,j,k) = dum5(i,j,k)+1.0
@@ -3099,157 +2881,73 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-
     IF( imoist.eq.1 )THEN
 
       ! mass fractions:
 
-      !$acc parallel loop gang vector default(present) private(k)
-      do k=1,nk
-        tmass(k) = 0.0
-        clw(k)   = 0.0
-        cli(k)   = 0.0
-        plw(k)   = 0.0
-        pli(k)   = 0.0
-      ENDDO
+      tmass = 0.0
+      clw = 0.0
+      cli = 0.0
+      plw = 0.0
+      pli = 0.0
 
-      !$acc parallel default(present) private(i,j,k) reduction(+:tmasst)
-      !$acc loop gang
       DO k=1,nk
-        tmasst = 0.0d0
-        !$acc loop vector reduction(+:tmasst)
         do j=1,nj
         do i=1,ni
-          tmasst = tmasst+rho(i,j,k)*(1.0+q3d(i,j,k,nqv)+ql(i,j,k)+qice(i,j,k))
+          tmass(k) = tmass(k)+rho(i,j,k)*(1.0+q3d(i,j,k,nqv)+ql(i,j,k)+qice(i,j,k))
         enddo
         enddo
-        tmass(k) = tmasst
-      ENDDO
-      !$acc end parallel
-
-#if 0
-      !$acc parallel default(present) private(i,j,k,n,qflag) reduction(+:tmpw,tmpi)
-#if 1
-        !$acc loop seq
-        DO n=nql1,nql2
-          !$acc loop gang
-          DO k=1,nk
-            tmpw=0.0d0
-            !$acc loop vector collapse(2) reduction(+:tmpw)
-            do j=1,nj
-            do i=1,ni
-              tmpw = tmpw+rho(i,j,k)*q3d(i,j,k,n)
-            enddo
-            enddo
-            if(cloudvar(n)) then 
-               clw(k)=tmpw
-            else
-               plw(k)=tmpw
-            endif
-          ENDDO
-        ENDDO
-        !$acc loop seq
-        DO n=nqs1,nqs2
-          !$acc loop gang
-          DO k=1,nk
-            tmpi=0.0d0
-            !$acc loop vector collapse(2) reduction(+:tmpi)
-            do j=1,nj
-            do i=1,ni
-              tmpi = tmpi+rho(i,j,k)*q3d(i,j,k,n)
-            enddo
-            enddo
-            if(cloudvar(n)) then 
-               cli(k)=tmpi
-            else
-               pli(k)=tmpi
-            endif
-          ENDDO
-        ENDDO
-
-#else
-        !$acc loop seq
         DO n=1,numq
           qflag = 0
           if( qflag.eq.0 .and. cloudvar(n) .and. (n.ge.nql1) .and. (n.le.nql2) )then
             qflag = 1
-            !$acc loop gang
-            DO k=1,nk
-              clwt=0.0d0
-              !$acc loop vector collapse(2) reduction(+:clwt)
-              do j=1,nj
-              do i=1,ni
-                clwt = clwt+rho(i,j,k)*q3d(i,j,k,n)
-              enddo
-              enddo
-              clw(k)=clwt
-            ENDDO
+            do j=1,nj
+            do i=1,ni
+              clw(k) = clw(k)+rho(i,j,k)*q3d(i,j,k,n)
+            enddo
+            enddo
           endif
           if( qflag.eq.0 .and. cloudvar(n) .and. (n.ge.nqs1) .and. (n.le.nqs2) )then
             qflag = 1
-            !$acc loop gang
-            DO k=1,nk
-              clit=0.0d0
-              !$acc loop vector collapse(2) reduction(+:clit)
-              do j=1,nj
-              do i=1,ni
-                clit = clit+rho(i,j,k)*q3d(i,j,k,n)
-              enddo
-              enddo
-              cli(k)=clit
-            ENDDO
+            do j=1,nj
+            do i=1,ni
+              cli(k) = cli(k)+rho(i,j,k)*q3d(i,j,k,n)
+            enddo
+            enddo
           endif
           if( qflag.eq.0 .and. (n.ge.nql1) .and. (n.le.nql2) )then
             qflag = 1
-            !$acc loop gang
-            DO k=1,nk
-              plwt=0.0d0
-              !$acc loop vector collapse(2) reduction(+:plwt)
-              do j=1,nj
-              do i=1,ni
-                plwt = plwt+rho(i,j,k)*q3d(i,j,k,n)
-              enddo
-              enddo
-              plw(k)=plwt
-            ENDDO
+            do j=1,nj
+            do i=1,ni
+              plw(k) = plw(k)+rho(i,j,k)*q3d(i,j,k,n)
+            enddo
+            enddo
           endif
           if( qflag.eq.0 .and. (n.ge.nqs1) .and. (n.le.nqs2) )then
             qflag = 1
-            !$acc loop gang
-            DO k=1,nk
-              plit=0.0d0
-              !$acc loop vector collapse(2) reduction(+:plit)
-              do j=1,nj
-              do i=1,ni
-                plit = plit+rho(i,j,k)*q3d(i,j,k,n)
-              enddo
-              enddo
-              pli(k)=plit
-            ENDDO
+            do j=1,nj
+            do i=1,ni
+              pli(k) = pli(k)+rho(i,j,k)*q3d(i,j,k,n)
+            enddo
+            enddo
           endif
         ENDDO
-#endif
-      !$acc end parallel
-#endif
+      ENDDO
 
 #ifdef MPI
-      !$acc host_data use_device(tmass,clw,cli,plw,pli)
       call MPI_ALLREDUCE(MPI_IN_PLACE,tmass(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,clw(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cli(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,plw(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,pli(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc end host_data
 #endif
-      !$acc compare(clw)
-      !$acc parallel loop gang vector default(present) private(k)
+
       do k=1,nk
         clw(k) = clw(k)/tmass(k)
         cli(k) = cli(k)/tmass(k)
         plw(k) = plw(k)/tmass(k)
         pli(k) = pli(k)/tmass(k)
       enddo
-      !$acc compare(clw)
 
       nvar = nvar+1
       varname(nvar) = 'clw'
@@ -3287,13 +2985,12 @@
         varunit(nvar) = 'K'
 
         call getavg3d(thv,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save thvavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           thvavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
 
@@ -3307,21 +3004,12 @@
         varunit(nvar) = 'n.d.'
 
       if( imoist.eq.1 )then
-#ifdef _B4B
-        !$acc update host(psfc,tsk)
-#else
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-#endif
         do j=1,nj
         do i=1,ni
           tmpqsfc(i,j) = rslf(psfc(i,j),tsk(i,j))
         enddo
         enddo
-#ifdef _B4B
-        !$acc update device(tmpqsfc)    
-#endif
         !...
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3330,23 +3018,14 @@
         enddo
         enddo
       else
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           tmpqsfc(i,j) = 0.0
         enddo
         enddo
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-        do k=1,nk 
-        do j=1,nj
-        do i=1,ni
-        dum2(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum2 = 0.0
       endif
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,thvx)
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3359,13 +3038,7 @@
 
       k = 1
 
-    !PORTME
     if( nloop.eq.1 )then
-#ifdef _B4B
-      !$acc update host(th0,th3d,dum2,tsk,psfc,tmpqsfc,thflux,qvflux,ust,govthv,hpbl)
-#else
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,thvx)
-#endif
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3374,8 +3047,6 @@
       enddo
       enddo
     else
-      !$acc parallel loop gang vector collapse(2) default(present) &
-      !$acc private(i,j,thvx,thf1,thf2,thvflux,ws,gamfac,tmpprt)
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3394,8 +3065,6 @@
       enddo
     endif
 
-      !$acc parallel loop gang vector collapse(3) default(present) &
-      !$acc private(i,j,k,thvx,ubar,vbar)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -3406,9 +3075,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B
-      !$acc update device(dum1)
-#endif
 
     ENDDO  hloop
 
@@ -3416,7 +3082,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -3428,7 +3093,6 @@
         varunit(nvar) = 'K'
 
         ! (use simple definition ... for now)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3438,13 +3102,12 @@
         enddo
 
         call getavg3d(thl,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         ! save thlavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           thlavg(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
 
@@ -3458,11 +3121,6 @@
         varunit(nvar) = 'K'
 
       if( ptype.eq.0 )then
-#ifdef _B4B
-        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
-#else
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3477,11 +3135,6 @@
         enddo
         enddo
       else
-#ifdef _B4B
-        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
-#else
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3500,9 +3153,6 @@
         enddo
         enddo
       endif
-#ifdef _B4B
-      !$acc update device(dum1)
-#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -3517,12 +3167,6 @@
         varname(nvar) = 'rh'
         vardesc(nvar) = 'relative humidity (wrt liquid)'
         varunit(nvar) = 'nondimensional'
-     
-#ifdef _B4B
-        !$acc update host(q3d,prs,th,pi0,pp3d)
-#else
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3530,9 +3174,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B
-        !$acc update device(dum1)
-#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -3546,11 +3187,6 @@
         varname(nvar) = 'rhi'
         vardesc(nvar) = 'relative humidity (wrt ice)'
         varunit(nvar) = 'nondimensional'
-#ifdef _B4B
-        !$acc update host(q3d,prs,th,pi0,pp3d)
-#else
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3558,9 +3194,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B
-        !$acc update device(dum1)
-#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -3576,7 +3209,6 @@
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -3587,12 +3219,11 @@
         call getavg3d(dum1,savg)
 !!!        savg(1) = grads_undef
 !!!        savg(nk+1) = grads_undef
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           stke(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
 
@@ -3607,7 +3238,6 @@
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3631,7 +3261,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3640,14 +3269,11 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -3659,7 +3285,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3668,10 +3293,8 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -3680,22 +3303,8 @@
 
       IF( cm1setup.eq.1 )THEN
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k) 
-        do k = kb,ke
-        do j = ib,je
-        do i = ib,ie
-          wtk(i,j,k) = 0.0
-          wtmp(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
-        
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j) 
-        do j = ib,je
-        do i = ib,ie
-          wtmp(i,j,ke+1) = 0.0
-        enddo
-        enddo
+        wtk = 0.0
+        wtmp = 0.0
 
           if(timestats.ge.1) time_diag = time_diag+mytime()
           if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
@@ -3719,10 +3328,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(wtk(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !...............
@@ -3734,10 +3341,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(wtmp(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -3746,24 +3351,9 @@
 
       IF( cm1setup.eq.1 .and. dot2p )THEN
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          wtk(i,j,k) = 0.0
-          wtmp(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        wtk = 0.0
+        wtmp = 0.0
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-        do j=jb,je
-        do i=ib,ie
-          wtmp(i,j,ke+1) = 0.0
-        enddo
-        enddo
-
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=0,nj+2
         do i=0,ni+2
@@ -3791,10 +3381,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(rrw(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !...............
@@ -3806,10 +3394,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(wtk(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !...............
@@ -3821,10 +3407,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(wtmp(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -3839,7 +3423,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3848,10 +3431,8 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -3866,7 +3447,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3875,10 +3455,8 @@
         enddo
         enddo
         call getavg3d(dum1,savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -3893,7 +3471,6 @@
         vardesc(nvar) = 'eddy diffusivity for heat (from YSU)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3909,7 +3486,6 @@
         vardesc(nvar) = 'eddy diffusivity for moisture (from YSU)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3925,7 +3501,6 @@
         vardesc(nvar) = 'eddy viscosity (from YSU)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3948,7 +3523,6 @@
         vardesc(nvar) = 'Thermal Diffusivity (from GFSEDMF)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3964,7 +3538,6 @@
         vardesc(nvar) = 'Momentum Diffusivity (from GFSEDMF)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3977,7 +3550,6 @@
 
       ENDIF  ipbl3
 
-!BLOCK
       !c-c-c-c-c-c-c-c-c-c
 
       ipbl4:  &
@@ -4065,7 +3637,6 @@
         vardesc(nvar) = 'Thermal Diffusivity (from MYNN)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4081,7 +3652,6 @@
         vardesc(nvar) = 'Momentum Diffusivity (from MYNN)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4097,7 +3667,6 @@
         vardesc(nvar) = 'Length scale from PBL'
         varunit(nvar) = 'm'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4122,7 +3691,6 @@
         vardesc(nvar) = 'TKE from PBL'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -4138,7 +3706,6 @@
         vardesc(nvar) = 'Length scale from PBL'
         varunit(nvar) = 'm'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -4154,7 +3721,6 @@
         vardesc(nvar) = 'Thermal Diffusivity (from MYJ)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4170,7 +3736,6 @@
         vardesc(nvar) = 'Momentum Diffusivity (from MYJ)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4192,7 +3757,6 @@
         vardesc(nvar) = 'eddy viscosity in horiz direction'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4215,10 +3779,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(nm(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
 
@@ -4232,10 +3794,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(defh(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         nvar = nvar+1
@@ -4245,10 +3805,8 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(defv(ib,jb,kb),savg)
-        !$acc parallel 
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
 
@@ -4263,7 +3821,6 @@
         vardesc(nvar) = 'eddy viscosity in horiz direction'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -4283,7 +3840,6 @@
         vardesc(nvar) = 'eddy viscosity in vert direction'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -4303,7 +3859,6 @@
         vardesc(nvar) = 'eddy diffusivity in horiz direction'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -4323,7 +3878,6 @@
         vardesc(nvar) = 'eddy diffusivity in vert direction'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -4343,7 +3897,6 @@
         vardesc(nvar) = 'subgrid Prandtl number'
         varunit(nvar) = 'nondimensional'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4363,7 +3916,6 @@
         varunit(nvar) = 'nondimensional'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum1(i,j,1) = 0.0
@@ -4372,7 +3924,6 @@
         enddo
 
         IF(tconfig.eq.1)THEN
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -4382,7 +3933,6 @@
           enddo
           enddo
         ELSEIF(tconfig.eq.2)THEN
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -4404,11 +3954,8 @@
         varunit(nvar) = 'm'
         vargrid(nvar) = 'w'
 
-#ifdef _B4B
-        !$acc update host(ruh,rvh,rmf,zf,znt)
-#else
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
+        dum1 = 0.0
+
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4420,9 +3967,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B
-        !$acc update device(dum1)
-#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -4459,7 +4003,6 @@
         varunit(nvar) = 'unitless'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = gamk(k)
         enddo
@@ -4474,7 +4017,6 @@
         varunit(nvar) = 'unitless'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = gamwall(k)
         enddo
@@ -4489,7 +4031,6 @@
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = kmw(k)
         enddo
@@ -4504,7 +4045,6 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = u1b(k)
         enddo
@@ -4519,7 +4059,6 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = v1b(k)
         enddo
@@ -4534,7 +4073,6 @@
         varunit(nvar) = 'm'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = l2p(k)
         enddo
@@ -4549,7 +4087,6 @@
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = t2pm1(k)
         enddo
@@ -4564,7 +4101,6 @@
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = t2pm2(k)
         enddo
@@ -4579,7 +4115,6 @@
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = t2pm3(k)
         enddo
@@ -4594,7 +4129,6 @@
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = t2pm4(k)
         enddo
@@ -4617,7 +4151,6 @@
         varunit(nvar) = 'unitless'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = cmz(k)
         enddo
@@ -4632,7 +4165,6 @@
         varunit(nvar) = 'unitless'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = csz(k)
         enddo
@@ -4647,7 +4179,6 @@
         varunit(nvar) = 'unitless'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = ce1z(k)
         enddo
@@ -4662,7 +4193,6 @@
         varunit(nvar) = 'unitless'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
           savg(k) = ce2z(k)
         enddo
@@ -4679,7 +4209,6 @@
         varname(nvar) = 'wsp'
         vardesc(nvar) = 'horizontal wind speed (ground-relative)'
         varunit(nvar) = 'm/s'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4699,20 +4228,17 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
-          dum2(i,j,k) = 0.5*(dum1(i,j,k-1)+dum1(i,j,k))
+          dum1(i,j,k) = 0.5*(dum1(i,j,k-1)+dum1(i,j,k))
         enddo
         enddo
         enddo
 
-        call getavg3d(dum2,savg)
-        !$acc parallel 
+        call getavg3d(dum1,savg)
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -4722,17 +4248,9 @@
         vardesc(nvar) = 'analytic wind speed (neutral)'
         varunit(nvar) = 'm/s'
 
-#ifdef _B4B
-        !$acc update host(zh)
-#else
-        !$acc parallel loop gang vector default(present) private(k)
-#endif
         do k=1,nk
           savg(k) = (ustbar/karman)*alog( (zh(1,1,k)+zntbar)/zntbar )
         enddo
-#ifdef _B4B
-        !$acc update device(savg)
-#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4743,11 +4261,6 @@
         vardesc(nvar) = 'analytic wind speed'
         varunit(nvar) = 'm/s'
 
-#ifdef _B4B
-        !$acc update host(zh)
-#else
-        !$acc parallel loop gang vector default(present) private(k,zeta,tpsim)
-#endif
         do k=1,nk
           if( abs(molbar).gt.1.0e-6 )then
             zeta = zh(1,1,k)/molbar
@@ -4758,9 +4271,6 @@
           savg(k) = (ustbar/karman)*( alog(zh(1,1,k)/zntbar) - tpsim )
           wspa(k) = savg(k)
         enddo
-#ifdef _B4B
-        !$acc update device(savg,wspa)
-#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4771,7 +4281,6 @@
         vardesc(nvar) = 'standard deviation of horizontal wind speed'
         varunit(nvar) = 'm/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4787,12 +4296,7 @@
 
     IF( iptra.eq.1 )THEN
 
-      !$acc parallel loop vector gang collapse(2) default(present) private(k,n)
-      do n=1,npt
-      do k=1,nk
-         ptavg(k,n) = 0.0
-      enddo
-      enddo
+      ptavg = 0.0
 
       DO n=1,npt
 
@@ -4815,7 +4319,6 @@
         call getavg3d(pt3d(ib,jb,kb,n),savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           ptavg(k,n) = savg(k)
         enddo
@@ -4846,7 +4349,6 @@
         vardesc(nvar) = 'pot temp tendency from radiation scheme'
         varunit(nvar) = 'K/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4968,19 +4470,16 @@
         varunit(nvar) = 'nondimensinal'
         vargrid(nvar) = 'w'
 
-        !PORTME
-        !savg = 0.0
+        savg = 0.0
 
-        !$acc parallel default(present) private(k)
-        savg(1) = grads_undef
-        !$acc loop gang vector
         do k=2,nk
 !!!          savg(k) = (wsp(k)-wsp(k-1))*rdz*mf(1,1,k)*karman*zf(1,1,k)/ustbar
           ! 180212:
           savg(k) = (wsp(k)-wsp(k-1))/(wspa(k)-wspa(k-1))
         enddo
+
+        savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4992,17 +4491,14 @@
         varunit(nvar) = 'K/m'
         vargrid(nvar) = 'w'
 
-        !savg = 0.0
+        savg = 0.0
 
-        
-        !$acc parallel default(present) private(k)
-        savg(1) = grads_undef
-        !$acc loop gang vector
         do k=2,nk
           savg(k) = (thavg(k)-thavg(k-1))*rdz*mf(1,1,k)
         enddo
+
+        savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -5014,17 +4510,14 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 'w'
 
-        !PORTME
-        !savg = 0.0
+        savg = 0.0
 
-        !$acc parallel default(present) private(k)
-        savg(1) = grads_undef
-        !$acc loop gang vector
         do k=2,nk
           savg(k) = (uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
         enddo
+
+        savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -5036,16 +4529,14 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 'w'
 
-        !savg = 0.0
+        savg = 0.0
 
-        !$acc parallel default(present) private(k)
-        savg(1) = grads_undef
-        !$acc loop gang vector
         do k=2,nk
           savg(k) = (vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
         enddo
+
+        savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -5057,16 +4548,14 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 'w'
 
-        !JMD savg = 0.0
+        savg = 0.0
 
-        !$acc parallel default(present) private(k)
-        savg(1) = grads_undef
-        !$acc loop gang vector private(k)
         do k=2,nk
           savg(k) = (wsp(k)-wsp(k-1))*rdz*mf(1,1,k)
         enddo
+
+        savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -5079,16 +4568,14 @@
         varunit(nvar) = 'g/g/m'
         vargrid(nvar) = 'w'
 
-        !JMD savg = 0.0
+        savg = 0.0
 
-        !$acc parallel default(present) private(k)
-        savg(1) = grads_undef
-        !$acc loop gang vector private(k)
         do k=2,nk
           savg(k) = (qvavg(k)-qvavg(k-1))*rdz*mf(1,1,k)
         enddo
+
+        savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
@@ -5101,7 +4588,6 @@
         varname(nvar) = 'ug'
         vardesc(nvar) = 'u-component of geostrophic wind'
         varunit(nvar) = 'm/s'
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = ug(k)
         enddo
@@ -5111,18 +4597,15 @@
         varname(nvar) = 'vg'
         vardesc(nvar) = 'v-component of geostrophic wind'
         varunit(nvar) = 'm/s'
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = vg(k)
         enddo
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-
         nvar = nvar+1
         varname(nvar) = 'u0'
         vardesc(nvar) = 'base-state u'
         varunit(nvar) = 'm/s'
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = u0(1,1,k)
         enddo
@@ -5132,7 +4615,6 @@
         varname(nvar) = 'v0'
         vardesc(nvar) = 'base-state v'
         varunit(nvar) = 'm/s'
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = v0(1,1,k)
         enddo
@@ -5147,7 +4629,6 @@
         varname(nvar) = 'dvdr'
         vardesc(nvar) = 'radial gradient of V'
         varunit(nvar) = '1/s'
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = dvdr(k)
         enddo
@@ -5167,7 +4648,6 @@
         vardesc(nvar) = 'lsnudge_u'
         varunit(nvar) = 'm/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = lsnudge_u(k,lsnudge_count)
         enddo
@@ -5180,7 +4660,6 @@
         vardesc(nvar) = 'lsnudge_v'
         varunit(nvar) = 'm/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = lsnudge_v(k,lsnudge_count)
         enddo
@@ -5193,7 +4672,6 @@
         vardesc(nvar) = 'lsnudge_th'
         varunit(nvar) = 'K'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = lsnudge_th(k,lsnudge_count)
         enddo
@@ -5206,7 +4684,6 @@
         vardesc(nvar) = 'lsnudge_qv'
         varunit(nvar) = 'kg/kg'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = lsnudge_qv(k,lsnudge_count)
         enddo
@@ -5225,15 +4702,10 @@
     !                dum5  =  v-prime
     !                dum6  =  w-prime
 
-        !PORTME
-    !dum4 = 0.0
-    !dum5 = 0.0
-    !dum6 = 0.0
+    dum4 = 0.0
+    dum5 = 0.0
+    dum6 = 0.0
 
-        !PORTME
-    ! BUG:
-    ! wavg(k+1) is never set
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -5250,7 +4722,6 @@
         varname(nvar) = 'upup'
         vardesc(nvar) = '< u-prime u-prime >'
         varunit(nvar) = 'm2/s2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5267,7 +4738,6 @@
         varname(nvar) = 'vpvp'
         vardesc(nvar) = '< v-prime v-prime >'
         varunit(nvar) = 'm2/s2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5284,7 +4754,6 @@
         varname(nvar) = 'wpwp'
         vardesc(nvar) = '< w-prime w-prime >'
         varunit(nvar) = 'm2/s2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5301,7 +4770,6 @@
         varname(nvar) = 'upvp'
         vardesc(nvar) = '< u-prime v-prime >'
         varunit(nvar) = 'm2/s2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5318,7 +4786,6 @@
         varname(nvar) = 'upwp'
         vardesc(nvar) = '< u-prime w-prime >'
         varunit(nvar) = 'm2/s2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5335,7 +4802,6 @@
         varname(nvar) = 'vpwp'
         vardesc(nvar) = '< v-prime w-prime >'
         varunit(nvar) = 'm2/s2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5352,7 +4818,6 @@
         varname(nvar) = 'thvarr'
         vardesc(nvar) = 'pot temp variance, resolved'
         varunit(nvar) = 'K^2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5371,14 +4836,8 @@
         varunit(nvar) = 'K^2'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-        do j=1,nj
-        do i=1,ni
-           dum1(i,j,1) = 0.0
-        enddo
-        enddo
+        dum1 = 0.0
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5389,10 +4848,8 @@
         enddo
 
         call getavg3d(dum1,savg)
-        !$acc parallel
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -5403,14 +4860,8 @@
         varunit(nvar) = 'K m/s'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-        do j=1,nj
-        do i=1,ni
-           dum1(i,j,1) = 0.0
-        enddo
-        enddo
+        dum1 = 0.0
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5430,14 +4881,8 @@
         varunit(nvar) = 'K m/s'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-        do j=1,nj
-        do i=1,ni
-           dum1(i,j,1) = 0.0
-        enddo
-        enddo
+        dum1 = 0.0
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5449,7 +4894,6 @@
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-
       !c-c-c-c-c-c-c-c-c-c
 
       IF( imoist.eq.1 )THEN
@@ -5458,7 +4902,6 @@
         varname(nvar) = 'thvvarr'
         vardesc(nvar) = 'resolved virtual pot temp variance'
         varunit(nvar) = 'K^2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5475,7 +4918,6 @@
         varname(nvar) = 'thlvarr'
         vardesc(nvar) = 'resolved liquid-water pot temp variance'
         varunit(nvar) = 'K^2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5492,7 +4934,6 @@
         varname(nvar) = 'qvvarr'
         vardesc(nvar) = 'resolved qv variance'
         varunit(nvar) = 'g2/g2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5509,7 +4950,6 @@
         varname(nvar) = 'qlvarr'
         vardesc(nvar) = 'resolved ql variance'
         varunit(nvar) = 'g2/g2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5526,7 +4966,6 @@
         varname(nvar) = 'qtvarr'
         vardesc(nvar) = 'resolved qt variance'
         varunit(nvar) = 'g2/g2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5545,7 +4984,6 @@
         varname(nvar) = 'wpwptp'
         vardesc(nvar) = '< w-prime w-prime theta-prime >'
         varunit(nvar) = 'K m2/s2'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5562,7 +5000,6 @@
         varname(nvar) = 'wptptp'
         vardesc(nvar) = '< w-prime theta-prime theta-prime >'
         varunit(nvar) = 'K^2 m/s'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -5584,21 +5021,11 @@
     !                dum5  =  v-prime
     !                dum6  =  w-prime
 
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-    do j=1,nj
-    do i=1,ni
-      dum1(i,j,1)    = 0.0
-      dum4(i,j,1)    = 0.0
-      dum5(i,j,1)    = 0.0
-      dum6(i,j,1)    = 0.0
-      !dum1(i,j,nk+1) = 0.0
-      !dum4(i,j,nk+1) = 0.0
-      !dum5(i,j,nk+1) = 0.0
-      !dum6(i,j,nk+1) = 0.0
-    enddo
-    enddo
-    !$acc compare(w3d,wavg)
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    dum1 = 0.0
+    dum4 = 0.0
+    dum5 = 0.0
+    dum6 = 0.0
+
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -5618,8 +5045,6 @@
         vardesc(nvar) = '< u-prime u-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5637,7 +5062,6 @@
         vardesc(nvar) = '< v-prime v-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5655,8 +5079,6 @@
         vardesc(nvar) = '< w-prime w-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc compare(dum6)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5664,17 +5086,12 @@
         enddo
         enddo
         enddo
-        !$acc compare(dum1)
         call getavg3d(dum1,savg)
-        !$acc compare(savg)
-        !$acc parallel default(present)
-        wvar(1) = 0.0
-        !$acc loop gang vector private(k)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+
         do k=2,nk
           wvar(k) = savg(k)
         enddo
-        !$acc end parallel
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -5683,7 +5100,6 @@
         vardesc(nvar) = '< u-prime v-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5694,7 +5110,6 @@
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-!HERE
       !c-c-c-c-c-c-c-c-c-c
 
         nvar = nvar+1
@@ -5702,7 +5117,6 @@
         vardesc(nvar) = '< u-prime w-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5720,7 +5134,6 @@
         vardesc(nvar) = '< v-prime w-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5738,7 +5151,6 @@
         vardesc(nvar) = '< w-prime w-prime w-prime >'
         varunit(nvar) = 'm3/s3'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5756,7 +5168,6 @@
         vardesc(nvar) = '< w-prime u-prime u-prime >'
         varunit(nvar) = 'm3/s3'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5774,7 +5185,6 @@
         vardesc(nvar) = '< w-prime v-prime v-prime >'
         varunit(nvar) = 'm3/s3'
         vargrid(nvar) = 'w'
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5796,7 +5206,6 @@
         vargrid(nvar) = 'w'
         call write3d(ufr,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-
         nvar = nvar+1
         varname(nvar) = 'ufs'
         vardesc(nvar) = 'vertical flux of u, subgrid'
@@ -5817,13 +5226,10 @@
         vardesc(nvar) = 'vertical flux of u, wall model'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel default(present) private(k)
-        savg(1) = 0.0
-        !$acc loop gang vector
+        savg = 0.0
         do k=2,ntwk
           savg(k) = -kmw(k)*(u1b(k)-u1b(k-1))*rdz*mf(1,1,k)
         enddo
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
 
@@ -5856,21 +5262,16 @@
         vardesc(nvar) = 'vertical flux of v, wall model'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel default(present) private(k)
-        savg(1) = 0.0
-        !$acc loop gang vector
+        savg = 0.0
         do k=2,ntwk
           savg(k) = -kmw(k)*(v1b(k)-v1b(k-1))*rdz*mf(1,1,k)
         enddo
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
-
 
       !c-c-c-c-c-c-c-c-c-c
         ! theta fluxes:
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=0,nj+1
         do i=0,ni+1
@@ -5880,11 +5281,9 @@
         enddo
         enddo
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           temavg(k) = thavg(k)-th0r
         enddo
-
 
         pdef = 0
         pdefweno = 0
@@ -5921,7 +5320,6 @@
 
       ENDIF
 
-!BLOCK06
       !c-c-c-c-c-c-c-c-c-c
         ! theta variance
 
@@ -5933,18 +5331,8 @@
         varunit(nvar) = 'K^2'
         vargrid(nvar) = 'w'
 
-        !$acc parallel default(present) private(i,j,k)
-        !$acc loop gang vector collapse(3) 
-        do k=1,nk
-        do j=1,nj
-        do i=1,ni
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum1 = 0.0
 
-        !$acc compare(lenscl,khv,th,mf,tkea)
-        !$acc loop gang vector collapse(3) 
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -5956,7 +5344,6 @@
         enddo
         enddo
         enddo
-        !$acc end parallel
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -5969,7 +5356,6 @@
       IF( imoist.eq.1 )THEN
 
         ! surface flux:
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum6(i,j,1) = (1.0+repsm1*q3d(i,j,1,nqv))*thflux(i,j)  &
@@ -5981,7 +5367,6 @@
         pdefweno = 0
         weps = 10.0*epsilon
 
-        !PORTME
         call     scalar_flux(weps,c1,c2,mf,rf0,thv,dum3,dum4,dum5,w3d,khv,dum6(ib,jb,1),wavg,thvavg,sfr,sfs,sfd,dosfcflx,1,pdef,pdefweno)
 
         nvar = nvar+1
@@ -6009,14 +5394,12 @@
 
       ENDIF
 
-
       !c-c-c-c-c-c-c-c-c-c
         ! thetal fluxes:
 
       IF( imoist.eq.1 )THEN
 
         ! surface flux:
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum6(i,j,1) = thflux(i,j)
@@ -6027,7 +5410,6 @@
         pdefweno = 0
         weps = 10.0*epsilon
 
-        !PORTME
         call     scalar_flux(weps,c1,c2,mf,rf0,thl,dum3,dum4,dum5,w3d,khv,dum6(ib,jb,1),wavg,thlavg,sfr,sfs,sfd,dosfcflx,1,pdef,pdefweno)
 
         nvar = nvar+1
@@ -6063,7 +5445,6 @@
         pdefweno = 0
         weps = 0.01*epsilon
 
-        !PORTME
         call     scalar_flux(weps,c1,c2,mf,rf0,q3d(ib,jb,kb,nqv),dum3,dum4,dum5,w3d,khv,qvflux,wavg,qvavg,qvfr,qvfs,qvfd,dosfcflx,1,pdef,pdefweno)
 
         nvar = nvar+1
@@ -6094,7 +5475,6 @@
 
       IF( imoist.eq.1 )THEN
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum6(i,j,1) = 0.0
@@ -6105,7 +5485,6 @@
         pdefweno = 1
         weps = 0.01*epsilon
 
-        !PORTME
         call     scalar_flux(weps,c1,c2,mf,rf0,ql,dum3,dum4,dum5,w3d,khv,dum6(ib,jb,1),wavg,qlavg,sfr,sfs,sfd,dosfcflx,0,pdef,pdefweno)
 
         nvar = nvar+1
@@ -6136,7 +5515,6 @@
 
       IF( imoist.eq.1 )THEN
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -6149,7 +5527,6 @@
         pdefweno = 1
         weps = 0.01*epsilon
 
-        !PORTME
         call     scalar_flux(weps,c1,c2,mf,rf0,dum2,dum3,dum4,dum5,w3d,khv,qvflux,wavg,qtavg,sfr,sfs,sfd,dosfcflx,1,pdef,pdefweno)
 
         nvar = nvar+1
@@ -6189,14 +5566,12 @@
         pdefweno = 1
         weps = 1.0*epsilon
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum6(i,j,1) = 0.0
         enddo
         enddo
 
-        !PORTME
         call     scalar_flux(weps,c1,c2,mf,rf0,pt3d(ib,jb,kb,n),dum3,dum4,dum5,w3d,khv,dum6(ib,jb,1),wavg,ptavg(0,n),sfr,sfs,sfd,dosfcflx,1,pdef,pdefweno)
 
         a1 = 'ptfr                                                                            '
@@ -6266,15 +5641,12 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,1) = ust(i,j)*ust(i,j)*ust(i,j)/(karman*znt(i,j))
           enddo
           enddo
 
-
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -6294,14 +5666,12 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,1) = g*( thflux(i,j)*rth0s(i,j) + repsm1*qvflux(i,j) )
           enddo
           enddo
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -6321,7 +5691,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
 !!!            dum1(i,j,1) = -ust(i,j)*ust(i,j)*ust(i,j)/(karman*znt(i,j))  &
@@ -6331,7 +5700,6 @@
           enddo
           enddo
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -6352,7 +5720,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -6374,7 +5741,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -6394,9 +5760,8 @@
         vardesc(nvar) = 'param. vert flux of subgrid tke'
         varunit(nvar) = 'm3/s3'
 
-        !dum1 = 0.0
+        dum1 = 0.0
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -6424,7 +5789,6 @@
         vardesc(nvar) = 'theta budget: vertical turbulence (resolved)'
         varunit(nvar) = 'K/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*ptfr(k+1)-rfavg(k)*ptfr(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -6438,7 +5802,6 @@
         vardesc(nvar) = 'theta budget: vertical turbulence (subgrid)'
         varunit(nvar) = 'K/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*ptfs(k+1)-rfavg(k)*ptfs(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -6452,7 +5815,6 @@
         vardesc(nvar) = 'theta budget: vertical implicit diffusion'
         varunit(nvar) = 'K/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*ptfd(k+1)-rfavg(k)*ptfd(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -6820,10 +6182,10 @@
         vardesc(nvar) = 'theta budget: idealized forcing'
         varunit(nvar) = 'K/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = thfrc(k)
         enddo
+
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -6845,10 +6207,10 @@
         vardesc(nvar) = 'qv budget: vertical turbulence (resolved)'
         varunit(nvar) = 'g/g/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*qvfr(k+1)-rfavg(k)*qvfr(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
+
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -6858,7 +6220,6 @@
         vardesc(nvar) = 'qv budget: vertical turbulence (subgrid)'
         varunit(nvar) = 'g/g/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*qvfs(k+1)-rfavg(k)*qvfs(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -6872,7 +6233,6 @@
         vardesc(nvar) = 'qv budget: vertical implicit diffusion'
         varunit(nvar) = 'g/g/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*qvfd(k+1)-rfavg(k)*qvfd(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -7134,10 +6494,10 @@
         vardesc(nvar) = 'qv budget: idealized forcing'
         varunit(nvar) = 'g/g/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = qvfrc(k)
         enddo
+
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -7158,7 +6518,6 @@
         vardesc(nvar) = 'u budget: vertical turbulence (resolved)'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*ufr(k+1)-rfavg(k)*ufr(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -7172,7 +6531,6 @@
         vardesc(nvar) = 'u budget: vertical turbulence (subgrid)'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*ufs(k+1)-rfavg(k)*ufs(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -7186,7 +6544,6 @@
         vardesc(nvar) = 'u budget: vertical implicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*ufd(k+1)-rfavg(k)*ufd(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -7206,7 +6563,6 @@
       endif
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7215,14 +6571,12 @@
         enddo
         enddo
 
-        
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_hadv(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7239,7 +6593,6 @@
       endif
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7249,12 +6602,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_vadv(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7267,7 +6619,6 @@
         vardesc(nvar) = 'u budget: horizontal implicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7277,12 +6628,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_hidiff(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7295,7 +6645,6 @@
         vardesc(nvar) = 'u budget: vertical implicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7305,12 +6654,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_vidiff(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7323,7 +6671,6 @@
         vardesc(nvar) = 'u budget: horizontal explicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7346,7 +6693,6 @@
         vardesc(nvar) = 'u budget: vertical explicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7369,7 +6715,6 @@
         vardesc(nvar) = 'u budget: horizontal parameterized turbulence'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7379,12 +6724,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_hturb(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7397,7 +6741,6 @@
         vardesc(nvar) = 'u budget: vertical parameterized turbulence'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7407,12 +6750,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_vturb(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7425,7 +6767,6 @@
         vardesc(nvar) = 'u budget: pressure gradient'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7435,12 +6776,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_pgrad(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7453,7 +6793,6 @@
         vardesc(nvar) = 'u budget: Rayleigh damping'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7463,12 +6802,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_rdamp(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7481,7 +6819,6 @@
         vardesc(nvar) = 'u budget: Coriolis term'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7491,12 +6828,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           u_cor(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7509,7 +6845,6 @@
         vardesc(nvar) = 'u budget: centrifugal acceleration'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7532,7 +6867,6 @@
         vardesc(nvar) = 'u budget: PBL scheme'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7555,7 +6889,6 @@
         vardesc(nvar) = 'u budget: large-scale vertical advection'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7565,11 +6898,11 @@
         enddo
 
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+
         do k=1,nk
           u_lsw(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7582,7 +6915,6 @@
         vardesc(nvar) = 'u budget: large-scale pressure gradient'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = ulspg(k)
         enddo
@@ -7600,7 +6932,6 @@
         vardesc(nvar) = 'u budget: idealized forcing'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = ufrc(k)
         enddo
@@ -7615,18 +6946,18 @@
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !  v tendencies:
+
       !c-c-c-c-c-c-c-c-c-c
 
-    
         nvar = nvar+1
         varname(nvar) = 'vb_vturbr'
         vardesc(nvar) = 'v budget: vertical turbulence (resolved)'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*vfr(k+1)-rfavg(k)*vfr(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
+
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -7636,7 +6967,6 @@
         vardesc(nvar) = 'v budget: vertical turbulence (subgrid)'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*vfs(k+1)-rfavg(k)*vfs(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
@@ -7650,13 +6980,11 @@
         vardesc(nvar) = 'v budget: vertical implicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = -(rfavg(k+1)*vfd(k+1)-rfavg(k)*vfd(k))*rdz*mh(1,1,k)/rhoavg(k)
         enddo
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7671,7 +6999,6 @@
       endif
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7681,15 +7008,13 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_hadv(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7704,7 +7029,6 @@
       endif
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7714,19 +7038,13 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel default(present) private(k)
-        v_vadv(0) = 0.0
-        v_vadv(nkp1) = 0.0
-        !$acc loop gang vector
         do k=1,nk
           v_vadv(k) = savg(k)
         enddo
-        !$acc end parallel
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7737,7 +7055,6 @@
         vardesc(nvar) = 'v budget: horizontal implicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7747,20 +7064,14 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel default(present) private(k)
-        v_hidiff(0) = 0.0
-        v_hidiff(nkp1) = 0.0
-        !$acc loop gang vector
         do k=1,nk
           v_hidiff(k) = savg(k)
         enddo
-        !$acc end parallel
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
-!HERE
       !c-c-c-c-c-c-c-c-c-c
 
       if( vd_vidiff.ge.1 )then
@@ -7770,7 +7081,6 @@
         vardesc(nvar) = 'v budget: vertical implicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7780,12 +7090,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_vidiff(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7798,7 +7107,6 @@
         vardesc(nvar) = 'v budget: horizontal explicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7821,7 +7129,6 @@
         vardesc(nvar) = 'v budget: vertical explicit diffusion'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7844,7 +7151,6 @@
         vardesc(nvar) = 'v budget: horizontal parameterized turbulence'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7854,12 +7160,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_hturb(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7872,7 +7177,6 @@
         vardesc(nvar) = 'v budget: vertical parameterized turbulence'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7882,12 +7186,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_vturb(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7900,7 +7203,6 @@
         vardesc(nvar) = 'v budget: pressure gradient'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7910,12 +7212,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_pgrad(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7928,7 +7229,6 @@
         vardesc(nvar) = 'v budget: Rayleigh damping'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7938,12 +7238,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_rdamp(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7956,7 +7255,6 @@
         vardesc(nvar) = 'v budget: Coriolis term'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -7966,12 +7264,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_cor(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -7984,7 +7281,6 @@
         vardesc(nvar) = 'v budget: centrifugal acceleration'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8000,7 +7296,6 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-
       if( vd_pbl.ge.1 )then
 
         nvar = nvar+1
@@ -8008,7 +7303,6 @@
         vardesc(nvar) = 'v budget: PBL scheme'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8031,7 +7325,6 @@
         vardesc(nvar) = 'v budget: large-scale vertical advection'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8041,15 +7334,15 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           v_lsw(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
+      !c-c-c-c-c-c-c-c-c-c
 
       IF( lspgrad.ge.1 )THEN
 
@@ -8058,7 +7351,6 @@
         vardesc(nvar) = 'v budget: large-scale pressure gradient'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = vlspg(k)
         enddo
@@ -8066,7 +7358,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
-      !c-c-c-c-c-c-c-c-c-c
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -8077,7 +7368,6 @@
         vardesc(nvar) = 'v budget: idealized forcing'
         varunit(nvar) = 'm/s/s'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = vfrc(k)
         enddo
@@ -8107,7 +7397,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8117,12 +7406,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           w_hadv(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -8140,7 +7428,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8150,15 +7437,13 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           w_vadv(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -8170,7 +7455,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8180,12 +7464,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           w_hturb(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -8199,7 +7482,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8209,17 +7491,16 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           w_vturb(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
       !c-c-c-c-c-c-c-c-c-c
-      w_pgrad=0.0
+
       if( wd_pgrad.ge.1 )then
 
         nvar = nvar+1
@@ -8228,7 +7509,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8238,12 +7518,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=2,nk
           w_pgrad(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -8257,7 +7536,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8267,19 +7545,14 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           w_rdamp(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
-      !$acc parallel loop gang vector default(present) private(k)
-      do k=0,nk+1
-        w_buoy(k) = 0.0
-      enddo
       !c-c-c-c-c-c-c-c-c-c
 
       if( wd_buoy.ge.1 )then
@@ -8290,7 +7563,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8300,12 +7572,12 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=2,nk
           w_buoy(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+
       endif
 
       !c-c-c-c-c-c-c-c-c-c
@@ -8318,7 +7590,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8328,12 +7599,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           w_hidiff(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -8347,7 +7617,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8357,12 +7626,11 @@
         enddo
 
         call getavg3d(dum1,savg)
+        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           w_vidiff(k) = savg(k)
         enddo
-        call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
 
@@ -8376,7 +7644,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8400,7 +7667,6 @@
         varunit(nvar) = 'm/s/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8414,7 +7680,6 @@
 
       endif
 
-!HERE
       !c-c-c-c-c-c-c-c-c-c
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -8425,9 +7690,6 @@
       !c-c-c-c-c-c-c-c-c-c
       ! get u,v,w perts for rtke calcs:
 
-        !!$acc data copyin(udiag,vdiag,wdiag,utk,vtk,wtk) create(savg) &
-        !!$acc copy(dum1,dum2,dum3) copyout(uavg,vavg,wavg,tavg,ravg)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -8438,37 +7700,28 @@
         enddo
         enddo
 
-        !MARK
-        !$acc parallel loop gang vector default(present) private(k)
-        do k=kb,ke
-          uavg(k) = 0.0
-          vavg(k) = 0.0
-          wavg(k) = 0.0
-        enddo
+        uavg = 0.0
+        vavg = 0.0
+        wavg = 0.0
 
         call getavg3d(dum1,savg)
         ! save uavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           uavg(k) = savg(k)
         enddo
 
         call getavg3d(dum2,savg)
         ! save vavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           vavg(k) = savg(k)
         enddo
 
         call getavg3d(dum3,savg)
         ! save wavg:
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           wavg(k) = savg(k)
         enddo
 
-
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -8487,16 +7740,11 @@
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 's'
 
-     
-        !$acc parallel loop gang vector default(present) private(k)
-        do k=1,nk+1
-          ravg(k) = 0.0
-          tavg(k) = 0.0
-        enddo
+        ravg = 0.0
+        tavg = 0.0
 
         !-----
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8506,18 +7754,15 @@
         enddo
 
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*savg(k)
         enddo
-        !$acc parallel loop gang vector default(present) private(k)
         do k=2,nk
           ravg(k) = ravg(k) + 0.5*( 0.5*(savg(k-1)+savg(k)) )
         enddo
 
         !-----
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -8527,18 +7772,15 @@
         enddo
 
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*savg(k)
         enddo
-        !$acc parallel loop gang vector default(present) private(k)
         do k=2,nk
           ravg(k) = ravg(k) + 0.5*( 0.5*(savg(k-1)+savg(k)) )
         enddo
 
         !-----
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -8548,7 +7790,6 @@
         enddo
 
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*( 0.5*(savg(k)+savg(k+1)) )
           ravg(k) = ravg(k) + savg(k)
@@ -8564,11 +7805,8 @@
         vardesc(nvar) = 'resolved tke'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc parallel
         ravg(1) = grads_undef
         ravg(nk+1) = grads_undef
-        !$acc end parallel
-        !ISSUE
         call write3d(ravg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
 
@@ -8584,7 +7822,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_buoy,w_buoy)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = 0.5*(savg(k)+savg(k+1))
           wwb(k) = savg(k)
@@ -8613,17 +7850,13 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
-        do k=1,nk+1
-          tavg(k) = 0.0
-          uub(k)  = 0.0
-          vvb(k)  = 0.0
-          wwb(k)  = 0.0
-        enddo
+        tavg = 0.0
+        uub = 0.0
+        vvb = 0.0
+        wwb = 0.0
 
         call rtkeb_addu(dum1,utk,udiag,ud_pgrad,u_pgrad)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -8631,7 +7864,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_pgrad,v_pgrad)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -8639,7 +7871,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_pgrad,w_pgrad)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -8672,7 +7903,6 @@
 
       endif
 
-!BLOCK06b
       !c-c-c-c-c-c-c-c-c-c
 
       if( ud_hadv.ge.1 .and. vd_hadv.ge.1 .and. wd_hadv.ge.1 .and.  &
@@ -8684,17 +7914,13 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
-        do k=1,nk+1
-          tavg(k) = 0.0
-          uub(k)  = 0.0
-          vvb(k)  = 0.0
-          wwb(k)  = 0.0
-        enddo
+        tavg = 0.0
+        uub = 0.0
+        vvb = 0.0
+        wwb = 0.0
 
         call rtkeb_addu(dum1,utk,udiag,ud_hadv,u_hadv)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -8702,7 +7928,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_hadv,v_hadv)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -8710,7 +7935,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_hadv,w_hadv)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -8719,7 +7943,6 @@
 
         call rtkeb_addu(dum1,utk,udiag,ud_vadv,u_vadv)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -8727,7 +7950,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_vadv,v_vadv)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -8735,7 +7957,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_vadv,w_vadv)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -8769,7 +7990,6 @@
 
       endif
 
-
       !c-c-c-c-c-c-c-c-c-c
 
       if( ud_hidiff.ge.1 .and. vd_hidiff.ge.1 .and. wd_hidiff.ge.1 .and.  &
@@ -8781,18 +8001,13 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
-        do i=1,nk+1
-          tavg(k) = 0.0
-          uub(k)  = 0.0
-          vvb(k)  = 0.0
-          wwb(k)  = 0.0
-        enddo
+        tavg = 0.0
+        uub = 0.0
+        vvb = 0.0
+        wwb = 0.0
 
-        !$acc compare(utk,udiag,u_hidiff)
         call rtkeb_addu(dum1,utk,udiag,ud_hidiff,u_hidiff)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -8800,7 +8015,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_hidiff,v_hidiff)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -8808,7 +8022,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_hidiff,w_hidiff)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -8817,16 +8030,13 @@
 
         call rtkeb_addu(dum1,utk,udiag,ud_vidiff,u_vidiff)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
         enddo
 
-        !$acc compare(vtk,vvb,vdiag,v_vidiff)
         call rtkeb_addv(dum1,vtk,vdiag,vd_vidiff,v_vidiff)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -8834,7 +8044,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_vidiff,w_vidiff)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -8868,7 +8077,6 @@
 
       endif
 
-
       !c-c-c-c-c-c-c-c-c-c
 
 !!!      if( ud_lsw.ge.1 .and. vd_lsw.ge.1 .and. wd_lsw.ge.1 )then
@@ -8896,17 +8104,13 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
-        do k=1,nk+1
-          tavg(k) = 0.0
-          uub(k)  = 0.0
-          vvb(k)  = 0.0
-          wwb(k)  = 0.0
-        enddo
+        tavg = 0.0
+        uub = 0.0
+        vvb = 0.0
+        wwb = 0.0
 
         call rtkeb_addu(dum1,utk,udiag,ud_hturb,u_hturb)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -8914,7 +8118,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_hturb,v_hturb)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -8922,7 +8125,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_hturb,w_hturb)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -8931,7 +8133,6 @@
 
         call rtkeb_addu(dum1,utk,udiag,ud_vturb,u_vturb)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -8939,7 +8140,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_vturb,v_vturb)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -8947,7 +8147,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_vturb,w_vturb)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -8991,17 +8190,13 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
-        do k=1,nk+1
-          tavg(k) = 0.0
-          uub(k)  = 0.0
-          vvb(k)  = 0.0
-          wwb(k)  = 0.0
-        enddo
+        tavg = 0.0
+        uub = 0.0
+        vvb = 0.0
+        wwb = 0.0
 
         call rtkeb_addu(dum1,utk,udiag,ud_cor,u_cor)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -9009,7 +8204,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_cor,v_cor)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -9046,17 +8240,13 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
 
-        !$acc parallel loop gang vector default(present) private(k)
-        do k=1,nk+1
-          tavg(k) = 0.0
-          uub(k) = 0.0
-          vvb(k) = 0.0
-          wwb(k) = 0.0
-        enddo
+        tavg = 0.0
+        uub = 0.0
+        vvb = 0.0
+        wwb = 0.0
 
         call rtkeb_addu(dum1,utk,udiag,ud_rdamp,u_rdamp)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
@@ -9064,7 +8254,6 @@
 
         call rtkeb_addv(dum1,vtk,vdiag,vd_rdamp,v_rdamp)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k) = vvb(k) + savg(k)
@@ -9072,7 +8261,6 @@
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_rdamp,w_rdamp)
         call getavg3d(dum1,savg)
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + 0.5*(savg(k)+savg(k+1))
           wwb(k) = wwb(k) + savg(k)
@@ -9123,15 +8311,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
-        !$acc compare(u_hadv,w_hadv)
+        dum1 = 0.0
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hadv,wd_hadv,u_hadv,w_hadv)
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vadv,wd_vadv,u_vadv,w_vadv)
 
@@ -9151,14 +8331,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum1 = 0.0
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hidiff,wd_hidiff,u_hidiff,w_hidiff)
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vidiff,wd_vidiff,u_vidiff,w_vidiff)
 
@@ -9178,14 +8351,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum1 = 0.0
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hturb,wd_hturb,u_hturb,w_hturb)
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vturb,wd_vturb,u_vturb,w_vturb)
 
@@ -9204,14 +8370,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum1 = 0.0
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_pgrad,wd_pgrad,u_pgrad,w_pgrad)
 
         call getavg3d(dum1,savg)
@@ -9229,7 +8388,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,1) = 0.0
@@ -9237,7 +8395,6 @@
           enddo
           enddo
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -9265,7 +8422,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,1) = 0.0
@@ -9273,7 +8429,6 @@
           enddo
           enddo
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -9307,14 +8462,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum1 = 0.0
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_hadv,wd_hadv,v_hadv,w_hadv)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_vadv,wd_vadv,v_vadv,w_vadv)
 
@@ -9334,26 +8482,14 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc compare(v_hidiff,w_hidiff,v_vidiff,w_vidiff,vtk,wtk,vdiag,wdiag)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
-        !$acc compare(dum1)
+        dum1 = 0.0
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_hidiff,wd_hidiff,v_hidiff,w_hidiff)
-        !$acc compare(dum1)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_vidiff,wd_vidiff,v_vidiff,w_vidiff)
-        !$acc compare(dum1)
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      ! stop 'domaindiag: after vwb_idiff'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9366,14 +8502,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum1 = 0.0
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_hturb,wd_hturb,v_hturb,w_hturb)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_vturb,wd_vturb,v_vturb,w_vturb)
 
@@ -9392,14 +8521,7 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
-        do k=kb,ke
-        do j=jb,je
-        do i=ib,ie
-          dum1(i,j,k) = 0.0
-        enddo
-        enddo
-        enddo
+        dum1 = 0.0
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_pgrad,wd_pgrad,v_pgrad,w_pgrad)
 
         call getavg3d(dum1,savg)
@@ -9417,7 +8539,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,1) = 0.0
@@ -9425,7 +8546,6 @@
           enddo
           enddo
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -9453,7 +8573,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj
           do i=1,ni
             dum1(i,j,1) = 0.0
@@ -9461,7 +8580,6 @@
           enddo
           enddo
 
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -9493,7 +8611,6 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
 
-        !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           savg(k) = wprof(k)
         enddo
@@ -9516,7 +8633,7 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
 
-        call getmax(w3d(ib,jb,kb),savg,nkp1)
+        call getmax(w3d(ib,jb,kb),savg,nk+1)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9527,7 +8644,7 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 'w'
 
-        call getmin(w3d(ib,jb,kb),savg,nkp1)
+        call getmin(w3d(ib,jb,kb),savg,nk+1)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9538,25 +8655,18 @@
         varunit(nvar) = 'kg m/s'
         vargrid(nvar) = 's'
 
-        !$acc parallel default(present) reduction(+:temd)
-        !$acc loop gang
         do k=1,nk
-          temd=0.0d0
-          !$acc loop vector collapse(2)
+          savg(k)=0.0d0
           do j=1,nj
           do i=1,ni
-            !savg(k)=savg(k)+rho(i,j,k)*0.5*max(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
-            temd=temd+rho(i,j,k)*0.5*max(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
+            savg(k)=savg(k)+rho(i,j,k)*0.5*max(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
           enddo
           enddo
-          savg(k)=temd*dx*dy
+          savg(k)=savg(k)*dx*dy
         enddo
-        !$acc end parallel
 
 #ifdef MPI
-        !$acc host_data use_device(savg)
         call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !$acc end host_data
 #endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -9569,25 +8679,18 @@
         varunit(nvar) = 'kg m/s'
         vargrid(nvar) = 's'
 
-        !$acc parallel default(present) reduction(+:temd)
-        !$acc loop gang
         do k=1,nk
-          temd=0.0d0
-          !$acc loop vector collapse(2)
+          savg(k)=0.0d0
           do j=1,nj
           do i=1,ni
-            !savg(k)=savg(k)+rho(i,j,k)*0.5*min(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
-            temd=temd+rho(i,j,k)*0.5*min(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
+            savg(k)=savg(k)+rho(i,j,k)*0.5*min(0.0,(w3d(i,j,k)+w3d(i,j,k+1)))*ruh(i)*rvh(j)
           enddo
           enddo
-          savg(k)=temd*dx*dy
+          savg(k)=savg(k)*dx*dy
         enddo
-        !$acc end parallel
 
 #ifdef MPI
-        !$acc host_data use_device(savg)
         call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !$acc end host_data
 #endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -9627,7 +8730,6 @@
 
       IF( .not. terrain_flag )THEN
 
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -9679,7 +8781,6 @@
         varlvls(nvar) = 0
         vargrid(nvar) = '2'
         savg2d = 0.0
-        !$acc parallel loop gang vector reduction(+:savg2d)
         do k=2,nk
           savg2d = savg2d+rf0(1,1,k)*stke(k)*dz*rmf(1,1,k)
         enddo
@@ -9693,7 +8794,6 @@
         varlvls(nvar) = 0
         vargrid(nvar) = '2'
         savg2d = 0.0
-        !$acc parallel loop gang vector reduction(+:savg2d)
         do k=2,nk
           savg2d = savg2d+rf0(1,1,k)*rtke(k)*dz*rmf(1,1,k)
         enddo
@@ -9707,7 +8807,6 @@
         varlvls(nvar) = 0
         vargrid(nvar) = '2'
         savg2d = 0.0
-        !$acc parallel loop gang vector reduction(+:savg2d)
         do k=2,nk
           savg2d = savg2d+rf0(1,1,k)*(stke(k)+rtke(k))*dz*rmf(1,1,k)
         enddo
@@ -9726,7 +8825,6 @@
         vargrid(nvar) = '2'
 
         savg2d = 0.0
-        !$acc parallel loop gang vector reduction(max:savg2d)
         do k=2,nk
           savg2d = max( savg2d , dble(wvar(k)) )
         enddo
@@ -9821,13 +8919,11 @@
           write(66,106)
           if( nfile.eq.1 )then
             write(66,107) nk
-            !$acc update host(zh(1,1,1:nk))
             do k=1,nk
               write(66,217) 0.001*zh(1,1,k)
             enddo
           elseif( nfile.eq.2 )then
             write(66,107) nk+1
-            !$acc update host(zf(1,1,1:nk))
             do k=1,nk+1
               write(66,217) 0.001*zf(1,1,k)
             enddo
@@ -9897,7 +8993,6 @@
 #ifdef NETCDF
     ELSEIF( output_format.eq.2 )THEN  of2
 
-        !PORTME
       call       writediag_nc(wloop,varmax,ncid,varname,vardesc,varunit,varlvls,vargrid,nvar,mtime,zh,zf,dum1(ib,jb,kb),dum2(ib,jb,kb))
 
 #endif
@@ -9909,12 +9004,9 @@
 
   ENDDO  bigwloop
 
-    !$acc end data
-
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
-    !stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 
@@ -9944,26 +9036,18 @@
       integer :: i,j,k
       real :: mfr,mfs,mfd,wbar,wpbar,cc1,cc2
       double precision :: temd,weps
-      double precision :: ubart
       double precision, dimension(nk) :: ubar,vbar
-      double precision :: vbart,vfrt,vfdt,ufst,vfst,ufrt,ufdt
 
-      !$acc data create(ubar,vbar)
       weps = 100.0*epsilon
 
     !-------------------------------------------------------
     !  u component:
 
-      !$acc parallel default(present) private(i,j,k,cc1,cc2)
-      !$acc loop gang vector 
-      do k=1,nk+1
-        ufr(k) = 0.0
-        ufs(k) = 0.0
-        ufd(k) = 0.0
-      enddo
+      ufr = 0.0
+      ufs = 0.0
+      ufd = 0.0
 
       ! baseline algorithm:
-      !$acc loop gang vector collapse(3) 
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -9974,7 +9058,6 @@
       enddo
       enddo
       enddo
-      !$acc end parallel
 
     IF( advwenov.ge.1 )THEN
 
@@ -9991,7 +9074,6 @@
         call vinterp_flx6(   2 ,ni+1,nj,nk,c1,c2,w3d,dum4, u3d )
       elseif( vadvordrs.eq.6 )then
         call vinterp_flx6(   2 ,ni+1,nj,nk,c1,c2,w3d,dum3, u3d )
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -10005,102 +9087,50 @@
 
   !----------------------
 
+    ubar = 0.0
 
-#ifndef _B4B
-    !$acc parallel default(present) private(i,j,k)
-    !$acc loop gang vector
-#endif
-    do k=1,nk
-      ubar(k) = 0.0
-    enddo
-
-#ifdef _B4B
-    !$acc update host(dum3)
-#else
-    !$acc loop gang 
-#endif
     do k=2,nk
-      ubart = 0.0d0
-#ifndef _B4B
-      !$acc loop vector collapse(2)
-#endif
-      do j=1,nj
-      do i=1,ni
-        ubart = ubart+dum3(i,j,k)
-      enddo
-      enddo
-      ubar(k) = ubart
+    do j=1,nj
+    do i=1,ni
+      ubar(k) = ubar(k)+dum3(i,j,k)
     enddo
-#ifdef _B4B
-    !$acc update device(ubar)
-#else
-    !$acc end parallel
-#endif
+    enddo
+    enddo
         !buh4
 
 #ifdef MPI
-    !$acc host_data use_device(ubar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ubar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc end host_data
 #endif
 
-#ifndef _B4B
-    !$acc parallel default(present) private(i,j,k,wbar,cc1,cc2)
-#endif
     temd = 1.0d0/dble(nx*ny)
 
-#ifndef _B4B
-    !$acc loop gang vector
-#endif
     do k=2,nk
       ubar(k)  = ubar(k)*temd
     enddo
 
   !----------------------
 
-#ifdef _B4B
-      !$acc update host(w3d,dum3,dum4)
-#else
-      !$omp parallel loop default(shared) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
-      !$acc loop gang 
-#endif
+      !$omp parallel do default(shared)   &
+      !$omp private(i,j,k,wbar)
       do k=2,nk
-        ufrt=0.0d0
-        ufdt=0.0d0
-#ifndef _B4B
-        !$acc loop vector collapse(2) reduction(+:ufrt,ufdt)
-#endif
         do j=1,nj
         do i=1,ni
           wbar = 0.5*(w3d(i,j,k)+w3d(i-1,j,k))
-          ufrt = ufrt + wbar*(dum4(i,j,k)-ubar(k))
-          ufdt = ufdt + wbar*(dum3(i,j,k)-dum4(i,j,k))
+          ufr(k) = ufr(k) + wbar*(dum4(i,j,k)-ubar(k))
+          ufd(k) = ufd(k) + wbar*(dum3(i,j,k)-dum4(i,j,k))
         !buh5
         enddo
         enddo
-        ufr(k) =ufrt
-        ufd(k) =ufdt
       enddo
-#ifdef _B4B
-      !$acc update device(ufd,ufr)
-#endif
 
     !-------------------------------------------------------
     !  v component:
 
-#ifndef _B4B
-      !$acc loop gang vector
-#endif
-      do k=1,nk+1
-        vfr(k) = 0.0
-        vfs(k) = 0.0
-        vfd(k) = 0.0
-      enddo
+      vfr = 0.0
+      vfs = 0.0
+      vfd = 0.0
 
       ! baseline algorithm:
-#ifndef _B4B
-      !$acc loop gang vector collapse(3)
-#endif
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -10111,11 +9141,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B
-      !$acc update device(vfr,vfs,vfd,dum3,dum4) 
-#else
-      !$acc end parallel
-#endif
 
     IF( advwenov.ge.1 )THEN
 
@@ -10132,7 +9157,6 @@
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum4, v3d )
       elseif( vadvordrs.eq.6 )then
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d )
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -10146,159 +9170,82 @@
 
   !----------------------
 
-    
-#ifndef _B4B
-    !$acc parallel default(present) private(i,j,k) reduction(+:vbart) reduction(+:vfrt,vfdt)
-    !$acc loop gang vector
-#endif
-    do k=1,nk
-      vbar(k) = 0.0
-    enddo
+    vbar = 0.0
 
-#ifdef _B4B
-    !$acc update host(dum3)
-#else
-    !$acc loop gang
-#endif
     do k=2,nk
-      vbart = 0.0d0
-      !$acc loop vector collapse(2) reduction(+:vbart)  
-      do j=1,nj
-      do i=1,ni
-        vbart = vbart+dum3(i,j,k)
-      enddo
-      enddo
-      vbar(k) = vbart
+    do j=1,nj
+    do i=1,ni
+      vbar(k) = vbar(k)+dum3(i,j,k)
     enddo
-#ifdef _B4B
-    !$acc update device(vbar)
-#else
-    !$acc end parallel
-#endif
+    enddo
+    enddo
         !buh4
 
 #ifdef MPI
-    !$acc update host(vbar)
-    !$acc host_data use_device(ubar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc end host_data
-    !$acc update device(vbar)
 #endif
 
-#ifndef _B4B
-    !$acc parallel default(present) private(i,j,k,wbar) reduction(+:vfrt,vfdt)
-#endif
     temd = 1.0d0/dble(nx*ny)
 
-#ifndef _B4B
-    !$acc loop gang vector
-#endif
     do k=2,nk
       vbar(k)  = vbar(k)*temd
     enddo
 
   !----------------------
 
-#ifdef _B4B
-      !$acc update host(w3d,dum3,dum4)
-#else
-      !$omp parallel do default(shared) private(i,j,k,wbar)
-      !$acc loop gang
-#endif
+      !$omp parallel do default(shared)   &
+      !$omp private(i,j,k,wbar)
       do k=2,nk
-        vfrt = 0.0d0
-        vfdt = 0.0d0
-        !$acc loop vector collapse(2) reduction(+:vfrt,vfdt)
         do j=1,nj
         do i=1,ni
           wbar = 0.5*(w3d(i,j,k)+w3d(i,j-1,k))
-          vfrt = vfrt + wbar*(dum4(i,j,k)-vbar(k))
-          vfdt = vfdt+ wbar*(dum3(i,j,k)-dum4(i,j,k))
+          vfr(k) = vfr(k) + wbar*(dum4(i,j,k)-vbar(k))
+          vfd(k) = vfd(k) + wbar*(dum3(i,j,k)-dum4(i,j,k))
         !buh5
         enddo
         enddo
-        vfr(k) = vfrt
-        vfd(k) = vfdt
       enddo
-#ifdef _B4B
-      !$acc update device(vfr,vfd)
-#else
-      !$acc end parallel
-#endif
 
     !-------------------------------------------------------
 
-#ifdef _B4B
-      !$acc update host(rf,m13,m23,t13,t23)
-#else
-      !$acc parallel default(present) private(i,j,k) reduction(+:ufst,vfst)
-#endif
       if( cm1setup.ge.1 .or. ipbl.eq.2 )then
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
           ! use mij:
-          !$omp parallel do default(shared)  private(i,j,k) reduction(+:ufst,vfst)
-#ifndef _B4B
-          !$acc loop gang
-#endif
+          !$omp parallel do default(shared)   &
+          !$omp private(i,j,k)
           do k=1,nk+1
-            ufst = 0.0d0
-            vfst = 0.0d0
-#ifndef _B4B
-            !$acc loop vector collapse(2) reduction(+:ufst,vfst)
-#endif
             do j=1,nj
             do i=1,ni
-              ufst = ufst - m13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
-              vfst = vfst - m23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
+              ufs(k) = ufs(k) - m13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
+              vfs(k) = vfs(k) - m23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
             enddo
             enddo
-            ufs(k) = ufst
-            vfs(k) = vfst
           enddo
         else
           ! use tij:
           !$omp parallel do default(shared)   &
           !$omp private(i,j,k)
-#ifndef _B4B
-          !$acc loop gang
-#endif
           do k=1,nk+1
-            ufst = 0.0d0
-            vfst = 0.0d0
-#ifndef _B4B
-            !$acc loop vector collapse(2) reduction(+:ufst,vfst)
-#endif
             do j=1,nj
             do i=1,ni
-              ufst = ufst- t13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
-              vfst = vfst- t23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
+              ufs(k) = ufs(k) - t13(i,j,k)/(0.5*(rf(i,j,k)+rf(i-1,j,k)))
+              vfs(k) = vfs(k) - t23(i,j,k)/(0.5*(rf(i,j,k)+rf(i,j-1,k)))
             enddo
             enddo
-            ufs(k) = ufst
-            vfs(k) = vfst
           enddo
         endif
       else
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-#ifndef _B4B
-        !$acc loop gang vector 
-#endif
         do k=1,nk+1
           ufs(k) = 0.0
           vfs(k) = 0.0
         enddo
       endif
-#ifdef _B4B
-      !$acc update device(ufs,vfs)
-#else
-      !$acc end parallel
-#endif
 
     !-------------------------------------------------------
 
 #ifdef MPI
-    !$acc host_data use_device(ufr,ufs,ufd,vfr,vfs,vfd)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ufr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ufs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,ufd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -10306,12 +9253,9 @@
     call MPI_ALLREDUCE(MPI_IN_PLACE,vfr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vfs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vfd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc end host_data
 #endif
 
-    !$acc parallel default(present) private(k)
     temd = 1.0d0/dble(nx*ny)
-    !$acc loop gang vector
     do k=1,nk+1
       ufr(k)  = ufr(k)*temd
       ufs(k)  = ufs(k)*temd
@@ -10321,9 +9265,7 @@
       vfs(k)  = vfs(k)*temd
       vfd(k)  = vfd(k)*temd
     enddo
-    !$acc end parallel
-      !$acc end data
-      !stop 'momentum_flux: at the end'
+
       end subroutine momentum_flux
 
 
@@ -10358,19 +9300,12 @@
       real :: wbar
       double precision :: temd
       double precision, dimension(nk) :: sbar
-      double precision :: sbart,sfrt,sfst,sfst1,sfst2,sfdt
 
-      !$acc data create(sbar) 
-      !$acc parallel default(present) private(i,j,k)
-      !$acc loop gang vector
-      do k=1,nk+1
-        sfr(k) = 0.0
-        sfs(k) = 0.0
-        sfd(k) = 0.0
-      enddo
+      sfr = 0.0
+      sfs = 0.0
+      sfd = 0.0
 
       ! baseline algorithm:
-      !$acc loop gang vector collapse(3)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -10379,8 +9314,6 @@
       enddo
       enddo
       enddo
-      !$acc end parallel
-
 
     IF( advwenos.ge.1 )THEN
 
@@ -10397,7 +9330,6 @@
         call vinterp_flx6(   1 ,ni,nj,nk  ,c1,c2,w3d,dum4, s )
       elseif( vadvordrs.eq.6 )then
         call vinterp_flx6(   1 ,ni,nj,nk  ,c1,c2,w3d,dum3, s )
-        !$acc parallel loop gang vector collapse(3)  default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -10409,133 +9341,66 @@
 
     ENDIF
 
-
   !----------------------
 
-#ifndef _B4B
-    !$acc parallel default(present) private(i,j,k) reduction(+:sbart)
-    !$acc loop vector gang 
-#endif
-    do k=1,nk+1
-      sbar(k) = 0.0
-    enddo
+    sbar = 0.0
 
-#ifdef _B4B
-    !$acc update host(dum3)
-#else
-    !$acc loop gang
-#endif
     do k=2,nk
-      sbart=0.d0
-      !$acc loop vector collapse(2) 
-      do j=1,nj
-      do i=1,ni
-        sbart = sbart+dum3(i,j,k)
-      enddo
-      enddo
-      sbar(k) = sbart
+    do j=1,nj
+    do i=1,ni
+      sbar(k) = sbar(k)+dum3(i,j,k)
     enddo
-#ifdef _B4B
-    !$acc update device(sbar)
-#else
-    !$acc end parallel
-#endif
+    enddo
+    enddo
         !buh4
 
 #ifdef MPI
-    !$acc host_data use_device(sbar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,sbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc end host_data
 #endif
 
-#ifndef _B4B
-    !$acc parallel default(present) private(i,j,k) reduction(+:sfrt,sfdt,sfst)
-#endif
     temd = 1.0d0/dble(nx*ny)
 
-#ifndef _B4B
-    !$acc loop gang vector 
-#endif
     do k=2,nk
       sbar(k)  = sbar(k)*temd
     enddo
 
   !----------------------
 
-#ifdef _B4B
-    !$acc update host(dum3,dum4,w3d)
-#else
-    !$omp parallel do default(shared) private(i,j,k)
-    !$acc loop gang 
-#endif
-    do k=2,nk
-      sfrt=0.0d0
-      sfdt=0.0d0
-#ifndef _B4B
-      !$acc loop vector collapse(2) reduction(+:sfrt,sfdt)
-#endif
-      do j=1,nj
-      do i=1,ni
-        sfrt = sfrt + w3d(i,j,k)*(dum4(i,j,k)-sbar(k))
-        sfdt = sfdt + w3d(i,j,k)*(dum3(i,j,k)-dum4(i,j,k))
-        !buh5
-      enddo
-      enddo
-      sfr(k) = sfrt
-      sfd(k) = sfdt
-    enddo
-    if( cm1setup.ge.1 .or. ipbl.eq.2 .or. cm1setup.eq.3 )then
-#ifndef _B4B
-      !$acc loop gang 
-#endif
+      !$omp parallel do default(shared)   &
+      !$omp private(i,j,k)
       do k=2,nk
-        sfst=0.0d0
-#ifndef _B4B
-        !$acc loop vector collapse(2) reduction(+:sfst)
-#endif
         do j=1,nj
         do i=1,ni
-          sfst = sfst - khv(i,j,k)*(s(i,j,k)-s(i,j,k-1))*rdz*mf(i,j,k)
+
+          sfr(k) = sfr(k) + w3d(i,j,k)*(dum4(i,j,k)-sbar(k))
+          sfd(k) = sfd(k) + w3d(i,j,k)*(dum3(i,j,k)-dum4(i,j,k))
+        !buh5
         enddo
         enddo
-        sfs(k) = sfst
+        if( cm1setup.ge.1 .or. ipbl.eq.2 .or. cm1setup.eq.3 )then
+          do j=1,nj
+          do i=1,ni
+            sfs(k) = sfs(k) - khv(i,j,k)*(s(i,j,k)-s(i,j,k-1))*rdz*mf(i,j,k)
+          enddo
+          enddo
+        else
+          sfs(k) = 0.0
+        endif
       enddo
-    else
-#ifndef _B4B
-      !$acc loop gang vector
-#endif
-      do k=2,nk
-        sfs(k) = 0.0d0
-      enddo
-    endif
-#ifdef _B4B
-    !$acc update device(sfs,sfr,sfd)
-#else
-    !$acc end parallel
-#endif
 
       !-----------------------------
       ! 171122:  boundary conditions
 
-#ifdef _B4B
-      !$acc update host(sflux,mf,savg)
-#else
-      !$acc parallel default(present) private(i,j) reduction(+:sfst,sfst1,sfst2)
-#endif
       IF( cm1setup.eq.1 .or. cm1setup.eq.2 )THEN
 
         sfcfl:  &
         IF( iflux.eq.1 .and. dosfcflx )THEN
-          sfst = 0.0d0
-#ifndef _B4B
-          !$acc loop vector collapse(2) reduction(+:sfst)
-#endif
+
           do j=1,nj
           do i=1,ni
-            sfst = sfst + sflux(i,j)
+            sfs(1) = sfs(1) + sflux(i,j)
           enddo
           enddo
-          sfs(1) = sfst
 
         ELSE  sfcfl
 
@@ -10558,62 +9423,42 @@
           if(bc_temp.eq.1)then
             ! specified theta at boundary
 
-#ifndef _B4B
-            !$acc loop vector collapse(2) reduction(+:sfst1,sfst2) 
-#endif
             do j=1,nj
             do i=1,ni
-              sfst1 = sfst1-(viscosity/pr_num)*2.0*(savg(1)-ptc_bot)*rdz*mf(1,1,1)
-              sfst2 = sfst2-(viscosity/pr_num)*2.0*(ptc_top-savg(nk))*rdz*mf(1,1,nk+1)
+              sfs(1) = sfs(1)-(viscosity/pr_num)*2.0*(savg(1)-ptc_bot)*rdz*mf(1,1,1)
+              sfs(nk+1) = sfs(nk+1)-(viscosity/pr_num)*2.0*(ptc_top-savg(nk))*rdz*mf(1,1,nk+1)
             enddo
             enddo
-            sfs(1)=sfst1
-            sfs(nk+1)=sfst2
 
           elseif(bc_temp.eq.2)then
             ! specified flux at boundary
 
-#ifndef _B4B
-            !$acc loop vector collapse(2) reduction(+:sfst1,sfst2) 
-#endif
             do j=1,nj
             do i=1,ni
-              sfst1 = sfst1 + (viscosity/pr_num)*ptc_bot
-              sfst2 = sfst2 + (viscosity/pr_num)*ptc_top
+              sfs(1) = sfs(1) + (viscosity/pr_num)*ptc_bot
+              sfs(nk+1) = sfs(nk+1) + (viscosity/pr_num)*ptc_top
             enddo
             enddo
-            sfs(1)=sfst1
-            sfs(nk+1)=sfst2
 
           endif
 
       ENDIF
-#ifdef _B4B
-      !$acc update device(sfr,sfs,sfd)
-#else
-      !$acc end parallel
-#endif
 
 #ifdef MPI
-      !$acc host_data use_device(sfr,sfs,sfd)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc end host_data
 #endif
 
-      !$acc parallel default(present) private(k)
       temd = 1.0d0/dble(nx*ny)
 
-      !$omp parallel do default(shared) private(k)
-      !$acc loop gang vector 
+      !$omp parallel do default(shared)   &
+      !$omp private(k)
       do k=1,nk+1
         sfr(k)  = sfr(k)*temd
         sfs(k)  = sfs(k)*temd
         sfd(k)  = sfd(k)*temd
       enddo
-      !$acc end parallel
-      !$acc end data
 
       end subroutine scalar_flux
 
@@ -10638,12 +9483,10 @@
       integer :: k
       real :: fb1,fb2
 
-        !$acc parallel default(present) private(k,fb1,fb2) reduction(+:wstar)
         wstar = 0.0
         fbmin = 1.0e30
         zfbmin = 0.0
 
-        !$acc loop vector reduction(+:wstar)
         do k=1,nk
           if( k.eq.1 )then
             fb1 = g*( thfavg*rth0s(1,1) + repsm1*qvfavg )
@@ -10659,17 +9502,13 @@
           wstar = wstar + (zf(1,1,k+1)-zf(1,1,k))*0.5*(fb1+fb2)
 
           if( fb1.lt.fbmin )then
-            !$acc atomic write
             fbmin = fb1
-            !$acc atomic write
             zfbmin = zf(1,1,k)
           endif
 
         enddo
-        
-        wstar = 2.5*(max(0.0d0,wstar)**(1.0/3.0))
-        !$acc end parallel
 
+        wstar = 2.5*(max(0.0d0,wstar)**(1.0/3.0))
 
       end subroutine getwstar
 
@@ -10688,19 +9527,11 @@
 
     real, intent(in), dimension(ib:ie,jb:je) :: s2d
     double precision, intent(inout) :: savg2d
-    !$acc declare present(s2d)
-
 
     integer :: i,j
 
-
     savg2d = 0.0
-#ifdef _B4B
-    !$acc update host(s2d)
-#else
-    !$acc parallel loop gang vector collapse(2) default(present) &
-    !$acc private(i,j) copy(savg2d) reduction(+:savg2d)
-#endif
+
     do j=1,nj
     do i=1,ni
       savg2d = savg2d+s2d(i,j)
@@ -10708,20 +9539,17 @@
     enddo
 
 #ifdef MPI
-    !$acc host_data use_device(savg2d)
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg2d,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc end host_data
 #endif
 
     savg2d = savg2d/dble(nx*ny)
-
+   
     end subroutine getavg2d
 
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
 
 
     subroutine getavg3d(s,savg,nkm)
@@ -10732,24 +9560,13 @@
     implicit none
 
     real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: s
-    double precision, intent(out), dimension(nk+1) :: savg
+    double precision, dimension(nk+1) :: savg
     integer, intent(in), optional :: nkm
-    !$acc declare present(s,savg,nkm)
 
     integer :: i,j,k,k2
-    real :: stmp
     double precision :: temd
-    
 
-#ifndef _B4B
-    !$acc parallel default(present) copyout(k2)
-    !$acc loop 
-#else
-    !$acc update host(s)
-#endif
-    do k=1,nk+1
-      savg(k) = 0.0
-    enddo
+    savg = 0.0
 
 !!!    k2 = nk
     k2 = nk+1
@@ -10758,44 +9575,24 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
-#ifndef _B4B
-    !$acc loop gang
-#endif
     do k=1,k2
-      stmp = 0.0
-#ifndef _B4B
-      !$acc loop vector collapse(2) reduction(+:stmp)
-#endif
       do j=1,nj
       do i=1,ni
-        stmp = stmp+s(i,j,k)
+        savg(k) = savg(k)+s(i,j,k)
       enddo
       enddo
-      savg(k)=stmp
     enddo
-#ifndef _B4B
-    !$acc end parallel
-#endif
 
 #ifdef MPI
-    !$acc host_data use_device(savg)
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),k2,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc end host_data 
 #endif
 
-#ifndef _B4B
-    !$acc parallel loop gang vector private(k)
-#endif
+    temd = 1.0d0/dble(nx*ny)
     do k=1,k2
-      savg(k) = savg(k)/dble(nx*ny)
+      savg(k) = savg(k)*temd
     enddo
-#ifdef _B4B
-    !$acc update device(savg)
-#endif
-    !print *,'getavg3d: nx*ny: ',dble(nx*ny)
-
+   
     end subroutine getavg3d
-
 
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10816,9 +9613,7 @@
 
     integer :: i,j,k,k2
     double precision :: temd
-    !$acc declare present(s,savg)
 
-    !$acc parallel default(present) private(i,j,k) reduction(max:temd)
     savg = -1.0e30
 
     k2 = nk
@@ -10827,24 +9622,16 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
-    !$acc loop gang
     do k=1,k2
-      temd = -1.0e30
-      !$acc loop vector collapse(2) reduction(max:temd)
       do j=1,nj
       do i=1,ni
-        !savg(k) = max(savg(k),s(i,j,k))
-        temd = max(temd,s(i,j,k))
+        savg(k) = max(savg(k),s(i,j,k))
       enddo
       enddo
-      savg(k)=temd
     enddo
 
-    !$acc end parallel
 #ifdef MPI
-    !$acc host_data use_device(ubar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),k2,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
-    !$acc end host_data
 #endif
 
     end subroutine getmax
@@ -10868,9 +9655,7 @@
 
     integer :: i,j,k,k2
     double precision :: temd
-    !$acc declare present(s,savg)
 
-    !$acc parallel default(present) private(i,j,k) reduction(min:temd)
     savg = 1.0e30
 
     k2 = nk
@@ -10879,24 +9664,16 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
-    !$acc loop gang
     do k=1,k2
-      temd = 1.0e30
-      !$acc loop vector collapse(2) reduction(min:temd)
       do j=1,nj
       do i=1,ni
-        !savg(k) = min(savg(k),s(i,j,k))
-        temd = min(temd,s(i,j,k))
+        savg(k) = min(savg(k),s(i,j,k))
       enddo
       enddo
-      savg(k) = temd
     enddo
-    !$acc end parallel
 
 #ifdef MPI
-    !$acc host_data use_device(savg)
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),k2,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,ierr)
-    !$acc end host_data
 #endif
 
     end subroutine getmin
@@ -10985,7 +9762,6 @@
     integer :: k,varid,status,kmax
     real, dimension(1,1,1,1) :: var
       
-  !$acc update host(savg)
   if( output_format.eq.1 .or. ( output_format.eq.2 .and. wloop.eq.2 ) )then
 
     if( myid.eq.0 )then
@@ -11060,9 +9836,7 @@
     real, dimension(0:nk+1) :: uavg
 
     integer :: i,j,k
-    !$acc declare present(rtkeb,utk,udiag,uavg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -11099,9 +9873,7 @@
     real, dimension(0:nk+1) :: vavg
 
     integer :: i,j,k
-    !$acc declare present(rtkeb,vtk,vdiag,vavg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -11137,9 +9909,7 @@
     real, dimension(0:nk+1) :: wavg
 
     integer :: i,j,k
-    !$acc declare present(rtkeb,wtk,wdiag,wavg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -11174,9 +9944,7 @@
     real, intent(in), dimension(0:nk+1) :: u_avg,w_avg
 
     integer :: i,j,k
-    !$acc declare present(uwb,utk,wtk,udiag,wdiag,u_avg,w_avg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -11212,9 +9980,7 @@
     real, intent(in), dimension(0:nk+1) :: v_avg,w_avg
 
     integer :: i,j,k
-    !$acc declare present(vwb,vtk,wtk,vdiag,wdiag,v_avg,w_avg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
     do i=1,ni
