@@ -42,30 +42,30 @@
       double precision, dimension(nbudget) :: qbudget
       double precision, dimension(numq) :: asq,bsq
       character(len=40), intent(in), dimension(maxvars) :: name_stat,desc_stat,unit_stat
-      real, intent(in), dimension(ib:ie) :: xh,rxh,uh,ruh
-      real, intent(in), dimension(ib:ie+1) :: xf,uf
-      real, intent(in), dimension(jb:je) :: yh,vh,rvh
-      real, intent(in), dimension(jb:je+1) :: vf
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh,mh,rmh
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf,mf
+      real, dimension(ib:ie) :: xh,rxh,uh,ruh
+      real, dimension(ib:ie+1) :: xf,uf
+      real, dimension(jb:je) :: yh,vh,rvh
+      real, dimension(jb:je+1) :: vf
+      real, dimension(ib:ie,jb:je,kb:ke) :: zh,mh,rmh
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: zf,mf
       real, intent(in), dimension(ib:ie,jb:je) :: zs
       real, intent(in), dimension(itb:ite,jtb:jte) :: rgzu,rgzv
       real, intent(in), dimension(kb:ke) :: rds,sigma
       real, intent(in), dimension(kb:ke+1) :: rdsf,sigmaf
       real, dimension(stat_out) :: rstat
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: pi0,rho0,thv0,th0,qv0
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: dum1,dum2,dum3,dum4,dum5,rho,prs
-      real, intent(in), dimension(ib:ie+1,jb:je,kb:ke) :: u0,ua
-      real, intent(in), dimension(ib:ie,jb:je+1,kb:ke) :: v0,va
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: wa
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: ppi,tha
-      real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: qa,vq
-      real, intent(in), dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
-      real, intent(in), dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea
+      real, dimension(ib:ie,jb:je,kb:ke) :: pi0,rho0,thv0,th0,qv0
+      real, dimension(ib:ie,jb:je,kb:ke) :: dum1,dum2,dum3,dum4,dum5,rho,prs
+      real, dimension(ib:ie+1,jb:je,kb:ke) :: u0,ua
+      real, dimension(ib:ie,jb:je+1,kb:ke) :: v0,va
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, dimension(ib:ie,jb:je,kb:ke) :: ppi,tha
+      real, dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: qa,vq
+      real, dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
+      real, dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea
       real, intent(in), dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: qke
       real, intent(in), dimension(ibmyj:iemyj,jbmyj:jemyj,kbmyj:kemyj) :: tke_myj
       real, intent(in), dimension(ibb:ieb,jbb:jeb,kbb:keb) :: xkzh,xkzq,xkzm
-      real, intent(in), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
+      real, dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
       real, intent(in), dimension(ibl:iel,jbl:jel) :: u10,v10,hpbl
       real, intent(in), dimension(ib:ie,jb:je) :: prate
       logical, intent(inout) :: reset
@@ -81,13 +81,6 @@
       double precision, dimension(numq) :: afoo,bfoo
 #endif
 
-!  !$acc update &
-!  !$acc   host(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
-!  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
-!  !$acc     pi0,rho0,thv0,th0,qv0,dum1,dum2,dum3,dum4,dum5,rho,prs, &
-!  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
-!  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)      
-           
 !-----------------------------------------------------------------------
 #ifdef MPI
       cfoo = 0.0
@@ -184,7 +177,6 @@
               !                          /(sigmaf(nkm+1)-sigmaf(nkm))
               r2 = (zlev-sigmaf(nkm))/(sigmaf(nkm+1)-sigmaf(nkm))
               r1 = 1.0-r2
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
               do j=1,nj
               do i=1,ni
                 dum1(i,j,1) = r1*wa(i,j,nkm)+r2*wa(i,j,nkm+1)
@@ -192,7 +184,6 @@
               enddo
             ELSE
               ! with terrain:
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j,nkm,r1,r2)
               do j=1,nj
               do i=1,ni
                 nkm = nk+1
@@ -206,7 +197,6 @@
               enddo
             ENDIF
           else
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
             do j=1,nj
             do i=1,ni
               dum1(i,j,1) = 0.0
@@ -235,7 +225,6 @@
       if(stat_prspert.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -303,7 +292,6 @@
       IF(axisymm.eq.0)THEN
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -320,7 +308,6 @@
       ELSE
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -339,13 +326,8 @@
       IF(imoist.eq.1)THEN
 
         if(stat_rh.eq.1 .or. stat_the.eq.1)then
-          ! non-B4B  due to presence of exp in rslf()
-#ifdef _B4B
-          !$acc update host(prs,th0,tha,pi0,ppi,qa)
-#else
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
-#endif
-          !$omp parallel do default(shared) private(i,j,k,qvs)
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,qvs)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -355,9 +337,6 @@
           enddo
           enddo
           enddo
-#ifdef _B4B
-          !$acc update device(dum2)
-#endif
         endif
 
         if(stat_rh.eq.1)then
@@ -367,7 +346,6 @@
         if(iice.eq.1 .and. stat_rhi.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,qvs)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -404,6 +382,7 @@
         endif
 
       IF(imoist.eq.1)THEN
+
         if(stat_the.eq.1)then
           call calcthe(zh,pi0,th0,dum4,dum2,prs,ppi,tha,qa)
           call maxmin(ni,nj,nk,dum4,nstat,rstat,kmin,kmax,'THEMAX','THEMIN')
@@ -413,7 +392,6 @@
         if(stat_cloud.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -425,7 +403,6 @@
             if(cloudvar(n))then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
               do k=1,nk
               do j=1,nj
               do i=1,ni
@@ -441,7 +418,6 @@
 
       if(stat_sfcprs.eq.1)then
         call maxmin2d(ni,nj,prs(ib,jb,1),nstat,rstat,'SFPMAX','SFPMIN')
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum1(i,j,1) = cgs1*prs(i,j,1)+cgs2*prs(i,j,2)+cgs3*prs(i,j,3)
@@ -453,7 +429,6 @@
       if(stat_wsp.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -473,7 +448,6 @@
       IF(bbc.eq.3)THEN
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           dum1(i,j,1)=sqrt( u10(i,j)**2 + v10(i,j)**2 )
@@ -497,7 +471,6 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -512,7 +485,6 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -545,7 +517,6 @@
           if(ptype.eq.1.or.ptype.eq.2)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -556,7 +527,6 @@
           elseif(ptype.eq.6)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -567,7 +537,6 @@
           else
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -579,7 +548,6 @@
         else
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -670,11 +638,8 @@
 #ifdef NETCDF
     ELSEIF(output_format.eq.2)THEN
 
-#ifdef _OPENACC
-      !$acc update host(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
       call writestat_nc(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
-      !$acc update device(nrec)
-#endif
+
 #endif
 
 !-----------------------------------------------------------------------
@@ -684,11 +649,6 @@
   ENDIF
 
   ENDIF  dostats
-!  !$acc update &
-!  !$acc   device(qbudget,asq,bsq, &
-!  !$acc     dum1,dum2,dum3,dum4,dum5) &
-!  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
-!  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
 
       end subroutine statpack
 

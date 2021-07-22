@@ -75,8 +75,6 @@
 
 !---------------------------------------------------------------------
 
-    !$acc compare(u3d,v3d,w3d,pp3d)
-
     IF( nrkmax.eq.3 )THEN
       if(nrk.eq.1)then
 !!!        nloop=1
@@ -100,7 +98,6 @@
 
 !!!      print *,'  nloop,dts,dttmp = ',nloop,dts,nloop*dts
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj+1
       do i=1,ni+1
         dtu(i,j) = dts*dtu0(i,j)
@@ -119,14 +116,13 @@
         ! "s" velocities ARE NOT coupled with reference density
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tem,tem1,r1,r2,c1a,c1b,c2a,c2b,p1,p2,p3,p4)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,p1,p2,p3,p4)
         do k=1,nk
+          p1 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*(1.0-c1(1,1,k+1))
+          p2 = -dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*c2(1,1,k+1)
+          p3 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*c1(1,1,k)
+          p4 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*(c2(1,1,k)-1.0)
           do j=1,nj
           do i=1,ni
-            p1 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*(1.0-c1(1,1,k+1))
-            p2 = -dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k+1)*c2(1,1,k+1)
-            p3 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*c1(1,1,k)
-            p4 =  dts*rdz*mh(1,1,k)*rr0(1,1,k)*rf0(1,1,k)*(c2(1,1,k)-1.0)
             pk2(i,j,k) = p2*piadv(i,j,k+1)+p1*piadv(i,j,k)
             pk1(i,j,k) = p3*piadv(i,j,k-1)+p4*piadv(i,j,k)
           enddo
@@ -137,8 +133,8 @@
 
         ! with terrain:
         ! "s" velocities ARE coupled with reference density
-        !$omp parallel do default(shared) private(i,j,k,tem,tem1,tem2,r1,r2)
-        !$acc parallel loop gang vector default(present) private(i,j,k,tem2)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem,tem1,tem2,r1,r2)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -159,8 +155,8 @@
 
       ENDIF
 
-      !$omp parallel do default(shared) private(i,j)
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$omp parallel do default(shared)   &
+      !$omp private(i,j)
       do j=1,nj
       do i=1,ni
         pk1(i,j,1) = 0.0
@@ -175,8 +171,8 @@
 
       if( nrk.eq.1 )then
 
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         do k=1,nk
         do j=0,nj+1
         do i=0,ni+1
@@ -192,8 +188,8 @@
 
         IF( axisymm.eq.0 )THEN
 
-          !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          !$omp parallel do default(shared)   &
+          !$omp private(i,j,k)
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -211,8 +207,8 @@
 
         ELSEIF( axisymm.eq.1 )THEN
 
-          !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          !$omp parallel do default(shared)   &
+          !$omp private(i,j,k)
           do k=1,nk
           do j=0,nj+1
           do i=0,ni+1
@@ -269,7 +265,6 @@
 
 !-----
 
-      !print *,'sounde: before openbc: N:= ',N
       IF(axisymm.eq.0)THEN
         IF(sbc.eq.2.and.ibs.eq.1)THEN
           ! south open bc tendency:
@@ -284,8 +279,6 @@
           call restrict_openbc_sn(ruh,rmh,rho0,v3d)
         ENDIF
       ENDIF
-      !print *,'sounde: after openbc: N:= ',N
-      !stop 'sounde: after openbc'
 
 !-----------------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -295,7 +288,7 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_end(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
         endif
 #endif
@@ -314,10 +307,8 @@
         tem1 = rdx*cp*0.5
         tem2 = rdy*cp*0.5
 
-        !print *,'sounde: before loop'
-
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         do k=1,nk
           do j=1,nj+1
           do i=1,ni+1
@@ -340,8 +331,8 @@
 
         tem1 = rdx*cp*0.5
 
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         do k=1,nk
           do j=1,nj
           do i=1+ibw,ni+1-ibe
@@ -358,8 +349,8 @@
 
         ! Cartesian grid with terrain:
 
-        !$omp parallel do default(shared) private(i,j,k,r1,r2)
-        !$acc parallel loop gang vector default(present) private(i,j,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,j,k,r1,r2)
         do j=0,nj+1
           do k=2,nk
           do i=0,ni+1
@@ -374,8 +365,8 @@
 
         tem = cp*0.5
 
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector default(present) private(i,j,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,j,k)
         do k=1,nk
           ! x-dir
           do j=1,nj
@@ -406,20 +397,20 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !  psolver = 7
 
-  ELSEIF(psolver.eq.7) THEN  ps27a
+  ELSEIF(psolver.eq.7)THEN  ps27a
 
     IF(.not.terrain_flag)THEN
 
       IF(axisymm.eq.0)THEN
         ! Cartesian grid without terrain:
+
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tem1,tem2)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1,tem2)
         do k=1,nk
+          tem1 = rdx*cp*thv0(1,1,k)
+          tem2 = rdy*cp*thv0(1,1,k)
           do j=1,nj+1
           do i=1,ni+1
-            tem1 = rdx*cp*thv0(1,1,k)
-            tem2 = rdy*cp*thv0(1,1,k)
             u3d(i,j,k)=u3d(i,j,k)+dtu(i,j)*( uten(i,j,k)      &
                     -tem1*(ppd(i,j,k)-ppd(i-1,j,k))*uf(i) )
             v3d(i,j,k)=v3d(i,j,k)+dtv(i,j)*( vten(i,j,k)      &
@@ -437,11 +428,10 @@
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,tem1)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1)
         do k=1,nk
+          tem1 = rdx*cp*thv0(1,1,k)
           do j=1,nj
           do i=1+ibw,ni+1-ibe
-            tem1 = rdx*cp*thv0(1,1,k)
             u3d(i,j,k)=u3d(i,j,k)+dts*( uten(i,j,k)      &
                     -tem1*(ppd(i,j,k)-ppd(i-1,j,k))*uf(i) )
           enddo
@@ -449,7 +439,6 @@
         enddo
 
       ENDIF
-      !print *,'axisymm: ',axisymm
 
     ELSE
 
@@ -457,16 +446,12 @@
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,r1,r2)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1)
         do j=0,nj+1
           do k=2,nk
           do i=0,ni+1
             dum1(i,j,k) = (ppd(i,j,k)-ppd(i,j,k-1))*rds(k)
           enddo
           enddo
-        enddo
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-        do j=0,nj+1
           do i=0,ni+1
             dum1(i,j,1) = 0.0
             dum1(i,j,nk+1) = 0.0
@@ -475,8 +460,8 @@
 
         tem = cp*0.5
 
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         do k=1,nk
           ! x-dir
           do j=1,nj
@@ -489,9 +474,6 @@
                     *(gxu(i,j,k)+gxu(i,j,k+1))    ) )
           enddo
           enddo
-        enddo
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-        do k=1,nk
           do j=1+ibs,nj+1-ibn
           do i=1,ni
             v3d(i,j,k)=v3d(i,j,k)+dts*( vten(i,j,k)         &
@@ -513,7 +495,6 @@
 
         IF( convinit.eq.1 )THEN
           IF( rtime.le.convtime .and. nx.gt.1 )THEN
-            print *,'WARNING: check on status of convinitu'
             call convinitu(myid,ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,   &
                            zdeep,lamx,lamy,xcent,ycent,aconv,    &
                            xf,yh,zh,u0,u3d)
@@ -530,7 +511,6 @@
 
         IF( convinit.eq.1 )THEN
           IF( rtime.le.convtime .and. ny.gt.1 )THEN
-            print *,'WARNING: check on status of convinitv'
             call convinitv(myid,ib,ie,jb,je,kb,ke,ni,nj,nk,ibs,ibn,   &
                            zdeep,lamx,lamy,xcent,ycent,aconv,    &
                            xh,yf,zh,v0,v3d)
@@ -552,7 +532,6 @@
       IF( wnudge.eq.1 )THEN
         !  updraft nudging tendency:
         IF( (mtime+dt).le.t2_wnudge )THEN
-          print *,'WARNING: check on status of get_wnudge'
           call get_wnudge(mtime,dts,xh,yh,zf,w3d,dum1)
         ENDIF
       ENDIF
@@ -565,14 +544,17 @@
       IF(.not.terrain_flag)THEN
         ! without terrain:
 
-        !$omp parallel do default(shared) private(i,j,k,tem1,c1a,c1b,c2a,c2b)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1,c1a,c1b,c2a,c2b)
         do k=2,nk
+          tem1 = rdz*cp*mf(1,1,k)
+          c1a = c1(1,1,k)
+          c2a = c2(1,1,k)
           do j=1,nj
           do i=1,ni
             w3d(i,j,k)=w3d(i,j,k)+dts*( wten(i,j,k)                     &
-                    -rdz*cp*mf(1,1,k)*(ppd(i,j,k)-ppd(i,j,k-1))                     &
-                         *(c2(1,1,k)*thv(i,j,k)+c1(1,1,k)*thv(i,j,k-1)) )
+                    -tem1*(ppd(i,j,k)-ppd(i,j,k-1))                     &
+                         *(c2a*thv(i,j,k)+c1a*thv(i,j,k-1)) )
           enddo
           enddo
         enddo
@@ -581,8 +563,8 @@
       ELSE
         ! with terrain:
 
-        !$omp parallel do default(shared) private(i,j,k,tem1)
-        !$acc parallel loop gang vector default(present) private(i,j,k,tem1)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1)
         do k=2,nk
         tem1 = rds(k)*cp
           do j=1,nj
@@ -595,7 +577,6 @@
         enddo
         if(timestats.ge.1) time_sound=time_sound+mytime()
 
-        print *,'WARNING: check on status of bcwsfc'
         call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
 
       ENDIF
@@ -608,12 +589,12 @@
       IF(.not.terrain_flag)THEN
         ! without terrain:
 
-        !$omp parallel do default(shared) private(i,j,k,tem1)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1)
         do k=2,nk
+          tem1 = rdz*mf(1,1,k)*cp*(c2(1,1,k)*thv0(1,1,k)+c1(1,1,k)*thv0(1,1,k-1))
           do j=1,nj
           do i=1,ni
-            tem1 = rdz*mf(1,1,k)*cp*(c2(1,1,k)*thv0(1,1,k)+c1(1,1,k)*thv0(1,1,k-1))
             w3d(i,j,k)=w3d(i,j,k)+dts*( wten(i,j,k)            &
                     -tem1*(ppd(i,j,k)-ppd(i,j,k-1)) )
           enddo
@@ -624,8 +605,8 @@
       ELSE
         ! with terrain:
 
-        !$omp parallel do default(shared) private(i,j,k,tem1)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,tem1)
         do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -648,8 +629,8 @@
       IF( wnudge.eq.1 )THEN
         !  apply updraft nudging:
         IF( (mtime+dt).le.t2_wnudge )THEN
-          !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop collapse(3) default(present) private(i,j,k)
+          !$omp parallel do default(shared)   &
+          !$omp private(i,j,k)
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -661,7 +642,6 @@
       ENDIF
 
       IF( do_ib )THEN
-          print *,'WARNING: check on status of zero_out_w'
           call zero_out_w(bndy,kbdy,w3d)
       ENDIF
 
@@ -677,8 +657,8 @@
       ps27d:  &
       IF(psolver.eq.2)THEN 
 
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         DO k=1,nk
           do j=1,nj
           do i=1,ni+1
@@ -686,10 +666,6 @@
             dum4(i,j,k)=0.5*(rho0(i-1,j,k)+rho0(i,j,k))*dum1(i,j,k)
           enddo
           enddo
-        ENDDO
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-        DO k=1,nk
           do j=1,nj+1
           do i=1,ni
             dum2(i,j,k)=v3d(i,j,k)*rgzv(i,j)
@@ -698,13 +674,13 @@
           enddo
         ENDDO
 
-        !$omp parallel do default(shared) private(i,j,k,r1,r2)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,r1,r2)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2)
         DO k=2,nk
+          r2 = (sigmaf(k)-sigma(k-1))*rds(k)
+          r1 = 1.0-r2
           do j=1,nj
           do i=1,ni
-            r2 = (sigmaf(k)-sigma(k-1))*rds(k)
-            r1 = 1.0-r2
             dum3(i,j,k)=w3d(i,j,k)                                               &
                        +0.5*( ( r2*(dum1(i,j,k  )+dum1(i+1,j,k  ))               &
                                +r1*(dum1(i,j,k-1)+dum1(i+1,j,k-1)) )*dzdx(i,j)   &
@@ -725,17 +701,14 @@
 
       ELSEIF( psolver.eq.7 )THEN  ps27d
 
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         DO k=1,nk
           do j=1,nj
           do i=1,ni+1
             dum1(i,j,k)=u3d(i,j,k)*rgzu(i,j)*0.25*(thv0(i-1,j,k)+thv0(i,j,k))*(rho0(i-1,j,k)+rho0(i,j,k))
           enddo
           enddo
-        ENDDO
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-        DO k=1,nk
           do j=1,nj+1
           do i=1,ni
             dum2(i,j,k)=v3d(i,j,k)*rgzv(i,j)*0.25*(thv0(i,j-1,k)+thv0(i,j,k))*(rho0(i,j-1,k)+rho0(i,j,k))
@@ -743,31 +716,34 @@
           enddo
         ENDDO
 
-        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-        do j=1,nj
-        do i=1,ni
-          dum3(i,j,1)=0.0
-          dum3(i,j,nk+1)=0.0
-        enddo
-        enddo
-        !$omp parallel do default(shared) private(i,j,k,r1,r2,rr1,rr2)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,r1,r2,rr1,rr2)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2,rr1,rr2)
         DO k=1,nk
-          do j=1,nj
-          do i=1,ni
+          IF(k.eq.1)THEN
+            do j=1,nj
+            do i=1,ni
+              dum3(i,j,1)=0.0
+              dum3(i,j,nk+1)=0.0
+            enddo
+            enddo
+          ELSE
             rr2 = (sigmaf(k)-sigma(k-1))*rds(k)
             rr1 = 1.0-rr2
             r1 = 0.5*rr1
             r2 = 0.5*rr2
+            do j=1,nj
+            do i=1,ni
               dum3(i,j,k)=w3d(i,j,k)*(rr1*thv0(i,j,k-1)+rr2*thv0(i,j,k))*rf0(i,j,k)  &
                          +( ( r2*(dum1(i,j,k  )+dum1(i+1,j,k  ))               &
                              +r1*(dum1(i,j,k-1)+dum1(i+1,j,k-1)) )*dzdx(i,j)   &
                            +( r2*(dum2(i,j,k  )+dum2(i,j+1,k  ))               &
                              +r1*(dum2(i,j,k-1)+dum2(i,j+1,k-1)) )*dzdy(i,j)   &
                              )*(sigmaf(k)-zt)*gz(i,j)*rzt
-          enddo
-          enddo
+            enddo
+            enddo
+          ENDIF
         ENDDO
+
       ENDIF  ps27d
 
     ENDIF  doter
@@ -792,8 +768,6 @@
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,div,delp)
-        !$acc parallel loop gang vector collapse(3) default(present) &
-        !$acc private(i,j,k,div,delp)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -819,8 +793,8 @@
       ELSE
         ! Cartesian grid, with terrain:
 
-        !$omp parallel do default(shared) private(i,j,k,div,u1,u2,v1,v2,w1,w2,tem)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,div,u1,u2,v1,v2,w1,w2)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,div,u1,u2,v1,v2,w1,w2,tem)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -855,8 +829,8 @@
     ELSE
         ! axisymmetric grid:
 
-        !$omp parallel do default(shared) private(i,j,k,div,u1,u2,v1,v2,w1,w2,tem)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,div,u1,u2,w1,w2)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,div,u1,u2,v1,v2,w1,w2,tem)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -892,16 +866,16 @@
       IF(.not.terrain_flag)THEN
         ! Cartesian grid, without terrain:
 
-        !$omp parallel do default(shared) private(i,j,k,r1,r2,div,tem)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,r1,r2,div,tem)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2,div,tem)
         do k=1,nk
+          r2 = rf0(1,1,k+1)*(c2(1,1,k+1)*thv0(1,1,k+1)+c1(1,1,k+1)*thv0(1,1,k  ))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          r1 = rf0(1,1,k  )*(c2(1,1,k  )*thv0(1,1,k  )+c1(1,1,k  )*thv0(1,1,k-1))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          tem = dts*csound*csound/(cp*thv0(1,1,k))
           do j=1,nj
           do i=1,ni
-            r2 = rf0(1,1,k+1)*(c2(1,1,k+1)*thv0(1,1,k+1)+c1(1,1,k+1)*thv0(1,1,k  ))  &
-              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
-            r1 = rf0(1,1,k  )*(c2(1,1,k  )*thv0(1,1,k  )+c1(1,1,k  )*thv0(1,1,k-1))  &
-              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
-            tem = dts*csound*csound/(cp*thv0(1,1,k))
             !-----
             div=( (u3d(i+1,j,k)-u3d(i,j,k))*rdx*uh(i)        &
                  +(v3d(i,j+1,k)-v3d(i,j,k))*rdy*vh(j) )      &
@@ -923,8 +897,8 @@
 
         tem = dts*csound*csound/(cp*thv0(1,1,k))
 
-        !$omp parallel do default(shared) private(i,j,k,div)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,div)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,div)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -949,16 +923,16 @@
     ELSE
         ! axisymmetric grid:
 
-        !$omp parallel do default(shared) private(i,j,k,r1,r2,div,tem)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,r1,r2,div,tem)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k,r1,r2,div,tem)
         do k=1,nk
+          r2 = rf0(1,1,k+1)*(c2(1,1,k+1)*thv0(1,1,k+1)+c1(1,1,k+1)*thv0(1,1,k  ))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          r1 = rf0(1,1,k  )*(c2(1,1,k  )*thv0(1,1,k  )+c1(1,1,k  )*thv0(1,1,k-1))  &
+              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
+          tem = dts*csound*csound/(cp*thv0(1,1,k))
           do j=1,nj
           do i=1,ni
-            r2 = rf0(1,1,k+1)*(c2(1,1,k+1)*thv0(1,1,k+1)+c1(1,1,k+1)*thv0(1,1,k  ))  &
-              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
-            r1 = rf0(1,1,k  )*(c2(1,1,k  )*thv0(1,1,k  )+c1(1,1,k  )*thv0(1,1,k-1))  &
-              *rdz*mh(1,1,k)/(rho0(1,1,k)*thv0(1,1,k))
-            tem = dts*csound*csound/(cp*thv0(1,1,k))
             !-----
             div=(arh2(i)*u3d(i+1,j,k)-arh1(i)*u3d(i,j,k))*rdx*uh(i)        &
                +(r2*w3d(i,j,k+1)-r1*w3d(i,j,k))
@@ -987,7 +961,7 @@
           ! 210613: call bcp, only set 1 row/column
           call bcp(ppd)
 #ifdef MPI
-          call comm_1p_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_start(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif
         ENDIF
@@ -996,8 +970,8 @@
 !  time-averaged velocities:
 
       if( n.lt.nloop )then
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         DO k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1009,8 +983,8 @@
         ENDDO
       else
         tavg = 1.0/float(nloop)
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$omp parallel do default(shared)   &
+        !$omp private(i,j,k)
         DO k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1033,8 +1007,8 @@
 
       IF( nrk.eq.nrkmax )THEN
         ! pressure tendency term: save for next timestep:
-        !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+!$omp parallel do default(shared)   &
+!$omp private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -1045,7 +1019,6 @@
       ENDIF
       if(timestats.ge.1) time_sound=time_sound+mytime()
 
-      !stop 'sounde: at the end of the subroutine'
 
       end subroutine sounde
 

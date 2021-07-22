@@ -49,10 +49,6 @@
 #ifdef MPI
       use mpi
 #endif
-#ifdef _OPENACC
-      use openacc
-      use nvtx_mod
-#endif
       implicit none
 
       integer :: nstep,nstep0
@@ -238,7 +234,7 @@
       integer count,rate,maxr
       real rtime,xtime,time_solve,time_solve0
       real steptime1,steptime2
-      integer :: i,j,k,m,n,nn,fnum,frec
+      integer :: i,j,k,n,nn,fnum,frec
       real :: sum,tem0,tem
       logical :: getsfc,getpbl,update_sfc,startup,restarted,restart_prcl,reset
       logical :: dosolve,dorad,getdbz,getvt,doit,dotbud,doqbud,doubud,dovbud,dowbud,donudge
@@ -248,7 +244,6 @@
 
       double precision :: adaptmovetim
       integer :: mvrec,nwritemv
-      integer id
 
 #ifdef MPI
       integer :: reqs,rc,ii,jj,id,itmp1,itmp2,jtmp1,jtmp2
@@ -256,9 +251,6 @@
       real :: mp_total,minval,temx,temy,temni,temnj
       double precision :: tstart,tend
       integer, dimension(:), allocatable :: isum,jsum
-#endif
-#ifdef _OPENACC
-      integer :: ndev,idev
 #endif
 
 !----------------------------------------------------------------------
@@ -388,16 +380,6 @@
       call MPI_COMM_RANK( MPI_COMM_WORLD, myid, ierr )
       call MPI_COMM_SIZE( MPI_COMM_WORLD, numprocs, ierr )
 #endif
-#ifdef _OPENACC
-      ndev = acc_get_num_devices(acc_device_nvidia)
-      idev = mod(myid,ndev)
-      print *,'myid: ',myid
-      print *,'numprocs: ',numprocs
-      print *,'Total # of GPU: ',ndev 
-      print *,'Using GPU: ',idev 
-      
-      call acc_set_device_num(idev,acc_device_nvidia)
-#endif
 
 !----------------------------------------------------------------------
 
@@ -447,8 +429,6 @@
       read(20,nml=param2)
       read(20,nml=param8)
       close(unit=20)
-      !OpenACC data movement directives
-      !$acc enter data copyin(nx,ny)
 
       ! note:  read remainder of namelist sections in param.F !
 
@@ -537,10 +517,7 @@
       ni = nx / nodex
       nj = ny / nodey
       nk = nz
-      nip1 = ni+1
-      njp1 = nj+1
       nkp1 = nk+1
-      !$acc enter data copyin(nip1,njp1,nkp1)
 
       nimax = ni
       njmax = nj
@@ -730,10 +707,6 @@
 
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
-      print *,'cm1: copyin of (ngzy,ngz): ',ngxy,ngz 
-      !$acc enter data copyin(ngxy,ngz)
-      !stop 'after call to data copyin()'
-      
 
 !---------------------------------------------------------------------
 !      For ZVD:
@@ -1224,7 +1197,6 @@
                        uw31,uw32,ue31,ue32,us31,us32,un31,un32,         &
                        vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,         &
                        ww31,ww32,we31,we32,ws31,ws32,wn31,wn32)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 !----------------------------------------------------------------------
 
@@ -1414,7 +1386,6 @@
                       uw31,uw32,ue31,ue32,us31,us32,un31,un32,              &
                       vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,              &
                       sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
 !----------------------------------------------------------------------
@@ -2144,7 +2115,6 @@
                        ws31(1,1,1),ws32(1,1,1),wn31(1,1,1),wn32(1,1,1),reqs_p)
 
       ENDIF
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
       allocate( hflxw(ibib:ieib,jbib:jeib,kmaxib) )
       hflxw = 0
@@ -2248,7 +2218,6 @@
                   kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                   pta,pt3d,ptten,                                   &
                   pdata,cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
 !----------------------------------------------------------------------
@@ -2422,7 +2391,6 @@
                         emiss,thc,albd,znt,rznt,mavail,dsxy,prs0s,prs0,   &
                         tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml,z0base)
 
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
       IF(irst.eq.1)THEN
 
         startup = .false.
@@ -2463,7 +2431,6 @@
                               icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
                               gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
                               dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
           ! end_read_restart
         !  In case user wants to change values on a restart:
         IF( restart_reset_frqtim )THEN 
@@ -2479,8 +2446,6 @@
         if(dowr) write(outfile,*) '   rsttim  = ',rsttim
         if(dowr) write(outfile,*) '   radtim  = ',radtim
         if(dowr) write(outfile,*)
-        !call flush(6)
-        !print *,'cm1: after read_restart'
 
         ! Experimental ... not thoroughly tested !
 !!!        doit = .false.
@@ -2553,7 +2518,6 @@
         if(dowr) write(outfile,*)
       ENDIF
 
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
       call       getset(restarted,mass1,uh,ruh,vh,rvh,xh,yh,xf,yf,         &
                         zs,gz,sigma,sigmaf,rmh,mf,dzdx,dzdy,dumk1,dumk2,   &
                         pi0,th0,rho0,prs0,ust,u1,v1,s1,u0,v0,rth0,         &
@@ -2611,13 +2575,9 @@
       reqc = 0
       reqk = 0
 
-      !$acc data &
-      !$acc copyin(uh,vh,mh,u3d,v3d,w3d) &
-      !$acc copyin(kmh,kmv,khh,khv,ksmax)
       if( adapt_dt.eq.1 )then
         dt = dbldt
         if( .not. restarted )then
-          print *,'cm1: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
@@ -2635,17 +2595,12 @@
           ndt  = 0
           adt  = 0.0
           acfl = 0.0
-#ifdef _OPENACC
-          !print *, 'WARNING: getnewdt not supported on OpenACC' 
-#endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
                           dorestart,dowriteout,dostat,doprclout,dotdwrite,doazimwrite,  &
                           hifrqtim,dohifrqwrite,.true.)
         endif
       endif
-      !$acc end data
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
       ! cm1r19:  nsound is always determined diagnostically
@@ -2696,8 +2651,7 @@
         dosolve     = .true.
         dorad       = .false.
         dostat      = .false.
-        !dowriteout  = .false.
-        dowriteout  = .true.
+        dowriteout  = .false.
         doprclout   = .false.
         dotdwrite   = .false.
         doazimwrite = .false.
@@ -2728,89 +2682,13 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. ptype.eq.5 ) getvt = .true.
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
-    !$acc data &
-    !$acc copyin(thten,sten,ksmax) &
-    !$acc copyin(rho0,thv0,th0,qv0) &
-    !$acc copyin(prs0,rth0,qc0) &
-    !$acc copyin(xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
-    !$acc   yh,vh,rvh,yf,vf,rvf,rds,sigma,rdsf,sigmaf,zh,mh,rmh,zf,mf,rmf, &
-    !$acc   zs,gz,rgz,gzu,rgzu,gzv,rgzv,dzdx,dzdy,gx,gxu,gy,gyv) &
-    !$acc copyin(c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw,u1b,v1b, &
-    !$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
-    !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland) &
-    !$acc copyin(avgsfcu,avgsfcv,avgsfcs,avgsfct) &
-    !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
-    !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
-    !$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
-    !$acc copy(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
-    !$acc copy(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
-    !$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
-    !$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
-    !$acc copy(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
-    !$acc copy(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
-    !$acc copy(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
-    !$acc copy(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
-    !$acc copy(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-    !$acc copy(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
-    !$acc copy(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2) &
-    !$acc copy( &
-    !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
-    !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
-    !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
-    !$acc   kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
-    !$acc copyin(udiag,vdiag,wdiag,kdiag,tdiag,qdiag) &
-    !$acc copyin(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
-    !$acc copyin(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
-    !$acc copyin(defv,defh,lenscl,dissten, &
-    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
-    !$acc      wspd,gz1oz0,br,brcr,phim,phih,swspd,cpmm,zol,mavail,mol,rmol,dsxy,cda,psim,psih, &
-    !$acc      psiq,fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z) &
-    !$acc copyin(stau,ustt,ut,vt,st,cd,ch,cq,tlh,u1,v1,s1,t1) &
-    !$acc copyin(znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
-    !$acc copyin(sws,svs,sps,srs,sgs,sus,shs) &
-    !$acc copyin(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
-    !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
-    !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
-    !$acc copyin(pdata) &
-    !$acc copyin(lu_index) &
-    !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
-    !$acc copyin(rho,rr,rf,prs,o30,zir)  &
-    !$acc copyin(flag) &
-    !$acc copyin(pi0) &
-    !$acc copyin(ug,vg) &
-    !$acc copyin(tke_myj,xkzh,xkzq,xkzm) &
-    !$acc copyin(xfref,xhref,yfref,yhref,dvdr) &
-    !$acc copyin(qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen) &
-    !$acc copyin(effc,effi,effs,effr,effg,effis,out2d,out3d) &  ! physics only 
-    !$acc copyin(rain,prate,p3a,p3o) & ! physics only
-    !$acc copyin(qbudget,asq,bsq) &
-    !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
-    !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
-    !$acc copyin(thten1,thterm) &
-    !$acc copyin(glw,gsw) &
-    !$acc copyin(ulspg,vlspg) &
-    !$acc copyin(savg,pavg,uavg,vavg,thavg) &
-    !$acc copyin(lsnudge_u, lsnudge_v) &
-    !$acc copyin(dt) &
-    !$acc copyin(reqs_s,reqs_u,reqs_p3, &
-    !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) &
-    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1)
-
-    !$acc compare(lu_index)
-    if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
     !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
     timeloop:  &
     DO WHILE( mtime.lt.timax )
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
-      print *,'cm1: at the top of the do-while loop'
-      !$acc compare(dum1)
       ifsolve:  &
       if( dosolve )then
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
         ! call solve, integrate model one time step:
         nstep = nstep + 1
@@ -2946,12 +2824,6 @@
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
 
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-#ifdef _OPENACC
-        call nvtxStartRange("solve1 ",id=0)
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve1: pre-RK terms
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
         call     solve1(nstep,rbufsz,num_soil_layers,                  &
@@ -3023,22 +2895,9 @@
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_solve1
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-#ifdef _OPENACC
-        call nvtxEndRange
-#endif
-       print *,'cm1: after solve1'
-       !$acc compare(dum1)
-       !call flush(6)
 
-#ifdef _OPENACC
-        call nvtxStartRange("solve2",id=1)
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -3111,27 +2970,17 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,               &
                    doazimwrite,dorestart)
         ! end_solve2
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-#ifdef _OPENACC
-        call nvtxEndRange
-#endif
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-      !print *,'cm1: after call to solve2'
-      !$acc compare(dum1)
+
 
       IF(imoist.eq.1)THEN
 
         ! microphysics:
 
         ! cm1r20:  move calls to microphysics scheme into mp_driver.F
-#ifdef _OPENACC
-        call nvtxStartRange("mp_driver",id=2)
-#endif
 
       if( ptype.eq.0 )then
         ! qv only:
-        call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
+        call pdefq(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
       else
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
@@ -3143,27 +2992,12 @@
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
       endif
-#ifdef _OPENACC
-        call nvtxEndRange
-#endif
 
       ENDIF
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
-#ifdef _OPENACC
-        call nvtxStartRange("solve3",id=3)
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-        if(timestats.ge.1) time_nvtx=time_nvtx+mytime()
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
-
-print *,'cm1: before call to solve3'
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
                    dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,asq,bsq, &
@@ -3232,17 +3066,6 @@ print *,'cm1: before call to solve3'
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve3
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-#ifdef _OPENACC
-        call nvtxEndRange
-#endif
-
-print *,'cm1: after call to solve3'
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-
 
 
         !--------------------------------
@@ -3261,9 +3084,6 @@ print *,'cm1: after call to solve3'
         !--------------------------------
 
       endif  ifsolve
-      
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3278,9 +3098,7 @@ print *,'cm1: after call to solve3'
       IF( do_adapt_move )THEN
 
         IF( mtime.ge.adaptmovetim )then
-#ifdef _OPENACC
-          stop 'ERROR update_adapt_move not support under OPENACC'
-#endif
+
           call   update_adapt_move(nstep,mtime,xh,yh,xfref,yfref,ug,vg,psmth,     &
                                    dum1,pp3d,u0,ua,u3d,v0,va,v3d,mvrec,nwritemv,  &
                                    icenter,jcenter,xcenter,ycenter)
@@ -3291,22 +3109,15 @@ print *,'cm1: after call to solve3'
         ENDIF
 
       ENDIF
-      !$acc compare(dum1,dum2)
 
 
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !cc   radiation  ccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
       IF( radopt.ge.1 .and. dorad )THEN
 
-#ifdef _OPENACC
-        stop 'ERROR radiation_driver not support under OPENACC'
-        call nvtxStartRange("radiation_driver",id=4)
-#endif
         call     radiation_driver(mtime,radtim,dt,rbufsz,xh,yh,xf,yf,zf,rmh,c1,c2,     &
                    swten,lwten,swtenc,lwtenc,cldfra,o30,                               &
                    radsw,rnflx,radswnet,radlwin,dsr,olr,rad2d,                         &
@@ -3328,13 +3139,9 @@ print *,'cm1: after call to solve3'
           endif
         enddo
         if(timestats.ge.1) time_rad=time_rad+mytime()
-#ifdef _OPENACC
-        call nvtxEndRange()
-#endif
 
       ENDIF
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !cc   Prepare turbulence vars for next time step   cccccccccccccccccc
@@ -3352,13 +3159,7 @@ print *,'cm1: after call to solve3'
 
       update_sfc = .true.
       if( startup .or. restarted ) update_sfc = .false.
-      !$acc compare(dum1,dum2)
 
-#ifdef _OPENACC
-        call nvtxStartRange("srf_and_turb",id=5)
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
@@ -3410,19 +3211,10 @@ print *,'cm1: after call to solve3'
                    flag  ,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-#ifdef _OPENACC
-      call nvtxEndRange()
-#endif
-      !$acc compare(dum1,dum2)
 
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
         !  get stress terms for explicit diffusion scheme:
-#ifdef _OPENACC
-        stop 'ERROR: diff2def not supported on OpenACC version' 
-#endif
         call diff2def(uh,arh1,arh2,uf,arf1,arf2,vh,vf,mh,c1,c2,mf,ust,zntmp,u1,v1,s1,  &
                       divx,rho,rr,rf,t11,t12,t13,t22,t23,t33,u3d,v3d,w3d,dissten)
       ENDIF
@@ -3445,9 +3237,6 @@ print *,'cm1: after call to solve3'
 
         IF( adapt_dt.eq.1 .and. dosolve )THEN
 
-#ifdef _OPENACC
-          !print *,'WARNING: getnewdt not supported on OpenACC' 
-#endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
                           dorestart,dowriteout,dostat,doprclout,dotdwrite,doazimwrite,  &
@@ -3473,8 +3262,8 @@ print *,'cm1: after call to solve3'
         endif
         IF(axisymm.eq.0)THEN
           ! for Cartesian grid:
-          !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -3484,8 +3273,8 @@ print *,'cm1: after call to solve3'
           enddo
         ELSE
           ! for axisymmetric grid:
-          !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -3494,7 +3283,6 @@ print *,'cm1: after call to solve3'
           enddo
           enddo
         ENDIF
-#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3505,8 +3293,6 @@ print *,'cm1: after call to solve3'
                           ua,va,wa,ppi,tha,qa,qten,kmh,kmv,khh,khv,tkea,qke,  &
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
-        stop 'after call to statpack'
-#endif
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
@@ -3521,7 +3307,6 @@ print *,'cm1: after call to solve3'
         if(myid.eq.0) print *,'  next stattim = ',stattim
         if(timestats.ge.1) time_stat=time_stat+mytime()
       endif
-
 
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
@@ -3551,10 +3336,6 @@ print *,'cm1: after call to solve3'
 
 
       if( dowriteout )then
-#if 0
-#ifdef _OPENACC
-        call nvtxStartRange("writeout",id=6)
-#endif
       otype:  &
       IF(output_format.eq.1.or.output_format.eq.2)THEN
         nn = 1
@@ -3570,70 +3351,13 @@ print *,'cm1: after call to solve3'
           IF( stopit )THEN
             ! diag code does not account for stopit, so just set arrays to zero
             ! to avoid confusion
-            !$acc parallel default(present) 
-            !$acc loop gang vector collapse(4) 
-            do m=1,ntdiag
-              do k=kbdt,kedt
-              do j=jbdt,jedt
-              do i=ibdt,iedt
-                tdiag(i,j,k,m) = 0.0
-              enddo
-              enddo
-              enddo
-            enddo
-            !$acc loop gang vector collapse(4) 
-            do m=1,nqdiag
-              do k=kbdq,kedq
-              do j=jbdq,jedq
-              do i=ibdq,iedq
-                qdiag(i,j,k,m) = 0.0
-              enddo
-              enddo
-              enddo
-            enddo
-            !$acc loop gang vector collapse(4) 
-            do m=1,nudiag
-              do k=kbdv,kedv
-              do j=jbdv,jedv
-              do i=ibdv,iedv
-                udiag(i,j,k,m) = 0.0
-              enddo
-              enddo
-              enddo
-            enddo
-            !$acc loop gang vector collapse(4) 
-            do m=1,nvdiag
-              do k=kbdv,kedv
-              do j=jbdv,jedv
-              do i=ibdv,iedv
-                vdiag(i,j,k,m) = 0.0
-              enddo
-              enddo
-              enddo
-            enddo
-            !$acc loop gang vector collapse(4) 
-            do m=1,nwdiag
-              do k=kbdv,kedv
-              do j=jbdv,jedv
-              do i=ibdv,iedv
-                wdiag(i,j,k,m) = 0.0
-              enddo
-              enddo
-              enddo
-            enddo
-            !$acc loop gang vector collapse(4) 
-            do m=1,nkdiag
-              do k=kbdk,kedk
-              do j=jbdk,jedk
-              do i=ibdk,iedk
-                kdiag(i,j,k,m) = 0.0
-              enddo
-              enddo
-              enddo
-            enddo
-            !$acc end parallel
+            tdiag = 0.0
+            qdiag = 0.0
+            udiag = 0.0
+            vdiag = 0.0
+            wdiag = 0.0
+            kdiag = 0.0
           ENDIF
-#if 0
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
                         name_output,desc_output,unit_output,grid_output,cmpr_output,           &
@@ -3668,9 +3392,6 @@ print *,'cm1: after call to solve3'
                         bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                                     &
                         nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,myi1p,myi2p,myj1p,myj2p)
                         ! end_writeout
-                        !stop 'cm1: after call to writout'
-                        
-#endif 
           if(n.eq.1)then
             srec = frec
           else
@@ -3692,10 +3413,6 @@ print *,'cm1: after call to solve3'
           enddo
         endif
         if(myid.eq.0) print *,'  next taptim = ',taptim
-#ifdef _OPENACC
-      call nvtxEndRange()
-#endif
-#endif
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
 
@@ -3707,13 +3424,6 @@ print *,'cm1: after call to solve3'
 
       if(iprcl.eq.1)then
       IF( doprclout )THEN
-      
-#if 0
-#ifdef _OPENACC
-        stop 'ERROR: parcel_{interp,write} not supported in OpenACC'
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
                                zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
                                zs,sigma,sigmaf,rds,gz,                 &
@@ -3726,15 +3436,7 @@ print *,'cm1: after call to solve3'
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
-
-#ifdef _OPENACC
-        stop 'ERROR: parcel_write not supported in OpenACC'
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-
         call     parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-#endif
         prec = prec+1
         if(prclfrq.gt.0.0)then
           doit = .true.
@@ -3746,7 +3448,7 @@ print *,'cm1: after call to solve3'
           enddo
         endif
         if(myid.eq.0) print *,'  next prcltim = ',prcltim
-        !if(timestats.ge.1) time_parcels=time_parcels+mytime()
+        if(timestats.ge.1) time_parcels=time_parcels+mytime()
       ELSE
         if( startup )then
           if(myid.eq.0) print *
@@ -3756,6 +3458,7 @@ print *,'cm1: after call to solve3'
       ENDIF
       endif
 
+
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
@@ -3763,11 +3466,6 @@ print *,'cm1: after call to solve3'
     IF( dodomaindiag )THEN
       if( dotdwrite )then
 
-
-#ifdef _OPENACC
-        call nvtxStartRange("domaindiag",id=7)
-#endif
-#if 0
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3808,7 +3506,6 @@ print *,'cm1: after call to solve3'
                    gamk,gamwall,kmw,u1b,v1b,l2p,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cmz,csz,ce1z,ce2z, &
                    lsnudge_u,lsnudge_v,lsnudge_th,lsnudge_qv,                  &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
-#endif
         ! end_domaindiag
         nwritet = nwritet+1
         if(diagfrq.gt.0.0)then
@@ -3822,15 +3519,10 @@ print *,'cm1: after call to solve3'
         endif
         if(myid.eq.0) print *,'  next diagtim = ',diagtim
         if(timestats.ge.1) time_diag = time_diag+mytime()
-#ifdef _OPENACC
-        call nvtxEndRange()
-#endif
-
-      !stop 'cm1: after call to domaindiag'
-
 
       endif
     ENDIF
+
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
@@ -3840,11 +3532,6 @@ print *,'cm1: after call to solve3'
     IF( doazimavg )THEN
       if( doazimwrite )then
 
-#ifdef _OPENACC
-        stop 'ERROR: azimavg not supported in OpenACC'
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call   azimavg(nstep,mtime,nwritea,arecs,arecw,qname,dt,dosfcflx,      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
@@ -3870,8 +3557,6 @@ print *,'cm1: after call to solve3'
                    tdiag,qdiag,udiag,vdiag,wdiag,pdiag,out2d,out3d,getdbz,getvt, &
                    dat1(1,1),dat2(1,1),dat3(1,1,1),                            &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_azimavg
         nwritea = nwritea+1
         if(azimavgfrq.gt.0.0)then
@@ -3898,11 +3583,6 @@ print *,'cm1: after call to solve3'
     IF( dohifrq )THEN
       if( dohifrqwrite )then
 
-#ifdef _OPENACC
-        stop 'ERROR: writeout_hifrq not supported in OpenACC'
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call   writeout_hifrq(                                                 &
                    nstep,mtime,nwriteh,qname,dt,dosfcflx,                      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
@@ -3933,8 +3613,6 @@ print *,'cm1: after call to solve3'
                    myi1p,myi2p,myj1p,myj2p,kbdy,bndy,                          &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag,               &
                    dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,reqs_s)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end hifrq
 
         nwriteh = nwriteh+1
@@ -3969,11 +3647,6 @@ print *,'cm1: after call to solve3'
             endif
           enddo
         endif
-#ifdef _OPENACC
-        stop 'ERROR: write_restart not supported in OpenACC'
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call     write_restart(nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,      &
                                trecs,trecw,arecs,arecw,                             &
                                nwrite,nwritet,nwritea,nwriteh,nrst,nstatout,        &
@@ -4010,8 +3683,6 @@ print *,'cm1: after call to solve3'
                                icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
                                gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
                                dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
           ! end_write_restart
         if(myid.eq.0) print *,'  next rsttim = ',rsttim
         IF( nrst.eq.0 )THEN
@@ -4040,21 +3711,18 @@ print *,'cm1: after call to solve3'
         if(timestats.eq.2)then
           steptime2=time_sound+time_poiss+time_buoyan+time_turb+            &
                     time_diffu+time_microphy+time_stat+time_cflq+           &
-                    time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+    &
+                    time_bc+time_misc+time_integ+time_rdamp+time_divx+      &
                     time_write+time_restart+time_ttend+time_cor+time_fall+  &
-                    time_satadj+time_dbz+time_sfcphys+                      &
-                    time_parcels+time_parceli+time_droplet+                 &
+                    time_satadj+time_dbz+time_sfcphys+time_parcels+         &
                     time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
                     time_diag+time_azimavg+time_hifrq+time_ercyl+           &
 #ifdef MPI
                     time_mpu1+time_mpv1+time_mpw1+time_mpp1+                &
                     time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
-                    time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
-                    time_dpc+time_droplet_reduce+                                    &
+                    time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+time_dpc+       &
 #endif
-                    time_advs+time_advu+time_advv+time_advw+                &
-                    time_phys_H2D + time_phys_D2H
+                    time_advs+time_advu+time_advv+time_advw
           write(6,157) nstep,steptime2-steptime1
 157       format('    timing for time step ',i12,':',f12.4,' s')
           steptime1 = steptime2
@@ -4127,8 +3795,6 @@ print *,'cm1: after call to solve3'
 
 
     ENDDO  timeloop
-
-    !$acc end data
     !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
 
 
@@ -4153,20 +3819,6 @@ print *,'cm1: after call to solve3'
 #ifdef MPI
       ! for MPI runs without procfiles, average the timestat terms:
       IF(.not.procfiles)THEN
-        sum = 0.0
-        call MPI_REDUCE(time_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_H2D = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_D2H = sum/float(numprocs)
-
-        sum = 0.0
-        call MPI_REDUCE(time_phys_H2D ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_phys_H2D = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_phys_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_phys_D2H = sum/float(numprocs)
-
         sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
@@ -4237,10 +3889,6 @@ print *,'cm1: after call to solve3'
         call MPI_REDUCE(time_bc      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_bc = sum/float(numprocs)
         sum = 0.0
-        call MPI_REDUCE(time_nvtx   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_nvtx = sum/float(numprocs)
-
-        sum = 0.0
         call MPI_REDUCE(time_integ   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_integ = sum/float(numprocs)
         sum = 0.0
@@ -4273,20 +3921,9 @@ print *,'cm1: after call to solve3'
         sum = 0.0
         call MPI_REDUCE(time_ercyl ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_ercyl = sum/float(numprocs)
-
         sum = 0.0
         call MPI_REDUCE(time_parcels ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_parcels = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_parceli ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_parceli = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_droplet ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_droplet = sum/float(numprocs)
-        sum = 0.0
-        call MPI_REDUCE(time_droplet_reduce ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_droplet_reduce = sum/float(numprocs)
-
         sum = 0.0
         call MPI_REDUCE(time_mpu1    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_mpu1 = sum/float(numprocs)
@@ -4346,21 +3983,18 @@ print *,'cm1: after call to solve3'
 
       time_solve=time_sound+time_poiss+time_buoyan+time_turb+             &
                   time_diffu+time_microphy+time_stat+time_cflq+           &
-                  time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+ &
+                  time_bc+time_misc+time_integ+time_rdamp+time_divx+      &
                   time_write+time_restart+time_ttend+time_cor+time_fall+  &
-                  time_satadj+time_dbz+time_sfcphys+                      &
-                  time_parcels+time_parceli+time_droplet+                 &
+                  time_satadj+time_dbz+time_sfcphys+time_parcels+         &
                   time_rad+time_pbl+time_swath+time_pdef+time_prsrho+     &
                   time_diag+time_azimavg+time_hifrq+time_ercyl+           &
 #ifdef MPI
                   time_mpu1+time_mpv1+time_mpw1+time_mpp1+                &
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
-                  time_mps1+time_mps3+time_mpq1+time_mptk1+                     &
-                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
-                  time_dpc+time_droplet_reduce+                                    &
+                  time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
+                  time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+time_dpc+       &
 #endif
-                  time_advs+time_advu+time_advv+time_advw+                &
-                  time_phys_H2D+time_phys_D2H
+                  time_advs+time_advu+time_advv+time_advw
       time_solve0 = time_solve
 
 #ifdef MPI
@@ -4372,15 +4006,11 @@ print *,'cm1: after call to solve3'
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'Total time: ',time_solve
-      if(dowr) write(outfile,*) 'H2D:',time_H2D
-      if(dowr) write(outfile,*) 'D2H:',time_D2H
       if(dowr) write(outfile,*)
       time_solve=0.01*time_solve
       if(time_solve.lt.0.0001) time_solve=1.
 
     IF(dowr)THEN
-      write(outfile,100) 'phys-H2D',time_phys_H2D,time_phys_H2D/time_solve
-      write(outfile,100) 'phys-D2H',time_phys_D2H,time_phys_D2H/time_solve
       write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
       write(outfile,100) 'advs    ',time_advs,time_advs/time_solve
@@ -4404,7 +4034,6 @@ print *,'cm1: after call to solve3'
       write(outfile,100) 'stat    ',time_stat,time_stat/time_solve
       write(outfile,100) 'cflq    ',time_cflq,time_cflq/time_solve
       write(outfile,100) 'bc      ',time_bc,time_bc/time_solve
-      write(outfile,100) 'nvtx   ',time_nvtx,time_nvtx/time_solve
       write(outfile,100) 'integ   ',time_integ,time_integ/time_solve
       write(outfile,100) 'write   ',time_write,time_write/time_solve
       write(outfile,100) 'restart ',time_restart,time_restart/time_solve
@@ -4413,8 +4042,6 @@ print *,'cm1: after call to solve3'
       write(outfile,100) 'pdef    ',time_pdef,time_pdef/time_solve
       write(outfile,100) 'prsrho  ',time_prsrho,time_prsrho/time_solve
       write(outfile,100) 'parcels ',time_parcels,time_parcels/time_solve
-      write(outfile,100) 'parceli ',time_parceli,time_parceli/time_solve
-      write(outfile,100) 'droplet ',time_droplet,time_droplet/time_solve
       if( dodomaindiag )  &
       write(outfile,100) 'domndiag',time_diag,time_diag/time_solve
       if( doazimavg )  &
@@ -4443,7 +4070,6 @@ print *,'cm1: after call to solve3'
       write(outfile,100) 'mptk1   ',time_mptk1,time_mptk1/time_solve
       write(outfile,100) 'mptk2   ',time_mptk2,time_mptk2/time_solve
       write(outfile,100) 'mpb     ',time_mpb,time_mpb/time_solve
-      write(outfile,100) 'dropletA',time_droplet_reduce,time_droplet_reduce/time_solve
       write(outfile,100) 'dpc     ',time_dpc,time_dpc/time_solve
 #endif
       write(outfile,*)

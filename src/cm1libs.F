@@ -14,22 +14,20 @@
 ! A FUNCTION OF TEMPERATURE AND PRESSURE
 !
       REAL FUNCTION RSLF(P,T)
-      !$acc routine vector
 
       use input, only : ptype
       use constants
       IMPLICIT NONE
-      REAL ESL,X,T,P
-      !REAL C0,C1,C2,C3,C4,C5,C6,C7,C8
-      !PARAMETER (C0= .611583699E03)
-      !PARAMETER (C1= .444606896E02)
-      !PARAMETER (C2= .143177157E01)
-      !PARAMETER (C3= .264224321E-1)
-      !PARAMETER (C4= .299291081E-3)
-      !PARAMETER (C5= .203154182E-5)
-      !PARAMETER (C6= .702620698E-8)
-      !PARAMETER (C7= .379534310E-11)
-      !PARAMETER (C8=-.321582393E-13)
+      REAL ESL,X,T,P,C0,C1,C2,C3,C4,C5,C6,C7,C8
+      PARAMETER (C0= .611583699E03)
+      PARAMETER (C1= .444606896E02)
+      PARAMETER (C2= .143177157E01)
+      PARAMETER (C3= .264224321E-1)
+      PARAMETER (C4= .299291081E-3)
+      PARAMETER (C5= .203154182E-5)
+      PARAMETER (C6= .702620698E-8)
+      PARAMETER (C7= .379534310E-11)
+      PARAMETER (C8=-.321582393E-13)
 
 !  Note to self ... this should be changed, somehow, in the future.
 !  GHB 060806
@@ -69,7 +67,6 @@
 ! FUNCTION OF TEMPERATURE AND PRESSURE
 !
       REAL FUNCTION RSIF(P,T)
-      !$acc routine vector
 
       use input, only : ptype
       use constants
