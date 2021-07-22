@@ -2771,7 +2771,7 @@
     !$acc copyin(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
     !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
     !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
-    !$acc copyin(pdata) &
+    !$acc copyin(pdata,dpten) &
     !$acc copyin(lu_index) &
     !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
     !$acc copyin(rho,rr,rf,prs,o30,zir)  &

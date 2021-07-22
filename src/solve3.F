@@ -914,6 +914,7 @@
         ifdroplet:  &
         if (prcl_droplet) then
 
+          !PORTME
           uten = 0.0
           vten = 0.0
           wten = 0.0
@@ -928,14 +929,17 @@
                                uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2))
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
 #ifdef MPI
+          !PORTME
           call comm_1s_tend_halo(dpten(ib,jb,kb,1))
           call comm_1s_tend_halo(dpten(ib,jb,kb,2))
 #else
+          !PORTME
           call bcs_tend_halo(dpten(ib,jb,kb,1))
           call bcs_tend_halo(dpten(ib,jb,kb,2))
 #endif
           if(timestats.ge.1) time_dpc=time_dpc+mytime()
           if( nout3d.ge.2 )then
+          !PORTME
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
             do k=1,nk
@@ -951,6 +955,7 @@
           endif
           two_way_coupling = .true.
           IF( two_way_coupling )THEN
+          !PORTME
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
             do k=1,nk
@@ -970,6 +975,7 @@
             call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
                                     rs31,rs32,rn31,rn32,reqs_y)
 #endif
+          !PORTME
             call bcs(q3d(ib,jb,kb,nqv))
 #ifdef MPI
             call comm_3s_start(q3d(ib,jb,kb,nqv)  &
@@ -982,6 +988,7 @@
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
 #endif
+          !PORTME
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
             do k=1,nk

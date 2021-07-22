@@ -83,8 +83,9 @@
       real :: k1tp,k2tp,k1rp,k2rp
       real :: taup,th_tmp,Rep,Nup,Shp,diffnorm
       real :: rhop,volp,rhop0,taup0,rp0,tp0
-      real :: dvpdt(3),drpdt,dtpdt,dmvdt
+      real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
+      real :: esl
 
       logical, parameter :: debug = .false.
 
@@ -883,10 +884,11 @@
 
       !--------
 
+      !PORTME
       !Recall that the "old" value is stored here
-      dvpdt(1) = (dvpdt(1)-pdata(np,prvpx))/dt   !Remember to deal with gravity later!
-      dvpdt(2) = (dvpdt(2)-pdata(np,prvpy))/dt
-      dvpdt(3) = (dvpdt(3)-pdata(np,prvpz))/dt
+      dvpdt1 = (dvpdt1-pdata(np,prvpx))/dt   !Remember to deal with gravity later!
+      dvpdt2 = (dvpdt2-pdata(np,prvpy))/dt
+      dvpdt3 = (dvpdt3-pdata(np,prvpz))/dt
 
       drpdt = (drpdt - pdata(np,prrp))/dt
       !Only the sensible component of energy (subtract off the latent)
@@ -900,6 +902,7 @@
            (yh(jflag+1)-yh(jflag))*   &
            (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
 
+      !PORTME
       !Loop over all nodes surrounding droplet
       do i=0,1
       do j=0,1

@@ -8,10 +8,10 @@
 #              (NOTE: Don't change lines 3 and 4!)
 #  Note:  you may need to remove -DNCFPLUS if you use an old version of netcdf
 #
-OUTPUTINC = -I$(NETCDFBASE)/include
-OUTPUTLIB = -L$(NETCDFBASE)/lib
-OUTPUTOPT = -DNETCDF -DNCFPLUS
-LINKOPTS  = -lnetcdf -lnetcdff
+#OUTPUTINC = -I$(NETCDFBASE)/include
+#OUTPUTLIB = -L$(NETCDFBASE)/lib
+#OUTPUTOPT = -DNETCDF -DNCFPLUS
+#LINKOPTS  = -lnetcdf -lnetcdff
 #-----------------------------------------------------------------------------
 
 
@@ -60,6 +60,7 @@ OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=ac
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
 #DM   = -D_OPENACC
 DM   = -D_OPENACC -D_B4B
+LINKOPTS = -lnvToolsExt -v
 #  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
