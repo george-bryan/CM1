@@ -79,7 +79,7 @@
               prx,pry,prz,pru,prv,prw,prth,prt,prprs,prtime,                  &
               prpt1,prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh,prtke,         &
               prdbz,prb,prvpg,przv,prrho,prqsl,prqsi,prznt,prust,przs,prsig,  &
-              prvpx,prvpy,prvpz,prrp,prms,prtp,                               &
+              prvpx,prvpy,prvpz,prrp,prms,prtp,prmult,                        &
               nql1,nql2,nqs1,nqs2,nnc1,nnc2,nvl1,nvl2,nzl1,nzl2,              &
               nbudget,budrain,cm1setup,testcase,                              &
               adapt_dt,irst,rstnum,iconly,                                    &
@@ -228,7 +228,7 @@
            time_mpu1,time_mpv1,time_mpw1,time_mpp1,                  &
            time_mpu2,time_mpv2,time_mpw2,time_mpp2,                  &
            time_mps1,time_mps3,time_mpq1,time_mptk1,                 &
-           time_mps2,time_mps4,time_mpq2,time_mptk2,time_mpb,        &
+           time_mps2,time_mps4,time_mpq2,time_mptk2,time_mpb,time_dpc        &
            time_parcels,time_parceli,time_droplet,time_droplet_reduce, &
            time_rad,time_pbl,time_swath,time_pdef,      &
            time_prsrho,time_restart,time_poiss,time_diag,            &

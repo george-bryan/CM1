@@ -113,7 +113,7 @@
       real :: th1,th2,th3,th4,th5
       real :: qv1,qv2,qv3,qv4,qv5
       real :: pilast,thvlast,zlast,qt,thl,z_inv,th0last,lwp
-      real(kind=dp) :: dpi1,dpi2,dthv1,dthv2,dqv1,dqv2,dprs,esl
+      real(kind=qp) :: dpi1,dpi2,dthv1,dthv2,dqv1,dqv2,dprs,desl
       real :: qsfc,zq1,zq2,tv0,tsfc,tvsfc,psfc,lr,tvtrop,ptrop
       real :: rhval
 
@@ -222,49 +222,61 @@
         qv_sfc = rslf(prs_sfc,t_sfc)
         thv_sfc = (t_sfc/pi_sfc)*(1.0+reps*qv_sfc)/(1.0+qv_sfc)
 
-  print *,pi_sfc,qv_sfc,thv_sfc
+        if(myid.eq.0) print *,pi_sfc,qv_sfc,thv_sfc
 
         do j=jb,je
         do i=ib,ie
-
-        do n = 1 , 20
 
           dpi1 = pi_sfc
           dthv1 = thv_sfc
           dthv2 = thv_sfc
           zlast = zf(i,j,1)
 
+          dkloop:  &
           do k=1,nk
+            if(myid.eq.0.and.i.eq.ib.and.j.eq.jb) print *,'  k,zh,zlast = ',k,zh(i,j,k),zlast,zh(i,j,k)-zlast
 
-            dpi2=dpi1-g*(zh(i,j,k)-zlast)/(cp*0.5*(dthv1+dthv2))
-            dprs=p00*(dpi2**(cp/rd))
-            th0(i,j,k)=t_sfc/dpi2
-            t0(i,j,k)=t_sfc
-            rh0(i,j,k)=1.0
-            esl=611.2 * EXP( 17.67 * ( t_sfc  - 273.15 ) / ( t_sfc  - 29.65 ) )
-            dqv2= eps * ESL /(dprs-ESL)
-            dthv2=(t_sfc/dpi2)*(1.0+reps*dqv2)/(1.0+dqv2)
+            dnloop:  &
+            do n = 1 , 20
+
+              dpi2=dpi1-g*(zh(i,j,k)-zlast)/(cp*0.5*(dthv1+dthv2))
+              dprs=p00*(dpi2**(cp/rd))
+              desl=611.2 * EXP( 17.67 * ( t_sfc  - 273.15 ) / ( t_sfc  - 29.65 ) )
+              dqv2= eps * DESL /(dprs-DESL)
+              dthv2=(t_sfc/dpi2)*(1.0+reps*dqv2)/(1.0+dqv2)
+
+              if(myid.eq.0.and.i.eq.ib.and.j.eq.jb) print *,'    n,dpi2 = ',n,dpi2
+
+            enddo  dnloop
+
+            dpi1 = dpi2
+            dthv1 = dthv2
+            zlast = zh(i,j,k)
 
             pi0(i,j,k)=dpi2
             qv0(i,j,k)=dqv2
             thv0(i,j,k)=dthv2
             prs0(i,j,k)=dprs
+            t0(i,j,k)=t_sfc
+            th0(i,j,k)=t_sfc/dpi2
+            rh0(i,j,k)=1.0
 
-!!!            print *,zh(i,j,k),prs0(i,j,k),pi0(i,j,k)
-!!!            print *,zh(i,j,k)-zlast,dpi2,th0(i,j,k),1000.0*dqv2
+!!!            if(i.eq.ib.and.j.eq.jb) print *,k,pi0(i,j,k),pi0(i,j,k)-pi0(i,j,k-1)
 
-            pilast = dpi2
-            zlast = zh(i,j,k)
-            thvlast = dthv2
-
-          enddo
-
-          if(i.eq.ib.and.j.eq.jb) print *,'  n,prs0 = ',prs0(1,1,nk)
-
-        enddo
+          enddo  dkloop
 
         enddo
         enddo
+
+
+      if(myid.eq.0)then
+        print *
+        print *,'  pi0,prs0,thv0,qv0 '
+        do k=1,nk
+          print *,k,pi0(1,1,k),prs0(1,1,k),thv0(1,1,k),qv0(1,1,k)
+        enddo
+        print *
+      endif
 
         psurf = prs_sfc
         tsurf = t_sfc

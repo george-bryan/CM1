@@ -432,6 +432,9 @@
             !Droplet temperature
             pdata(n,prtp) = 302.0
 
+            !Droplet multiplicity
+            pdata(n,prmult) = 1.0
+
           endif
 
         end do
