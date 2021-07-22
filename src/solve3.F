@@ -111,7 +111,7 @@
                    CK,CKA,CDA,USTM,QSFC,T2,Q2,TH2,EMISS,THC,ALBD,    &
                    gsw,glw,chklowq,capg,snowc,dsxy,wstar,delta,fm,fh,zntmp,  &
                    slab_zs,slab_dzs,tslb,tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml,       &
-                   pta,pt3d,ptten,pdata,                             &
+                   pta,pt3d,ptten,pdata,dpten,                       &
                    cfb,cfa,cfc,ad1,ad2,pdt,lgbth,lgbph,rhs,trans,flag,  &
                    gamk,gamwall,kmw,u1b,v1b,u2pt,v2pt,               &
                    reqs_u,reqs_v,reqs_w,reqs_s,reqs_p,reqs_p2,reqs_p3, &
@@ -238,6 +238,7 @@
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d,ptten
       real, intent(inout), dimension(nparcels,npvals) :: pdata
+      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke,2) :: dpten
       real, intent(in), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: cfb
       real, intent(in), dimension(kpb:kpe) :: cfa,cfc,ad1,ad2
       complex, intent(inout), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: pdt,lgbth,lgbph
@@ -317,7 +318,7 @@
 
       double precision :: weps,afoo,bfoo,p0,p2
 
-      logical :: get_time_avg,dopf
+      logical :: get_time_avg,dopf,two_way_coupling
 
 #ifdef MPI
       integer :: reqp1,reqp2
@@ -910,20 +911,96 @@
 
         endif  prltrn
 
-
+        ifdroplet:  &
         if (prcl_droplet) then
-          !$acc compare(tha)
-          call     droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
-                                 sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
-                                 tha,qa,th0,pi0,ppi,prs,                              &
-                                 pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
-                                 nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p)
-          !stop 'solve3: after call to droplet_driver'
-        else
+
+          uten = 0.0
+          vten = 0.0
+          wten = 0.0
+          dpten = 0.0
+          call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                               sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
+                               tha,qa,th0,pi0,ppi,prs,                              &
+                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
+                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
+                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
+                               uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2))
+          if(timestats.ge.1) time_parcels=time_parcels+mytime()
+#ifdef MPI
+          call comm_1s_tend_halo(dpten(ib,jb,kb,1))
+          call comm_1s_tend_halo(dpten(ib,jb,kb,2))
+#else
+          call bcs_tend_halo(dpten(ib,jb,kb,1))
+          call bcs_tend_halo(dpten(ib,jb,kb,2))
+#endif
+          if(timestats.ge.1) time_dpc=time_dpc+mytime()
+          if( nout3d.ge.2 )then
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k)
+            do k=1,nk
+            do j=1,nj
+            do i=1,ni
+              ! for writeout of tendencies:
+              ! (see out1 and out2 in cm1out* files)
+              out3d(i,j,k,1) = dpten(i,j,k,1)
+              out3d(i,j,k,2) = dpten(i,j,k,2)
+            enddo
+            enddo
+            enddo
+          endif
+          two_way_coupling = .true.
+          IF( two_way_coupling )THEN
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k)
+            do k=1,nk
+            do j=1,nj
+            do i=1,ni
+              ! GHB, 210714:  dpten values are very large 
+              ! for now, use a small fraction of the tendency
+              ! (just for purposes of testing parallelization)
+              th3d(i,j,k)=th3d(i,j,k)+dt*(1.0d-20*dpten(i,j,k,1))
+              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)+dt*(1.0d-10*dpten(i,j,k,2))
+            enddo
+            enddo
+            enddo
+            if(timestats.ge.1) time_parcels=time_parcels+mytime()
+            call bcs(th3d)
+#ifdef MPI
+            call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
+                                    rs31,rs32,rn31,rn32,reqs_y)
+#endif
+            call bcs(q3d(ib,jb,kb,nqv))
+#ifdef MPI
+            call comm_3s_start(q3d(ib,jb,kb,nqv)  &
+                       ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
+                       ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
+                       ,reqs_q(1,nqv) )
+            call comm_3s_end(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
+            call comm_3s_end(q3d(ib,jb,kb,nqv)  &
+                       ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
+                       ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
+                       ,reqs_q(1,nqv) )
+#endif
+            !$omp parallel do default(shared)  &
+            !$omp private(i,j,k)
+            do k=1,nk
+            do j=0,nj+1
+            do i=0,ni+1
+              tha(i,j,k)=th3d(i,j,k)
+              qa(i,j,k,nqv)=q3d(i,j,k,nqv)
+            enddo
+            enddo
+            enddo
+            if(timestats.ge.1) time_integ=time_integ+mytime()
+          ENDIF
+
+        else  ifdroplet
           stop 'solve3: before call to parcel_driver'
           call     parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                  sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata)
-        endif
+
+        endif  ifdroplet
 
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
       ENDIF
