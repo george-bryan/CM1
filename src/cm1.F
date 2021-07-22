@@ -536,8 +536,10 @@
       ni = nx / nodex
       nj = ny / nodey
       nk = nz
+      nip1 = ni+1
+      njp1 = nj+1
       nkp1 = nk+1
-      !$acc enter data copyin(nkp1)
+      !$acc enter data copyin(nip1,njp1,nkp1)
 
       nimax = ni
       njmax = nj
@@ -727,7 +729,10 @@
 
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
+      print *,'cm1: copyin of (ngzy,ngz): ',ngxy,ngz 
       !$acc enter data copyin(ngxy,ngz)
+      !stop 'after call to data copyin()'
+      
 
 !---------------------------------------------------------------------
 !      For ZVD:
@@ -1218,6 +1223,7 @@
                        uw31,uw32,ue31,ue32,us31,us32,un31,un32,         &
                        vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,         &
                        ww31,ww32,we31,we32,ws31,ws32,wn31,wn32)
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 !----------------------------------------------------------------------
 
@@ -1407,6 +1413,7 @@
                       uw31,uw32,ue31,ue32,us31,us32,un31,un32,              &
                       vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,              &
                       sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
 !----------------------------------------------------------------------
@@ -2136,6 +2143,7 @@
                        ws31(1,1,1),ws32(1,1,1),wn31(1,1,1),wn32(1,1,1),reqs_p)
 
       ENDIF
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
       allocate( hflxw(ibib:ieib,jbib:jeib,kmaxib) )
       hflxw = 0
@@ -2236,6 +2244,7 @@
                   kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                   pta,pt3d,ptten,                                   &
                   pdata,cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans)
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
 !----------------------------------------------------------------------
@@ -2409,6 +2418,7 @@
                         emiss,thc,albd,znt,rznt,mavail,dsxy,prs0s,prs0,   &
                         tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml,z0base)
 
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
       IF(irst.eq.1)THEN
 
         startup = .false.
@@ -2449,6 +2459,7 @@
                               icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
                               gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
                               dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
           ! end_read_restart
         !  In case user wants to change values on a restart:
         IF( restart_reset_frqtim )THEN 
@@ -2538,6 +2549,7 @@
         if(dowr) write(outfile,*)
       ENDIF
 
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
       call       getset(restarted,mass1,uh,ruh,vh,rvh,xh,yh,xf,yf,         &
                         zs,gz,sigma,sigmaf,rmh,mf,dzdx,dzdy,dumk1,dumk2,   &
                         pi0,th0,rho0,prs0,ust,u1,v1,s1,u0,v0,rth0,         &
@@ -2629,6 +2641,7 @@
         endif
       endif
       !$acc end data
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
       ! cm1r19:  nsound is always determined diagnostically
@@ -2929,6 +2942,7 @@
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
 
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 #ifdef _OPENACC
         call nvtxStartRange("solve1 ",id=0)
 #endif
@@ -3008,6 +3022,7 @@
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_solve1
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
@@ -3097,7 +3112,8 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-      print *,'cm1: after call to solve2'
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
+      !print *,'cm1: after call to solve2'
       !$acc compare(dum1)
 
       IF(imoist.eq.1)THEN
@@ -3128,6 +3144,7 @@
 #endif
 
       ENDIF
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
 #ifdef _OPENACC
@@ -3211,6 +3228,7 @@ print *,'cm1: before call to solve3'
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve3
+      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #ifdef _OPENACC
@@ -3686,10 +3704,10 @@ print *,'cm1: after call to solve3'
       if(iprcl.eq.1)then
       IF( doprclout )THEN
       
+#if 0
 #ifdef _OPENACC
         stop 'ERROR: parcel_{interp,write} not supported in OpenACC'
 #endif
-#if 0
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
@@ -3745,6 +3763,7 @@ print *,'cm1: after call to solve3'
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=7)
 #endif
+#if 0
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3785,6 +3804,7 @@ print *,'cm1: after call to solve3'
                    gamk,gamwall,kmw,u1b,v1b,l2p,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cmz,csz,ce1z,ce2z, &
                    lsnudge_u,lsnudge_v,lsnudge_th,lsnudge_qv,                  &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
+#endif
         ! end_domaindiag
         nwritet = nwritet+1
         if(diagfrq.gt.0.0)then

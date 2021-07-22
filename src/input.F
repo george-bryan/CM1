@@ -43,7 +43,7 @@
 !-----------------------------------------------------------------------
 
       integer nx,ny,nz,nodex,nodey,ppnode,timeformat,timestats,               &
-              ni,nj,nk,nkp1,ngxy,ngz,                                         &
+              ni,nj,nk,nip1,njp1,nkp1,ngxy,ngz,                               &
               ib,ie,jb,je,kb,ke,                                              &
               ibm,iem,jbm,jem,kbm,kem,                                        &
               ibi,iei,jbi,jei,kbi,kei,iice,idm,idmplus,                       &
@@ -161,7 +161,7 @@
               nutk,nvtk,nwtk
 
 !$acc declare copyin(ptype)
-!$acc declare copyin(ngxy,ngz)
+!$acc declare create(ngxy,ngz)
 !$acc declare copyin(ib,ie,jb,je,kb,ke)
 !-----------------------------------------------------------------------
 
