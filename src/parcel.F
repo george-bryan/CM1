@@ -19,6 +19,7 @@
       use constants
       use bc_module
       use comm_module
+      use misclibs
       use cm1libs , only : rslf
 #ifdef MPI
       use mpi
@@ -73,14 +74,14 @@
       real :: x3d,y3d,z3d
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
-      real :: z0,rznt,var
+      real :: z0,rznt,var,rand
       real :: sigdot,sig1,zsp,sig3d
       real :: xrhs(3),vrhs(3),xtmp(3),vtmp(3),uf(3),tprhs,tptmp
       real :: rprhs,rptmp,qstar,einf,lhv,qinf
       real :: k1xp(3),k2xp(3),k1vp(3),k2vp(3)
       real :: k1tp,k2tp,k1rp,k2rp
-      real :: taup,th_tmp,Rep,Nup,Shp,diff(3),diffnorm
-      real :: rhop,volp,rhop0,taup0,rp0,tp0
+      real :: taup,th_tmp,Rep,Nup,Shp,diff(3),diffnorm,part_grav(3),salinity
+      real :: rhop,volp,rhop0,taup0,rp0,tp0,volp0
       real :: dvpdt(3),drpdt,dtpdt,dmvdt
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
 
@@ -90,6 +91,8 @@
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
+
+  call reinit_random_seed
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
@@ -198,9 +201,11 @@
 !  Loop through all parcels:  if you have it, update it's properties
 
     dt2 = dt/2.0
+    part_grav = (/0.0, 0.0, -0.84/)
 
     nploop:  &
     DO np=1,nparcels
+
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -290,6 +295,9 @@
 !          kflag_s=kflag_s-1
 !        endif
 !      endif
+
+      dropalive1:  &
+      IF (pdata(np,pract).gt.0.0) THEN
 
       dvpdt(1) = pdata(np,prvpx)
       dvpdt(2) = pdata(np,prvpy)
@@ -696,14 +704,15 @@
 
         xrhs = (/ pdata(np,prvpx),pdata(np,prvpy),pdata(np,prvpz) /)
 
+        volp = 4.0/3.0*pi*pdata(np,prrp)**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+
         rhop0 = rhop
         taup0 = taup
         rp0 = pdata(np,prrp)
         tp0 = pdata(np,prtp)
-
-        volp = 4.0/3.0*pi*pdata(np,prrp)**3
-        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
-        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+        volp0 = 4.0/3.0*pi*rp0**3
 
         diff(1) = uf(1)-pdata(np,prvpx)
         diff(2) = uf(2)-pdata(np,prvpy)
@@ -714,12 +723,9 @@
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
-        Nup = 2.0
-        Shp = 2.0
-
-        vrhs(1) = 1.0/taup*(uf(1) - pdata(np,prvpx))
-        vrhs(2) = 1.0/taup*(uf(2) - pdata(np,prvpy))
-        vrhs(3) = 1.0/taup*(uf(3) - pdata(np,prvpz))
+        vrhs(1) = 1.0/taup*(uf(1) - pdata(np,prvpx)) + part_grav(1)
+        vrhs(2) = 1.0/taup*(uf(2) - pdata(np,prvpy)) + part_grav(2)
+        vrhs(3) = 1.0/taup*(uf(3) - pdata(np,prvpz)) + part_grav(3)
 
         qinf = rslf(prsval,tval)
         einf = qinf*rhoval/mw*ru*tval
@@ -765,12 +771,12 @@
           k1xp(3) = dt*xrhs(3)
           z3d = pdata(np,prz)+k1xp(3)
 
-          ! GHB, 210713: check for top/bot bc on 1st RK step:
           !Wall BCs:
           if ( z3d .gt. maxz ) then
              z3d = maxz - (z3d - maxz)
           elseif ( z3d .lt. 0.0 ) then
-             z3d = -z3d
+             z3d = 1.0e-6  !Just temporary 
+             pdata(np,pract) = -1.0  !Signal this as no longer alive
           endif
 
           xtmp(3)=z3d
@@ -806,9 +812,9 @@
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
-        vrhs(1) = 1.0/taup*(uf(1) - vtmp(1))
-        vrhs(2) = 1.0/taup*(uf(2) - vtmp(2))
-        vrhs(3) = 1.0/taup*(uf(3) - vtmp(3))
+        vrhs(1) = 1.0/taup*(uf(1) - vtmp(1)) + part_grav(1)
+        vrhs(2) = 1.0/taup*(uf(2) - vtmp(2)) + part_grav(2)
+        vrhs(3) = 1.0/taup*(uf(3) - vtmp(3)) + part_grav(3)
 
         qinf = rslf(prsval,tval)
         lhv=lv1-lv2*tval
@@ -855,19 +861,30 @@
           sig3d=min(sig3d,maxz)
         else
           k2xp(3) = dt*xrhs(3)
-          z3d = pdata(np,prz)+0.5*(k1xp(3)+k1xp(3))
+          z3d = pdata(np,prz)+0.5*(k1xp(3)+k2xp(3))
 
           k2vp(3) = dt*vrhs(3)
           pdata(np,prvpz) = pdata(np,prvpz) + 0.5*(k1vp(3)+k2vp(3))
 
           !Wall BCs:
           if ( z3d .gt. maxz ) then
+ 
+             !Elastic collisions
              z3d = maxz - (z3d - maxz)
              pdata(np,prvpz) = -pdata(np,prvpz)
+
           elseif ( z3d .lt. 0.0 ) then
-             z3d = -z3d
-             pdata(np,prvpz) = -pdata(np,prvpz)
+
+           !Elastic collisions:
+!             z3d = -z3d
+!             pdata(np,prvpz) = -pdata(np,prvpz)
+
+           !Remove it
+             z3d = 1.0e-6  !Temporary
+             pdata(np,pract) = -1.0  !Signal this as no longer alive
+
           endif
+
         endif
 
         k2tp = dt*tprhs
@@ -878,10 +895,14 @@
 
       ENDIF
 
+      ENDDO rkloop
+
+    ENDIF  dropalive1
 
 
-      ENDDO  rkloop
-
+    dropalive2:  &
+    IF (pdata(np,pract).gt.0.0) THEN
+       
 
 !-----------------------------------------------------
 !  Now perform the two-way coupling based on the changes in droplet momentum,
@@ -972,9 +993,11 @@
       dvpdt(3) = (pdata(np,prvpz)-dvpdt(3))/dt
 
       drpdt = (pdata(np,prrp)-drpdt)/dt
-      !Only the sensible component of energy (subtract off the latent)
-      dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
+      !Only the sensible component of energy 
+      !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
+      dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(tval-pdata(np,prtp))
       dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3 - dmvdt)/dt
+
 
       !At this point, iflag,jflag,kflag is the node beneath droplet
 
@@ -1008,24 +1031,65 @@
 
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
-        thten(ix,iy,iz) = thten(ix,iy,iz) - &
-            (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
+!        thten(ix,iy,iz) = thten(ix,iy,iz) - &
+!            (rhow/rhoval)*(cpl/cp)*dtpdt*volp0/dV*wtt*pdata(np,prmult)
 
-!        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
-!        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
-!        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
-!        if(np.eq.1) print *,'    rhow,cpl,cp  = ',rhow,cpl,cp
-!        if(np.eq.1) print *,'    dtpdt        = ',dtpdt
+        thten(ix,iy,iz) = thten(ix,iy,iz) - &
+            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
+
+        !if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
+        !if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
+        !if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
+        !if(np.eq.1) print *,'    rhow,cpl,cp  = ',rhow,cpl,cp
+        !if(np.eq.1) print *,'    dtpdt        = ',dtpdt
 
       enddo
       enddo
       enddo
        
+    ENDIF  dropalive2
 
 
 !-----------------------------------------------------
 !  Account for boundary conditions (if necessary)
 !-----------------------------------------------------
+
+      !Now that the particles have been updated, do something with those which
+      !have fallen out the bottom:
+
+      if (pdata(np,pract).lt.0.0) then
+
+            !Replace with a new droplet at random location
+              call random_number(rand)
+              x3d = rand*maxx
+              call random_number(rand)
+              y3d = rand*maxy
+              call random_number(rand)
+              z3d = rand*maxz
+
+
+              pdata(np,prvpx) = 0.0
+              pdata(np,prvpy) = 0.0
+              pdata(np,prvpz) = 0.0
+
+              !Droplet size (radius)
+              pdata(np,prrp) = 20.0e-6
+  
+              !Droplet solute mass
+              salinity = 0.034
+              pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+
+              !Droplet temperature
+              pdata(np,prtp) = 302.0
+
+              !Droplet multiplicity
+              pdata(np,prmult) = 1.0
+
+              !Make it alive again
+              pdata(np,pract) = 1.0
+              
+      end if
+
 
         ! New for cm1r17:  if parcel exits domain,
         ! just assume periodic lateral boundary conditions
@@ -1072,9 +1136,11 @@
         pdata(np,prtp) = -1.0e30
         pdata(np,prms) = -1.0e30
         pdata(np,prmult) = -1.0e30
+        pdata(np,pract) = -1.0e30
 #endif
 
       ENDIF  myparcel
+
 
     ENDDO  nploop
 

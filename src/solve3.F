@@ -909,11 +909,8 @@
             do k=1,nk
             do j=1,nj
             do i=1,ni
-              ! GHB, 210714:  dpten values are very large 
-              ! for now, use a small fraction of the tendency
-              ! (just for purposes of testing parallelization)
-              th3d(i,j,k)=th3d(i,j,k)+dt*(1.0d-20*dpten(i,j,k,1))
-              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)+dt*(1.0d-10*dpten(i,j,k,2))
+              th3d(i,j,k)=th3d(i,j,k)+dt*dpten(i,j,k,1)
+              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)+dt*dpten(i,j,k,2)
             enddo
             enddo
             enddo

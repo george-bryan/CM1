@@ -431,6 +431,10 @@
             !Droplet multiplicity
             pdata(n,prmult) = 1.0
 
+            !Is droplet alive?
+            pdata(n,pract) = 1.0
+            
+
           endif
 
         end do
