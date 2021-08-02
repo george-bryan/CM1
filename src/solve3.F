@@ -325,6 +325,7 @@
 #endif
 
 !--------------------------------------------------------------------
+      !$acc declare present(rrw)
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -355,7 +356,9 @@
       ENDIF
 
 
+      !$acc compare(rho)
       call bcs_GPU(rho)
+      !$acc compare(rho)
 #ifdef MPI
       call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
@@ -914,11 +917,46 @@
         ifdroplet:  &
         if (prcl_droplet) then
 
-          !PORTME
-          uten = 0.0
-          vten = 0.0
-          wten = 0.0
-          dpten = 0.0
+          !$acc parallel default(present) private(i,j,k)
+          !$acc loop gang vector collapse(3)
+          do k=kb,ke+1
+          do j=jb,je
+          do i=ib,ie
+            wten(i,j,k) = 0.0
+          enddo
+          enddo
+          enddo
+          
+          !$acc loop gang vector collapse(3)
+          do k=kb,ke
+          do j=jb,je
+          do i=ib,ie+1
+            uten(i,j,k) = 0.0
+          enddo
+          enddo
+          enddo
+
+          !$acc loop gang vector collapse(3)
+          do k=kb,ke
+          do j=jb,je+1
+          do i=ib,ie
+            vten(i,j,k) = 0.0
+          enddo
+          enddo
+          enddo
+
+          !$acc loop gang vector collapse(3)
+          do k=kb,ke
+          do j=jb,je
+          do i=ib,ie
+            dpten(i,j,k,1) = 0.0
+            dpten(i,j,k,2) = 0.0
+          enddo
+          enddo
+          enddo
+          !$acc end parallel
+
+          
           call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
                                tha,qa,th0,pi0,ppi,prs,                              &
@@ -933,15 +971,13 @@
           call comm_1s_tend_halo(dpten(ib,jb,kb,1))
           call comm_1s_tend_halo(dpten(ib,jb,kb,2))
 #else
-          !PORTME
           call bcs_tend_halo(dpten(ib,jb,kb,1))
           call bcs_tend_halo(dpten(ib,jb,kb,2))
 #endif
           if(timestats.ge.1) time_dpc=time_dpc+mytime()
           if( nout3d.ge.2 )then
-          !PORTME
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -955,9 +991,8 @@
           endif
           two_way_coupling = .true.
           IF( two_way_coupling )THEN
-          !PORTME
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -970,13 +1005,12 @@
             enddo
             enddo
             if(timestats.ge.1) time_parcels=time_parcels+mytime()
-            call bcs(th3d)
+            call bcs_GPU(th3d)
 #ifdef MPI
             call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
                                     rs31,rs32,rn31,rn32,reqs_y)
 #endif
-          !PORTME
-            call bcs(q3d(ib,jb,kb,nqv))
+            call bcs_GPU(q3d(ib,jb,kb,nqv))
 #ifdef MPI
             call comm_3s_start(q3d(ib,jb,kb,nqv)  &
                        ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
@@ -988,9 +1022,8 @@
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
 #endif
-          !PORTME
-            !$omp parallel do default(shared)  &
-            !$omp private(i,j,k)
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=0,nj+1
             do i=0,ni+1
@@ -1401,7 +1434,7 @@ print *,'Here 28 -- Not being executed'
       if(myid.eq.0) print *,'  Getting pressure diagnostics ... '
 
 #ifdef _OPENACC
-      print *,'WARNING: execution of pidcomp not supported under OpenACC'
+      stop 'WARNING: execution of pidcomp not supported under OpenACC'
 #endif
       call       pidcomp(dt,xh,rxh,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,vf,          &
                          gz,rgz,gzu,gzv,mh,rmh,mf,rmf,rds,rdsf,c1,c2,f2d,wprof,     &

@@ -1055,8 +1055,8 @@
 !  west boundary condition
 
       if(wbc.eq.1)then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         do k=1,nk
         do j=1,nj
           s(1,j,k)=s(1,j,k)+s(ni+1,j,k)
@@ -1068,8 +1068,8 @@
 !  east boundary condition
 
       if(ebc.eq.1)then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         do k=1,nk
         do j=1,nj
           s(ni,j,k)=s(ni,j,k)+s(0,j,k)
@@ -1081,8 +1081,8 @@
 !  south boundary condition
 
       if(sbc.eq.1)then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
           s(i,1,k)=s(i,1,k)+s(i,nj+1,k)
@@ -1094,8 +1094,8 @@
 !  north boundary condition
 
       if(nbc.eq.1)then
-        !$omp parallel do default(shared)  &
-        !$omp private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
           s(i,nj,k)=s(i,nj,k)+s(i,0,k)

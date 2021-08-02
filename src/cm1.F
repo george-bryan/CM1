@@ -731,7 +731,7 @@
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
       print *,'cm1: copyin of (ngzy,ngz): ',ngxy,ngz 
-      !$acc enter data copyin(ngxy,ngz)
+      !$acc update device (ngxy,ngz)
       !stop 'after call to data copyin()'
       
 
@@ -750,6 +750,7 @@
       je = nj + ngxy
       kb =  1 - ngz
       ke = nk + ngz
+      !$acc update device(ib,ie,jb,je,kb,ke)
 
       allocate(    xh(ib:ie) )
       xh = 0.0
@@ -2950,6 +2951,7 @@
 #ifdef _OPENACC
         call nvtxStartRange("solve1 ",id=0)
 #endif
+        !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve1: pre-RK terms
@@ -3026,7 +3028,7 @@
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_solve1
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
+       !stop 'cm1: after solve1' 
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
@@ -3037,6 +3039,7 @@
 #ifdef _OPENACC
         call nvtxStartRange("solve2",id=1)
 #endif
+        !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve2: RK loop and pressure solver
@@ -3129,6 +3132,7 @@
         call nvtxStartRange("mp_driver",id=2)
 #endif
 
+      !$acc compare(rho,q3d)
       if( ptype.eq.0 )then
         ! qv only:
         call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
@@ -3232,7 +3236,7 @@ print *,'cm1: before call to solve3'
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve3
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
+        !stop 'cm1: after call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #ifdef _OPENACC
@@ -3240,6 +3244,7 @@ print *,'cm1: before call to solve3'
 #endif
 
 print *,'cm1: after call to solve3'
+!$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
@@ -3416,7 +3421,7 @@ print *,'cm1: after call to solve3'
       call nvtxEndRange()
 #endif
       !$acc compare(dum1,dum2)
-
+      !$acc compare(rho) 
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
         !  get stress terms for explicit diffusion scheme:
@@ -4125,6 +4130,11 @@ print *,'cm1: after call to solve3'
       startup = .false.
       restarted = .false.
 
+      print *,'nstep: ',nstep
+      print *,'mtime: ',mtime
+      if(nstep .eq. 1) then 
+        !stop 'cm1: at the end of timeloop'
+      endif
 
     ENDDO  timeloop
 

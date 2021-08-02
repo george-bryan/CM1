@@ -412,9 +412,9 @@
           call random_number(rand)
           pdata(n,prz) = rand*maxz
 
-          if(MODULO(n,100)==0) then 
+          !if(MODULO(n,100)==0) then 
           if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
-          endif
+          !endif
 
           if (prcl_droplet) then
 

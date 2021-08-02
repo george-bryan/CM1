@@ -12865,7 +12865,7 @@
       integer :: i,j
 
       IF( comm.eq.1 )THEN
-        call bcs(s)
+        call bcs_GPU(s)
 #ifdef MPI
         call comm_all_s(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
@@ -12874,8 +12874,8 @@
 
       IF( bbc.eq.1 .or. bbc.eq.2 .or. bbc.eq.3 )THEN
         ! extrapolate:
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=jb,je
         do i=ib,ie
           s(i,j,0) = cgs1*s(i,j,1)+cgs2*s(i,j,2)+cgs3*s(i,j,3)
@@ -12885,8 +12885,8 @@
 
       IF( tbc.eq.1 .or. tbc.eq.2 )THEN
         ! extrapolate:
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=jb,je
         do i=ib,ie
           s(i,j,nk+1) = cgt1*s(i,j,nk)+cgt2*s(i,j,nk-1)+cgt3*s(i,j,nk-2)
@@ -13368,6 +13368,7 @@ MPI_WAITALL(nr2,reqs(5:5+nr2-1),status1(1:mpi_status_size,5:5+nr2-1),ierr)
       end subroutine getcorneru3_GPU
 
 
+#if 0
       subroutine prepcorners3(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                                 n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,comm)
       use input
@@ -13414,6 +13415,7 @@ MPI_WAITALL(nr2,reqs(5:5+nr2-1),status1(1:mpi_status_size,5:5+nr2-1),ierr)
       ENDIF
 
       end subroutine prepcorners3
+#endif
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

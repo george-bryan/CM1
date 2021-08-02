@@ -1,3 +1,4 @@
+#define TROUBLE 0
   MODULE parcel_module
 
   implicit none
@@ -88,10 +89,14 @@
       real :: esl
 
       logical, parameter :: debug = .false.
+      !$acc declare present(rho,prs,qa,wa)
 
       !integer :: nip1
 
+      !JMD no idea why these values hae not already been set previously
+      !$acc update device(ib,jb,kb,ie,je,ke)
 
+      !!$acc compare(wten,thten)
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
@@ -176,26 +181,26 @@
   ENDDO
 
 
-  !$acc compare(pi0,th_in,th0,ppa)
+  !!$acc compare(pi0,th_in,th0,ppa)
   !Compute temperature for interpolation
   !$acc parallel default(present) private(i,j,k)
 
    
   !JMD zero out the prevent PCAST errors
-  !$acc loop gang vector collapse(3)
-  do k=kb,ke
-  do j=jb,je
-  do i=ib,ie
-     ta(i,j,k)=0.0
-  enddo
-  enddo
-  enddo
+  !!$acc loop gang vector collapse(3)
+  !do k=kb,ke
+  !do j=jb,je
+  !do i=ib,ie
+  !   ta(i,j,k)=0.0
+  !enddo
+  !enddo
+  !enddo
 
   !print *,'parcel: {ni,nj,nk}: ',ni,nj,nk
   !$acc loop gang vector collapse(3)
-  do k=1,nk
-    do j=1,nj
-    do i=1,ni
+  do k=kb,ke
+    do j=jb,je
+    do i=ib,ie
 
       !th_tmp = (th0(i,j,k)+th_in(i,j,k))
       !ta(i,j,k) = th_tmp*(pi0(i,j,k)+ppa(i,j,k))
@@ -206,7 +211,7 @@
   enddo
   !$acc end parallel
 
-  !$acc compare(ta,pi0,th_in,th0,ppa)
+  !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
   !stop 'droplet_driver: after first compare'
   !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
   ! GHB 210714:
@@ -218,7 +223,11 @@
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
     call prepcorners3(qa(ib,jb,kb,nqv),sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-  print *,'droplet_driver: number of parcels: ',nparcels
+    !!$acc compare(rho)
+    !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
+    !!$acc compare(sigma)
+  !print *,'droplet_driver: number of parcels: ',nparcels
+  !print *,'terrain_flag: ',terrain_flag
   !stop 'droplet_driver: after call to prepcorners'
 
 
@@ -240,8 +249,8 @@
     !$acc     uval,vval,wval,qval,tval,rhoval,prsval,sigdot,zsp,rznt,var, &
     !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,taup,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3,qinf, &
     !$acc     lhv,qstar,rprhs,tprhs,vtmp1,vtmp2,vtmp3,k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3, &
-    !$acc     sig1,k1tp,esl, &
-    !$acc     tptmp,k1rp,rptmp)
+    !$acc     dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt,dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt, &
+    !$acc     sig1,k1tp,esl,tptmp,k1rp,rptmp)
 
     !print *,'droplet_driver: {ngxy,ngz}: ',ngxy,ngz
     !$acc compare(ngxy,ngz)
@@ -306,6 +315,44 @@
 
       myparcel:  IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
                      (jflag.ge.1.and.jflag.le.nj) )THEN
+
+      kflag = 1
+      if( .not. terrain_flag )then
+        do while( z3d.ge.zf(iflag,jflag,kflag+1) )
+          kflag = kflag+1
+        enddo
+      else
+        do while( sig3d.ge.sigmaf(kflag+1) )
+          kflag = kflag+1
+        enddo
+      endif
+!      !Store these for two-way coupling
+!      iflag_s=iflag
+!      jflag_s=jflag
+!      kflag_s=kflag
+!
+!      if( x3d.lt.xh(iflag) )then
+!        iflag_s=iflag_s-1
+!      endif
+!      if( y3d.lt.yh(jflag) )then
+!        jflag_s=jflag_s-1
+!      endif
+!      if( .not. terrain_flag )then
+!        if( z3d.lt.zh(iflag,jflag,kflag) )then
+!          kflag_s=kflag_s-1
+!        endif
+!      else
+!        if( sig3d.lt.sigma(kflag) )then
+!          kflag_s=kflag_s-1
+!        endif
+!      endif
+      dvpdt1 = pdata(np,prvpx)
+      dvpdt2 = pdata(np,prvpy)
+      dvpdt3 = pdata(np,prvpz)
+      dtpdt    = pdata(np,prtp)
+      drpdt    = pdata(np,prrp)
+      dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
+
       !$acc loop seq
       rkloop:  DO nrkp = 1,2
 
@@ -366,6 +413,7 @@
 !JMD-debug
 !----------------------------------------------------------------------
 !  Data on u points
+        !print *,'parcel: data on u-points'
 
         i=iflag
         j=jflag
@@ -374,6 +422,7 @@
         if( y3d.lt.yh(j) )then
           j=j-1
         endif
+        !print *,'terrain_flag: ',terrain_flag
         if( .not. terrain_flag )then
           if( z3d.lt.zh(iflag,jflag,k) )then
             k=k-1
@@ -395,25 +444,43 @@
         rzs = rz
 
 
-        w1 = calcW1(rx,ry,rz)
-        w2 = calcW2(rx,ry,rz)
-        w3 = calcW3(rx,ry,rz)
-        w4 = calcW4(rx,ry,rz)
-        w5 = calcW5(rx,ry,rz)
-        w6 = calcW6(rx,ry,rz)
-        w7 = calcW7(rx,ry,rz)
-        w8 = calcW8(rx,ry,rz)
-        !if(np==100) then 
-        !  print *,'parcel: before uval: ',i,j,k
-        !endif
-        ! print *,'parcel: ngxy,ngz: ',ngxy,ngz
-        ! print *,'parcel: ni+1,nj,nk: ',nip1,nj,nk
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !w8 = calcW8(rx,ry,rz)
+
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
+        if(np==TROUBLE) then 
+          print *,'parcel: before uval: ',i,j,k
+          print *,'parcel: ngxy,ngz: ',ngxy,ngz
+          print *,'parcel: ni+1,nj,nk: ',nip1,nj,nk
+        endif
 
         uval = tri_interp(nip1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ua)
+        ! uval = ua(i  ,j  ,k  )*w1 &
+        !      + ua(i+1,j  ,k  )*w2 &
+        !      + ua(i  ,j+1,k  )*w3 &
+        !      + ua(i  ,j  ,k+1)*w4 &
+        !      + ua(i+1,j  ,k+1)*w5 &
+        !      + ua(i  ,j+1,k+1)*w6 &
+        !      + ua(i+1,j+1,k  )*w7 &
+        !      + ua(i+1,j+1,k+1)*w8
 
 !----------------------------------------------------------------------
 !  Data on v points
 
+        !print *,'parcel: data on v-points'
         i=iflag
         j=jflag
         k=kflag
@@ -439,23 +506,40 @@
         rxs = rx
         ryv = ry
 
-        w1 = calcW1(rx,ry,rz)
-        w2 = calcW2(rx,ry,rz)
-        w3 = calcW3(rx,ry,rz)
-        w4 = calcW4(rx,ry,rz)
-        w5 = calcW5(rx,ry,rz)
-        w6 = calcW6(rx,ry,rz)
-        w7 = calcW7(rx,ry,rz)
-        w8 = calcW8(rx,ry,rz)
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !!w8 = calcW8(rx,ry,rz)
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
         !if(np==100) then 
         !  print *,'parcel: before vval: ',i,j,k
         !endif
         vval = tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,va)
+        ! vval = va(i  ,j  ,k  )*w1 &
+        !      + va(i+1,j  ,k  )*w2 &
+        !      + va(i  ,j+1,k  )*w3 &
+        !      + va(i  ,j  ,k+1)*w4 &
+        !      + va(i+1,j  ,k+1)*w5 &
+        !      + va(i  ,j+1,k+1)*w6 &
+        !      + va(i+1,j+1,k  )*w7 &
+        !      + va(i+1,j+1,k+1)*w8
 
 
 !----------------------------------------------------------------------
 !  Data on w points
 
+        !print *,'parcel: data on w-points'
         i=iflag
         j=jflag
         k=kflag
@@ -478,22 +562,46 @@
         ! saveit:
         rzw = rz
 
-        w1 = calcW1(rx,ry,rz)
-        w2 = calcW2(rx,ry,rz)
-        w3 = calcW3(rx,ry,rz)
-        w4 = calcW4(rx,ry,rz)
-        w5 = calcW5(rx,ry,rz)
-        w6 = calcW6(rx,ry,rz)
-        w7 = calcW7(rx,ry,rz)
-        w8 = calcW8(rx,ry,rz)
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !w8 = calcW8(rx,ry,rz)
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
         !if(np==100) then 
         !  print *,'parcel: before wval: ',i,j,k
         !endif
         wval = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
+        ! wval = wa(i  ,j  ,k  )*w1 &
+        !      + wa(i+1,j  ,k  )*w2 &
+        !      + wa(i  ,j+1,k  )*w3 &
+        !      + wa(i  ,j  ,k+1)*w4 &
+        !      + wa(i+1,j  ,k+1)*w5 &
+        !      + wa(i  ,j+1,k+1)*w6 &
+        !      + wa(i+1,j+1,k  )*w7 &
+        !      + wa(i+1,j+1,k+1)*w8
 
         if( terrain_flag )then
           ! print *,'parcel: before sigdot'
           sigdot = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
+          ! sigdot = wa(i  ,j  ,k  )*w1 &
+          !    + wa(i+1,j  ,k  )*w2 &
+          !    + wa(i  ,j+1,k  )*w3 &
+          !    + wa(i  ,j  ,k+1)*w4 &
+          !    + wa(i+1,j  ,k+1)*w5 &
+          !    + wa(i  ,j+1,k+1)*w6 &
+          !    + wa(i+1,j+1,k  )*w7 &
+          !    + wa(i+1,j+1,k+1)*w8
           zsp = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs)
           z3d = zsp + sig3d*((zt-zsp)*rzt)
         endif
@@ -502,6 +610,7 @@
 !----------------------------------------------------------------------
 !  Data on scalar points
 
+        !print *,'parcel: data on scalar-points'
         i=iflag
         j=jflag
         k=kflag
@@ -527,14 +636,22 @@
         ry = rys
         rz = rzs
 
-        w1 = calcW1(rx,ry,rz)
-        w2 = calcW2(rx,ry,rz)
-        w3 = calcW3(rx,ry,rz)
-        w4 = calcW4(rx,ry,rz)
-        w5 = calcW5(rx,ry,rz)
-        w6 = calcW6(rx,ry,rz)
-        w7 = calcW7(rx,ry,rz)
-        w8 = calcW8(rx,ry,rz)
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !w8 = calcW8(rx,ry,rz)
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
 
       !if(np==100) then 
       !  print *,'parcel: before qval: ',i,j,k
@@ -543,20 +660,62 @@
       if(imoist.eq.1)then
         !!print *,'parcel: before qval'
         qval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,qa(ib,jb,kb,nqv))
+        ! qval = qa(i  ,j  ,k  ,nqv)*w1 &
+        !      + qa(i+1,j  ,k  ,nqv)*w2 &
+        !      + qa(i  ,j+1,k  ,nqv)*w3 &
+        !      + qa(i  ,j  ,k+1,nqv)*w4 &
+        !      + qa(i+1,j  ,k+1,nqv)*w5 &
+        !      + qa(i  ,j+1,k+1,nqv)*w6 &
+        !      + qa(i+1,j+1,k  ,nqv)*w7 &
+        !      + qa(i+1,j+1,k+1,nqv)*w8
       endif
       !if(np==100) then 
       !  print *,'parcel: ngxy,ngz: ',ngxy,ngz
       !  print *,'parcel: before tval: ',i,j,k
       !endif
       tval   = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ta)
+      ! tval   = ta(i  ,j  ,k  )*w1 &
+      !        + ta(i+1,j  ,k  )*w2 &
+      !        + ta(i  ,j+1,k  )*w3 &
+      !        + ta(i  ,j  ,k+1)*w4 &
+      !        + ta(i+1,j  ,k+1)*w5 &
+      !        + ta(i  ,j+1,k+1)*w6 &
+      !        + ta(i+1,j+1,k  )*w7 &
+      !        + ta(i+1,j+1,k+1)*w8
+      if(nrkp==1 .and. np==TROUBLE) then 
+        print *,'point #2: i,j,k: ',i,j,k
+        print *,'point #2: ni,nj,nk: ',ni,nj,nk
+        print *,'point #2: ib,jb,kb: ',ib,jb,kb
+        print *,'point #2: ie,je,ke: ',ie,je,ke
+        print *,'point #2: nqv: ',nqv
+        print *,'point #2: rx,ry,rz: ',rx,ry,rz
+        print *,'point #2: after tval: ',tval
+        print *,'point #2: after qval: ',tval
+      endif
       !if(np==100) then 
       !  print *,'parcel: before rhoval: ',i,j,k
       !endif
       rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
+      ! rhoval = rho(i  ,j  ,k  )*w1 &
+      !        + rho(i+1,j  ,k  )*w2 &
+      !        + rho(i  ,j+1,k  )*w3 &
+      !        + rho(i  ,j  ,k+1)*w4 &
+      !        + rho(i+1,j  ,k+1)*w5 &
+      !        + rho(i  ,j+1,k+1)*w6 &
+      !        + rho(i+1,j+1,k  )*w7 &
+      !        + rho(i+1,j+1,k+1)*w8
       !if(np==100) then 
       !  print *,'parcel: before prsval: ',i,j,k
       !endif
       prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
+      ! prsval = prs(i  ,j  ,k  )*w1 &
+      !        + prs(i+1,j  ,k  )*w2 &
+      !        + prs(i  ,j+1,k  )*w3 &
+      !        + prs(i  ,j  ,k+1)*w4 &
+      !        + prs(i+1,j  ,k+1)*w5 &
+      !        + prs(i  ,j+1,k+1)*w6 &
+      !        + prs(i+1,j+1,k  )*w7 &
+      !        + prs(i+1,j+1,k+1)*w8
 
 
 !----------------------------------------------------------------------
@@ -607,12 +766,30 @@
         endif
       ENDIF
 
+      if(np==TROUBLE) then 
+        print *,'before rslf: tval: ',tval 
+      endif
       qinf = rslf(prsval,tval)
       lhv=lv1-lv2*tval
 
 !-----------------------------------------------------
 !  Update droplet position, velocity, etc.
 !-----------------------------------------------------
+      if(np==TROUBLE) then 
+        !print *,'before: pdata(np,prrp): ',pdata(np,prrp)
+        !print *,'before: pdata(np,prms): ',pdata(np,prms)
+        !print *,'before: pdata(np,prtp): ',pdata(np,prtp)
+        print *,'after rslf: tval: ',tval 
+        !print *,'prsval: ',prsval
+        !print *,'lv1: ',lv1
+        !print *,'lv2: ',lv2
+        !print *,'ru: ',ru
+        !print *,'ms: ',ms
+        !print *,'mw: ',mw
+        !print *,'ion: ',ion
+        !print *,'os: ',os
+        !print *,'surften: ',surften
+      endif
 
 
       ! RK2 scheme:
@@ -641,9 +818,6 @@
         !JMD This does not look right
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
-
-        Nup = 2.0
-        Shp = 2.0
 
         vrhs1 = 1.0/taup*(uval - pdata(np,prvpx))
         vrhs2 = 1.0/taup*(vval - pdata(np,prvpy))
@@ -710,6 +884,26 @@
         k1rp = dt*rprhs
         rptmp = pdata(np,prrp) + k1rp
 
+        if(np==TROUBLE) then 
+          print *,'dd: qstar: ',qstar
+          print *,'dd: qinf: ',qinf
+          print *,'dd: cp: ',cp
+          print *,'dd: cpl: ',cpl
+          print *,'dd: Nup: ',Nup
+          print *,'dd: pr_num: ',pr_num
+          print *,'dd: sc_num: ',sc_num
+          !print *,'qval: ',qstar
+          print *,'dd: rhop: ',rhop
+          print *,'dd: rhow: ',rhow
+          print *,'dd: taup: ',taup
+          !print *,'tval: ',tval
+          print *,'dd: tptmp: ',tptmp
+          print *,'dd: lhv: ',lhv
+          print *,'dd: rptmp: ',rptmp
+          print *,'dd: rprhs: ',rprhs
+          print *,'dd: tprhs: ',tprhs
+        endif
+
 
       ELSE
 
@@ -744,6 +938,7 @@
 
         tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-tptmp) + &
                 3.0*lhv/cpl/rptmp*rprhs
+
 
         IF(nx.eq.1)THEN
           x3d=0.0
@@ -791,12 +986,14 @@
              pdata(np,prvpz) = -pdata(np,prvpz)
           endif
         endif
-
+        if(np==TROUBLE) then 
+          print *,'dd: k1tp: ',k1tp
+          print *,'dd: tprhs: ',tprhs
+        endif
         pdata(np,prtp) = pdata(np,prtp) + 0.5*(k1tp+dt*tprhs)
         pdata(np,prrp) = pdata(np,prrp) + 0.5*(k1rp+dt*rprhs)
 
       ENDIF
-
 
       ENDDO  rkloop
 
@@ -842,6 +1039,7 @@
         ENDIF
 
 
+#if 0
         IF(debug)THEN
         if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
           print *,'  myid,i,j = ',myid,i,j
@@ -857,6 +1055,7 @@
           call stopcm1
         endif
         ENDIF
+#endif
 
         kflag = 1
         if( .not. terrain_flag )then
@@ -869,6 +1068,7 @@
           enddo
         endif
 
+#if 0
         IF(debug)THEN
         if( kflag.le.0 .or. kflag.ge.(nk+1) )then
           print *,myid,nrkp
@@ -881,9 +1081,9 @@
           call stopcm1
         endif
         ENDIF
+#endif
 
       !--------
-
       !PORTME
       !Recall that the "old" value is stored here
       dvpdt1 = (dvpdt1-pdata(np,prvpx))/dt   !Remember to deal with gravity later!
@@ -893,6 +1093,11 @@
       drpdt = (drpdt - pdata(np,prrp))/dt
       !Only the sensible component of energy (subtract off the latent)
       dtpdt = (dtpdt - pdata(np,prtp))/dt - 3.0*lhv/cpl/rp0*drpdt
+      if(np==TROUBLE) then  
+        print *,'dd: rhow: ',rhow
+        print *,'dd: before dmvdt: ',dmvdt
+        print *,'dd: pdata(np,prrp): ',pdata(np,prrp)
+      endif
       dmvdt = (dmvdt - rhow*4.0/3.0*pi*pdata(np,prrp)**3)/dt
 
       !At this point, iflag,jflag,kflag is the node beneath droplet
@@ -902,10 +1107,13 @@
            (yh(jflag+1)-yh(jflag))*   &
            (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
 
-      !PORTME
+      !write(*,*) '{np,iflag,jflag,kflag}: ',np,iflag,jflag,kflag
       !Loop over all nodes surrounding droplet
+      !$acc loop seq
       do i=0,1
+      !$acc loop seq
       do j=0,1
+      !$acc loop seq
       do k=0,1
 
         ix = iflag+i
@@ -922,14 +1130,28 @@
         wtz = 1.0 - abs(z3d-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
         wtt = wtx*wty*wtz
 
+        !$acc atomic write
         qten(ix,iy,iz) = qten(ix,iy,iz) - &
             dmvdt/rhoval/dV*wtt*pdata(np,prmult)
 
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
+        !$acc atomic write
         thten(ix,iy,iz) = thten(ix,iy,iz) - &
             (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
 
+        if((np==TROUBLE)) then 
+          print *,'dd2: {ix,iy,iz}: ',ix,iy,iz
+          print *,'dd2: 2-way ',ix,iy,iz,rhow,rhoval,dtpdt,dv,wtt,pdata(np,prmult)
+          print *,'dd2: 2-way wtx: ',ix,iy,iz,wtx
+          print *,'dd2: 2-way wty: ',ix,iy,iz,wty
+          print *,'dd2: 2-way wtz: ',ix,iy,iz,wtz
+          print *,'dd2: thten: ',np, thten(ix,iy,iz)
+        endif
+        if((np==TROUBLE) .and. (i==0) .and. (j==0) .and. (k==0)) then 
+            print *,'dd: wtt: ',wtt
+            print *,'dd: dmvdt: ',dmvdt
+        endif
 !        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
 !        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
 !        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
@@ -999,10 +1221,6 @@
     !$acc end parallel
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-  !!$acc update &
-  !!$acc  host(xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,sigma,sigmaf,znt, &
-  !!$acc    rho,prs,qa,ua,va,wa,ta,pdata)
-  !if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
@@ -1030,31 +1248,14 @@
             ENDDO
       endif
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
-    !!$acc update &
-    !!$acc  device(rho,prs,qa,ua,va,wa,pdata)
-    !if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
-      !!$acc compare(pdata(:nparcels,:prx))
-      !!$acc compare(pdata(:nparcels,:pry))
-      !!$acc compare(pdata(:nparcels,:prz))
-      !!$acc compare(pdata(:nparcels,:prvpx))
-      !!$acc compare(pdata(:nparcels,:prvpy))
-      !!$acc compare(pdata(:nparcels,:prvpz))
-      !!$acc compare(pdata(:nparcels,:prrp))
-      !!$acc compare(pdata(:nparcels,:prms))
-      !!$acc compare(pdata(:nparcels,:prtp))
-
-      !!$acc compare(pdata(:nparcels,:pru))
-      !!$acc compare(pdata(:nparcels,:prv))
-      !!$acc compare(pdata(:nparcels,:prw))
-      !!$acc compare(pdata(:nparcels,:prtime))
-      !!$acc compare(pdata(:nparcels,:prth))
-      !!$acc compare(pdata(:nparcels,:prprs))
-      !!$acc compare(pdata(:nparcels,:prqv))
 !
-      !!$acc compare(pdata)
 !----------------------------------------------------------------------
       !$acc end data
+      !!$acc compare(pdata(1:50,1:npvals))
+      !!$acc compare(pdata)
+      !!$acc compare(wten,thten)
+      !stop 'droplet_driver: at the end subroutine'
 
       end subroutine droplet_driver
 

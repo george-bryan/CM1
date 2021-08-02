@@ -162,7 +162,7 @@
 
 !$acc declare copyin(ptype)
 !$acc declare create(ngxy,ngz)
-!$acc declare copyin(ib,ie,jb,je,kb,ke)
+!$acc declare create(ib,ie,jb,je,kb,ke)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
