@@ -249,11 +249,14 @@
     part_grav2 = 0.0
     part_grav3 = -0.84
 
+#ifdef _B4B
+    !$acc update &
+    !$acc host(pdata,xf,yf,zf,zh,sigma,sigmaf, &
+    !$acc      ua,va,wa,qa,ta,rho,prs,znt,qten,thten,zs)
+#else
     !$acc compare(pdata)
-    
     !JMD no idea why these values hae not already been set previously
     !$acc update device(ngxy,ngz)
-
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel &
     !$acc default(present) &
@@ -264,11 +267,9 @@
     !$acc     lhv,qstar,rprhs,tprhs,vtmp1,vtmp2,vtmp3,k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3, &
     !$acc     dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt,dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt, &
     !$acc     sig1,k1tp,esl,tptmp,k1rp,rptmp,part_grav1,part_grav2,part_grav3,rp0,tp0,volp0)
-
-    !print *,'droplet_driver: {ngxy,ngz}: ',ngxy,ngz
     !$acc compare(ngxy,ngz)
-
     !$acc loop gang vector 
+#endif
     nploop:  &
     DO np=1,nparcels
 
@@ -1283,7 +1284,11 @@
       ENDIF  myparcel
 
     ENDDO  nploop
+#ifdef _B4B
+    !$acc update device(pdata,qten,thten)
+#else
     !$acc end parallel
+#endif
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
