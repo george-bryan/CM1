@@ -200,10 +200,12 @@
     !$acc   create(wavg,wvar,thvavg,rhoavg,rfavg, &
     !$acc     ufr,ufs,ufd,vfr,vfs,vfd,ptfr,ptfs, &
     !$acc     ptfd,qvfr,qvfs,qvfd,temavg, &
-    !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,savg,qcrit, &
+    !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,savg2d,qcrit, &
     !$acc     u_hturb,u_vturb,u_hadv,u_vadv,u_pgrad,u_cor,u_hidiff,u_vidiff,u_rdamp, &
     !$acc     v_hturb,v_vturb,v_hadv,v_vadv,v_pgrad,v_cor,v_hidiff,v_vidiff,v_rdamp, &
-    !$acc     w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,w_buoy,w_hidiff,w_vidiff,w_rdamp)
+    !$acc     w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,w_buoy,w_hidiff,w_vidiff,w_rdamp, &
+    !$acc     zimin,zimax,qcfrac,qrfrac,qlfrac,qifrac,qtfrac,qcb,qrb,qlb,ncb,nrb,nlb, &
+    !$acc     qct,qrt,qlt,nct,nrt,nlt,ubar)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
@@ -3373,9 +3375,16 @@
         thv1(i,j) = thvx
       enddo
       enddo
+#ifdef _B4B
+      !$acc update device(thvx,thvsfc,thv1)
+#endif
     else
+#ifdef _B4B
+      !$acc update host(th0,th3d,dum2,tsk,psfc,tmpqsfc,thflux,qvflux,ust,govthv,hpbl)
+#else
       !$acc parallel loop gang vector collapse(2) default(present) &
       !$acc private(i,j,thvx,thf1,thf2,thvflux,ws,gamfac,tmpprt)
+#endif
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3392,10 +3401,17 @@
         thv1(i,j) = thvx + tmpprt
       enddo
       enddo
+#ifdef _B4B
+      !$acc update device(thvx,thf1,thf2,thvflux,ws,gamfac,tmpprt,thv1)
+#endif
     endif
 
+#ifdef _B4B
+      !$acc update host(u3d,v3d,zh,th0,th3d,dum2,tsk,psfc,tmpqsfc,thflux,qvflux,ust,govthv,hpbl)
+#else
       !$acc parallel loop gang vector collapse(3) default(present) &
       !$acc private(i,j,k,thvx,ubar,vbar)
+#endif
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -10178,11 +10194,9 @@
         !buh4
 
 #ifdef MPI
-    !$acc update host(vbar)
     !$acc host_data use_device(vbar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     !$acc end host_data
-    !$acc update device(vbar)
 #endif
 
 #ifndef _B4B
@@ -10696,7 +10710,7 @@
 
     savg2d = 0.0
 #ifdef _B4B
-    !$acc update host(s2d)
+    !$acc update host(s2d,savg2d)
 #else
     !$acc parallel loop gang vector collapse(2) default(present) &
     !$acc private(i,j) copy(savg2d) reduction(+:savg2d)
@@ -10706,6 +10720,9 @@
       savg2d = savg2d+s2d(i,j)
     enddo
     enddo
+#ifdef _B4B
+    !$acc update device(savg2d)
+#endif
 
 #ifdef MPI
     !$acc host_data use_device(savg2d)
@@ -10775,6 +10792,8 @@
     enddo
 #ifndef _B4B
     !$acc end parallel
+#else
+    !$acc update device(savg)
 #endif
 
 #ifdef MPI
@@ -10785,6 +10804,8 @@
 
 #ifndef _B4B
     !$acc parallel loop gang vector private(k)
+#else
+!$acc update host(savg)
 #endif
     do k=1,k2
       savg(k) = savg(k)/dble(nx*ny)
