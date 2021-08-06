@@ -2201,6 +2201,7 @@
 #ifdef MPI
         !$acc host_data use_device(doit)
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !$acc end host_data
 #endif
       print *,'domaindiag: after mpi_allreduce '
       !$acc parallel default(present) private(k)
@@ -8202,6 +8203,7 @@
         IF( myid+nlim .le. (numprocs-1) )THEN
           !$acc host_data use_device(doit)
           call MPI_ISEND(doit,1,mpi_logical,myid+nlim,999999,MPI_COMM_WORLD,reqs,ierr)
+          !$acc end host_data
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
       ENDIF
