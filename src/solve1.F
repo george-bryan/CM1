@@ -482,6 +482,7 @@
         endif
 
       ENDIF
+      !$acc compare(dum1,dum2,dum3,dum4,dum5)
 
 
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -690,8 +691,11 @@
             endif
 
 #ifdef MPI
+            !$acc update host(newval)
             call MPI_BCAST( newval  ,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
+            !$acc update device(newval)
 #endif
+            
 
             ulspg = newval
    
@@ -842,6 +846,7 @@
         endif  idiffeq1
 
       ENDIF
+      !$acc compare(dum1,dum2,dum3,dum4,dum5)
 
 !--------------------------------------------------------------------
 !  tendencies specific to THETA:
@@ -951,6 +956,7 @@
         enddo
         ENDDO
       ENDIF
+      !$acc compare(dum1,dum2,dum3,dum4,dum5)
 
       !----- store appropriate rho for budget calculations in dum2 -----!
       IF(axisymm.eq.1)THEN
@@ -1325,7 +1331,8 @@
 
 
         endif
-
+      !$acc compare(dum1,dum2,dum3,dum4,dum5)
+        !$acc compare(th0,tha)
         if( doimpl.eq.1 .and. dovturb )then
           !  Arrays for vimpl turbs:
           !    NOTE:  do not change dum7,dum8 from here to RK loop
@@ -1365,11 +1372,13 @@
           enddo
           enddo
         ENDIF
+        !$acc compare(sadv)
         call turbs(1,dt,dosfcflx,xh,rxh,arh1,arh2,uh,xf,arf1,arf2,uf,vh,vf,thflux,   &
                    rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                    dum1,dum2,dum3,dum4,dum5,sten,rho,rr,rf,sadv,thten1,khh,khv,dum7,dum8, &
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hturb,td_vturb,1)
 
+        !$acc compare(qa)
         IF( imoist.eq.1 )THEN
           ! moisture:
           do n=1,numq
@@ -1387,6 +1396,7 @@
           enddo
         ENDIF
 
+        !$acc compare(pta)
         IF(iptra.eq.1)THEN
           ! passive tracers:
           do n=1,npt
@@ -1398,6 +1408,7 @@
         ENDIF
 
       ENDIF  doturb
+      !$acc compare(dum1,dum2,dum3,dum4,dum5)
 
 !--------------------------------------------------------------------
 !  U-equation
@@ -1668,6 +1679,7 @@
         if(timestats.ge.1) time_misc=time_misc+mytime()
         
       ENDIF
+      !$acc compare(dum1,dum2,dum3,dum4,dum5)
 !-------------------------------------------------------------------
 !   Eddy recycler
 

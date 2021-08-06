@@ -359,7 +359,7 @@
       sand(3) = values(8)
       call random_seed(put=sand(1:k))
       call random_number(rand)
-      print *,'  myid,rand = ',myid,rand
+      !print *,'  myid,rand = ',myid,rand
       deallocate( sand )
 
       end subroutine reinit_random_seed

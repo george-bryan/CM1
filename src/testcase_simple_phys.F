@@ -430,7 +430,10 @@
         enddo
         !----
       enddo
+      !$acc compare(qa)
       !$acc parallel default(present) private(i,j,k)
+      !print *,'nql{1,2}: ',nql1,nql2
+
       do n=nql1,nql2
       !$acc loop gang vector collapse(3)
       do k=1,nk
@@ -443,6 +446,7 @@
       enddo
       !$acc end parallel
       !----
+      !$acc compare(dum2,rho0,ql,zf,qa)
       !$acc parallel default(present) private(i,j,k)
       do k=1,nk
         !$acc loop gang vector collapse(2)
@@ -510,7 +514,7 @@
 #else
       !$acc end parallel
 #endif
-
+      !stop 'simplerad: at the end of the subroutine'
       end subroutine simplerad
 
 

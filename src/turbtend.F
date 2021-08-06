@@ -71,7 +71,7 @@
   else
     le_num = 1.0
   endif
-
+  !$acc compare(rho,khh,s)
   dohoriz:  &
   IF( dohturb )THEN
 
@@ -138,6 +138,7 @@
         enddo
       ENDIF
 
+      !$acc compare(dumx,dumy)
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=1,nk
@@ -148,6 +149,7 @@
         enddo
         enddo
       enddo
+    !$acc compare(turbx,turby)
 
     ELSE
       ! axisymmetric:
@@ -210,6 +212,7 @@
       enddo
 
     ENDIF   ! endif for axisymm check
+    !$acc compare(turbx,turby)
 
 !---------------------------------------------------------------
 

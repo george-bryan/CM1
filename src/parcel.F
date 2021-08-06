@@ -20,6 +20,7 @@
       use constants
       use bc_module
       use comm_module
+      use misclibs
       use cm1libs , only : rslf
 #ifdef MPI
       use mpi
@@ -74,7 +75,7 @@
       real :: x3d,y3d,z3d
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
-      real :: z0,rznt,var
+      real :: z0,rznt,var,rand
       real :: sigdot,sig1,zsp,sig3d
       real :: xrhs1,xrhs2,xrhs3,tprhs,tptmp
       real :: vtmp1,vtmp2,vtmp3
@@ -83,20 +84,23 @@
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
       real :: k1tp,k2tp,k1rp,k2rp
       real :: taup,th_tmp,Rep,Nup,Shp,diffnorm
-      real :: rhop,volp,rhop0,taup0,rp0,tp0
+      real :: part_grav1,part_grav2,part_grav3,salinity
+      real :: rhop,volp,rhop0,taup0,rp0,tp0,volp0
       real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
 
       logical, parameter :: debug = .false.
-      !$acc declare present(rho,prs,qa,wa)
+      !$acc declare present(rho,prs,qa,wa,sigma)
 
       !integer :: nip1
 
       !JMD no idea why these values hae not already been set previously
       !$acc update device(ib,jb,kb,ie,je,ke)
-
       !!$acc compare(wten,thten)
+      !KLUDGE-JMD
+      call reinit_random_seed
+      !print *,'droplet_driver: point #1'
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
@@ -215,15 +219,20 @@
   !stop 'droplet_driver: after first compare'
   !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
   ! GHB 210714:
-    call prepcorners3( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+      !print *,'droplet_driver: point #2'
+    call prepcorners3_GPU( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-    call prepcorners3(rho,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+      !print *,'droplet_driver: point #2.1'
+    call prepcorners3_GPU(rho,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-    call prepcorners3(prs,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+      !print *,'droplet_driver: point #2.2'
+    call prepcorners3_GPU(prs,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-    call prepcorners3(qa(ib,jb,kb,nqv),sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+      !print *,'droplet_driver: point #2.3'
+    call prepcorners3_GPU(qa(ib,jb,kb,nqv),sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-    !!$acc compare(rho)
+      !print *,'droplet_driver: point #3'
+    !$acc compare(rho)
     !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
     !!$acc compare(sigma)
   !print *,'droplet_driver: number of parcels: ',nparcels
@@ -236,7 +245,11 @@
 !  Loop through all parcels:  if you have it, update it's properties
 
     dt2 = dt/2.0
+    part_grav1 = 0.0
+    part_grav2 = 0.0
+    part_grav3 = -0.84
 
+    !$acc compare(pdata)
     
     !JMD no idea why these values hae not already been set previously
     !$acc update device(ngxy,ngz)
@@ -247,10 +260,10 @@
     !$acc private(i,j,k,rx,ry,rz,rxu,ryv,rxs,rys,rzs,rzw,x3d,y3d,z3d, &
     !$acc     w1,w2,w3,w4,w5,w6,w7,w8,sig3d,iflag,jflag,kflag,nrkp, &
     !$acc     uval,vval,wval,qval,tval,rhoval,prsval,sigdot,zsp,rznt,var, &
-    !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,taup,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3,qinf, &
+    !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,rhop0,taup,taup0,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3,qinf, &
     !$acc     lhv,qstar,rprhs,tprhs,vtmp1,vtmp2,vtmp3,k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3, &
     !$acc     dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt,dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt, &
-    !$acc     sig1,k1tp,esl,tptmp,k1rp,rptmp)
+    !$acc     sig1,k1tp,esl,tptmp,k1rp,rptmp,part_grav1,part_grav2,part_grav3,rp0,tp0,volp0)
 
     !print *,'droplet_driver: {ngxy,ngz}: ',ngxy,ngz
     !$acc compare(ngxy,ngz)
@@ -346,6 +359,9 @@
 !          kflag_s=kflag_s-1
 !        endif
 !      endif
+      dropalive1:  &
+      IF (pdata(np,pract).gt.0.0) THEN
+
       dvpdt1 = pdata(np,prvpx)
       dvpdt2 = pdata(np,prvpy)
       dvpdt3 = pdata(np,prvpz)
@@ -798,6 +814,9 @@
         xrhs1 = pdata(np,prvpx)
         xrhs2 = pdata(np,prvpy)
         xrhs3 = pdata(np,prvpz)
+        volp = 4.0/3.0*pi*pdata(np,prrp)**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
 
 !PREVIOUS
 
@@ -805,6 +824,7 @@
         taup0 = taup
         rp0 = pdata(np,prrp)
         tp0 = pdata(np,prtp)
+        volp0 = 4.0/3.0*pi*rp0**3
 
         volp = 4.0/3.0*pi*pdata(np,prrp)**3
         rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
@@ -815,13 +835,12 @@
                          (wval-pdata(np,prvpz))**2)
 
         Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
-        !JMD This does not look right
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
-        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx))
-        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy))
-        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz))
+        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
+        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
+        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
 
         ! einf = qinf*rhoval/mw*ru*tval
 
@@ -871,7 +890,8 @@
           if ( z3d .gt. maxz ) then
              z3d = maxz - (z3d - maxz)
           elseif ( z3d .lt. 0.0 ) then
-             z3d = -z3d
+             z3d = 1.0e-6  !Just temporary 
+             pdata(np,pract) = -1.0  !Signal this as no longer alive
           endif
 
           k1vp3 = dt*vrhs3
@@ -920,13 +940,12 @@
                         (wval-vtmp3)**2)
 
         Rep = 2.0*rptmp*diffnorm/viscosity
-        !JMD THis looks strange
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
-        vrhs1 = 1.0/taup*(uval - vtmp1)
-        vrhs2 = 1.0/taup*(vval - vtmp2)
-        vrhs3 = 1.0/taup*(wval - vtmp3)
+        vrhs1 = 1.0/taup*(uval - vtmp1) + part_grav1
+        vrhs2 = 1.0/taup*(vval - vtmp2) + part_grav2
+        vrhs3 = 1.0/taup*(wval - vtmp3) + part_grav3
 
         qstar = qinf*exp(                                                   &
                      mw*lhv/ru*(1.0/tval - 1.0/tptmp)                       &
@@ -979,11 +998,16 @@
 
           !Wall BCs:
           if ( z3d .gt. maxz ) then
+             !Elastic collisions
              z3d = maxz - (z3d - maxz)
              pdata(np,prvpz) = -pdata(np,prvpz)
           elseif ( z3d .lt. 0.0 ) then
-             z3d = -z3d
-             pdata(np,prvpz) = -pdata(np,prvpz)
+             !Elastic collisions:
+             ! z3d = -z3d
+             ! pdata(np,prvpz) = -pdata(np,prvpz)
+             !Remove it
+             z3d = 1.0e-6  !Temporary
+             pdata(np,pract) = -1.0  !Signal this as no longer alive
           endif
         endif
         if(np==TROUBLE) then 
@@ -996,6 +1020,10 @@
       ENDIF
 
       ENDDO  rkloop
+      ENDIF dropalive1
+
+    dropalive2:  &
+    IF (pdata(np,pract).gt.0.0) THEN
 
 
 !-----------------------------------------------------
@@ -1086,19 +1114,20 @@
       !--------
       !PORTME
       !Recall that the "old" value is stored here
-      dvpdt1 = (dvpdt1-pdata(np,prvpx))/dt   !Remember to deal with gravity later!
-      dvpdt2 = (dvpdt2-pdata(np,prvpy))/dt
-      dvpdt3 = (dvpdt3-pdata(np,prvpz))/dt
+      dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
+      dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
+      dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
 
-      drpdt = (drpdt - pdata(np,prrp))/dt
-      !Only the sensible component of energy (subtract off the latent)
-      dtpdt = (dtpdt - pdata(np,prtp))/dt - 3.0*lhv/cpl/rp0*drpdt
+      drpdt = (pdata(np,prrp)-drpdt)/dt
+      !Only the sensible component of energy 
+      !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
+      dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(tval-pdata(np,prtp))
       if(np==TROUBLE) then  
         print *,'dd: rhow: ',rhow
         print *,'dd: before dmvdt: ',dmvdt
         print *,'dd: pdata(np,prrp): ',pdata(np,prrp)
       endif
-      dmvdt = (dmvdt - rhow*4.0/3.0*pi*pdata(np,prrp)**3)/dt
+      dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt)/dt
 
       !At this point, iflag,jflag,kflag is the node beneath droplet
 
@@ -1137,8 +1166,10 @@
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
         !$acc atomic write
+        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
+        !    (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
         thten(ix,iy,iz) = thten(ix,iy,iz) - &
-            (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
+            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
 
         if((np==TROUBLE)) then 
           print *,'dd2: {ix,iy,iz}: ',ix,iy,iz
@@ -1161,12 +1192,45 @@
       enddo
       enddo
       enddo
+
+    ENDIF dropalive2
        
 
 
 !-----------------------------------------------------
 !  Account for boundary conditions (if necessary)
 !-----------------------------------------------------
+
+      !Now that the particles have been updated, do something with those which
+      !have fallen out the bottom:
+      if (pdata(np,pract).lt.0.0) then
+            !Replace with a new droplet at random location
+#if 0
+              !JMD-KLUDGE 
+              call random_number(rand)
+              x3d = rand*maxx
+              call random_number(rand)
+              y3d = rand*maxy
+              call random_number(rand)
+              z3d = rand*maxz
+#endif
+              pdata(np,prvpx) = 0.0
+              pdata(np,prvpy) = 0.0
+              pdata(np,prvpz) = 0.0
+              !Droplet size (radius)
+              pdata(np,prrp) = 20.0e-6
+  
+              !Droplet solute mass
+              salinity = 0.034
+              pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+              !Droplet temperature
+              pdata(np,prtp) = 302.0
+              !Droplet multiplicity
+              pdata(np,prmult) = 1.0
+              !Make it alive again
+              pdata(np,pract) = 1.0
+              
+      end if
 
         ! New for cm1r17:  if parcel exits domain,
         ! just assume periodic lateral boundary conditions
@@ -1213,6 +1277,7 @@
         pdata(np,prtp) = -1.0e30
         pdata(np,prms) = -1.0e30
         pdata(np,prmult) = -1.0e30
+        pdata(np,pract) = -1.0e30
 #endif
 
       ENDIF  myparcel
@@ -1224,13 +1289,18 @@
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
+     !$acc compare(pdata)
 #ifdef MPI
+      print *,'droplet_driver: before call to MPI_ALLREDUCE'
+      !$acc update host(pdata)
       if( .not. terrain_flag )then
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       else
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
+      !$acc update device(pdata)
+      print *,'droplet_driver: after call to MPI_ALLREDUCE'
       if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
      
 #endif
@@ -1254,7 +1324,7 @@
       !$acc end data
       !!$acc compare(pdata(1:50,1:npvals))
       !!$acc compare(pdata)
-      !!$acc compare(wten,thten)
+      !!$acc compare(qten,thten)
       !stop 'droplet_driver: at the end subroutine'
 
       end subroutine droplet_driver
@@ -1878,12 +1948,14 @@
 !  communicate data  (for MPI runs)
 
 #ifdef MPI
+      !$acc update host(pdata)
       if( .not. terrain_flag )then
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       else
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
+      !$acc update device(pdata)
 #endif
 
 !----------------------------------------------------------------------

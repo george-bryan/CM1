@@ -277,6 +277,7 @@
                                ps1,ps2,pn1,pn2,reqs_p)
         endif
 #endif
+      !$acc compare(ppd)
 
 !-----
 
@@ -517,6 +518,7 @@
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif
         ENDIF
+      !$acc compare(ppd)
 
 !--------------------------------------------------------------------
 !  time-averaged velocities:
@@ -600,6 +602,7 @@
       call comm_1s_start_GPU(phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       call comm_1s_end_GPU(  phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
 #endif
+      !$acc compare(phi2)
 
 
       IF( nrk.eq.nrkmax )THEN

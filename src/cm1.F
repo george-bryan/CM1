@@ -2740,21 +2740,21 @@
     !$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
     !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland) &
     !$acc copyin(avgsfcu,avgsfcv,avgsfcs,avgsfct) &
-    !$acc copy(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
-    !$acc copy(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
-    !$acc copy(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
-    !$acc copy(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
-    !$acc copy(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
-    !$acc copy(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
-    !$acc copy(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
-    !$acc copy(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
-    !$acc copy(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
-    !$acc copy(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
-    !$acc copy(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
-    !$acc copy(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-    !$acc copy(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
-    !$acc copy(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2) &
-    !$acc copy( &
+    !$acc copyin(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
+    !$acc copyin(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
+    !$acc copyin(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
+    !$acc copyin(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
+    !$acc copyin(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
+    !$acc copyin(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
+    !$acc copyin(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
+    !$acc copyin(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
+    !$acc copyin(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
+    !$acc copyin(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
+    !$acc copyin(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
+    !$acc copyin(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
+    !$acc copyin(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
+    !$acc copyin(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2) &
+    !$acc copyin( &
     !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
     !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
     !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
@@ -2804,14 +2804,14 @@
     timeloop:  &
     DO WHILE( mtime.lt.timax )
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
       print *,'cm1: at the top of the do-while loop'
       !$acc compare(dum1)
       ifsolve:  &
       if( dosolve )then
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
         ! call solve, integrate model one time step:
         nstep = nstep + 1
@@ -2951,9 +2951,9 @@
 #ifdef _OPENACC
         call nvtxStartRange("solve1 ",id=0)
 #endif
-        !$acc compare(rho)
+        !$acc compare(rho,tha)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve1: pre-RK terms
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
         call     solve1(nstep,rbufsz,num_soil_layers,                  &
@@ -3026,9 +3026,11 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!$acc compare(rru,rrv)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_solve1
        !stop 'cm1: after solve1' 
+!$acc compare(tha)
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
@@ -3039,9 +3041,10 @@
 #ifdef _OPENACC
         call nvtxStartRange("solve2",id=1)
 #endif
+       print *,'cm1: before solve2'
         !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -3115,12 +3118,13 @@
                    doazimwrite,dorestart)
         ! end_solve2
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!$acc compare(tha)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
       !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-      !print *,'cm1: after call to solve2'
+      print *,'cm1: after call to solve2'
       !$acc compare(dum1)
 
       IF(imoist.eq.1)THEN
@@ -3159,14 +3163,15 @@
         call nvtxStartRange("solve3",id=3)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         if(timestats.ge.1) time_nvtx=time_nvtx+mytime()
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
 
 print *,'cm1: before call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(se32)
 
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
@@ -3238,7 +3243,8 @@ print *,'cm1: before call to solve3'
         ! end_solve3
         !stop 'cm1: after call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!$acc compare(tha,rru,rrv)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
@@ -3246,7 +3252,7 @@ print *,'cm1: before call to solve3'
 print *,'cm1: after call to solve3'
 !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
 
@@ -3268,7 +3274,7 @@ print *,'cm1: after call to solve3'
       endif  ifsolve
       
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3303,7 +3309,7 @@ print *,'cm1: after call to solve3'
       !cc   radiation  ccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
       IF( radopt.ge.1 .and. dorad )THEN
@@ -3339,7 +3345,7 @@ print *,'cm1: after call to solve3'
 
       ENDIF
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !cc   Prepare turbulence vars for next time step   cccccccccccccccccc
@@ -3363,7 +3369,7 @@ print *,'cm1: after call to solve3'
         call nvtxStartRange("srf_and_turb",id=5)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
@@ -3416,12 +3422,13 @@ print *,'cm1: after call to solve3'
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #ifdef _OPENACC
       call nvtxEndRange()
 #endif
       !$acc compare(dum1,dum2)
       !$acc compare(rho) 
+      !stop 'cm1: after call to sfc_and_turb'
 
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
         !  get stress terms for explicit diffusion scheme:
@@ -3718,7 +3725,7 @@ print *,'cm1: after call to solve3'
         stop 'ERROR: parcel_{interp,write} not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
                                zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
                                zs,sigma,sigmaf,rds,gz,                 &
@@ -3736,7 +3743,7 @@ print *,'cm1: after call to solve3'
         stop 'ERROR: parcel_write not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
         call     parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
 #endif
@@ -3849,7 +3856,7 @@ print *,'cm1: after call to solve3'
         stop 'ERROR: azimavg not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call   azimavg(nstep,mtime,nwritea,arecs,arecw,qname,dt,dosfcflx,      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
@@ -3876,7 +3883,7 @@ print *,'cm1: after call to solve3'
                    dat1(1,1),dat2(1,1),dat3(1,1,1),                            &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_azimavg
         nwritea = nwritea+1
         if(azimavgfrq.gt.0.0)then
@@ -3907,7 +3914,7 @@ print *,'cm1: after call to solve3'
         stop 'ERROR: writeout_hifrq not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call   writeout_hifrq(                                                 &
                    nstep,mtime,nwriteh,qname,dt,dosfcflx,                      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
@@ -3939,7 +3946,7 @@ print *,'cm1: after call to solve3'
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag,               &
                    dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,reqs_s)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end hifrq
 
         nwriteh = nwriteh+1

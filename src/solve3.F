@@ -330,6 +330,7 @@
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+      !print *,'solve3: point #1'
 !Begin:  message passing
           call bcs_GPU(pp3d)
 #ifdef MPI
@@ -341,6 +342,7 @@
           call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
                                   rs31,rs32,rn31,rn32,reqs_y)
 #endif
+      !print *,'solve3: point #2'
 
       IF( imoist.eq.1 )THEN
           !print *,'numq: ',numq
@@ -354,6 +356,7 @@
 #endif
           ENDDO
       ENDIF
+      !print *,'solve3: point #3'
 
 
       !$acc compare(rho)
@@ -362,6 +365,7 @@
 #ifdef MPI
       call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
+      !print *,'solve3: point #4'
 
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         !$omp parallel do default(shared) private(i,j,k)
@@ -386,6 +390,7 @@
 #ifdef MPI
       call comm_1s_start_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
 #endif
+      !print *,'solve3: point #5'
 
       IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
         ! 180212: moved this out of sound,sounde,soundcb
@@ -422,6 +427,7 @@
 #endif
 
       ENDIF
+      !print *,'solve3: point #6'
 !-----------------------------------------------------------------
 
 !Done:  message passing
@@ -531,6 +537,7 @@
                            ws31,ws32,wn31,wn32,reqs_w)
 #endif
 
+      !print *,'solve3: point #7'
 #ifdef MPI
       if(   sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
         call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
@@ -541,6 +548,7 @@
         call bcw2_GPU(w3d)
       endif
 #endif
+      !print *,'solve3: point #8'
 
       if(terrain_flag)then
         call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
@@ -639,6 +647,7 @@
         call comm_3w_start_GPU(rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
 #endif
       ENDIF
+      !print *,'solve3: point #9'
 
 !----------
 !  Diagnostics (infrequent):
@@ -702,6 +711,7 @@
         call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
+      !print *,'solve3: point #10'
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k) 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
@@ -725,6 +735,7 @@
                 reqs_t(1,n))
           enddo
 #endif
+      !print *,'solve3: point #11'
           print *, 'Here 16 -- Not being executed'
           !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
           !$omp parallel do default(shared)  &
@@ -747,6 +758,7 @@
       call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
       call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
 #endif
+      !print *,'solve3: point #12'
 
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       !$omp parallel do default(shared)  &
@@ -771,6 +783,7 @@
                      ,reqs_q(1,n) )
         ENDDO
 #endif
+      !print *,'solve3: point #13'
         !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n) 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
@@ -788,6 +801,7 @@
 !----------
 
 #ifdef MPI
+        !$acc compare(rho)
         !-----
         call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
         call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
@@ -801,7 +815,9 @@
         call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcs2_GPU(rf)
         !-----
+        !$acc compare(rho)
 #endif
+      !print *,'solve3: point #14'
 
         ! meh 1 
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -819,6 +835,7 @@
           call comm_1p_end_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
         ENDIF
 #endif
+      !print *,'solve3: point #15'
 
 !-----------------------------------------------------------------
 
@@ -833,16 +850,21 @@
         call comm_3u_end_GPU( rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
         call comm_3v_end_GPU( rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
         call comm_3w_end_GPU( rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
+      !$acc compare(rru,rrv,rrw)
         call getcorneru3_GPU(rru,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
+      !$acc compare(rru,rrv,rrw)
         call getcornerv3_GPU(rrv,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
+      !$acc compare(rru,rrv,rrw)
         call getcornerw3_GPU(rrw,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
+      !$acc compare(rru,rrv,rrw)
         call bcu2_GPU(rru)
         call bcv2_GPU(rrv)
         call bcw2_GPU(rrw)
+      !$acc compare(rru,rrv,rrw)
 #endif
-
+      !print *,'solve3: point #16'
         prltrn:  &
         if(terrain_flag)then
           ! 180713:  get sigma-dot
@@ -956,7 +978,8 @@
           enddo
           !$acc end parallel
 
-          
+          !$acc compare(rho)
+          print *,'solve3: before call to droplet_driver' 
           call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
                                tha,qa,th0,pi0,ppi,prs,                              &
@@ -966,14 +989,17 @@
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
                                uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2))
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
+          print *,'solve3: after call to droplet_driver' 
+          !$acc compare(dpten)
 #ifdef MPI
-          !PORTME
-          call comm_1s_tend_halo(dpten(ib,jb,kb,1))
-          call comm_1s_tend_halo(dpten(ib,jb,kb,2))
+          call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,1))
+          call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,2))
 #else
           call bcs_tend_halo(dpten(ib,jb,kb,1))
           call bcs_tend_halo(dpten(ib,jb,kb,2))
 #endif
+      !$acc compare(dpten)
+      !print *,'solve3: point #17'
           if(timestats.ge.1) time_dpc=time_dpc+mytime()
           if( nout3d.ge.2 )then
             !$omp parallel do default(shared) private(i,j,k)
@@ -996,32 +1022,31 @@
             do k=1,nk
             do j=1,nj
             do i=1,ni
-              ! GHB, 210714:  dpten values are very large 
-              ! for now, use a small fraction of the tendency
-              ! (just for purposes of testing parallelization)
-              th3d(i,j,k)=th3d(i,j,k)+dt*(1.0d-20*dpten(i,j,k,1))
-              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)+dt*(1.0d-10*dpten(i,j,k,2))
+              th3d(i,j,k)=th3d(i,j,k)+dt*dpten(i,j,k,1)
+              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)+dt*dpten(i,j,k,2)
             enddo
             enddo
             enddo
             if(timestats.ge.1) time_parcels=time_parcels+mytime()
             call bcs_GPU(th3d)
 #ifdef MPI
-            call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
+            call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
                                     rs31,rs32,rn31,rn32,reqs_y)
 #endif
             call bcs_GPU(q3d(ib,jb,kb,nqv))
 #ifdef MPI
-            call comm_3s_start(q3d(ib,jb,kb,nqv)  &
+            call comm_3s_start_GPU(q3d(ib,jb,kb,nqv)  &
                        ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
-            call comm_3s_end(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
-            call comm_3s_end(q3d(ib,jb,kb,nqv)  &
+            call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
+            call comm_3s_end_GPU(q3d(ib,jb,kb,nqv)  &
                        ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
 #endif
+      !$acc compare(q3d,th3d)
+      !print *,'solve3: point #18'
             !$omp parallel do default(shared) private(i,j,k)
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk

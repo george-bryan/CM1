@@ -6038,6 +6038,10 @@
           npvals = npvals+1
           npvars = npvars+1
           prmult = npvals  !Droplet multiplicity
+          
+          npvals = npvals+1
+          npvars = npvars+1
+          pract  = npvals  !Is droplet alive? > 0 if yes, < 0 if 
 
         end if
 
@@ -6212,6 +6216,7 @@
       if(dowr) write(outfile,*) '    prms     = ',prms
       if(dowr) write(outfile,*) '    prtp     = ',prtp
       if(dowr) write(outfile,*) '    prmult   = ',prmult
+      if(dowr) write(outfile,*) '    pract    = ',pract
       if(dowr) write(outfile,*)
 
 !--------------------------------------------------------------

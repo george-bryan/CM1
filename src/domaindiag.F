@@ -1900,7 +1900,7 @@
       !stop 'after calculation of qct,nct, etc...'
 
 #ifdef MPI
-      !$acc host_data use_device(qct,qrt,qlt,ncr,nrt,nlt)
+      !$acc host_data use_device(qct,qrt,qlt,nct,nrt,nlt)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -10179,7 +10179,7 @@
 
 #ifdef MPI
     !$acc update host(vbar)
-    !$acc host_data use_device(ubar)
+    !$acc host_data use_device(vbar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,vbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     !$acc end host_data
     !$acc update device(vbar)
@@ -10842,7 +10842,7 @@
 
     !$acc end parallel
 #ifdef MPI
-    !$acc host_data use_device(ubar)
+    !$acc host_data use_device(savg)
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),k2,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
     !$acc end host_data
 #endif

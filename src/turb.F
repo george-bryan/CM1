@@ -232,7 +232,8 @@
     !$acc      fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z,iamsat)
 
 !-----------------------------------------------------------------------------------
-!$acc compare(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!$acc compare(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)
+!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       turbfac = 1.0
       t2pfac = 1.0
     facheck:  &
@@ -1050,6 +1051,7 @@
 #ifdef MPI
     call comm_1s2d_start_GPU(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                              us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
+    !$acc compare(s1)
 #endif
     call bc2d_GPU(znt)
 #ifdef MPI
@@ -1070,28 +1072,35 @@
     call comm_1s2d_end_GPU(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                            us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
     call bcs2_2d_GPU(ust)
+    !$acc compare(ust)
 
     call comm_1s2d_end_GPU(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                            us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
     call bcs2_2d_GPU(u1 )
+    !$acc compare(u1)
 
     call comm_1s2d_end_GPU(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                            us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
     call bcs2_2d_GPU(v1 )
+    !$acc compare(v1)
 
     call comm_1s2d_end_GPU(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                            us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
+    !$acc compare(s1)
     call bcs2_2d_GPU(s1 )
+    !$acc compare(s1)
 
     call comm_1s2d_end_GPU(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
                            us31(1,1,5),us32(1,1,5),un31(1,1,5),un32(1,1,5),reqs_p)
     call bcs2_2d_GPU(znt)
+    !$acc compare(znt)
 
   if( sfcmodel.eq.4 )then
     call comm_1s2d_end_GPU(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
                             us31(1,1,6),us32(1,1,6),un31(1,1,6),un32(1,1,6),reqs_x)
     call bcs2_2d_GPU(mznt)
   endif
+    !$acc compare(mznt)
     !-------------!
 
     !-------------!
@@ -1102,11 +1111,11 @@
     call comm_2d_corner_GPU(znt)
   if( sfcmodel.eq.4 )then
     call comm_2d_corner_GPU(mznt)
-    !$acc update device(mznt) 
   endif
     !-------------!
-    !$acc update device(ust,u1,v1,st,znt)
+    !$acc compare(ust,u1,v1,st,znt,mznt)
 #endif
+    !$acc compare(s1)
     ! account for annoying GFDL naming convention:
     IF( sfcmodel.eq.4 )THEN
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1180,6 +1189,7 @@
     call comm_2d_corner_GPU(vt)
     call comm_2d_corner_GPU(st)
     !-------------!
+    !$acc compare(ustt,ut,vt,st)
 #endif
 
   ENDIF  tbc3b
@@ -1530,11 +1540,14 @@
         call bcw2_GPU(wa)
 #endif
       endif
+      !$acc compare(ua,va,wa)
+      !$acc compare(dum1)
 
         !  now, get turbulent stresses:
         call     gettau(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,ustt,ut,vt,st,rf,mf,dum1,dum2,dum3,dum4,dum5,dum6, &
                         kmh,kmv,t11,t12,t13,t22,t23,t33,ua,ugr,va,vgr,wa,avgsfcu,avgsfcv,avgsfcs,bndy,kbdy)
     !$acc compare(dum1,dum2)
+    !stop 'sfc_and_turb: after gettau'
 
         if( do_ib )then
 #ifdef _OPENACC
@@ -1601,7 +1614,7 @@
           ENDIF
 
     ENDIF
-    !$acc compare(dum1,dum2)
+    !$acc compare(dum1,dum2,rru,rrv)
 
 
 !-------------------------------------------------------------------
@@ -2290,6 +2303,7 @@
 #ifdef MPI
         call comm_1s_start_GPU(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
 #endif
+        !$acc compare(upten,vpten)
         IF( axisymm.eq.1 )THEN
           ! cm1r19 bug fix:
           !$omp parallel do default(shared) private(i,k)
@@ -2306,7 +2320,7 @@
 #ifdef MPI
         call comm_1s_end_GPU(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
         call comm_1s_end_GPU(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
-        !$acc update device(upten,vpten)
+        !$acc compare(upten,vpten)
 #endif
       endif
 
@@ -2680,7 +2694,7 @@
                                              kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
 #endif
         call bc2d_GPU(kmh(ibc,jbc,1))
-!$acc compare(kmh,kmv,khh,khv)
+!$acc compare(kmh,kmv,khh,khv,tkea)
         !call bc2d(kmh(ibc,jbc,1))
 #ifdef MPI
         call comm_1s2d_start_GPU(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
@@ -2764,7 +2778,7 @@
         call comm_2d_corner_GPU(kmh(ibc,jbc,nk+1))
         !-----
 #endif
-!$acc compare(kmh,kmv,khh,khv)
+!$acc compare(kmh,kmv,khh,khv,tkea)
 
         !$omp parallel do default(shared) private(i,j)
         !$acc parallel loop gang vector default(present) private(i,j)
@@ -2948,6 +2962,7 @@
       call bct2_GPU(kmh)
       call bct2_GPU(kmv)
 #endif
+    !$acc compare(kmh,kmv)
 
 !--------------------------------------------------------------
 
@@ -3010,8 +3025,10 @@
         call comm_2d_corner_GPU(kmv(ibc,jbc,1))
         call bcs2_2d_GPU(kmv(ibc,jbc,1))
 #endif
+      !$acc compare(kmv)
 
       IF( tconfig.eq.1 )THEN
+      !PORTME
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
         do j=0,nj+1
@@ -3022,6 +3039,7 @@
         enddo
         enddo
       ELSEIF( tconfig.eq.2 )THEN
+        !PORTME
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
         do j=0,nj+1
@@ -3158,6 +3176,7 @@
       call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call bct2_GPU(kmh)
 #endif
+      !$acc compare(kmh)
 
         ! Extrapolate:
         do j=0,nj+1
@@ -3293,6 +3312,7 @@
       call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call bct2_GPU(kmv)
 #endif
+      !$acc compare(kmv)
 
 !--------------------------------------------------------------
 !  calculate Kh
@@ -3431,6 +3451,7 @@
   !$acc present(ugr,vgr) &
   !$acc present(dum1,dum2) &
   !$acc present(t11,t12,t13,t22,t23,t33)
+  !$acc compare(dum1)
   IF(axisymm.eq.0)THEN
 
     ! Cartesian grid:
@@ -3717,8 +3738,10 @@
 !--------------------------------------------------------------
 !  lower boundary conditions
 
+       !$acc compare(dum1)
             call sfcstress(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,rf,mf,dum1,dum2,  &
                         kmh,kmv,t13,t23,ua,ugr,va,vgr,avgsfcu,avgsfcv,avgsfcs)
+       !$acc compare(dum1)
 
 !--------------------------------------------------------------
 !  upper boundary conditions
@@ -3912,7 +3935,7 @@
         ELSE  avgsfc
 
           ! Moeng (1984):
-
+          !$acc compare(ust,u1,v1,s1)
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=0,nj+1
           do i=0,ni+1

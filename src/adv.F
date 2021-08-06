@@ -122,6 +122,7 @@
       call advsaxi(doweno,bflag,bsq,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,rmh,gz,rgz, &
                    rho0,rr0,rf0,rrf0,advx,dumx,mass,rru,s0,s,pdef,dt,weps,   &
                    hadvorder,flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
+    !$acc compare(advx)
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
       !$acc parallel loop gang collapse(2) private(i,j,k)
@@ -277,7 +278,7 @@
 
     !-------------------------------------------------------
     !  hadv tendencies:
-
+      !$acc compare(dumx,dumy,uh,vh)
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=1,nk
@@ -289,6 +290,7 @@
       enddo
       enddo
       enddo
+    !$acc compare(advx)
 
     !-------------------------------------------------------
     !  open bc:  set hadv to zero at inflow
@@ -319,6 +321,7 @@
         enddo
         ENDDO
       ENDIF
+    !!$acc compare(advx)
 
       IF(doits)THEN
         j=1
@@ -420,6 +423,7 @@
         ENDDO
       ENDIF
     ENDIF
+    !$acc compare(advx,dumx)
     !-------------------------------------------------------
 
 
@@ -437,6 +441,7 @@
         if(timestats.ge.1) time_advs=time_advs+mytime()
         call pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dumx,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
       ENDIF
+    !$acc compare(advx,dumx)
 
 !----------------------------------------------------------------
 !  Misc for y-direction
@@ -638,6 +643,7 @@
         call pdefx2(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dumx,mass,s0,s,dt,flag,sw31,sw32,se31,se32,reqsx)
         call pdefy2(vh,rho0,gz,rgz,rrv,advy,dumy,mass,s0,s,dt,flag,ss31,ss32,sn31,sn32,reqsy)
       ENDIF
+    !$acc compare(advx,dumx)
 
 !----------------------------------------------------------------
 !  Total advection tendency:
@@ -783,6 +789,7 @@
       call advsaxi(.false.,bflag,bsq,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,rmh,gz,rgz, &
                    rho0,rr0,rf0,rrf0,advx,dumx,mass,rru,s0,s, 0  ,dt,weps,   &
                    hadv     ,flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
+    !$acc compare(advx,dumx)
     ENDIF
       ! step2: get non-diffusive and diffusive components of advection:
       ! buh41 !
@@ -840,6 +847,7 @@
         enddo
     ENDIF
     ENDIF  gethidiffs
+    !!$acc compare(advx)
     !--------
     getvidiffs:  &
     IF( sd_vidiff.ge.1 )THEN
@@ -1030,6 +1038,7 @@
       enddo
       enddo
       enddo
+      !$acc compare(dumx)
     ELSE
 
 !----------------------------------------------------------------
@@ -1059,9 +1068,10 @@
         call stopcm1
 
       endif
+      !$acc compare(dumx)
 
     ELSE
-
+      !$acc compare(rru,rrv,u3d)
       if(     hadvordrv.eq.2 )then
 
         call     hadv_flx2(  2 ,ni+1,nj,nk,c1,c2,rru,rrv,dumx,dumy,u3d)
@@ -1104,6 +1114,7 @@
         call stopcm1
 
       endif
+      !$acc compare(dumx)
 
     ENDIF
 
@@ -1114,6 +1125,7 @@
         call   ib_side_flx(  2 ,ni+1,nj,nk,c1,c2,rru,rrv,dumx,dumy,u3d,hadvordrv,bndy,hflxw,hflxe,hflxs,hflxn)
       ENDIF
     ENDIF
+      !$acc compare(dumx)
 
     !-------------------------------------------------------
     !  open bc:  set hadv to zero at inflow
@@ -1254,6 +1266,7 @@
       enddo
       enddo
     ENDDO
+      !$acc compare(dumx)
       IF( doubud .and. nrk.eq.nrkmax .and. ud_hediff.ge.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector private(i,j,k)
@@ -1671,6 +1684,7 @@
         print *,' 13951 '
         call stopcm1
       endif
+      !$acc compare(dumx)
     ELSE
       if(     hadvordrv.eq.3 .or. ( advwenov.ge.1 .and. weno_order.eq.3 ) )then
         hadv = 4
@@ -1685,6 +1699,7 @@
         call stopcm1
       endif
       call advuaxi(.false.,arh1,arh2,xf,rxf,arf1,arf2,uf,vh,rho0,rr0,rf0,rrf0,dumx,advx,rru,u3d,hadv)
+      !$acc compare(dumx)
     ENDIF
       ! step2: get non-diffusive and diffusive components of advection:
       ! buh41 !
