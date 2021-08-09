@@ -3645,7 +3645,7 @@ print *,'cm1: after call to solve3'
             enddo
             !$acc end parallel
           ENDIF
-#if 0
+!#if 0
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
                         name_output,desc_output,unit_output,grid_output,cmpr_output,           &
@@ -3682,7 +3682,7 @@ print *,'cm1: after call to solve3'
                         ! end_writeout
                         !stop 'cm1: after call to writout'
                         
-#endif 
+!#endif 
           if(n.eq.1)then
             srec = frec
           else
@@ -4137,8 +4137,8 @@ print *,'cm1: after call to solve3'
 
       print *,'nstep: ',nstep
       print *,'mtime: ',mtime
-      if(nstep .eq. 1) then 
-        !stop 'cm1: at the end of timeloop'
+      if(nstep .eq. 27) then 
+        stop 'cm1: at the end of timeloop'
       endif
 
     ENDDO  timeloop
