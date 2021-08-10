@@ -2459,12 +2459,14 @@
       enddo
 
 #ifdef MPI
-!$acc host_data use_device(bot,top)
+      !$acc update host(bot,top)
+      !!$acc host_data use_device(bot,top)
       call MPI_REDUCE(bot,var,1,MPI_REAL,MPI_MIN,0,MPI_COMM_WORLD,ierr)
       bot=var
       call MPI_REDUCE(top,var,1,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
       top=var
-!$acc end host_data
+      !$acc update device(bot,top)
+      !!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -2641,11 +2643,13 @@
     ENDIF
     ENDIF  kcheck
 #ifdef MPI
-!$acc host_data use_device(vmax)
+!!$acc host_data use_device(vmax)
+!$acc update host(vmax)
         call MPI_REDUCE(vmax,var,1,MPI_REAL,MPI_MAX,0,   &
                         MPI_COMM_WORLD,ierr)
         vmax=var
-!$acc end host_data
+!$acc update device(vmax)
+!!$acc end host_data
         if(myid.eq.0)then
 #endif
         write(6,100) text,vmax
@@ -2778,7 +2782,8 @@
       enddo
 
 #ifdef MPI
-!$acc host_data use_device(mmax,fmax,myid,imax,jmax,kmax,nmax)
+!!$acc host_data use_device(mmax,fmax,myid,imax,jmax,kmax,nmax)
+!$acc update host(mmax,fmax,myid,imax,jmax,kmax,nmax)
       mmax(1)=fmax
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
@@ -2790,7 +2795,8 @@
       call MPI_BCAST(jmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       fmax=nmax(1)
-!$acc end host_data
+!$acc update device(mmax,fmax,myid,imax,jmax,kmax,nmax)
+!!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -2911,11 +2917,13 @@
 
 #ifdef MPI
 #ifndef _B4B
-!$acc host_data use_device(cflmax)
+!!$acc host_data use_device(cflmax)
+!$acc update host(cflmax)
 #endif 
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
 #ifndef _B4B
-!$acc end host_data
+!$acc update device(cflmax)
+!!$acc end host_data
 #endif
 #endif
 
@@ -3181,7 +3189,8 @@
       endif
 
 #ifdef MPI
-!$acc host_data use_device(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
+!!$acc host_data use_device(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
+!$acc update host(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
       mmax(1)=fhmax
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
@@ -3205,7 +3214,8 @@
       call MPI_BCAST(jmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       fvmax=nmax(1)
-!$acc end host_data
+!$acc update device(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
+!!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3362,12 +3372,14 @@
       !$acc end data
 
 #ifdef MPI
-!$acc host_data use_device(tmass)
+!!$acc host_data use_device(tmass)
+!$acc update host(tmass)
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!$acc end host_data
+!!$acc end host_data
+!$acc update device(tmass)
       if(myid.eq.0)then
 #endif
 
@@ -3442,12 +3454,14 @@
 !$acc end parallel
 
 #ifdef MPI
-!$acc host_data use_device(tmass)
+!!$acc host_data use_device(tmass)
+!$acc update host(tmass)
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!$acc end host_data
+!$acc update device(tmass)
+!!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3525,12 +3539,14 @@
 !$acc end parallel
 
 #ifdef MPI
-!$acc host_data use_device(tmass)
+!!$acc host_data use_device(tmass)
+!$acc update host(tmass)
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!$acc end host_data
+!$acc update device(tmass)
+!!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3628,7 +3644,8 @@
       le=le*(dx*dy*dz)
 
 #ifdef MPI
-!$acc host_data use_device(ek,ei,ep,le)
+!!$acc host_data use_device(ek,ei,ep,le)
+!$acc update host(ek,ei,ep,le)
       var=0.0d0
       call MPI_REDUCE(ek,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
@@ -3645,7 +3662,8 @@
       call MPI_REDUCE(le,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       le=var
-!$acc end host_data
+!$acc update device(ek,ei,ep,le)
+!!$acc end host_data
       if(myid.eq.0)then
 #endif
 
@@ -3734,7 +3752,8 @@
       
 
 #ifdef MPI
-!$acc host_data use_device(tmu,tmv,tmw,var)
+!!$acc host_data use_device(tmu,tmv,tmw,var)
+!$acc update host(tmu,tmv,tmw,var)
       var=0.0d0
       call MPI_REDUCE(tmu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
@@ -3747,7 +3766,8 @@
       call MPI_REDUCE(tmw,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmw=var
-!$acc end host_data
+!$acc update device(tmu,tmv,tmw,var)
+!!$acc end host_data
       if(myid.eq.0)then
 #endif
  
@@ -3832,7 +3852,9 @@
       !$acc end parallel
 
 #ifdef MPI
-!$acc host_data use_device(tmfu,tmfd,var)
+!!$acc host_data use_device(tmfu,tmfd,var)
+!$acc update host(tmfu,tmfd,var)
+
       var=0.0d0
       call MPI_REDUCE(tmfu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
@@ -3841,7 +3863,8 @@
       call MPI_REDUCE(tmfd,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmfd=var
-!$acc end host_data
+!$acc update device(tmfu,tmfd,var)
+!!$acc end host_data
       if(myid.eq.0)then
 #endif
       tmfu=tmfu*dx*dy

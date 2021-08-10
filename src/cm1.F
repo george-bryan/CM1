@@ -3563,7 +3563,7 @@ print *,'cm1: after call to solve3'
 
 
       if( dowriteout )then
-#if 0
+!#if 0
 #ifdef _OPENACC
         call nvtxStartRange("writeout",id=6)
 #endif
@@ -3645,7 +3645,6 @@ print *,'cm1: after call to solve3'
             enddo
             !$acc end parallel
           ENDIF
-!#if 0
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
                         name_output,desc_output,unit_output,grid_output,cmpr_output,           &
@@ -3682,7 +3681,6 @@ print *,'cm1: after call to solve3'
                         ! end_writeout
                         !stop 'cm1: after call to writout'
                         
-!#endif 
           if(n.eq.1)then
             srec = frec
           else
@@ -3707,7 +3705,7 @@ print *,'cm1: after call to solve3'
 #ifdef _OPENACC
       call nvtxEndRange()
 #endif
-#endif
+!#endif
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
 
@@ -3779,6 +3777,7 @@ print *,'cm1: after call to solve3'
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=7)
 #endif
+#if 0
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3819,6 +3818,7 @@ print *,'cm1: after call to solve3'
                    gamk,gamwall,kmw,u1b,v1b,l2p,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cmz,csz,ce1z,ce2z, &
                    lsnudge_u,lsnudge_v,lsnudge_th,lsnudge_qv,                  &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
+#endif
         ! end_domaindiag
         nwritet = nwritet+1
         if(diagfrq.gt.0.0)then
@@ -4138,7 +4138,7 @@ print *,'cm1: after call to solve3'
       print *,'nstep: ',nstep
       print *,'mtime: ',mtime
       if(nstep .eq. 27) then 
-        stop 'cm1: at the end of timeloop'
+        !stop 'cm1: at the end of timeloop'
       endif
 
     ENDDO  timeloop

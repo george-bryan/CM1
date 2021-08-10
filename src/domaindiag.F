@@ -219,26 +219,29 @@
 
     !$acc parallel loop gang vector default(present) private(k)
     do k=0,nk+1
-      wavg(k)   = 0.0
-      prsavg(k) = 0.0
-      piavg(k)  = 0.0
-      thvavg(k) = 0.0
-      thlavg(k) = 0.0
-      rhoavg(k) = 0.0
-      rfavg(k)  = 0.0
-      qvavg(k)  = 0.0
-      qlavg(k)  = 0.0
-      qtavg(k)  = 0.0
-      wsp(k)    = 0.0
-      wspa(k)   = 0.0
-      stke(k)   = 0.0
-      rtke(k)   = 0.0
-      wvar(k)   = 0.0
-      sfr(k)    = 0.0
-      sfs(k)    = 0.0
-      sfd(k)    = 0.0
-      w_hadv(k) = 0.0
+      wavg(k)     = 0.0
+      prsavg(k)   = 0.0
+      piavg(k)    = 0.0
+      thvavg(k)   = 0.0
+      thlavg(k)   = 0.0
+      rhoavg(k)   = 0.0
+      rfavg(k)    = 0.0
+      qvavg(k)    = 0.0
+      qlavg(k)    = 0.0
+      qtavg(k)    = 0.0
+      wsp(k)      = 0.0
+      wspa(k)     = 0.0
+      stke(k)     = 0.0
+      rtke(k)     = 0.0
+      wvar(k)     = 0.0
+      sfr(k)      = 0.0
+      sfs(k)      = 0.0
+      sfd(k)      = 0.0
+      w_hadv(k)   = 0.0
       u_hidiff(k) = 0.0
+      w_hidiff(k) = 0.0
+      v_vidiff(k) = 0.0
+      w_vidiff(k) = 0.0
     enddo
 
     !$acc parallel loop gang vector default(present) private(k)
@@ -1730,6 +1733,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel 
 
 #ifdef MPI
       !!$acc host_data use_device(qcb,qrb,qlb,ncb,nrb,nlb)
@@ -5814,7 +5818,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
-
+        !$acc compare(u3d,v3d,w3d)
         call     momentum_flux(u3d,v3d,w3d,t13,t23,m13,m23,rf,rf0,c1,c2,dum3,dum4,dum5,ufr,ufs,ufd,vfr,vfs,vfd)
 
         nvar = nvar+1
@@ -10013,6 +10017,9 @@
       if(     weno_order.eq.5 )then
         call vinterp_weno5(  2 ,ni+1,nj,nk,c1,c2,w3d,dum3, u3d ,  0 ,0,weps)
         call vinterp_flx6(   2 ,ni+1,nj,nk,c1,c2,w3d,dum4, u3d )
+#ifdef _B4B
+        !$acc update host(dum3,dum4)
+#endif
       endif
 
     ELSE
@@ -10021,6 +10028,9 @@
       if(     vadvordrs.eq.5 )then
         call vinterp_flx5(   2 ,ni+1,nj,nk,c1,c2,w3d,dum3, u3d )
         call vinterp_flx6(   2 ,ni+1,nj,nk,c1,c2,w3d,dum4, u3d )
+#ifdef _B4B
+        !$acc update host(dum3,dum4)
+#endif
       elseif( vadvordrs.eq.6 )then
         call vinterp_flx6(   2 ,ni+1,nj,nk,c1,c2,w3d,dum3, u3d )
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -10031,6 +10041,9 @@
         enddo
         enddo
         enddo
+#ifdef _B4B
+        !$acc update host(dum3,dum4)
+#endif
       endif
 
     ENDIF
@@ -10046,9 +10059,7 @@
       ubar(k) = 0.0
     enddo
 
-#ifdef _B4B
-    !$acc update host(dum3)
-#else
+#ifndef _B4B
     !$acc loop gang 
 #endif
     do k=2,nk
@@ -10093,7 +10104,7 @@
   !----------------------
 
 #ifdef _B4B
-      !$acc update host(w3d,dum3,dum4)
+      !$acc update host(w3d)
 #else
       !$omp parallel loop default(shared) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
       !$acc loop gang 
@@ -10234,7 +10245,7 @@
   !----------------------
 
 #ifdef _B4B
-      !$acc update host(w3d,dum3,dum4)
+      !$acc update host(w3d)
 #else
       !$omp parallel do default(shared) private(i,j,k,wbar)
       !$acc loop gang
@@ -10458,14 +10469,14 @@
       sbar(k) = 0.0
     enddo
 
-#ifdef _B4B
-    !$acc update host(dum3)
-#else
+#ifndef _B4B
     !$acc loop gang
 #endif
     do k=2,nk
       sbart=0.d0
-      !$acc loop vector collapse(2) 
+#ifndef _B4B
+      !$acc loop vector collapse(2) reduction(+:sbart)
+#endif
       do j=1,nj
       do i=1,ni
         sbart = sbart+dum3(i,j,k)
@@ -10481,11 +10492,9 @@
         !buh4
 
 #ifdef MPI
-    !!$acc host_data use_device(sbar)
     !$acc update host(sbar)
     call MPI_ALLREDUCE(MPI_IN_PLACE,sbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     !$acc update device(sbar)
-    !!$acc end host_data
 #endif
 
 #ifndef _B4B
@@ -10635,13 +10644,11 @@
 #endif
 
 #ifdef MPI
-      !!$acc host_data use_device(sfr,sfs,sfd)
       !$acc update host(sfr,sfs,sfd)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(sfr,sfs,sfd)
-      !!$acc end host_data
 #endif
 
       !$acc parallel default(present) private(k)
@@ -10680,12 +10687,18 @@
       integer :: k
       real :: fb1,fb2
 
+#ifdef _B4B
+        !$acc update host(rth0s,sfr,sfs,sfd,thv0,zf)
+#else
         !$acc parallel default(present) private(k,fb1,fb2) reduction(+:wstar)
+#endif
         wstar = 0.0
         fbmin = 1.0e30
         zfbmin = 0.0
 
+#ifndef _B4B
         !$acc loop vector reduction(+:wstar)
+#endif
         do k=1,nk
           if( k.eq.1 )then
             fb1 = g*( thfavg*rth0s(1,1) + repsm1*qvfavg )
@@ -10710,7 +10723,11 @@
         enddo
         
         wstar = 2.5*(max(0.0d0,wstar)**(1.0/3.0))
+#ifdef _B4B
+        !$acc update device(wstar)
+#else
         !$acc end parallel
+#endif
 
 
       end subroutine getwstar

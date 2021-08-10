@@ -1206,7 +1206,6 @@
       !have fallen out the bottom:
       if (pdata(np,pract).lt.0.0) then
             !Replace with a new droplet at random location
-#if 0
               !JMD-KLUDGE 
               call random_number(rand)
               x3d = rand*maxx
@@ -1214,6 +1213,7 @@
               y3d = rand*maxy
               call random_number(rand)
               z3d = rand*maxz
+#if 0
 #endif
               pdata(np,prvpx) = 0.0
               pdata(np,prvpy) = 0.0
