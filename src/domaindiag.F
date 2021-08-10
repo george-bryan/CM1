@@ -1731,6 +1731,8 @@
       enddo
       enddo
 
+!$acc end parallel
+
 #ifdef MPI
       !!$acc host_data use_device(qcb,qrb,qlb,ncb,nrb,nlb)
       !$acc update host(qcb,qrb,qlb,ncb,nrb,nlb)
