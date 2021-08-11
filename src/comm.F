@@ -4468,7 +4468,7 @@
         do k=1,nk
         do j=1,cmp
         do i=1,ni+1
-          north(i,j,k)=u(i,nj-cmp+j,k)
+         north(i,j,k)=u(i,nj-cmp+j,k)
         enddo
         enddo
         enddo
@@ -4513,7 +4513,7 @@
 
       nu=nu+1
       tag1=1000+nu
-      !$acc update host(u)
+!      !$acc update host(u)
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
@@ -4574,7 +4574,7 @@
       ! send west
       if(ibw.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,cmp
@@ -4583,6 +4583,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(west)
 !!$acc host_data use_device(west)
         call mpi_isend(west,cs3we,MPI_REAL,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -4594,7 +4595,7 @@
       ! send east
       if(ibe.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,cmp
@@ -4603,6 +4604,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(east)
 !!$acc host_data use_device(east)
         call mpi_isend(east,cs3we,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -4614,7 +4616,7 @@
       ! send south
       if(ibs.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni+1
@@ -4623,6 +4625,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(south)
 !!$acc host_data use_device(south)
         call mpi_isend(south,cu3sn,MPI_REAL,mysouth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -4634,7 +4637,7 @@
       ! send north
       if(ibn.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni+1
@@ -4643,6 +4646,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(north)
 !!$acc host_data use_device(north)
         call mpi_isend(north,cu3sn,MPI_REAL,mynorth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -4905,7 +4909,7 @@
       index_west = -1
       index_south = -1
       index_north = -1
-      !$acc update host(u)
+!      !$acc update host(u)
       nr = 0
       if(ibe.eq.0)then
         nr = nr + 1
@@ -4930,8 +4934,9 @@
         nn = nn + 1
  
       if(index.eq.index_east)then
+        !$acc update device(neweast)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,cmp
@@ -4940,8 +4945,9 @@
         enddo
         enddo
       elseif(index.eq.index_west)then
+        !$acc update device(newwest)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,cmp
@@ -4950,8 +4956,9 @@
         enddo
         enddo
       elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni+1
@@ -4960,8 +4967,9 @@
         enddo
         enddo
       elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni+1
@@ -4984,7 +4992,7 @@
  
           if(p2tchsww)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(0,0,k)=u(1,0,k)
             enddo
@@ -4992,7 +5000,7 @@
  
           if(p2tchnww)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(0,nj+1,k)=u(1,nj+1,k)
             enddo
@@ -5004,7 +5012,7 @@
  
           if(p2tchsee)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(ni+2,0,k)=u(ni+1,0,k)
             enddo
@@ -5012,7 +5020,7 @@
  
           if(p2tchnee)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(ni+2,nj+1,k)=u(ni+1,nj+1,k)
             enddo
@@ -5028,7 +5036,7 @@
  
           if(p2tchsws)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(0,0,k)=u(0,1,k)
             enddo
@@ -5036,7 +5044,7 @@
  
           if(p2tchses)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(ni+2,0,k)=u(ni+2,1,k)
             enddo
@@ -5048,7 +5056,7 @@
  
           if(p2tchnwn)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(0,nj+1,k)=u(0,nj,k)
             enddo
@@ -5056,7 +5064,7 @@
  
           if(p2tchnen)then
             !$omp parallel do default(shared) private(k)
-            !!$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               u(ni+2,nj+1,k)=u(ni+2,nj,k)
             enddo
@@ -5090,7 +5098,7 @@
     endif
 
       if(timestats.ge.1) time_mpu2=time_mpu2+mytime()
-      !$acc update device(u) 
+!      !$acc update device(u) 
 !----------
  
       end subroutine comm_3u_end_GPU
@@ -5278,7 +5286,7 @@
 
       nv=nv+1
       tag1=2000+nv
-      !$acc update host(v)
+!      !$acc update host(v)
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
@@ -5339,7 +5347,7 @@
       ! send west
       if(ibw.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,cmp
@@ -5348,6 +5356,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(west)
 !!$acc host_data use_device(west)
         call mpi_isend(west,cv3we,MPI_REAL,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -5358,7 +5367,7 @@
 
       if(ibe.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,cmp
@@ -5367,6 +5376,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(east)
 !!$acc host_data use_device(east)
         call mpi_isend(east,cv3we,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -5378,7 +5388,7 @@
       ! send south
       if(ibs.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni
@@ -5387,6 +5397,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(south)
 !!$acc host_data use_device(south)
         call mpi_isend(south,cs3sn,MPI_REAL,mysouth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -5398,7 +5409,7 @@
       ! send north
       if(ibn.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni
@@ -5407,6 +5418,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(north)
 !!$acc host_data use_device(north)
         call mpi_isend(north,cs3sn,MPI_REAL,mynorth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -5671,7 +5683,7 @@
       index_west = -1
       index_south = -1
       index_north = -1
-      !$acc update host(v)
+!      !$acc update host(v)
       nr = 0
       if(ibe.eq.0)then
         nr = nr + 1
@@ -5696,8 +5708,9 @@
         nn = nn + 1
  
       if(index.eq.index_east)then
+        !$acc update device(neweast)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,cmp
@@ -5706,8 +5719,9 @@
         enddo
         enddo
       elseif(index.eq.index_west)then
+        !$acc update device(newwest)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,cmp
@@ -5716,8 +5730,9 @@
         enddo
         enddo
       elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni
@@ -5726,8 +5741,9 @@
         enddo
         enddo
       elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
         do i=1,ni
@@ -5750,7 +5766,7 @@
  
           if(p2tchsww)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(0,0,k)=v(1,0,k)
             enddo
@@ -5758,7 +5774,7 @@
  
           if(p2tchnww)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(0,nj+2,k)=v(1,nj+2,k)
             enddo
@@ -5770,7 +5786,7 @@
  
           if(p2tchsee)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(ni+1,0,k)=v(ni,0,k)
             enddo
@@ -5778,7 +5794,7 @@
  
           if(p2tchnee)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(ni+1,nj+2,k)=v(ni,nj+2,k)
             enddo
@@ -5794,7 +5810,7 @@
  
           if(p2tchsws)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(0,0,k)=v(0,1,k)
             enddo
@@ -5802,7 +5818,7 @@
  
           if(p2tchses)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(ni+1,0,k)=v(ni+1,1,k)
             enddo
@@ -5814,7 +5830,7 @@
  
           if(p2tchnwn)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(0,nj+2,k)=v(0,nj+1,k)
             enddo
@@ -5822,7 +5838,7 @@
  
           if(p2tchnen)then
             !$omp parallel do default(shared) private(k)
-        !    !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=1,nk
               v(ni+1,nj+2,k)=v(ni+1,nj+1,k)
             enddo
@@ -5856,7 +5872,7 @@
     endif
 
       if(timestats.ge.1) time_mpv2=time_mpv2+mytime()
-      !$acc update device(v) 
+!      !$acc update device(v) 
 !----------
  
       end subroutine comm_3v_end_GPU
@@ -6045,7 +6061,7 @@
 
       nw=nw+1
       tag1=3000+nw
-      !$acc update host(w)
+!      !$acc update host(w)
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
@@ -6106,7 +6122,7 @@
       ! send west
       if(ibw.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,cmp
@@ -6115,6 +6131,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(west)
 !        !$acc host_data use_device(west)
         call mpi_isend(west,cw3we,MPI_REAL,mywest,tag1,    &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -6126,7 +6143,7 @@
       ! send east
       if(ibe.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,cmp
@@ -6135,6 +6152,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(east)
 !        !$acc host_data use_device(east)
         call mpi_isend(east,cw3we,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -6146,7 +6164,7 @@
       ! send south
       if(ibs.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,cmp
         do i=1,ni
@@ -6155,6 +6173,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(south)
 !        !$acc host_data use_device(south)
         call mpi_isend(south,cw3sn,MPI_REAL,mysouth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -6166,7 +6185,7 @@
       ! send north
       if(ibn.eq.0)then
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,cmp
         do i=1,ni
@@ -6175,6 +6194,7 @@
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(north)
 !        !$acc host_data use_device(north)
         call mpi_isend(north,cw3sn,MPI_REAL,mynorth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -6436,7 +6456,7 @@
       index_west = -1
       index_south = -1
       index_north = -1
-      !$acc update host(w)
+!      !$acc update host(w)
       nr = 0
       if(ibe.eq.0)then
         nr = nr + 1
@@ -6461,8 +6481,9 @@
         nn = nn + 1
  
       if(index.eq.index_east)then
+        !$acc update device(neweast)
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,cmp
@@ -6471,8 +6492,9 @@
         enddo
         enddo
       elseif(index.eq.index_west)then
+        !$acc update device(newwest)
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,cmp
@@ -6481,8 +6503,9 @@
         enddo
         enddo
       elseif(index.eq.index_north)then
+        !$acc update device(newnorth)
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,cmp
         do i=1,ni
@@ -6491,8 +6514,9 @@
         enddo
         enddo
       elseif(index.eq.index_south)then
+        !$acc update device(newsouth)
         !$omp parallel do default(shared) private(i,j,k)
-!        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,cmp
         do i=1,ni
@@ -6515,7 +6539,7 @@
  
           if(p2tchsww)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,0,k)=w(1,0,k)
             enddo
@@ -6524,7 +6548,7 @@
           if(p2tchnww)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,nj+1,k)=w(1,nj+1,k)
             enddo
@@ -6537,7 +6561,7 @@
           if(p2tchsee)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,0,k)=w(ni,0,k)
             enddo
@@ -6546,7 +6570,7 @@
           if(p2tchnee)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,nj+1,k)=w(ni,nj+1,k)
             enddo
@@ -6562,7 +6586,7 @@
  
           if(p2tchsws)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,0,k)=w(0,1,k)
             enddo
@@ -6570,7 +6594,7 @@
  
           if(p2tchses)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,0,k)=w(ni+1,1,k)
             enddo
@@ -6582,7 +6606,7 @@
  
           if(p2tchnwn)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,nj+1,k)=w(0,nj,k)
             enddo
@@ -6590,7 +6614,7 @@
  
           if(p2tchnen)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,nj+1,k)=w(ni+1,nj,k)
             enddo
@@ -6624,7 +6648,7 @@
     endif
 
       if(timestats.ge.1) time_mpw2=time_mpw2+mytime()
-     !$acc update device(w) 
+!     !$acc update device(w) 
 !----------
  
       end subroutine comm_3w_end_GPU
@@ -10198,7 +10222,7 @@ print *,"comm_1s2d_end_GPU: Im called"
       !$acc present(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2)
 
       nr = 0
-      !$acc update host(w)
+!      !$acc update host(w)
 !-----
 
       nw=nw+1
@@ -10264,13 +10288,14 @@ print *,"comm_1s2d_end_GPU: Im called"
         ! send west
         if(ibw.eq.0)then
           !$omp parallel do default(shared) private(j,k)
-!          !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
           do k=2,nk
           do j=1,nj
             ww1(j,k-1)=w(1,j,k)
           enddo
           enddo
           nr = nr+1
+          !$acc update host(ww1)
 !!$acc host_data use_device(ww1)
           call mpi_isend(ww1,cw1we,MPI_REAL,mywest,tag1,   &
                          MPI_COMM_WORLD,reqs(nr),ierr)
@@ -10280,13 +10305,14 @@ print *,"comm_1s2d_end_GPU: Im called"
         ! send east
         if(ibe.eq.0)then
           !$omp parallel do default(shared) private(j,k)
-!          !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
           do k=2,nk
           do j=1,nj
             we1(j,k-1)=w(ni,j,k)
           enddo
           enddo
           nr = nr+1
+          !$acc update host(we1)
 !!$acc host_data use_device(we1)
           call mpi_isend(we1,cw1we,MPI_REAL,myeast,tag2,   &
                          MPI_COMM_WORLD,reqs(nr),ierr)
@@ -10296,13 +10322,14 @@ print *,"comm_1s2d_end_GPU: Im called"
         ! send south
         if(ibs.eq.0)then
           !$omp parallel do default(shared) private(i,k)
-!          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
           do k=2,nk
           do i=1,ni
             ws1(i,k-1)=w(i,1,k)
           enddo
           enddo
           nr = nr+1
+          !$acc update host(ws1)
 !!$acc host_data use_device(ws1)
           call mpi_isend(ws1,cw1sn,MPI_REAL,mysouth,tag3,   &
                          MPI_COMM_WORLD,reqs(nr),ierr)
@@ -10312,13 +10339,14 @@ print *,"comm_1s2d_end_GPU: Im called"
         ! send north
         if(ibn.eq.0)then
           !$omp parallel do default(shared) private(i,k)
-!          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
           do k=2,nk
           do i=1,ni
             wn1(i,k-1)=w(i,nj,k)
           enddo
           enddo
           nr = nr+1
+          !$acc update host(wn1)
 !!$acc host_data use_device(wn1)
           call mpi_isend(wn1,cw1sn,MPI_REAL,mynorth,tag4,   &
                          MPI_COMM_WORLD,reqs(nr),ierr)
@@ -10598,7 +10626,7 @@ print *,"comm_1s2d_end_GPU: Im called"
       index_west = -1
       index_south = -1
       index_north = -1
-      !$acc update host(w)
+!      !$acc update host(w)
       nr = 0
       if(ibe.eq.0)then
         nr = nr + 1
@@ -10623,32 +10651,36 @@ print *,"comm_1s2d_end_GPU: Im called"
         nn = nn + 1
 
       if(index.eq.index_east)then
+        !$acc update device(we2)
         !$omp parallel do default(shared) private(j,k)
-!        !$acc parallel loop gang vector default(present) private(j,k)
+        !$acc parallel loop gang vector default(present) private(j,k)
         do k=2,nk
         do j=1,nj
           w(ni+1,j,k)=we2(j,k-1)
         enddo
         enddo
       elseif(index.eq.index_west)then
+        !$acc update device(ww2)
         !$omp parallel do default(shared) private(j,k)
-!        !$acc parallel loop gang vector default(present) private(j,k)
+        !$acc parallel loop gang vector default(present) private(j,k)
         do k=2,nk
         do j=1,nj
           w(0,j,k)=ww2(j,k-1)
         enddo
         enddo
       elseif(index.eq.index_north)then
+        !$acc update device(wn2)
         !$omp parallel do default(shared) private(i,k)
-!        !$acc parallel loop gang vector default(present) private(i,k)
+        !$acc parallel loop gang vector default(present) private(i,k)
         do k=2,nk
         do i=1,ni
           w(i,nj+1,k)=wn2(i,k-1)
         enddo
         enddo
       elseif(index.eq.index_south)then
+        !$acc update device(ws2)
         !$omp parallel do default(shared) private(i,k)
-!        !$acc parallel loop gang vector default(present) private(i,k)
+        !$acc parallel loop gang vector default(present) private(i,k)
         do k=2,nk
         do i=1,ni
           w(i,0,k)=ws2(i,k-1)
@@ -10690,7 +10722,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchsww)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,0,k)=w(1,0,k)
             enddo
@@ -10698,7 +10730,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchnww)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,nj+1,k)=w(1,nj+1,k)
             enddo
@@ -10710,7 +10742,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchsee)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,0,k)=w(ni,0,k)
             enddo
@@ -10718,7 +10750,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchnee)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,nj+1,k)=w(ni,nj+1,k)
             enddo
@@ -10734,7 +10766,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchsws)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,0,k)=w(0,1,k)
             enddo
@@ -10742,7 +10774,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchses)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,0,k)=w(ni+1,1,k)
             enddo
@@ -10754,7 +10786,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchnwn)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(0,nj+1,k)=w(0,nj,k)
             enddo
@@ -10762,7 +10794,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
           if(p2tchnen)then
             !$omp parallel do default(shared) private(k)
-!            !$acc parallel loop gang vector default(present) private(k)
+            !$acc parallel loop gang vector default(present) private(k)
             do k=2,nk
               w(ni+1,nj+1,k)=w(ni+1,nj,k)
             enddo
@@ -10803,7 +10835,7 @@ print *,"comm_1s2d_end_GPU: Im called"
  
       if(timestats.ge.1) time_bc=time_bc+mytime()
  
-     !$acc update device(w)
+!     !$acc update device(w)
 !----------
 
       end subroutine comm_1w_end_GPU
@@ -14643,8 +14675,8 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       integer, dimension(mpi_status_size,8) :: status1
  
 !------------------------------------------------
-      !$acc update host(s)
-!!$acc data create(west,newwest,east,neweast,south,newsouth,north,newnorth,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!      !$acc update host(s)
+!$acc data create(west,newwest,east,neweast,south,newsouth,north,newnorth,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
       nr = 0
 
@@ -14712,7 +14744,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       if(ibw.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         do k=1,nk
         do j=1,nj
           west(1,j,k)=s(-1,j,k)
@@ -14720,6 +14752,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(west)
 !!$acc host_data use_device(west)
         call mpi_isend(west,2*cs1we,MPI_DOUBLE_PRECISION,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -14732,7 +14765,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       if(ibe.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         do k=1,nk
         do j=1,nj
           east(1,j,k)=s(ni+1,j,k)
@@ -14740,6 +14773,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(east) 
 !!$acc host_data use_device(east)
         call mpi_isend(east,2*cs1we,MPI_DOUBLE_PRECISION,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -14752,7 +14786,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       if(ibn.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
           north(i,1,k)=s(i,nj+1,k)
@@ -14760,6 +14794,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(north)
 !!$acc host_data use_device(north)
         call mpi_isend(north,2*cs1sn,MPI_DOUBLE_PRECISION,mynorth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -14772,7 +14807,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       if(ibs.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
           south(i,1,k)=s(i,-1,k)
@@ -14780,6 +14815,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         nr = nr + 1
+        !$acc update host(south)
 !!$acc host_data use_device(south)
         call mpi_isend(south,2*cs1sn,MPI_DOUBLE_PRECISION,mysouth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
@@ -14817,9 +14853,10 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         nn = nn + 1
  
       if(index.eq.index_east)then
+      !$acc update device(neweast)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         do k=1,nk
         do j=1,nj
           s(ni-1,j,k)=s(ni-1,j,k)+neweast(1,j,k)
@@ -14827,9 +14864,10 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
       elseif(index.eq.index_west)then
+      !$acc update device(newwest)
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(j,k)
         do k=1,nk
         do j=1,nj
           s(1,j,k)=s(1,j,k)+newwest(1,j,k)
@@ -14837,9 +14875,10 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
       elseif(index.eq.index_south)then
+      !$acc update device(newsouth)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
           s(i,1,k)=s(i,1,k)+newsouth(i,1,k)
@@ -14847,9 +14886,10 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
       elseif(index.eq.index_north)then
+      !$acc update device(newnorth)
 !$omp parallel do default(shared)   &
 !$omp private(i,k)
-!!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
         do k=1,nk
         do i=1,ni
           s(i,nj-1,k)=s(i,nj-1,k)+newnorth(i,1,k)
@@ -14946,7 +14986,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
 !------------------------------------------------------------------
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -14954,6 +14994,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         enddo
+        !$acc update host(se1)
 !!$acc host_data use_device(se1)
         call mpi_isend(se1,2*2*nk,MPI_DOUBLE_PRECISION,myse,tag1,MPI_COMM_WORLD,   &
                        reqs(5),ierr)
@@ -14963,7 +15004,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
 !-----
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -14971,6 +15012,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         enddo
+        !$acc update host(ne1)
 !!$acc host_data use_device(ne1)
         call mpi_isend(ne1,2*2*nk,MPI_DOUBLE_PRECISION,myne,tag2,MPI_COMM_WORLD,   &
                        reqs(6),ierr)
@@ -14980,7 +15022,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
 !-----
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -14988,6 +15030,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         enddo
+        !$acc update host(sw1)
 !!$acc host_data use_device(sw1)
         call mpi_isend(sw1,2*2*nk,MPI_DOUBLE_PRECISION,mysw,tag3,MPI_COMM_WORLD,   &
                        reqs(7),ierr)
@@ -14997,7 +15040,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
 !-----
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -15005,6 +15048,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
         enddo
+        !$acc update host(nw1)
 !!$acc host_data use_device(nw1)
         call mpi_isend(nw1,2*2*nk,MPI_DOUBLE_PRECISION,mynw,tag4,MPI_COMM_WORLD,   &
                        reqs(8),ierr)
@@ -15019,7 +15063,8 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         nn = nn + 1
 
       if(index.eq.index_nw)then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      !$acc update device(nw2)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -15028,7 +15073,8 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
       elseif(index.eq.index_sw)then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      !$acc update device(sw2)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -15037,7 +15083,8 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
       elseif(index.eq.index_ne)then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      !$acc update device(ne2)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -15046,7 +15093,8 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
         enddo
         enddo
       elseif(index.eq.index_se)then
-!!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      !$acc update device(se2)
+!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,2
         do i=1,2
@@ -15077,7 +15125,7 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       endif
       !$acc update device(s)
 !-----
-!!$acc end data 
+!$acc end data 
 
       end subroutine comm_1s_tend_halo_GPU
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
