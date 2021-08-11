@@ -12810,19 +12810,15 @@ print *,"comm_1s2d_end_GPU: Im called"
 !--------------------------------------------!
 
       IF( comm.eq.1 )THEN
-        !$acc data copy(s)
-        call bcs_GPU(s)
-        !$acc end data
+        call bcs(s)
       ENDIF
 #ifdef MPI
       IF( comm.eq.1 )THEN
-        call comm_1s_start_GPU(s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        call comm_1s_end_GPU(  s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+        call comm_1s_start(s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+        call comm_1s_end(  s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       ENDIF
-      call getcorner_GPU(s,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      !$acc data copy(s)
-      call bcs2_GPU(s)
-      !$acc end data
+      call getcorner(s,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call bcs2(s)
 #endif
 
       IF( bbc.eq.1 .or. bbc.eq.2 .or. bbc.eq.3 )THEN
@@ -12848,6 +12844,67 @@ print *,"comm_1s2d_end_GPU: Im called"
       ENDIF
 
       end subroutine prepcorners
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine prepcorners_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,comm)
+      use input
+      use bc_module
+      implicit none
+
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
+      real, intent(inout), dimension(kmt) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
+      real, intent(inout), dimension(jmp,kmp) :: pw1,pw2,pe1,pe2
+      real, intent(inout), dimension(imp,kmp) :: ps1,ps2,pn1,pn2
+      integer, intent(inout), dimension(rmp) :: reqs_p
+      integer, intent(in) :: comm
+
+      integer :: i,j
+      !$acc declare present(s)
+
+!--------------------------------------------!
+!  This subroutine is ONLY for parcel_interp !
+!--------------------------------------------!
+
+      IF( comm.eq.1 )THEN
+        call bcs_GPU(s)
+      ENDIF
+#ifdef MPI
+      IF( comm.eq.1 )THEN
+        call comm_1s_start_GPU(s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+        call comm_1s_end_GPU(  s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+      ENDIF
+      call getcorner_GPU(s,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call bcs2_GPU(s)
+#endif
+
+      IF( bbc.eq.1 .or. bbc.eq.2 .or. bbc.eq.3 )THEN
+        ! extrapolate:
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=0,nj+1
+        do i=0,ni+1
+          s(i,j,0) = cgs1*s(i,j,1)+cgs2*s(i,j,2)+cgs3*s(i,j,3)
+        enddo
+        enddo
+      ENDIF
+
+      IF( tbc.eq.1 .or. tbc.eq.2 )THEN
+        ! extrapolate:
+        !$omp parallel do default(shared) private(i,j)
+        !$acc parallel loop gang vector collapse(2) private(i,j)
+        do j=0,nj+1
+        do i=0,ni+1
+          s(i,j,nk+1) = cgt1*s(i,j,nk)+cgt2*s(i,j,nk-1)+cgt3*s(i,j,nk-2)
+        enddo
+        enddo
+      ENDIF
+
+      end subroutine prepcorners_GPU
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
