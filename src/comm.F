@@ -13019,7 +13019,7 @@ print *,"comm_1s2d_end_GPU: Im called"
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine prepcornert(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+      subroutine prepcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,comm)
       use input
       use bc_module
@@ -13039,9 +13039,7 @@ print *,"comm_1s2d_end_GPU: Im called"
 !--------------------------------------------!
 
       IF( comm.eq.1 )THEN
-        !$acc data copy(t)
         call bcw_GPU(t,0)
-        !$acc end data
       ENDIF
 #ifdef MPI
       IF( comm.eq.1 )THEN
@@ -13051,9 +13049,8 @@ print *,"comm_1s2d_end_GPU: Im called"
       call getcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call bct2_GPU(t)
 #endif
-      !$acc compare(t)
 
-      end subroutine prepcornert
+      end subroutine prepcornert_GPU
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

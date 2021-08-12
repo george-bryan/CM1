@@ -1206,6 +1206,7 @@
       !have fallen out the bottom:
       if (pdata(np,pract).lt.0.0) then
             !Replace with a new droplet at random location
+#if 0
               !JMD-KLUDGE 
               call random_number(rand)
               x3d = rand*maxx
@@ -1213,7 +1214,6 @@
               y3d = rand*maxy
               call random_number(rand)
               z3d = rand*maxz
-#if 0
 #endif
               pdata(np,prvpx) = 0.0
               pdata(np,prvpy) = 0.0
@@ -1296,16 +1296,19 @@
 
      !$acc compare(pdata)
 #ifdef MPI
-      print *,'droplet_driver: before call to MPI_ALLREDUCE'
+      !print *,'droplet_driver: before call to MPI_ALLREDUCE'
       !$acc update host(pdata)
       if( .not. terrain_flag )then
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        !call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       else
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        !JMD not clear why two MPI_ALLREDUCE are being performed here
+        ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
       !$acc update device(pdata)
-      print *,'droplet_driver: after call to MPI_ALLREDUCE'
+      !print *,'droplet_driver: after call to MPI_ALLREDUCE'
       if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
      
 #endif
@@ -1461,6 +1464,7 @@
 
     dt2 = dt/2.0
 
+    !$acc parallel loop gang vector default(present) 
     nploop:  &
     DO np=1,nparcels
 
@@ -1629,15 +1633,15 @@
         rys = ry
         rzs = rz
 
-        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        ! w2=rx*(1.0-ry)*(1.0-rz)
-        ! w3=(1.0-rx)*ry*(1.0-rz)
-        ! w4=(1.0-rx)*(1.0-ry)*rz
-        ! w5=rx*(1.0-ry)*rz
-        ! w6=(1.0-rx)*ry*rz
-        ! w7=rx*ry*(1.0-rz)
-        ! w8=rx*ry*rz
-        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
+        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2=rx*(1.0-ry)*(1.0-rz)
+        w3=(1.0-rx)*ry*(1.0-rz)
+        w4=(1.0-rx)*(1.0-ry)*rz
+        w5=rx*(1.0-ry)*rz
+        w6=(1.0-rx)*ry*rz
+        w7=rx*ry*(1.0-rz)
+        w8=rx*ry*rz
+        ! call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -2058,13 +2062,14 @@
       real :: x3d,y3d,z3d,z0,rznt,var
 
       logical, parameter :: debug = .false.
-      !$acc update  &
-      !$acc host(xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,zh,mh,rmh,zf,mf,znt,ust, &
-      !$acc      c1,c2,zs,sigma,sigmaf,rds,gz,pi0,th0,thv0,qv0,qc0,qi0,rth0, &
-      !$acc      dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
-      !$acc      vpg,pp3d,th3d,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
-      !$acc      tdiag,qdiag,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,nw1,nw2,ne1,ne2, &
-      !$acc      sw1,sw2,se1,se2,tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+!      !$acc update  &
+!      !$acc host(xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,zh,mh,rmh,zf,mf,znt,ust, &
+!      !$acc      c1,c2,zs,sigma,sigmaf,rds,gz,pi0,th0,thv0,qv0,qc0,qi0,rth0, &
+!      !$acc      dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
+!      !$acc      vpg,pp3d,th3d,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
+!      !$acc      tdiag,qdiag)
+!      !!$acc      pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,nw1,nw2,ne1,ne2, &
+!      !!$acc      sw1,sw2,se1,se2,tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
       if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
 !----------------------------------------------------------------------
@@ -2073,42 +2078,59 @@
     IF(imoist.eq.1)THEN
       ! with moisture:
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,n)
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=1,nk
-
       do j=1,nj
       do i=1,ni
         qt(i,j,k)=q3d(i,j,k,nqv)
       enddo
       enddo
+    enddo
     if(nql1.ge.1)then
       do n=nql1,nql2
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      do k=1,nk
         do j=1,nj
         do i=1,ni
           qt(i,j,k)=qt(i,j,k)+q3d(i,j,k,n)
         enddo
         enddo
       enddo
+      enddo
     endif
+    !$acc compare(qt)
       IF(iice.eq.1)THEN
         do n=nqs1,nqs2
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           qt(i,j,k)=qt(i,j,k)+q3d(i,j,k,n)
         enddo
         enddo
         enddo
+    enddo
       ENDIF
       IF( prth.ge.1 .or. prt.ge.1 .or. prqsl.ge.1 .or. prqsi.ge.1 .or.  prvpg.ge.1 )THEN
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           th(i,j,k) = (th0(i,j,k)+th3d(i,j,k))
           t(i,j,k) = th(i,j,k)*(pi0(i,j,k)+pp3d(i,j,k))
         enddo
         enddo
+        enddo
       ENDIF
+      !$acc compare(th,t)
       IF( prb.ge.1 .or. prvpg.ge.1 )THEN
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           dum7(i,j,k) = g*( th3d(i,j,k)*rth0(i,j,k)             &
@@ -2116,53 +2138,72 @@
                            -(qt(i,j,k)-q3d(i,j,k,nqv)-qc0(i,j,k)-qi0(i,j,k))   )
         enddo
         enddo
+        enddo
+        !$acc compare(dum7)
       ENDIF
       IF( prvpg.ge.1 )THEN
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        do k=1,nk
         do j=1,nj
         do i=1,ni
           dum8(i,j,k) = th(i,j,k)*(1.0+reps*q3d(i,j,k,nqv))/(1.0+qt(i,j,k))
         enddo
         enddo
+        enddo
+        !$acc compare(dum8)
       ENDIF
 
-    enddo
 
     ELSE
       ! dry:
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
-    do k=1,nk
 
       IF( prth.ge.1 .or. prt.ge.1 .or. prvpg.ge.1 )THEN
+       !$omp parallel do default(shared) private(i,j,k)
+       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+       do k=1,nk
         do j=1,nj
         do i=1,ni
           th(i,j,k)= (th0(i,j,k)+th3d(i,j,k))
           t(i,j,k) = th(i,j,k)*(pi0(i,j,k)+pp3d(i,j,k))
         enddo
         enddo
+       enddo
+       !$acc compare(th,t)
       ENDIF
       IF( prb.ge.1 .or. prvpg.ge.1 )THEN
+       !$omp parallel do default(shared) private(i,j,k)
+       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+       do k=1,nk
         do j=1,nj
         do i=1,ni
           dum7(i,j,k) = g*( th3d(i,j,k)*rth0(i,j,k) )
         enddo
         enddo
+       enddo
+       !$acc compare(dum7)
       ENDIF
       IF( prvpg.ge.1 )THEN
+       !$omp parallel do default(shared) private(i,j,k)
+       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+       do k=1,nk
         do j=1,nj
         do i=1,ni
           dum8(i,j,k) = th(i,j,k)
         enddo
         enddo
+       enddo
+       !$acc compare(dum8)
       ENDIF
 
-    enddo
 
     ENDIF
 
 
     IF( prb.ge.1 .or. prvpg.ge.1 )THEN
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -2171,8 +2212,14 @@
       enddo
       enddo
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
-      call    prepcornert(buoy,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+      !!$acc update device(buoy)
+      call    prepcornert_GPU(buoy,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,1)
+      !$acc compare(buoy)
+      !!$acc update host(buoy)
+
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=0,nj+1
       do i=0,ni+1
         buoy(i,j,1) = buoy(i,j,2)+(buoy(i,j,3)-buoy(i,j,2))  &
@@ -2183,33 +2230,43 @@
                                      /(  zf(i,j,nk  )-  zf(i,j,nk-1))
       enddo
       enddo
+      !$acc compare(buoy)
     ENDIF
     IF( prvpg.ge.1 )THEN
     if( .not. terrain_flag )then
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1)
       do k=2,nk
-      tem1 = rdz*cp*mf(1,1,k)
       do j=1,nj
       do i=1,ni
+        tem1 = rdz*cp*mf(1,1,k)
         vpg(i,j,k) = -tem1*(pp3d(i,j,k)-pp3d(i,j,k-1))  &
                           *(c2(1,1,k)*dum8(i,j,k)+c1(1,1,k)*dum8(i,j,k-1))
       enddo
       enddo
       enddo
+      !$acc compare(vpg)
     else
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1)
       do k=2,nk
-      tem1 = rds(k)*cp
       do j=1,nj
       do i=1,ni
+        tem1 = rds(k)*cp
         vpg(i,j,k) = -tem1*(pp3d(i,j,k)-pp3d(i,j,k-1))*gz(i,j)  &
                           *(c2(1,1,k)*dum8(i,j,k)+c1(1,1,k)*dum8(i,j,k-1))
       enddo
       enddo
       enddo
+      !$acc compare(vpg)
     endif
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
-      call    prepcornert(vpg ,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+      !!$acc update device(vpg)
+      call    prepcornert_GPU(vpg ,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,1)
+      !!$acc update host(vpg)
       ! cmr18:  at top/bottom boundaries, vpg + buoy = 0
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=0,nj+1
       do i=0,ni+1
         vpg(i,j,1) = -buoy(i,j,1)
@@ -2225,163 +2282,221 @@
 !  (may not parallelize correctly if this is not done)
 
 #ifdef MPI
-      call getcorneru(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      !!$acc update device(u3d,v3d,w3d)
+      call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       call bcu2_GPU(u3d)
-      call getcornerv(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       call bcv2_GPU(v3d)
-      call getcornerw(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       call bcw2_GPU(w3d)
+      !!$acc update host(u3d,v3d,w3d)
 #endif
+      !$acc compare(u3d,v3d,w3d)
 
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v,s the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
-  DO j=jb,je+1
-
-    IF(bbc.eq.1)THEN
+  IF(bbc.eq.1)THEN
+    !$omp parallel do default(shared) private(i,j)
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+    DO j=jb,je
       ! free slip ... extrapolate:
-      IF(j.le.je)THEN
       do i=ib,ie+1
         u3d(i,j,0) = cgs1*u3d(i,j,1)+cgs2*u3d(i,j,2)+cgs3*u3d(i,j,3)
       enddo
-      ENDIF
+    ENDDO
+    !$omp parallel do default(shared) private(i,j)
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+    DO j=jb,je+1
       do i=ib,ie
         v3d(i,j,0) = cgs1*v3d(i,j,1)+cgs2*v3d(i,j,2)+cgs3*v3d(i,j,3)
       enddo
-    ELSEIF(bbc.eq.2)THEN
-      ! no slip:
-      if( imove.eq.1 )then
-        IF(j.le.je)THEN
+    ENDDO
+    !$acc compare(u3d,v3d)
+  ELSEIF(bbc.eq.2)THEN
+    ! no slip:
+    if( imove.eq.1 )then
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      DO j=jb,je
         do i=ib,ie+1
           u3d(i,j,0) = 0.0 - umove
         enddo
-        ENDIF
+      ENDDO
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      DO j=jb,je+1
         do i=ib,ie
           v3d(i,j,0) = 0.0 - vmove
         enddo
-      else
-        IF(j.le.je)THEN
+       ENDDO
+    !$acc compare(u3d,v3d)
+    else
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      DO j=jb,je
         do i=ib,ie+1
           u3d(i,j,0) = 0.0
         enddo
-        ENDIF
+      ENDDO
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      DO j=jb,je+1
         do i=ib,ie
           v3d(i,j,0) = 0.0
         enddo
-      endif
-    ELSEIF(bbc.eq.3)THEN
+       ENDDO
+    endif
+  ELSEIF(bbc.eq.3)THEN
       ! u,v near sfc are determined below using log-layer equations
-    ENDIF
+  ENDIF
 
 !----------
 
-    IF(tbc.eq.1)THEN
+  IF(tbc.eq.1)THEN
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+    DO j=jb,je
       ! free slip ... extrapolate:
-      IF(j.le.je)THEN
       do i=ib,ie+1
         u3d(i,j,nk+1) = cgt1*u3d(i,j,nk)+cgt2*u3d(i,j,nk-1)+cgt3*u3d(i,j,nk-2)
       enddo
-      ENDIF
+    ENDDO
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+    DO j=jb,je+1
       do i=ib,ie
         v3d(i,j,nk+1) = cgt1*v3d(i,j,nk)+cgt2*v3d(i,j,nk-1)+cgt3*v3d(i,j,nk-2)
       enddo
-    ELSEIF(tbc.eq.2)THEN
+    ENDDO
+  ELSEIF(tbc.eq.2)THEN
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+    DO j=jb,je
       ! no slip:
-      IF(j.le.je)THEN
       do i=ib,ie+1
         u3d(i,j,nk+1) = 0.0
       enddo
-      ENDIF
+    ENDDO
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+    DO j=jb,je+1
       do i=ib,ie
         v3d(i,j,nk+1) = 0.0
       enddo
-    ENDIF
+    ENDDO
+  ENDIF
+    !$acc compare(u3d,v3d)
 
 !----------
 
-      IF(j.le.je)THEN
-      do i=ib,ie
-        w3d(i,j,nk+1) = 0.0
-      enddo
-      ENDIF
-
+  !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+  DO j=jb,je
+    do i=ib,ie
+      w3d(i,j,nk+1) = 0.0
+    enddo
   ENDDO
 
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
-      print *,'parcel_interp: point #1'
+      !print *,'parcel_interp: point #1'
       if( prth.ge.1 )then
-        call prepcorners(th ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        !!$acc update device(th)
+        call prepcorners_GPU(th ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+        !!$acc update host(th)
+        !$acc compare(th)
       endif
-      print *,'parcel_interp: point #2'
+      !print *,'parcel_interp: point #2'
       if( prt.ge.1 )then
-        call prepcorners(t  ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        !!$acc update device(t)
+        call prepcorners_GPU(t  ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+        !$acc compare(t)
+        !!$acc update host(t)
       endif
-      print *,'parcel_interp: point #3'
+      !print *,'parcel_interp: point #3'
       if( prprs.ge.1 )then
-        call prepcorners(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        !!$acc update device(prs)
+        call prepcorners_GPU(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+        !!$acc update host(prs)
+        !$acc compare(prs)
       endif
-      print *,'parcel_interp: point #4'
+      !print *,'parcel_interp: point #4'
       if( prrho.ge.1 )then
-        call prepcorners(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        !!$acc update device(rho)
+        call prepcorners_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+        !!$acc update host(rho)
+        !$acc compare(rho)
       endif
-      print *,'parcel_interp: point #5'
+      !print *,'parcel_interp: point #5'
       if(prpt1.ge.1)then
+        !!$acc update device(pt3d)
         do n=1,npt
-          call prepcorners(pt3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+          call prepcorners_GPU(pt3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
+        !!$acc update host(pt3d)
+        !$acc compare(pt3d)
       endif
-      print *,'parcel_interp: point #6'
+      !print *,'parcel_interp: point #6'
+      !!$acc update device(q3d)
       if( prqv.ge.1 )then
-        call prepcorners(q3d(ib,jb,kb,nqv),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcorners_GPU(q3d(ib,jb,kb,nqv),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                            pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
       endif
-      print *,'parcel_interp: point #7'
+      !print *,'parcel_interp: point #7'
       if( prq1.ge.1 .or. prnc1.ge.1 )then
         do n = 1,numq
-          call prepcorners(q3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+          call prepcorners_GPU(q3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                            pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
       endif
-      print *,'parcel_interp: point #8'
+      !$acc compare(q3d)
+      !!$acc update host(q3d)
+      !print *,'parcel_interp: point #8'
+      !!$acc update device(kmh,kmv)
       if( prkm.ge.1 )then
-        call prepcornert(kmh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert_GPU(kmh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
-        call prepcornert(kmv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert_GPU(kmv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
-      print *,'parcel_interp: point #9'
+      !$acc compare(kmh,kmv)
+      !!$acc update host(kmh,kmv)
+      !print *,'parcel_interp: point #9'
+      !!$acc update device(khh,khv)
       if( prkh.ge.1 )then
-        call prepcornert(khh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert_GPU(khh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
-        call prepcornert(khv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert_GPU(khv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
-      print *,'parcel_interp: point #10'
+      !$acc compare(khh,khv)
+      !!$acc update host(khh,khv)
+      !print *,'parcel_interp: point #10'
+      !!$acc update device(tke3d)
       if( prtke.ge.1 )then
-        call prepcornert(tke3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert_GPU(tke3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
-      print *,'parcel_interp: point #11'
+      !$acc compare(tke3d)
+      !!$acc update host(tke3d)
+      !print *,'parcel_interp: point #11'
+      !!$acc update device(qdiag)
       if( prdbz.ge.1 )then
-        call prepcorners(qdiag(ibdq,jbdq,kbdq,qd_dbz),  &
+        call prepcorners_GPU(qdiag(ibdq,jbdq,kbdq,qd_dbz),  &
                              nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       endif
+      !!$acc update host(qdiag)
+      !$acc compare(qdiag)
 
 !----------------------------------------------------------------------
 
-      print *,'parcel_interp: point #12'
+      !print *,'parcel_interp: point #12'
     IF( prqsl.ge.1 )THEN
+#ifdef _B4B
+      !$acc update host(prs,t)
+#else
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+#endif
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -2390,10 +2505,19 @@
       enddo
       enddo
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
-      call prepcorners(dum1,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+#ifndef _B4B
+      !$acc update device(dum1)
+#endif
+      call prepcorners_GPU(dum1,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+      !!$acc update host(dum1)
     ENDIF
     IF( prqsi.ge.1 )THEN
+#ifdef _B4B
+      !$acc update host(prs,t)
+#else
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+#endif
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -2402,10 +2526,15 @@
       enddo
       enddo
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
-      call prepcorners(dum2,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+#ifndef _B4B
+      !$acc update device(dum2)
+#endif
+      call prepcorners_GPU(dum2,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
+      !!$acc update host(dum2)
     ENDIF
-      print *,'parcel_interp: point #13'
+    !$acc compare(dum1,dum2)
+    !  print *,'parcel_interp: point #13'
 
 !----------------------------------------------------------------------
 !  Get zvort at appropriate C-grid location:
@@ -2416,6 +2545,7 @@
 
     IF( przv.ge.1)THEN
 
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       do k=0,nk+1
       do j=1,nj+1
       do i=1,ni+1
@@ -2426,12 +2556,19 @@
       enddo
 
     ENDIF
-
+    !$acc compare(zv)
+    print *,'parcel_interp: before nploop2'
 !----------------------------------------------------------------------
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !----------------------------------------------------------------------
 !  Loop through all parcels:  if you have it, get interpolated info:
-
+    !stop 'parcel_interp: before nploop2'
+    !PORTME
+    !$acc parallel loop gang vector default(present) &
+    !$acc   private(x3d,y3d,z3d,i,j,k,n,iflag,jflag,kflag, &
+    !$acc       rx,ry,rz,rxu,ryv,rzw,rxs,rys,rzs, &
+    !$acc       w1,w2,w3,w4,w5,w6,w7,w8, &
+    !$acc       uval,vval,wval,z0,var,rznt)
     nploop2:  &
     DO np=1,nparcels
 
@@ -2533,20 +2670,20 @@
         rx = ( pdata(np,prx)-xf(i) )/( xf(i+1)-xf(i) )
         ry = ( pdata(np,pry)-yh(j) )/( yh(j+1)-yh(j) )
 
+
         ! saveit:
         rxu = rx
         rys = ry
         rzs = rz
 
-        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        ! w2=rx*(1.0-ry)*(1.0-rz)
-        ! w3=(1.0-rx)*ry*(1.0-rz)
-        ! w4=(1.0-rx)*(1.0-ry)*rz
-        ! w5=rx*(1.0-ry)*rz
-        ! w6=(1.0-rx)*ry*rz
-        ! w7=rx*ry*(1.0-rz)
-        ! w8=rx*ry*rz
-        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
+        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2=rx*(1.0-ry)*(1.0-rz)
+        w3=(1.0-rx)*ry*(1.0-rz)
+        w4=(1.0-rx)*(1.0-ry)*rz
+        w5=rx*(1.0-ry)*rz
+        w6=(1.0-rx)*ry*rz
+        w7=rx*ry*(1.0-rz)
+        w8=rx*ry*rz
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -2602,15 +2739,14 @@
         rxs = rx
         ryv = ry
 
-        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        ! w2=rx*(1.0-ry)*(1.0-rz)
-        ! w3=(1.0-rx)*ry*(1.0-rz)
-        ! w4=(1.0-rx)*(1.0-ry)*rz
-        ! w5=rx*(1.0-ry)*rz
-        ! w6=(1.0-rx)*ry*rz
-        ! w7=rx*ry*(1.0-rz)
-        ! w8=rx*ry*rz
-        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
+        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2=rx*(1.0-ry)*(1.0-rz)
+        w3=(1.0-rx)*ry*(1.0-rz)
+        w4=(1.0-rx)*(1.0-ry)*rz
+        w5=rx*(1.0-ry)*rz
+        w6=(1.0-rx)*ry*rz
+        w7=rx*ry*(1.0-rz)
+        w8=rx*ry*rz
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -2665,15 +2801,16 @@
         ! saveit:
         rzw = rz
 
-        ! w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
-        ! w2=rx*(1.0-ry)*(1.0-rz)
-        ! w3=(1.0-rx)*ry*(1.0-rz)
-        ! w4=(1.0-rx)*(1.0-ry)*rz
-        ! w5=rx*(1.0-ry)*rz
-        ! w6=(1.0-rx)*ry*rz
-        ! w7=rx*ry*(1.0-rz)
-        ! w8=rx*ry*rz
-        call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
+
+        w1=(1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2=rx*(1.0-ry)*(1.0-rz)
+        w3=(1.0-rx)*ry*(1.0-rz)
+        w4=(1.0-rx)*(1.0-ry)*rz
+        w5=rx*(1.0-ry)*rz
+        w6=(1.0-rx)*ry*rz
+        w7=rx*ry*(1.0-rz)
+        w8=rx*ry*rz
+        ! call calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
 
         IF(debug)THEN
         wsum = w1+w2+w3+w4+w5+w6+w7+w8
@@ -2962,27 +3099,31 @@
       ENDIF  myprcl
 
     ENDDO  nploop2
+    !$acc compare(pdata)
     if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
 !----------------------------------------------------------------------
 !  communicate data
 #ifdef MPI
-  do np=npvars+1,npvals
+  !$acc update host(pdata)
+  do n=npvars+1,npvals
     if( myid.eq.0 )then
-      call MPI_REDUCE(MPI_IN_PLACE,pdata(1,np),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      call MPI_REDUCE(MPI_IN_PLACE,pdata(1,n),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
     else
-      call MPI_REDUCE( pdata(1,np),pdata(1,np),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      call MPI_REDUCE( pdata(1,n),pdata(1,n),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
     endif
   enddo
+  !$acc update device(pdata)
+  if(timestats.ge.1) time_parceli_reduce=time_parceli_reduce+mytime()
 #endif
 !----------------------------------------------------------------------
 
-      !$acc update &
-      !$acc device(dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
-      !$acc      vpg,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
-      !$acc      tdiag,qdiag,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,nw1,nw2,ne1,ne2, &
-      !$acc      sw1,sw2,se1,se2,tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+!      !$acc update &
+!      !$acc device(dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
+!      !$acc      vpg,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
+!      !$acc      tdiag,qdiag)
       if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
+      !stop 'parcel_interp: at the end of the subroutine'
 
       end subroutine parcel_interp
 
@@ -3010,7 +3151,7 @@
 
 !----------------------------------------------------------------------
 !  write out data
-
+    !$acc update host(pdata)
     IF(myid.eq.0)THEN
 
       IF(output_format.eq.1)THEN

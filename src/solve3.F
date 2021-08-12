@@ -979,7 +979,7 @@
           !$acc end parallel
 
           !$acc compare(rho)
-          print *,'solve3: before call to droplet_driver' 
+          !print *,'solve3: before call to droplet_driver' 
           call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
                                tha,qa,th0,pi0,ppi,prs,                              &
@@ -989,7 +989,7 @@
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
                                uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2))
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
-          print *,'solve3: after call to droplet_driver' 
+          !print *,'solve3: after call to droplet_driver' 
           !$acc compare(dpten)
 #ifdef MPI
           call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,1))

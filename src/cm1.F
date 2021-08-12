@@ -2806,7 +2806,7 @@
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
-      print *,'cm1: at the top of the do-while loop'
+      !print *,'cm1: at the top of the do-while loop'
       !$acc compare(dum1)
       ifsolve:  &
       if( dosolve )then
@@ -3034,14 +3034,14 @@
 #ifdef _OPENACC
         call nvtxEndRange
 #endif
-       print *,'cm1: after solve1'
+       !print *,'cm1: after solve1'
        !$acc compare(dum1)
        !call flush(6)
 
 #ifdef _OPENACC
         call nvtxStartRange("solve2",id=1)
 #endif
-       print *,'cm1: before solve2'
+       !print *,'cm1: before solve2'
         !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
@@ -3124,7 +3124,7 @@
         call nvtxEndRange
 #endif
       !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-      print *,'cm1: after call to solve2'
+      !print *,'cm1: after call to solve2'
       !$acc compare(dum1)
 
       IF(imoist.eq.1)THEN
@@ -3168,7 +3168,7 @@
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
 
-print *,'cm1: before call to solve3'
+!print *,'cm1: before call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 !!$acc compare(se32)
@@ -3249,7 +3249,7 @@ print *,'cm1: before call to solve3'
         call nvtxEndRange
 #endif
 
-print *,'cm1: after call to solve3'
+!print *,'cm1: after call to solve3'
 !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
@@ -3718,9 +3718,8 @@ print *,'cm1: after call to solve3'
       if(iprcl.eq.1)then
       IF( doprclout )THEN
       
-#if 0
 #ifdef _OPENACC
-        stop 'ERROR: parcel_{interp,write} not supported in OpenACC'
+!        stop 'ERROR: parcel_interp not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
@@ -3737,14 +3736,16 @@ print *,'cm1: after call to solve3'
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
 
-#ifdef _OPENACC
-        stop 'ERROR: parcel_write not supported in OpenACC'
+#if 0
 #endif
+       !stop 'cm1: after call to parcel_interp'
+!#ifdef _OPENACC
+!        stop 'ERROR: parcel_write not supported in OpenACC'
+!#endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
         call     parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-#endif
         prec = prec+1
         if(prclfrq.gt.0.0)then
           doit = .true.
@@ -3777,7 +3778,7 @@ print *,'cm1: after call to solve3'
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=7)
 #endif
-#if 0
+!#if 0
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3818,7 +3819,7 @@ print *,'cm1: after call to solve3'
                    gamk,gamwall,kmw,u1b,v1b,l2p,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cmz,csz,ce1z,ce2z, &
                    lsnudge_u,lsnudge_v,lsnudge_th,lsnudge_qv,                  &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
-#endif
+!#endif
         ! end_domaindiag
         nwritet = nwritet+1
         if(diagfrq.gt.0.0)then
@@ -4061,7 +4062,7 @@ print *,'cm1: after call to solve3'
                     time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
-                    time_dpc+time_droplet_reduce+                                    &
+                    time_dpc+time_droplet_reduce+time_parceli_reduce+                 &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
                     time_phys_H2D + time_phys_D2H
@@ -4135,9 +4136,9 @@ print *,'cm1: after call to solve3'
       startup = .false.
       restarted = .false.
 
-      print *,'nstep: ',nstep
-      print *,'mtime: ',mtime
-      if(nstep .eq. 27) then 
+      !print *,'nstep: ',nstep
+      !print *,'mtime: ',mtime
+      if(nstep .eq. 1) then 
         !stop 'cm1: at the end of timeloop'
       endif
 
@@ -4248,9 +4249,23 @@ print *,'cm1: after call to solve3'
         sum = 0.0
         call MPI_REDUCE(time_cflq    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_cflq = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_bc      ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_bc = sum/float(numprocs)
+
+        sum = 0.0
+        call MPI_REDUCE(time_bcs     ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bcs = sum/float(numprocs)
+
+        sum = 0.0
+        call MPI_REDUCE(time_bcs2     ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bcs2 = sum/float(numprocs)
+
+        sum = 0.0
+        call MPI_REDUCE(time_bcst     ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_bcst = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_nvtx   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_nvtx = sum/float(numprocs)
@@ -4298,9 +4313,14 @@ print *,'cm1: after call to solve3'
         sum = 0.0
         call MPI_REDUCE(time_droplet ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_droplet = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_droplet_reduce ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_droplet_reduce = sum/float(numprocs)
+
+        sum = 0.0
+        call MPI_REDUCE(time_parceli_reduce ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_parceli_reduce = sum/float(numprocs)
 
         sum = 0.0
         call MPI_REDUCE(time_mpu1    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
@@ -4362,6 +4382,7 @@ print *,'cm1: after call to solve3'
       time_solve=time_sound+time_poiss+time_buoyan+time_turb+             &
                   time_diffu+time_microphy+time_stat+time_cflq+           &
                   time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+ &
+                  time_bcs+time_bcs2+time_bcst+ &
                   time_write+time_restart+time_ttend+time_cor+time_fall+  &
                   time_satadj+time_dbz+time_sfcphys+                      &
                   time_parcels+time_parceli+time_droplet+                 &
@@ -4419,6 +4440,9 @@ print *,'cm1: after call to solve3'
       write(outfile,100) 'stat    ',time_stat,time_stat/time_solve
       write(outfile,100) 'cflq    ',time_cflq,time_cflq/time_solve
       write(outfile,100) 'bc      ',time_bc,time_bc/time_solve
+      write(outfile,100) 'bcs     ',time_bcs,time_bcs/time_solve
+      write(outfile,100) 'bcs2    ',time_bcs2,time_bcs2/time_solve
+      write(outfile,100) 'bcst    ',time_bcst,time_bcst/time_solve
       write(outfile,100) 'nvtx   ',time_nvtx,time_nvtx/time_solve
       write(outfile,100) 'integ   ',time_integ,time_integ/time_solve
       write(outfile,100) 'write   ',time_write,time_write/time_solve
@@ -4459,6 +4483,7 @@ print *,'cm1: after call to solve3'
       write(outfile,100) 'mptk2   ',time_mptk2,time_mptk2/time_solve
       write(outfile,100) 'mpb     ',time_mpb,time_mpb/time_solve
       write(outfile,100) 'dropletA',time_droplet_reduce,time_droplet_reduce/time_solve
+      write(outfile,100) 'parceliA',time_parceli_reduce,time_parceli_reduce/time_solve
       write(outfile,100) 'dpc     ',time_dpc,time_dpc/time_solve
 #endif
       write(outfile,*)

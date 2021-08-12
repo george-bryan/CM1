@@ -2916,15 +2916,10 @@
 #endif
 
 #ifdef MPI
-#ifndef _B4B
-!!$acc host_data use_device(cflmax)
-!$acc update host(cflmax)
-#endif 
+!!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
-#ifndef _B4B
-!$acc update device(cflmax)
-!!$acc end host_data
-#endif
+!!$acc update device(cflmax)
+! interesting cflmax is never used.
 #endif
 
 !!!      if(cflmax.ge.1.50) stopit=.true.
@@ -3984,6 +3979,9 @@
       time_stat=0.0
       time_cflq=0.0
       time_bc=0.0
+      time_bcs=0.0
+      time_bcs2=0.0
+      time_bcst=0.0
       time_misc=0.0
       time_integ=0.0
       time_rdamp=0.0
@@ -4000,6 +3998,7 @@
       time_parceli=0.0
       time_droplet=0.0
       time_droplet_reduce=0.0
+      time_parceli_reduce=0.0
       time_rad=0.0
       time_pbl=0.0
       time_swath=0.0

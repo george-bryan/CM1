@@ -2555,64 +2555,64 @@
 !------------------------------------------------------------
 ! Set values at boundaries, start comms:
 
-!$acc update host(ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z) & 
-!$acc host(nm,defv,defh,tk,dum2  ,lenh,grdscl,rgrdscl)        &
-!$acc host(kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d)         &
-!$acc host(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)                   &
-!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)   &
-!$acc host(khdw1,khdw2,khde1,khde2,khds1,khds2,khdn1,khdn2)   &
-!$acc host(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)   &
-!$acc host(kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
-!$acc compare(kmh,kmv,khh)
-      call bcw(kmh,1)
+!!$acc update host(ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z) & 
+!!$acc host(nm,defv,defh,tk,dum2  ,lenh,grdscl,rgrdscl)        &
+!!$acc host(kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d)         &
+!!$acc host(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)                   &
+!!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)   &
+!!$acc host(khdw1,khdw2,khde1,khde2,khds1,khds2,khdn1,khdn2)   &
+!!$acc host(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)   &
+!!$acc host(kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
+!!$acc compare(kmh,kmv,khh)
+      call bcw_GPU(kmh,1)
 #ifdef MPI
-      call comm_1t_start(kmh,khcw1,khcw2,khce1,khce2,   &
+      call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
 #endif
 
-      call bcw(kmv,1)
+      call bcw_GPU(kmv,1)
 #ifdef MPI
-      call comm_1t_start(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
+      call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
 #endif
 
-      call bcw(khh,1)
+      call bcw_GPU(khh,1)
 #ifdef MPI
-      call comm_1t_start(khh,khdw1,khdw2,khde1,khde2,   &
+      call comm_1t_start_GPU(khh,khdw1,khdw2,khde1,khde2,   &
                              khds1,khds2,khdn1,khdn2,reqs_khd)
 #endif
 
-      call bcw(khv,1)
+      call bcw_GPU(khv,1)
 #ifdef MPI
-      call comm_1t_start(khv,kvdw1,kvdw2,kvde1,kvde2,   &
+      call comm_1t_start_GPU(khv,kvdw1,kvdw2,kvde1,kvde2,   &
                              kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
 #endif
 
 !--------------------------------------------------------------
 !  Finish comms:
 #ifdef MPI
-      call comm_1t_end(kmh,khcw1,khcw2,khce1,khce2,   &
+      call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                            khcs1,khcs2,khcn1,khcn2,reqs_khc)
-      call bct2(kmh)
-      call comm_1t_end(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
+      call bct2_GPU(kmh)
+      call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                            kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call bct2(kmv)
-      call comm_1t_end(khh,khdw1,khdw2,khde1,khde2,   &
+      call bct2_GPU(kmv)
+      call comm_1t_end_GPU(khh,khdw1,khdw2,khde1,khde2,   &
                            khds1,khds2,khdn1,khdn2,reqs_khd)
-      call comm_1t_end(khv,kvdw1,kvdw2,kvde1,kvde2,   &
+      call comm_1t_end_GPU(khv,kvdw1,kvdw2,kvde1,kvde2,   &
                            kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
-      call getcornert(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call getcornert(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #endif
-!$acc update device(ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z) & 
-!$acc device(nm,defv,defh,tk,dum2  ,lenh,grdscl,rgrdscl)        &
-!$acc device(kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d)         &
-!$acc device(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)                   &
-!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)   &
-!$acc device(khdw1,khdw2,khde1,khde2,khds1,khds2,khdn1,khdn2)   &
-!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)   &
-!$acc device(kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
-!$acc compare(kmh,kmv,khh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!!$acc update device(ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z) & 
+!!$acc device(nm,defv,defh,tk,dum2  ,lenh,grdscl,rgrdscl)        &
+!!$acc device(kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d)         &
+!!$acc device(nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)                   &
+!!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)   &
+!!$acc device(khdw1,khdw2,khde1,khde2,khds1,khds2,khdn1,khdn2)   &
+!!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)   &
+!!$acc device(kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
+!!$acc compare(kmh,kmv,khh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 !--------------------------------------------------------------
 !   finished
@@ -2701,23 +2701,23 @@
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
 !$acc compare(kvcw2,kvcw1,kmh,kmv,khh,khv)
         !-----
-!$acc update host(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
-!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
-!$acc host(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
-        call comm_1s2d_end(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
+!!$acc update host(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
+!!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
+!!$acc host(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
+        call comm_1s2d_end_GPU(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                            kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-        call bcs2_2d(tkea(ibt,jbt,1))
+        call bcs2_2d_GPU(tkea(ibt,jbt,1))
 !!!! Problem with comm_1s2d_end_GPU
-        call comm_1s2d_end(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
+        call comm_1s2d_end_GPU(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call bcs2_2d(kmh(ibc,jbc,1))
+        call bcs2_2d_GPU(kmh(ibc,jbc,1))
         !-----
-        call comm_2d_corner(tkea(ibt,jbt,1))
-        call comm_2d_corner(kmh(ibc,jbc,1))
-!$acc update device(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
-!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
-!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
-!$acc compare(kmh,kmv,khh,khv)
+        call comm_2d_corner_GPU(tkea(ibt,jbt,1))
+        call comm_2d_corner_GPU(kmh(ibc,jbc,1))
+!!$acc update device(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
+!!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
+!!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
+!!$acc compare(kmh,kmv,khh,khv)
         !-----
 #endif
 !$acc compare(kmh,kmv,khh,khv)
