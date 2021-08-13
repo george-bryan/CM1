@@ -100,26 +100,28 @@
 
       IF( testcase.eq.6 .or. testcase.eq.10 )THEN
 
-#ifdef _OPENACC
-        print *,'WARNING: testcase_simple_phys: testcase={6 or 10} not supported'
-#endif
+!#ifdef _OPENACC
+!        print *,'WARNING: testcase_simple_phys: testcase={6 or 10} not supported'
+!#endif
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
-
+        !$acc parallel default(present) private(i,j,k)
         tem = 1.0/hurr_rad
 
         !  Mesoscale Tendency terms:
         !  (radial advection and centrifugal accel terms)
 
         !$omp parallel do default(shared) private(i,j,k)
-        !!$acc parallel loop gang vector default(present) private(i,j,k)
+        !$acc loop gang vector
         DO k=1,nk
           ufrc(k) = +uavg(k)*uavg(k)*tem  &
                     +vavg(k)*v0(1,1,k)*tem
           vfrc(k) = -uavg(k)*dvdr(k)  &
                     -uavg(k)*v0(1,1,k)*tem
         ENDDO
-
+        !$acc end parallel
+        !$acc compare(ufrc,vfrc,uavg,vavg,thavg,cavg)
+        !stop 'testcase_simple_phys: testcase={6 or 10}'
       ENDIF
 
 !-----------------------------------------------------------------------
@@ -200,52 +202,50 @@
       integer :: i,j,k,n
       real :: tem
       double precision :: temd
-      !double precision :: tmp1,tmp2,tmp3
-      !!$acc declare present(uavg,vavg,thavg,cavg) &
-      !!$acc present(th0,ua,va,tha,ruh,ruf,rvh,rvf)
+      double precision :: tmp1,tmp2,tmp3
       print *,'get_avg_uvt: Entered subroutine'
       ! 180612:  area-weighted average
+      !$acc parallel default(present) private(i,j,k) reduction(+:tmp1,tmp2,tmp3)
       tem = dx*dy
-
       ! Get domain-averages:
-      !!$acc parallel default(present) private(i,j,k,tmp1,tmp2,tmp3) reduction(+:tmp1,tmp2,tmp3)
+      !$acc loop gang
       do k=1,nk
         !----
-        do n=1,3
-          cavg(k,n) = 0.0
-        enddo
-        !tmp1=0.0
-        !tmp2=0.0
-        !tmp3=0.0
+        tmp1=0.0
+        tmp2=0.0
+        tmp3=0.0
         !----
-        !!$acc loop gang vector collapse(2) reduction(+:tmp1,tmp2,tmp3)
+        !$acc loop vector collapse(2) reduction(+:tmp1,tmp2,tmp3)
         do j=1,nj
         do i=1,ni
-          cavg(k,1) = cavg(k,1) + ua(i,j,k)*tem*ruf(i)*rvh(j)
-          cavg(k,2) = cavg(k,2) + va(i,j,k)*tem*ruh(i)*rvf(j)
-          cavg(k,3) = cavg(k,3) + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
+          tmp1 = tmp1 + ua(i,j,k)*tem*ruf(i)*rvh(j)
+          tmp2 = tmp2 + va(i,j,k)*tem*ruh(i)*rvf(j)
+          tmp3 = tmp3 + (th0(i,j,k)+tha(i,j,k))*tem*ruh(i)*rvh(j)
         enddo
         enddo
-        !cavg(k,1) = tmp1
-        !cavg(k,2) = tmp2
-        !cavg(k,3) = tmp3
+        cavg(k,1) = tmp1
+        cavg(k,2) = tmp2
+        cavg(k,3) = tmp3
         !----
       enddo
-      !!$acc end parallel
+      !$acc end parallel
 
 #ifdef MPI
-      !!$acc update self(cavg)
+      !$acc update host(cavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*3       ,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      !$acc update device(cavg)
 #endif
 
+      !$acc parallel default(present) private(k)
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
-      !!$acc parallel loop gang vector private(k)
+      !$acc loop gang
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
         thavg(k) = cavg(k,3)*temd
       enddo
+      !$acc end parallel 
 
       end subroutine get_avg_uvt
 

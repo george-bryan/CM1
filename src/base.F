@@ -2470,7 +2470,8 @@
 
       ELSEIF(iwnd.eq.8)THEN
 
-        vmax = 40.0
+        !!vmax = 40.0
+        vmax = var1
 
         do k=1,nk
 
@@ -2774,7 +2775,10 @@
 
       ! hurricane boundary layer (Bryan et al, 2017, BLM)
 
-      hurr_rad = 40000.0      ! radius from center of hurricane (m) 
+      ramp_up_turb = .true.
+     
+!!!      hurr_rad = 40000.0      ! radius from center of hurricane (m) 
+      hurr_rad = var2      ! radius from center of hurricane (m) 
 
       wmin  =   -0.01    ! value of w at z = z1
 !!!      wmin  =   var1     ! value of w at z = z1
@@ -2784,7 +2788,8 @@
       do k=1,nk
 
         ! radial gradient of tangential velocity (defined on scalar levels)
-        dvdr(k) = -0.00085*max(0.0,1.0-zh(1,1,k)/18000.0)
+!!!        dvdr(k) = -0.00085*max(0.0,1.0-zh(1,1,k)/18000.0)
+        dvdr(k) = -var3*v0(1,1,k)/var2
 
         ! subsidence (defined on w levels)
         if( zf(1,1,k).le.z1 )then

@@ -1329,7 +1329,7 @@
         ELSEIF(psolver.eq.3)THEN
 
           
-          !print *,'solve2: before call to sound'
+          print *,'solve2: before call to sound'
           get_time_avg = .true.
           call   sound( dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1388,6 +1388,7 @@
 
         ENDIF
       !$acc compare(dum1,dum4,dum5)
+      !stop 'solve2: after solver_block'
 
 !--------------------------------------------------------------------
 !  Update v for axisymmetric model simulations:

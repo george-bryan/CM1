@@ -157,7 +157,7 @@
           endif
 
 
-    if(ptype.ne.5) then 
+    if(ptype.ne.5 .and. ptype .ne. 6) then 
       !$acc update &
       !$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
       !$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
@@ -631,6 +631,13 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         ELSEIF(ptype.eq.6)THEN
+          !$acc update &
+          !$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
+          !$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
+          !$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
+          !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
+          !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
+          if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
           call pdefq(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
           call pdefq( qsmall,asq(2),ruh,rvh,rmh,rho,q3d(ib,jb,kb,2))
@@ -694,6 +701,12 @@
             enddo
             enddo
           ENDIF
+          !$acc update &
+          !$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
+          !$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
+          !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
+          !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
+          if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !  Ziegler/Mansell (NSSL) two-moment scheme
@@ -1348,7 +1361,8 @@
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !CC   END microphysics   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    if(ptype.ne.5) then 
+    print *,'ptype: ',ptype
+    if(ptype.ne.5 .and. ptype .ne.6) then 
       !$acc update &
       !$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
       !$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &

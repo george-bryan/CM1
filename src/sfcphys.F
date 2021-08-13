@@ -176,11 +176,15 @@
 
   ELSE  sfc_options
 
-    stop 'getcecd: sfc_options else'
+   ! stop 'getcecd: sfc_options else'
     ! Cd,z0,ust are functions of 10-m windspeed over water ... need to iterate:
     convergeFail = .false.
     !$omp parallel do default(shared) private(i,j,wlast,n,var,rznt)
+#ifdef _B4B
+    !$acc update host(xland,znt,za,s1,u1,v1)
+#else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wlast,n,var,rznt)
+#endif
     do j=j1,j2
     do i=i1,i2
       IF(xland(i,j).gt.1.5)THEN
@@ -192,7 +196,10 @@
         s10(i,j) = s1(i,j)*var
         wlast = -1000.0
         n = 0
-        do while( (abs(s10(i,j)-wlast).gt.0.001) .or. n<=20 )
+        do while( (abs(s10(i,j)-wlast).gt.0.001) .and. n<=20 )
+          !if(abs(s10(i,j)-wlast) .gt. 0.001) then 
+          !    print *,'check: ',i,j,n,abs(s10(i,j)-wlast)
+          !endif
           n = n + 1
           wlast = s10(i,j)
           IF(cecd.eq.2)THEN
@@ -209,7 +216,7 @@
           rznt = 1.0/znt(i,j)
           var = alog((10.0+znt(i,j))*rznt)/alog((za(i,j)+znt(i,j))*rznt)
           s10(i,j) = s1(i,j)*var
-          !JMD if(n.gt.10) print *,'  getcecd:  myid,n,s10 = ',myid,n,s10(i,j)
+          !if(n.gt.10) print *,'  getcecd:  myid,n,s10 = ',myid,n,s10(i,j)
           if(n.gt.20)then
             convergeFail = .true.
             !call stopcm1
@@ -233,11 +240,17 @@
       ust(i,j) = max( s1(i,j)*karman/alog((za(i,j)+znt(i,j))*rznt) , 1.0e-6 )
     enddo
     enddo
+#ifdef _B4B
+    !$acc update device(s10,cd,u10,v10,ust,znt)
+#endif
+    print *,'getcecd: before convergeFail check' 
     if(convergeFail) then 
       call stopcm1
     endif
 
   ENDIF  sfc_options
+  print *,'after sfc_options'
+  !$acc compare(cd,s10,u10,v10,ust)
 
 !-----------------------------------------------------------------------
 !  ch,cq:
@@ -311,6 +324,7 @@
 !!!      print *,'  nmax = ',nmax
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
+      print *,'getcecd: end of subroutine'
 
       end subroutine getcecd
 

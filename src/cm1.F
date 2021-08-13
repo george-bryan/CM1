@@ -2759,6 +2759,7 @@
     !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
     !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
     !$acc   kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
+    !$acc copyin(taux,tauy,gamwall,l2p,t2pm1,t2pm2,t2pm3,t2pm4) &
     !$acc copyin(udiag,vdiag,wdiag,kdiag,tdiag,qdiag) &
     !$acc copyin(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
     !$acc copyin(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
@@ -2772,7 +2773,9 @@
     !$acc copyin(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
     !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
     !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
+    !$acc copyin(chklowq,flqc,ch_out,cd_out) &
     !$acc copyin(pdata,dpten) &
+    !$acc copyin(zkmax,CHS,CHS2,CQS2,flhc,lh,QGH,smois,charn,msang,scurx,scury,s2p,s2b) &
     !$acc copyin(lu_index) &
     !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
     !$acc copyin(rho,rr,rf,prs,o30,zir)  &
@@ -3778,7 +3781,7 @@
 #ifdef _OPENACC
         call nvtxStartRange("domaindiag",id=7)
 #endif
-!#if 0
+#if 0
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3819,7 +3822,7 @@
                    gamk,gamwall,kmw,u1b,v1b,l2p,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cmz,csz,ce1z,ce2z, &
                    lsnudge_u,lsnudge_v,lsnudge_th,lsnudge_qv,                  &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
-!#endif
+#endif
         ! end_domaindiag
         nwritet = nwritet+1
         if(diagfrq.gt.0.0)then

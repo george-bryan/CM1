@@ -327,10 +327,13 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
+          !$acc update host(ppd)
           call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
+          !$acc update device(ppd)
         endif
 #endif
+       !$acc compare(ppd)
 
 !-----
 
@@ -707,8 +710,10 @@
           dum2(i,j,k) =  dd*r1
         enddo
         enddo
-
-        !$acc parallel private(i,j,k,aa,bb,cc,dd,fwk,r1)
+        !$acc compare(mm,w3d,pk1,pk2,qk,pp3d,wten,fpk,dum1,dum2)
+        !$acc parallel default(present) private(i,j,k,aa,bb,cc,dd,fwk,r1)
+        print *,'asq: ',asq
+        !$acc loop seq
         do k=3,(nk-1)
         !$omp parallel do default(shared) private(i,j,aa,bb,cc,dd,fwk,r1)
         !$acc loop gang vector collapse(2)
@@ -730,7 +735,8 @@
 
         enddo
         !$acc end parallel
-
+        !JMD The previous loop is not running correctly.
+        !$acc compare(w3d,dum1,dum2,wten,mm) 
         k = nk
 
         !$omp parallel do default(shared) private(i,j,aa,bb,cc,dd,fwk,r1)
@@ -749,6 +755,7 @@
         enddo
         enddo
 
+        !$acc compare(w3d,dum1,dum2,wten,mm) 
         !$acc parallel private(i,j,k)
         do k=(nk-1),2,-1
 
@@ -763,6 +770,7 @@
         enddo
         !$acc end parallel
 
+      !$acc compare(w3d,dum1,dum2,wten,mm) 
       IF( do_ib )THEN
           call zero_out_w(bndy,kbdy,w3d)
       ENDIF
@@ -772,7 +780,7 @@
 !-----------------------------------------------------------------------
 !  get new pp,th
 
-
+      !$acc compare(fpk,w3d,pk1,pk2,qk,ppd,pp3d)
       IF(.not.terrain_flag)THEN
         ! without terrain:
         !$omp parallel do default(shared) private(i,j,k)
@@ -823,13 +831,16 @@
         IF( n.lt.nloop )THEN
           if(timestats.ge.1) time_sound=time_sound+mytime()
           
-          call flush(6)
+!          call flush(6)
           call bcs_GPU(ppd)
 #ifdef MPI
+          !$acc update host(ppd)
           call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
+          !$acc update device(ppd)
 #endif
         ENDIF
+        !$acc compare(dum1,ppd,pp3d)
 
 !--------------------------------------------------------------------
 !  time-averaged velocities:
