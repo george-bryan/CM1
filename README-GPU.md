@@ -30,7 +30,11 @@ Once the 'cm1.exe' command has been built, you will need to request a single GPU
 
     execcasper -l select=1:ncpus=1:ngpus=1 -l gpu_type=v100 -l walltime=01:00:00
 
-This will allocated an interactive job where CM1 can be executed simplying by executing the commands './cm1.exe'
+This will allocated an interactive job where CM1 can be executed simplying by executing the command.
+
+```
+./cm1.exe
+```
 
 ## Multi GPU job 
 
