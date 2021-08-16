@@ -1,15 +1,17 @@
-#Running CM1 on GPU
+# Running CM1 on GPU
 
 This version of CM1 includes an experimental port of CM1 to the GPU using the OpenACC langauge..  While large sections of CM1 have been ported to the GPU, there are still multiple sections that have not yet been ported.  Sections not ported will issue a fatal error message indicating the lack of a complete port. Additionally not all configurations of CM1 have been official verified for correct exection.  Use of the GPU port is therefore a use at your own risk configuration. 
 
 We next describe directions for compiling and executing CM1 on GPUs within the Casper system.  Several targets have been added to the Makefile and can be located by looking for the following two lines 
 
->single processor + GPU, Portland Group compiler
->multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
+```
+single processor + GPU, Portland Group compiler
+multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
+```
 
 Also note that there are two sets of flags for each configuration PERF and DEBUG string that correspond to a performance enabled and debugging setting respective.  
 
-##Single GPU job 
+## Single GPU job 
 
 In order to run CM1 on a single GPU, uncomment the correspoding flags and configure your environment by performing the following module commands:
 
@@ -30,7 +32,7 @@ Once the 'cm1.exe' command has been built, you will need to request a single GPU
 
 This will allocated an interactive job where CM1 can be executed simplying by executing the commands './cm1.exe'
 
-##Multi GPU job 
+## Multi GPU job 
 
 In order to run CM1 on multiple GPUs, uncomment the correspoding flags and configure your environment by performing the following module commands:
 
