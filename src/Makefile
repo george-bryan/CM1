@@ -26,12 +26,12 @@
 #OPTS = -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma -init=snan,arrays -traceback
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
-#  multiple processors, distributed memory (MPI), Intel compiler 
-#      (eg, NCAR's yellowstone/cheyenne)
-FC   = mpif90
-OPTS = -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-DM   = -DMPI
+##  multiple processors, distributed memory (MPI), Intel compiler 
+##      (eg, NCAR's yellowstone/cheyenne)
+#FC   = mpif90
+#OPTS = -O3 -pg -g -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#DM   = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), Intel compiler 
 #      (eg, NCAR's yellowstone/cheyenne)
@@ -46,35 +46,45 @@ DM   = -DMPI
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
-FC   = pgf90
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
-#OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,redundant
-# flipping the next two for debugging
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-
-#OPTS = -Mfree -g -O2 -Ktrap=none -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+#FC   = pgf90
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
+#
+# -------PERF-------
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-#OPTS = -Mfree -g -O0 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
 #DM   = -D_OPENACC
-DM   = -D_OPENACC -D_B4B
-LINKOPTS = -lnvToolsExt -v
-#  multiple processors, distributed memory (MPI), Portland Group compiler
+# -------END PERF------
+#
+# -------DEBUG------
+#OPTS = -Mfree -g -O0 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#DM   = -D_OPENACC -D_B4B
+# -------END DEBUG------
+#
+#
+# if NVTX performance analysis
+# LINKOPTS = -lnvToolsExt -v
+#-----------------------------------------------------------------------------
+##  multiple processors, distributed memory (MPI), Portland Group compiler
 #FC   = mpif90
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #DM   = -DMPI
 #-----------------------------------------------------------------------------
-#  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
-#FC   = mpif90
-##OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-##OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DM   = -DMPI -D_OPENACC
-#LINKOPTS = -lnvToolsExt
+##  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
+FC   = mpif90
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#
+# -------PERF-------
+OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+DM   = -DMPI -D_OPENACC
+# -------END PERF------
+#
+# -------DEBUG------
+#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+#DM   = -DMPI -D_OPENACC -D_B4B
+# -------END DEBUG------
+#
+# if NVTX performance analysis
+#LINKOPTS = -lnvToolsExt -v
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), Portland Group compiler
 #FC   = pgf90
@@ -227,11 +237,11 @@ SRC   = constants.F \
 	module_bl_myjpbl.F \
 	module_sf_myjsfc.F
 
-SRC_OPENACC = nvtx_mod.F
-#SRC_OPENACC = 
+#SRC_NVTX = nvtx_mod.F
+SRC_NVTX = 
 
 OBJS = $(addsuffix .o, $(basename $(SRC)))
-OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_OPENACC)))
+OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_NVTX)))
 
 FFLAGS  =  $(OPTS)
 AR      = ar cru
@@ -321,7 +331,7 @@ statpack.o: constants.o input.o maxmin.o misclibs.o cm1libs.o writeout_nc.o
 testcase_simple_phys.o: constants.o input.o
 thompson.o: input.o module_mp_radar.o module_ra_etc.o
 turb.o: constants.o input.o bc.o comm.o sfcphys.o sfclay.o sfclayrev.o slab.o oml.o ysu.o cm1libs.o module_sf_gfdl.o module_bl_gfsedmf.o module_sf_mynn.o module_bl_mynn.o module_bl_myjpbl.o module_sf_myjsfc.o turbnba.o misclibs.o ib_module.o
-turbtend.o: constants.o input.o
+turbtend.o: constants.o input.o cm1libs.o
 turbnba.o: constants.o input.o bc.o comm.o
 writeout.o: constants.o input.o bc.o comm.o writeout_nc.o misclibs.o getcape.o ib_module.o cm1libs.o
 writeout_nc.o: constants.o input.o

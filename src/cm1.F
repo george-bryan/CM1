@@ -51,6 +51,8 @@
 #endif
 #ifdef _OPENACC
       use openacc
+#endif
+#ifdef _NVTX
       use nvtx_mod
 #endif
       implicit none
@@ -2953,7 +2955,7 @@
 
 
       !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxStartRange("solve1 ",id=0)
 #endif
         !$acc compare(rho,tha)
@@ -3036,14 +3038,14 @@
         ! end_solve1
        !stop 'cm1: after solve1' 
 !$acc compare(tha)
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxEndRange
 #endif
        !print *,'cm1: after solve1'
        !$acc compare(dum1)
        !call flush(6)
 
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxStartRange("solve2",id=1)
 #endif
        !print *,'cm1: before solve2'
@@ -3125,7 +3127,7 @@
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(tha)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxEndRange
 #endif
       !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
@@ -3137,7 +3139,7 @@
         ! microphysics:
 
         ! cm1r20:  move calls to microphysics scheme into mp_driver.F
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxStartRange("mp_driver",id=2)
 #endif
 
@@ -3156,7 +3158,7 @@
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
       endif
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxEndRange
 #endif
 
@@ -3164,7 +3166,7 @@
       !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxStartRange("solve3",id=3)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
@@ -3250,7 +3252,7 @@
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(tha,rru,rrv)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxEndRange
 #endif
 
@@ -3321,6 +3323,8 @@
 
 #ifdef _OPENACC
         stop 'ERROR radiation_driver not support under OPENACC'
+#endif
+#ifdef _NVTX
         call nvtxStartRange("radiation_driver",id=4)
 #endif
         call     radiation_driver(mtime,radtim,dt,rbufsz,xh,yh,xf,yf,zf,rmh,c1,c2,     &
@@ -3344,7 +3348,7 @@
           endif
         enddo
         if(timestats.ge.1) time_rad=time_rad+mytime()
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxEndRange()
 #endif
 
@@ -3370,7 +3374,7 @@
       if( startup .or. restarted ) update_sfc = .false.
       !$acc compare(dum1,dum2)
 
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxStartRange("srf_and_turb",id=5)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
@@ -3428,7 +3432,7 @@
         ! end_sfc_and_turb
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-#ifdef _OPENACC
+#ifdef _NVTX
       call nvtxEndRange()
 #endif
       !$acc compare(dum1,dum2)
@@ -3569,7 +3573,7 @@
 
       if( dowriteout )then
 !#if 0
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxStartRange("writeout",id=6)
 #endif
       otype:  &
@@ -3707,7 +3711,7 @@
           enddo
         endif
         if(myid.eq.0) print *,'  next taptim = ',taptim
-#ifdef _OPENACC
+#ifdef _NVTX
       call nvtxEndRange()
 #endif
 !#endif
@@ -3780,7 +3784,7 @@
       if( dotdwrite )then
 
 
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxStartRange("domaindiag",id=7)
 #endif
 #if 0
@@ -3838,7 +3842,7 @@
         endif
         if(myid.eq.0) print *,'  next diagtim = ',diagtim
         if(timestats.ge.1) time_diag = time_diag+mytime()
-#ifdef _OPENACC
+#ifdef _NVTX
         call nvtxEndRange()
 #endif
 
