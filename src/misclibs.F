@@ -781,10 +781,14 @@
             dtsm = 0.50*min( min_dx , min_dy , min_dz )/csound
           ENDIF
         ENDIF
+        print *,'dtsmall: min_{dx,dy,dz}: ', min_dx,min_dy,min_dz
+        print *,'dtsmall: dbldt: ',dbldt
+        print *,'dtsmall: dtsm: ',dtsm
 
         nsound = max( nint( dbldt/dtsm ) , 4 )
         if( mod(nsound,2).ne.0 ) nsound = nsound + 1
         if( dbldt/float(nsound).gt.dtsm ) nsound = nsound + 2
+        print *,'dtsmall: nsound: ',nsound
 
         if( nsound.gt.max_nsound )then
           ! GHB:  this is arbitrary ... could be changed
@@ -934,6 +938,82 @@
       if(timestats.ge.1) time_misc=time_misc+mytime()
 
       end subroutine getcvm
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine getcvm_GPU(cvm,q)
+      use input
+      use constants
+      implicit none
+
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: cvm
+      real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: q
+
+      integer :: i,j,k,n
+
+
+    IF( eqtset.le.1 .or. imoist.eq.0 )THEN
+
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      DO k=1,nk
+      do j=1,nj
+      do i=1,ni
+        cvm(i,j,k) = cv
+      enddo
+      enddo
+      ENDDO
+
+    ELSE
+
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      DO k=1,nk
+        do j=1,nj
+        do i=1,ni
+          cvm(i,j,k) = cv+cvv*q(i,j,k,nqv)
+        enddo
+        enddo
+      ENDDO
+      IF( nql1.gt.0 )THEN
+        !$omp parallel do default(shared) private(i,j,k,n)
+        !$acc parallel default(present) private(i,j,k,n)
+        do n=nql1,nql2
+        !$acc loop gang vector collapse(3)
+        DO k=1,nk
+          do j=1,nj
+          do i=1,ni
+            cvm(i,j,k)=cvm(i,j,k)+cpl*q(i,j,k,n)
+          enddo
+          enddo
+        ENDDO
+        enddo
+        !$acc end parallel
+      ENDIF
+      IF(iice.eq.1)THEN
+        !$acc parallel default(present) private(i,j,k,n)
+        !$omp parallel do default(shared) private(i,j,k,n)
+        do n=nqs1,nqs2
+        !$acc loop gang vector collapse(3)
+        DO k=1,nk
+          do j=1,nj
+          do i=1,ni
+            cvm(i,j,k)=cvm(i,j,k)+cpi*q(i,j,k,n)
+          enddo
+          enddo
+        ENDDO
+        enddo
+        !$acc end parallel
+      ENDIF
+
+    ENDIF
+
+
+      if(timestats.ge.1) time_misc=time_misc+mytime()
+
+      end subroutine getcvm_GPU
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2853,20 +2933,16 @@
       real :: dtdx,dtdy,dtdz,fmax,wsp,tem
       !$acc declare present(uh,vh,mh,ua,va,wa)
  
+      !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
       dtdx=0.5*dt*rdx
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
 
       fmax=-99999999.
 
-#ifndef _B4B
-      !$acc data copy(fmax,cflmax) copyin(dtdx,dtdy,dtdz)
-#endif
       if(nx.gt.1.and.ny.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-#ifndef _B4B
-        !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
-#endif
+        !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2880,9 +2956,7 @@
         enddo
       elseif(nx.gt.1)then
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-#ifndef _B4B
-        !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
-#endif
+        !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2894,10 +2968,7 @@
           enddo
         enddo
       elseif(axisymm.eq.0.and.ny.gt.1)then
-        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-#ifndef _B4B
-        !$acc parallel loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
-#endif
+        !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2911,10 +2982,8 @@
       endif
 
       cflmax = fmax
-#ifndef _B4B
-      !$acc end data
-#endif
-
+      !$acc end parallel
+      print *,'calccflquick: ',cflmax
 #ifdef MPI
 !!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)

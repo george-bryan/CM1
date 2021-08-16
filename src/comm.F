@@ -6867,8 +6867,9 @@
 
       nf=nf+1
       tag1=nf
-      !$acc update host(s)
-!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+      !!$acc update host(s)
+!!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!$acc compare (s)
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
@@ -6926,79 +6927,74 @@
 
       nr = 4
 
-!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!$acc compare(s)
       ! send west
       if(ibw.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(j)
-!!$acc parallel loop private(j)
+        !$omp parallel do default(shared) private(j)
+        !$acc parallel loop private(j)
         do j=1,nj
           west(j)=s(1,j)
         enddo
         nr = nr + 1
         !$acc update host(west)
-!!$acc host_data use_device(west)
         call mpi_isend(west,nj,MPI_REAL,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
       endif
 
 !----------
 
-!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!$acc compare(s)
       ! send east
       if(ibe.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(j)
-!!$acc parallel loop private(j)
+        !$acc parallel loop private(j)
         do j=1,nj
           east(j)=s(ni,j)
         enddo
         nr = nr + 1
         !$acc update host(east)
-!!$acc host_data use_device(east)
         call mpi_isend(east,nj,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
       endif
 
 !----------
 
-!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!$acc compare(s)
       ! send north
       if(ibn.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(i)
-!!$acc parallel loop private(i)
+        !$acc parallel loop private(i)
         do i=1,ni
           north(i)=s(i,nj)
         enddo
         nr = nr + 1
         !$acc update host(north)
-!!$acc host_data use_device(north)
         call mpi_isend(north,ni,MPI_REAL,mynorth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
       endif
 
 !----------
 
-!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!!$acc compare (s,west,newwest,east,neweast,south,newsouth,north,newnorth)
+!$acc compare (s)
       ! send south
       if(ibs.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(i)
-!!$acc parallel loop private(i)
+        !$acc parallel loop private(i)
         do i=1,ni
           south(i)=s(i,1)
         enddo
         nr = nr + 1
 
         !$acc update host(south)
-!!$acc host_data use_device(south)
         call mpi_isend(south,ni,MPI_REAL,mysouth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
       endif
 
 !----------
@@ -7061,26 +7057,22 @@
         nn = nn + 1
  
       if(index.eq.index_east)then
-!$omp parallel do default(shared)   &
-!$omp private(j)
+        !$omp parallel do default(shared) private(j)
         do j=1,nj
           s(ni+1,j)=neweast(j)
         enddo
       elseif(index.eq.index_west)then
-!$omp parallel do default(shared)   &
-!$omp private(j)
+        !$omp parallel do default(shared) private(j)
         do j=1,nj
           s(0,j)=newwest(j)
         enddo
       elseif(index.eq.index_south)then
-!$omp parallel do default(shared)   &
-!$omp private(i)
+        !$omp parallel do default(shared) private(i)
         do i=1,ni
           s(i,0)=newsouth(i)
         enddo
       elseif(index.eq.index_north)then
-!$omp parallel do default(shared)   &
-!$omp private(i)
+        !$omp parallel do default(shared) private(i)
         do i=1,ni
           s(i,nj+1)=newnorth(i)
         enddo
@@ -7226,45 +7218,45 @@
         index_north = nr
       endif
 
-      !$acc update host(s)
+      !!$acc update host(s)
       nn = 1
       do while( nn .le. nr )
         call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
         nn = nn + 1
 
       if(index.eq.index_east)then
-!      !$acc update device(neweast)
+       !$acc update device(neweast)
 !      !$acc compare(neweast)
 !$omp parallel do default(shared)   &
 !$omp private(j)
-!!$acc parallel loop default(present) private(j)
+ !$acc parallel loop default(present) private(j)
         do j=1,nj
           s(ni+1,j)=neweast(j)
         enddo
       elseif(index.eq.index_west)then
-!      !$acc update device(newwest)
+       !$acc update device(newwest)
 !      !$acc compare(newwest)
 !$omp parallel do default(shared)   &
 !$omp private(j)
-!!$acc parallel loop default(present) private(j)
+ !$acc parallel loop default(present) private(j)
         do j=1,nj
           s(0,j)=newwest(j)
         enddo
       elseif(index.eq.index_south)then
-!      !$acc update device(newsouth)
+       !$acc update device(newsouth)
 !      !$acc compare(newsouth)
 !$omp parallel do default(shared)   &
 !$omp private(i)
-!!$acc parallel loop default(present) private(i)
+ !$acc parallel loop default(present) private(i)
         do i=1,ni
           s(i,0)=newsouth(i)
         enddo
       elseif(index.eq.index_north)then
-!      !$acc update device(newnorth)
+       !$acc update device(newnorth)
 !      !$acc compare(newnorth)
 !$omp parallel do default(shared)   &
 !$omp private(i)
-!!$acc parallel loop default(present) private(i)
+ !$acc parallel loop default(present) private(i)
         do i=1,ni
           s(i,nj+1)=newnorth(i)
         enddo
@@ -7274,12 +7266,12 @@
 
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
 
-     !!$acc parallel default(present)
+      !$acc parallel default(present)
 !----------
 !  patch for corner
-      print *,'ibw: ',ibw
-      print *,'p2tchsww: ',p2tchsww
-      print *,'p2tchnww: ',p2tchnww
+      !print *,'ibw: ',ibw
+      !print *,'p2tchsww: ',p2tchsww
+      !print *,'p2tchnww: ',p2tchnww
       if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
 
         if(ibw.eq.1)then
@@ -7335,7 +7327,7 @@
         endif
 
       endif
-      !!$acc end parallel
+      !$acc end parallel
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
@@ -7361,7 +7353,7 @@
     endif
 
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
-      !$acc update device(s)
+      !!$acc update device(s)
       !stop 'comm_1s2d_end_GPU:'
 !----------
 

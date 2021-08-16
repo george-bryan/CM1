@@ -203,7 +203,6 @@
       real :: tem
       double precision :: temd
       double precision :: tmp1,tmp2,tmp3
-      print *,'get_avg_uvt: Entered subroutine'
       ! 180612:  area-weighted average
       !$acc parallel default(present) private(i,j,k) reduction(+:tmp1,tmp2,tmp3)
       tem = dx*dy

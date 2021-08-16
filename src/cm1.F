@@ -2622,6 +2622,7 @@
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
+          !$acc update device(cflmax)
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif
@@ -2651,6 +2652,7 @@
 
       ! cm1r19:  nsound is always determined diagnostically
       call dtsmall(dt,dbldt)
+      print *,'cm1: dt:= ',dt
 
 
       if(dowr) write(outfile,*)
@@ -4141,7 +4143,7 @@
 
       !print *,'nstep: ',nstep
       !print *,'mtime: ',mtime
-      if(nstep .eq. 1) then 
+      if(nstep .eq. 10) then 
         !stop 'cm1: at the end of timeloop'
       endif
 

@@ -435,7 +435,7 @@
       !$acc parallel private(i,j,k,foo1,foo2,foo3)
       do j=0,nj+1
       !$omp parallel do default(shared)   &
-      !$omp private(i,,k,foo1,foo2,foo3)
+      !$omp private(i,k,foo1,foo2,foo3)
       !$acc loop gang vector collapse(2)
       DO k=1,nk
         do i=1,ni

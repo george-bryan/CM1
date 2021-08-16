@@ -1293,9 +1293,9 @@
     IF( cm1setup.eq.1 )THEN
 
       IF( dot2p )THEN
-#ifdef _OPENACC
-        print *,'ERROR: call to getgamk not supported in OpenACC'
-#endif
+!#ifdef _OPENACC
+!        print *,'ERROR: call to getgamk not supported in OpenACC'
+!#endif
         ! get gamk for two-part model:
         call     getgamk(dt,rtime,xf,rxf,c1,c2,zh,mh,zf,mf,rf0,rr0,rho0,rrf0,u0,v0,            &
                          uavg,vavg,savg,l2p,kmw,gamwall,gamk,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cavg,  &
@@ -1305,19 +1305,19 @@
                          u1,v1,s1,u1b,v1b,                                                     &
                          avgsfcu,avgsfcv,avgsfcs,                                              &
                          sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
-        print *,'compare #1'
+!        print *,'compare #1'
         !$acc compare(uavg,vavg,savg,l2p)
-        print *,'compare #1.1'
+!        print *,'compare #1.1'
         !$acc compare(kmw,t2pm1,t2pm2,t2pm3,t2pm4)
-        print *,'compare #1.2'
+!        print *,'compare #1.2'
         !$acc compare(gamk)
-        print *,'compare #1.3'
+!        print *,'compare #1.3'
         !$acc compare(s2p,s2b)
-        print *,'compare #1.4'
+!        print *,'compare #1.4'
         !$acc compare(cavg)
-        print *,'compare #2'
+!        print *,'compare #2'
         !$acc compare(ugr,vgr,fsu,fsv)
-        print *,'compare #3'
+!        print *,'compare #3'
         !$acc compare(t11,t12,t13,t22,t23,t33,u1,v1,s1,stau,u1b,v1b)
         ! update turbulence model "constants":
         !$acc parallel loop gang vector default(present) private(k)
@@ -2733,7 +2733,7 @@
 #ifdef MPI
         call comm_1s2d_start_GPU(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-!$acc compare(kvcw2,kvcw1,kmh,kmv,khh,khv)
+!$acc compare(kmh,kmv,khh,khv)
         !-----
 !!$acc update host(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
 !!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
@@ -5476,7 +5476,6 @@
       !$acc data create(rfavg,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg,wspa)
     !-------------------------------------------
 
-    print *,'t2pcode: start of subroutine'
     !$acc parallel loop default(present) private(k)
     do k=kb,ke
       kmw(k)  = 0.0
@@ -5537,10 +5536,11 @@
 #endif
         print *,'t2pcode: point #2'
 #ifdef MPI
-        !$acc update host(ustbar,zntbar)
+        !Reductions are on the host anyway  
+        !!$acc update host(ustbar,zntbar)
         call MPI_ALLREDUCE(MPI_IN_PLACE,ustbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,zntbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !$acc update device(ustbar,zntbar)
+        !!$acc update device(ustbar,zntbar)
 #endif
 
 #ifndef _B4B

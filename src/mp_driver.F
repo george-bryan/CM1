@@ -631,18 +631,18 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
         ELSEIF(ptype.eq.6)THEN
-          !$acc update &
-          !$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
-          !$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
-          !$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
-          !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
-          !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
+          !!$acc update &
+          !!$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
+          !!$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
+          !!$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
+          !!$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
+          !!$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
           if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
-          call pdefq(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
-          call pdefq( qsmall,asq(2),ruh,rvh,rmh,rho,q3d(ib,jb,kb,2))
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+          call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
+          call pdefq_GPU( qsmall,asq(2),ruh,rvh,rmh,rho,q3d(ib,jb,kb,2))
+          !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -654,12 +654,13 @@
           enddo
           enddo
           enddo
-          call geterain(dt,cpl,lv1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
+          call geterain_GPU(dt,cpl,lv1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
+          !$acc compare(qbudget)
           if( efall.ge.1 .and. v_t.gt.1.0e-6 )then
-            call getcvm(dum2,q3d)
-            call getefall(1,cpl,mf,dum1,dum2,dum4,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+            call getcvm_GPU(dum2,q3d)
+            call getefall_GPU(1,cpl,mf,dum1,dum2,dum4,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
+            !$omp parallel do default(shared) private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk-1
             do j=1,nj
             do i=1,ni
@@ -673,8 +674,8 @@
             enddo
             enddo
             if( dotbud .and. td_efall.ge.1 )then
-              !$omp parallel do default(shared)  &
-              !$omp private(i,j,k)
+              !$omp parallel do default(shared) private(i,j,k)
+              !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
               do k=1,nk-1
               do j=1,nj
               do i=1,ni
@@ -684,15 +685,16 @@
               enddo
             endif
           endif
-          call fallout(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+          call fallout_GPU(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
-          call satadj(4,dt,qbudget(1),qbudget(2),ruh,rvh,rmh,pi0,th0,   &
+          call satadj_GPU(4,dt,qbudget(1),qbudget(2),ruh,rvh,rmh,pi0,th0,   &
                       rho,dum3,pp3d,prs,th3d,q3d)
 
           IF( v_t.lt.(-0.0001) )THEN
             ! pseudoadiabatic approach of Bryan and Rotunno (2009, JAS, pg 3046)
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -701,13 +703,13 @@
             enddo
             enddo
           ENDIF
-          !$acc update &
-          !$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
-          !$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
-          !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
-          !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
+          !!$acc update &
+         !!$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
+          !!$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
+          !!$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
+          !!$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
           if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
-
+          !stop 'mp_driver: at the end of ptype==6'
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !  Ziegler/Mansell (NSSL) two-moment scheme
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
