@@ -1027,7 +1027,7 @@
 #ifdef MPI
         IF(nrk.ge.2)THEN
           call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-          call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+          call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
           call bcs2_GPU(rho)
         ENDIF
 #endif
