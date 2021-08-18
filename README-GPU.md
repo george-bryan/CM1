@@ -2,7 +2,7 @@
 
 This version of CM1 includes an experimental port of CM1 to the GPU using the OpenACC langauge..  While large sections of CM1 have been ported to the GPU, there are still multiple sections that have not yet been ported.  Sections not ported will issue a fatal error message indicating the lack of a complete port. Additionally not all configurations of CM1 have been official verified for correct exection.  Use of the GPU port is therefore a use at your own risk configuration. 
 
-We next describe directions for compiling and executing CM1 on GPUs within the Casper system.  Several targets have been added to the Makefile and can be located by looking for the following two lines 
+We next describe directions for compiling and executing CM1 on GPUs within the Casper system.  CM1 is build from the 'src' directory.  Several targets have been added to the Makefile and can be located by looking for the following two lines 
 
 ```
 single processor + GPU, Portland Group compiler
@@ -20,7 +20,7 @@ In order to run CM1 on a single GPU, uncomment the correspoding flags and config
     module load ncarenv/1.3 nvhpc/20.9 cuda/10.1 ncarcompilers/0.5.0
 ```
 
-You can then build the executable using make:
+In the 'src' directory, You can then build the executable using make:
 
 ```
     make -j 3
@@ -30,7 +30,7 @@ Once the 'cm1.exe' command has been built, you will need to request a single GPU
 
     execcasper -l select=1:ncpus=1:ngpus=1 -l gpu_type=v100 -l walltime=01:00:00
 
-This will allocated an interactive job where CM1 can be executed simplying by executing the command.
+This will allocated an interactive job where CM1 can be executed simplying by executing the command in the 'run' directory.
 
 ```
 ./cm1.exe
@@ -45,7 +45,7 @@ In order to run CM1 on multiple GPUs, uncomment the correspoding flags and confi
     module load ncarenv/1.3 nvhpc/20.9 cuda/10.1 ncarcompilers/0.5.0 openmpi
 ```
 
-You can then build the executable using make:
+You can then build the executable using make in the 'src' directory:
 
 ```
     make -j 3
@@ -69,7 +69,7 @@ This will allocated an interactive job.  You will need to set several environmen
     setenv UCX_RNDV_THRESH 2
 ```
 
-Once your environment is set simply execute the code using mpirun 
+Once your environment is set simply execute the code using mpirun from the 'run' directory. 
 
 ```
     mpirun -np 2 ./cm1.exe
