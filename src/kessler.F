@@ -1,5 +1,5 @@
 #ifdef _B4B
-#undef _B4B01
+#define _B4B01
 #define _B4B02R
 #endif
   MODULE kessler_module
