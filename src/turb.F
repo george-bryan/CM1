@@ -1,10 +1,20 @@
 #ifdef _B4B
-#define _B4B01
-#define _B4B02
-#define _B4B03
-#define _B4B04
-#define _B4B05
-#define _B4B06
+#undef _B4B01F
+
+#define _B4B02F
+#define _B4B03F
+#define _B4B04F
+#define _B4B05F
+#define _B4B08F
+
+#undef _B4B06F
+
+
+#define _B4B07R
+#define _B4B09R
+#define _B4B10R
+#define _B4B11R
+
 #endif
   MODULE turb_module
 
@@ -652,7 +662,7 @@
           !$acc compare(znt)
 
           if( tbc.eq.3 )then
-#ifdef _B4B01
+#ifdef _B4B01F
             !$acc update host(ugr,vgr,zf,zh) 
 #else
             !$acc parallel loop gang vector collapse(2) default(present) 
@@ -665,13 +675,14 @@
               ustt(i,j) = max( st(i,j)*karman/alog((zf(i,j,nk+1)-zh(i,j,nk))/cnst_znt) , 1.0e-6 )
             enddo
             enddo
-#ifdef _B4B01
+#ifdef _B4B01F
             !$acc update device(ut,vt,st,ustt)
 #endif
+            !$acc compare(ut,vt,st,ustt)
+            stop 'sfc_and_turb: after setting of ut,vt,st,ustt'
           endif
 
 
-          !stop 'before call to sfcflux'
           !$acc compare(znt)
           if(isfcflx.eq.1)then
             call sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail, &
@@ -918,7 +929,7 @@
                      ids=1  ,ide=ni+1 , jds= 1 ,jde= 1   , kds=1  ,kde=nk+1 ,                                   &
                      ims=ib ,ime=ie   , jms= 1 ,jme= 1   , kms=kb ,kme=ke ,                                     &
                      its=1  ,ite=ni   , jts= 1 ,jte= 1   , kts=1  ,kte=nk  )
-#ifdef _B4B02
+#ifdef _B4B02F
           !$acc update host(br,ppten,znt)
 #else
           !$acc parallel loop gang vector default(present) private(i)
@@ -928,7 +939,7 @@
             br(i,j) = min(  10.0 , br(i,j) )
             gz1oz0(I,J)=ALOG(ppten(i,j,1)/znt(i,j))
           enddo
-#ifdef _B4B02
+#ifdef _B4B02F
           !$acc update device(br,gz1oz0)
 #endif
 
@@ -2464,7 +2475,7 @@
 
       ! single length scale:  appropriate if dx,dy are nearly the same as dz
 
-#ifdef _B4B03
+#ifdef _B4B03F
       !$acc update host(csz,ruh,rvh,rmf,tkea,nm,dissten,ce1z,ce2z,cmz,kmh,khh)
 #else
       !non-B4B: due to use of PWR function 
@@ -2519,7 +2530,7 @@
       enddo
       enddo
       enddo
-#ifdef _B4B03
+#ifdef _B4B03F
       !$acc update device(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
 #endif
 !$acc compare(kmh,kmv,khh)
@@ -2530,7 +2541,7 @@
       ! two length scales:  one for horizontal, one for vertical
 
       !$omp parallel do default(shared) private(i,j,k,prinv,rcs)
-#ifdef _B4B03
+#ifdef _B4B03F
       !$acc update host(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
 #else
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
@@ -2584,7 +2595,7 @@
       enddo
       enddo
       enddo
-#ifdef _B4B03
+#ifdef _B4B03F
       !$acc update device(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
 #endif
 !$acc compare(kmh,kmv,khh)
@@ -2748,13 +2759,13 @@
         !-----
         call comm_2d_corner_GPU(tkea(ibt,jbt,1))
         call comm_2d_corner_GPU(kmh(ibc,jbc,1))
+        !$acc compare(kmh,kmv,khh,khv,tkea)
 !!$acc update device(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
 !!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
 !!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
 !!$acc compare(kmh,kmv,khh,khv)
         !-----
 #endif
-!$acc compare(kmh,kmv,khh,khv)
 
         !$omp parallel do default(shared) private(i,j)
         !$acc parallel loop gang vector default(present) private(i,j)
@@ -3057,9 +3068,9 @@
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_2d_corner_GPU(kmv(ibc,jbc,1))
+        !$acc compare(kmv)
         call bcs2_2d_GPU(kmv(ibc,jbc,1))
 #endif
-      !$acc compare(kmv)
 
       IF( tconfig.eq.1 )THEN
       !PORTME
@@ -3393,6 +3404,7 @@
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_2d_corner_GPU(kmv(ibc,jbc,1))
+        !$acc compare(kmv)
         call bcs2_2d_GPU(kmv(ibc,jbc,1))
 #endif
 
@@ -4783,7 +4795,7 @@
 
     IF(imoist.eq.0)then
 
-#ifdef _B4B04
+#ifdef _B4B04F
       !$acc update host(th0,th,mf)
 #else
       !non-B4B
@@ -4798,9 +4810,11 @@
       enddo
       enddo
       enddo
-#ifdef _B4B04
+#ifdef _B4B04F
       !$acc update device(nm)
 #endif
+      !$acc compare(nm)
+      stop 'calcnm: after first loop'
 
       !$omp parallel do default(shared) private(i,j)
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -4897,7 +4911,7 @@
       enddo
       enddo
 
-#ifdef _B4B05
+#ifdef _B4B05F
       !$acc update host(thv,mf,c1,c2,prs,t,qt,qvci,qt)
 #else
       !non-B4B
@@ -4984,14 +4998,16 @@
       enddo
       enddo
       enddo
-#ifdef _B4B05
+#ifdef _B4B05F
       !$acc update device(nm,iamsat)
 #endif
+      !$acc compare(nm)
+      stop 'calcnm: point #2'
 
     ELSE  icecheck
 
       ! liquid only:
-#ifdef _B4B06
+#ifdef _B4B06F
       !$acc update host(th0,th,pi0,pp,qa,qt,mf,c1,c2,prs,t,qt,qvci)
 #else
       !non-B4B
@@ -4999,7 +5015,7 @@
       !$acc private(pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
 #endif
       do k=2,nk
-#ifndef _B4B06
+#ifndef _B4B06F
       ! Only do the two inner loops because of the vertical dependency of nm
       !$acc loop gang vector collapse(2) 
 #endif
@@ -5033,11 +5049,13 @@
       enddo
       enddo
       enddo
-#ifdef _B4B06
+#ifdef _B4B06F
     !$acc update device(t,thv,nm,iamsat)
 #else
     !$acc end parallel
 #endif
+      !$acc compare(nm)
+      !stop 'calcnm: point #3'
 
     ENDIF  icecheck
 
@@ -5510,8 +5528,8 @@
     !-------------------------------------------
     !  surface vars:
 
-        print *,'t2pcode: point #1'
-#ifdef _B4B
+        !print *,'t2pcode: point #1'
+#ifdef _B4B07R
         !$acc update host(s13,s23,rf,zntmp)
 #else
         !$acc parallel default(present) private(i,j) reduction(+:ustbar,zntbar)
@@ -5519,7 +5537,7 @@
         ustbar = 0.0
         zntbar = 0.0
 
-#ifndef _B4B
+#ifndef _B4B07R
         !$acc loop gang vector collapse(2) reduction(+:ustbar,zntbar)
 #endif
         do j=1,nj
@@ -5531,10 +5549,10 @@
           zntbar = zntbar + zntmp(i,j)
         enddo
         enddo
-#ifndef _B4B
+#ifndef _B4B07R
         !$acc end parallel
 #endif
-        print *,'t2pcode: point #2'
+        !print *,'t2pcode: point #2'
 #ifdef MPI
         !Reductions are on the host anyway  
         !!$acc update host(ustbar,zntbar)
@@ -5543,7 +5561,7 @@
         !!$acc update device(ustbar,zntbar)
 #endif
 
-#ifndef _B4B
+#ifndef _B4B08F
         !$acc parallel default(present) private(k)
 #endif
         teme = 1.0/dble(nx*ny)
@@ -5552,14 +5570,14 @@
         zntbar = zntbar*teme
 
 
-        print *,'t2pcode: point #3'
-#ifndef _B4B
+        !print *,'t2pcode: point #3'
+#ifndef _B4B08F
         !$acc loop gang vector
 #endif
         do k=1,(ntwk+1)
           wspa(k) = (ustbar/karman)*alog( sngl(zh(1,1,k)/zntbar) )
         enddo
-#ifdef _B4B
+#ifdef _B4B08F
         !$acc update device(wspa)
 #else
         !$acc end parallel
@@ -5569,8 +5587,8 @@
 
       ! new formulation (accounts for all forcing terms in u,v equations)
 
-        print *,'t2pcode: point #4'
-#ifdef _B4B
+        !print *,'t2pcode: point #4'
+#ifdef _B4B09R
       !$acc update host(mf,wa,ua,va,rf,kmw,rho,fsu,fsv,u2pt,v2pt,rr)
 #else
       !$acc parallel default(present) private(i,j,temx,temy,s13b,s23b) &
@@ -5595,7 +5613,7 @@
         s13b = 0.5*(uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
         s23b = 0.5*(vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
 
-#ifndef _B4B
+#ifndef _B4B09R
         !$acc loop vector collapse(2) &
         !$acc     reduction(+:s13avgt,s23avgt,t13avgt,t23avgt,d13avgt,d23avgt,rfavgt)
 #endif
@@ -5636,13 +5654,13 @@
         d23avg(k) = d23avgt
         rfavg(k)  = rfavgt
       ENDDO  kloop1
-#ifdef _B4B
+#ifdef _B4B09R
       !$acc update device(s13avg,s23avg,t13avg,t23avg,d13avg,d23avg,rfavg,fsu,fsv)
 #else
       !$acc end parallel
 #endif
 
-        print *,'t2pcode: point #5'
+        !print *,'t2pcode: point #5'
 #ifdef MPI
         !$acc update host(s13avg,s23avg,t13avg,t23avg,d13avg,d23avg,rfavg)
         call MPI_ALLREDUCE(MPI_IN_PLACE,s13avg,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -5655,7 +5673,7 @@
         !$acc update device(s13avg,s23avg,t13avg,t23avg,d13avg,d23avg,rfavg)
 #endif
 
-        print *,'t2pcode: point #6'
+        !print *,'t2pcode: point #6'
       !$acc parallel default(present) private(k,d2pm1,d2pm2,d2pm3,dsdz,tem)
       !$acc loop gang vector
       kloop2:  &
@@ -5702,7 +5720,7 @@
       !$acc end parallel
 
     !-------------------------------------------
-        print *,'t2pcode: point #7'
+        !print *,'t2pcode: point #7'
 
     !$acc compare(uavg,vavg,savg,l2p,kmw,t2pm1,t2pm2,t2pm3,t2pm4)
     !$acc compare(gamk,s2p,s2b,cavg,ugr,vgr,fsu,fsv)
@@ -5797,7 +5815,7 @@
     !-------------------------------------------
     !  Get domain average profiles:
 
-#ifdef _B4B
+#ifdef _B4B10R
       !$acc update host(ugr,vgr)
 #else
       !$acc parallel default(present) private(i,j,k) reduction(+:cavg1,cavg2)
@@ -5807,7 +5825,7 @@
         uavg(k) = 0.0
         vavg(k) = 0.0
       enddo
-#ifndef _B4B
+#ifndef _B4B10R
       !$acc loop gang
 #endif
       do k=1,nk
@@ -5815,7 +5833,7 @@
         cavg(k,1) = 0.0
         cavg(k,2) = 0.0
         !----
-#ifndef _B4B
+#ifndef _B4B10R
         !$acc loop vector collapse(2) reduction(+:cavg1,cavg2)
 #endif
         do j=1,nj
@@ -5828,7 +5846,7 @@
         cavg(k,1) = cavg1
         cavg(k,2) = cavg2
       enddo
-#ifdef _B4B
+#ifdef _B4B10R
       !$acc update device(cavg)
 #else
       !$acc end parallel
@@ -5858,7 +5876,7 @@
       !$acc end parallel
       !$acc compare(uavg,vavg,savg)
 
-#ifdef _B4B
+#ifdef _B4B11R
     !$acc update host(mf,c1,c2,t11,t22,t33,t12,t13,t23,rf)
 #else
     !$acc parallel default(present) &
@@ -5867,7 +5885,7 @@
 #endif
     !-------------------------------------------
     !  Get new value of gamma:
-#ifndef _B4B
+#ifndef _B4B11R
     !$acc loop gang 
 #endif
     do k=2,ntwk
@@ -5876,7 +5894,7 @@
       s13b = 0.5*(uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
       s23b = 0.5*(vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
 
-#ifndef _B4B
+#ifndef _B4B11R
       !$acc loop vector collapse(2) reduction(+:spavgt)
 #endif
       do j=1,nj
@@ -5905,7 +5923,7 @@
       enddo
       spavg(k) = spavgt
     enddo
-#ifdef _B4B
+#ifdef _B4B11R
     !$acc update device(spavg)
 #else
     !$acc end parallel

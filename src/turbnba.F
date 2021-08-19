@@ -206,6 +206,7 @@
         call comm_2d_corner_GPU(grdscl(ib,jb,k))
 #endif
       enddo
+      !$acc compare(grdscl)
 
       tem1 = 1.0/(zf(1,1,2)-zf(1,1,1))
 

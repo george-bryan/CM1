@@ -1,11 +1,15 @@
 #ifdef _B4B
-#define _B4B01
-#define _B4B02
-#define _B4B03
-#define _B4B04
-#define _B4B05
-#define _B4B06
-#define _B4B07
+#define _B4B01F
+#define _B4B02F
+#define _B4B03F
+#define _B4B04F
+#define _B4B05F
+#define _B4B06R
+#define _B4B07F
+#define _B4B08R
+#define _B4B09R
+#define _B4B10
+#define _B4B11F
 #endif
   MODULE sfcphys_module
 
@@ -110,7 +114,7 @@
     ! specify z0 (roughness length):
     ! note:  set znt array in "init_surface.F"
 
-#ifdef _B4B01
+#ifdef _B4B01F
     !$acc update host(za,znt,u1,v1,s1)
 #else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
@@ -127,13 +131,13 @@
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
     enddo
     enddo
-#ifdef _B4B01
+#ifdef _B4B01F
     !$acc update device(cd,u10,v10,s10,ust)
 #endif
 
   ELSEIF( set_ust.eq.1 )THEN  sfc_options
       ! specify ustar (friction velocity):
-#ifdef _B4B01
+#ifdef _B4B01F
     !$acc update host(za,u1,v1,s1)
 #else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
@@ -151,7 +155,7 @@
       s10(i,j) = s1(i,j)*var
     enddo
     enddo
-#ifdef _B4B01
+#ifdef _B4B01F
     !$acc update device(znt,cd,u10,v10,s10,ust)
 #endif
 
@@ -180,7 +184,7 @@
     ! Cd,z0,ust are functions of 10-m windspeed over water ... need to iterate:
     convergeFail = .false.
     !$omp parallel do default(shared) private(i,j,wlast,n,var,rznt)
-#ifdef _B4B
+#ifdef _B4B11F
     !$acc update host(xland,znt,za,s1,u1,v1)
 #else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wlast,n,var,rznt)
@@ -240,7 +244,7 @@
       ust(i,j) = max( s1(i,j)*karman/alog((za(i,j)+znt(i,j))*rznt) , 1.0e-6 )
     enddo
     enddo
-#ifdef _B4B
+#ifdef _B4B11F
     !$acc update device(s10,cd,u10,v10,ust,znt)
 #endif
     print *,'getcecd: before convergeFail check' 
@@ -409,7 +413,7 @@
 
     !  sensible heat flux:
     !$omp parallel do default(shared) private(i,j,pisfc)
-#ifdef _B4B02
+#ifdef _B4B02F
     !$acc update host(psfc,ch,s10,tsk,th0,tha)
 #else
     !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
@@ -420,14 +424,14 @@
         thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
       enddo
     ENDDO
-#ifdef _B4B02
+#ifdef _B4B02F
     !$acc update device(thflux)
 #endif
 
     !  latent heat flux:
     IF(imoist.eq.1)THEN
       !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
-#ifdef _B4B03
+#ifdef _B4B03F
       !$acc update host(psfc,tsk,qva,s10,cq,mavail)
 #else
       !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
@@ -440,7 +444,7 @@
         enddo
       ENDDO
     ENDIF
-#ifdef _B4B03
+#ifdef _B4B03F
     !$acc update device(qsfc,qvflux)
 #endif
 
@@ -484,7 +488,7 @@
       ! (VanZanten et al 2011, JAMES)
 
   
-#ifdef _B4B04
+#ifdef _B4B04F
       !$acc update host(psfc,s1,tsk,th0,tha)
 #else
       !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
@@ -496,11 +500,11 @@
           thflux(i,j) = 0.001094*s1(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
         enddo
       ENDDO
-#ifdef _B4B04
+#ifdef _B4B04F
       !$acc update device(thflux)
 #endif
       IF(imoist.eq.1)THEN
-#ifdef _B4B05
+#ifdef _B4B05F
         !$acc update host(psfc,tsk,s1,qva,mavail)
 #else
         !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
@@ -513,7 +517,7 @@
             qvflux(i,j) = 0.001133*s1(i,j)*(qvsat-qva(i,j,1))*mavail(i,j)
           enddo
         ENDDO 
-#ifdef _B4B05
+#ifdef _B4B05F
         !$acc update device(qvflux,qsfc)
 #endif
       ENDIF
@@ -549,26 +553,34 @@
     IF(imoist.eq.1)THEN
       tem = dt*dx*dy
       ! some budget calculations:
-#ifdef _B4B06
+#ifdef _B4B06R
       !$acc update host(qvflux,ruh,rvh,rf) 
 #else
       !$acc data create(bud1)
-      !$acc parallel loop gang vector default(present) private(i,j) reduction(+:budtmp,qbsfc)
+      !$acc parallel default(present) private(i,j) reduction(+:budtmp,qbsfc) 
+      !$acc loop gang
 #endif
       !$omp parallel do default(shared) private(i,j)
       do j=1,nj
         budtmp=0.0d0
+#ifndef _B4B06R
+        !$acc loop vector reduction(+:budtmp)
+#endif
         do i=1,ni
           budtmp=budtmp+qvflux(i,j)*ruh(i)*rvh(j)*rf(i,j,1)
         enddo
         bud1(j)=budtmp
       enddo
+#ifndef _B4B06R
+      !$acc loop vector reduction(+:qbsfc)
+#endif
       do j=1,nj
-        qbsfc=qbsfc+bud1(j)*tem
+        qbsfc=qbsfc+bud1(j)*dt*dx*dy
       enddo
-#ifdef _B4B06
+#ifdef _B4B06R
       !$acc update device(qbsfc)
 #else
+      !$acc end parallel
       !$acc end data
 #endif
     ENDIF
@@ -622,7 +634,7 @@
       EP1 = rv/rd - 1.0
 
       ! surface layer diagnostics:
-#ifdef _B4B07
+#ifdef _B4B07F
       !$acc update host(psfc,tsk,th0,tha,qa,qsfc,znt,za,qvflux,hpbl,dsxy,s1,wspd,thflux,rf,cd,th2)
 #else
       !$acc parallel loop gang vector collapse(2) default(present)   &
@@ -680,7 +692,7 @@
         t2(i,j) = th2(i,j)*pisfc
       enddo
       enddo
-#ifdef _B4B07
+#ifdef _B4B07F
       !$acc update device(gz1oz0,qsfc,wspd,br,hfx,qfx,cda,psim,psih,zol,mol,fm,fh,th2,q2,t2)
 #endif
 
@@ -1169,7 +1181,7 @@
 !-----------------------------------------------------------------------
 
       !$acc compare(u1,v1,s1,t1)     
-#ifndef _B4B
+#ifndef _B4B08R
       !$acc parallel default(present) &
       !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
 #endif
@@ -1177,7 +1189,7 @@
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
-#ifdef _B4B
+#ifdef _B4B08R
       !$acc update host(u1,v1,s1,t1)
 #else
       !$acc loop collapse(2) &
@@ -1191,24 +1203,24 @@
         avgsfct = avgsfct + t1(i,j)
       enddo
       enddo
-#ifndef _B4B
+#ifndef _B4B08R
       !$acc end parallel
 #endif
   
 #ifdef MPI
-#ifndef _B4B
+#ifndef _B4B09R
       !$acc update host(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 #endif
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcu,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-#ifndef _B4B
+#ifndef _B4B09R
       !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 #endif
 #endif
 
-#ifndef _B4B
+#ifndef _B4B10
       !$acc parallel 
 #endif
       temd = 1.0/dble(nx*ny)
@@ -1216,7 +1228,7 @@
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
-#ifndef _B4B
+#ifndef _B4B10
       !$acc end parallel
 #else
       !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)

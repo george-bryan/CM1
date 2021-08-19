@@ -46,8 +46,8 @@
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
-#FC   = pgf90
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
+FC   = pgf90
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
 #
 # -------PERF-------
 #OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
@@ -55,8 +55,9 @@
 # -------END PERF------
 #
 # -------DEBUG------
-#OPTS = -Mfree -g -O0 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-#DM   = -D_OPENACC -D_B4B
+OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O0 -gpu=math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
+DM   = -D_OPENACC -D_B4B
 # -------END DEBUG------
 #
 #
@@ -69,13 +70,14 @@
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #DM   = -DMPI
 #-----------------------------------------------------------------------------
-##  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
-FC   = mpif90
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
+#FC   = mpif90
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #
 # -------PERF-------
-OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-DM   = -DMPI -D_OPENACC
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
+#DM   = -DMPI -D_OPENACC 
 # -------END PERF------
 #
 # -------DEBUG------
@@ -311,7 +313,7 @@ morrison.o: input.o constants.o
 module_mp_jensen_ishmael.o: input.o module_ra_etc.o
 mp_driver.o: constants.o input.o misclibs.o kessler.o goddard.o thompson.o lfoice.o morrison.o module_mp_nssl_2mom.o module_mp_p3.o module_mp_jensen_ishmael.o
 param.o: constants.o input.o init_terrain.o bc.o comm.o thompson.o morrison.o module_mp_nssl_2mom.o goddard.o lfoice.o module_mp_p3.o module_mp_jensen_ishmael.o ib_module.o eddy_recycle.o lsnudge.o
-parcel.o: constants.o input.o cm1libs.o bc.o comm.o writeout_nc.o
+parcel.o: constants.o input.o cm1libs.o misclibs.o bc.o comm.o writeout_nc.o
 pdef.o: input.o bc.o comm.o
 pdcomp.o: constants.o input.o adv.o poiss.o ib_module.o
 poiss.o: input.o singleton.o

@@ -1,3 +1,6 @@
+#ifdef _B4B
+#define _B4B01F
+#endif
   MODULE mp_driver_module
 
              !------  Microphysics Driver ------!
@@ -540,7 +543,7 @@
           ! Get final values for th3d,pp3d,prs:
           ! Note:  dum1 stores temperature, thten stores old temperature:
           IF( eqtset.eq.2 )THEN
-#ifdef _B4B
+#ifdef _B4B01F
             !$acc update host(dum1,thten,q3d,qten,rho,pi0,th0)
 #else
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -558,7 +561,7 @@
             enddo
             enddo
             enddo
-#ifdef _B4B
+#ifdef _B4B01F
             !$acc update device(prs,pp3d,th3d)
 #endif
           ELSE
@@ -687,6 +690,7 @@
           endif
           call fallout_GPU(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
+          !stop 'mp_driver: after call to fallout_GPU'
           call satadj_GPU(4,dt,qbudget(1),qbudget(2),ruh,rvh,rmh,pi0,th0,   &
                       rho,dum3,pp3d,prs,th3d,q3d)
 

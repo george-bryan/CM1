@@ -1,5 +1,8 @@
 #ifdef _B4B
-#define _B4B01
+#define _B4B01R
+#define _B4B02R
+#define _B4B03
+#define _B4B04F
 #endif
   MODULE simple_phys_module
 
@@ -204,17 +207,25 @@
       double precision :: temd
       double precision :: tmp1,tmp2,tmp3
       ! 180612:  area-weighted average
+#ifdef _B4B
+      !$acc update host(ua,va,th0,tha)
+#else
       !$acc parallel default(present) private(i,j,k) reduction(+:tmp1,tmp2,tmp3)
+#endif
       tem = dx*dy
       ! Get domain-averages:
+#ifndef _B4B
       !$acc loop gang
+#endif
       do k=1,nk
         !----
         tmp1=0.0
         tmp2=0.0
         tmp3=0.0
         !----
+#ifndef _B4B
         !$acc loop vector collapse(2) reduction(+:tmp1,tmp2,tmp3)
+#endif
         do j=1,nj
         do i=1,ni
           tmp1 = tmp1 + ua(i,j,k)*tem*ruf(i)*rvh(j)
@@ -227,10 +238,14 @@
         cavg(k,3) = tmp3
         !----
       enddo
+#ifndef _B4B
       !$acc end parallel
+#endif
 
 #ifdef MPI
+#ifndef _B4B
       !$acc update host(cavg)
+#endif
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*3       ,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(cavg)
 #endif
@@ -282,7 +297,7 @@
       ! 180612:  area-weighted average
 
       !KLUDGE
-#ifdef _B4B
+#ifdef _B4B01R
       !$acc update host(th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
 #else
       !$acc parallel default(present)
@@ -292,7 +307,7 @@
       ! Get domain-averages:
         !----
       !!$acc loop gang vector collapse(2) private(k,n)
-#ifndef _B4B
+#ifndef _B4B01R
       !$acc loop gang vector private(k,n)
 #endif
       do k=1,nk
@@ -301,18 +316,18 @@
         enddo
       enddo
         !----
-#ifndef _B4B
+#ifndef _B4B01R
       !$acc end parallel
 #endif
       !!$acc parallel default(present) private(i,j,k) reduction(+:cavg1,cavg2,cavg3)
-#ifndef _B4B
+#ifndef _B4B01R
       !$acc parallel default(present) private(i,j,k,cavg1,cavg2,cavg3)
 #endif
       do k=1,nk
         cavg1 = 0.0
         cavg2 = 0.0
         cavg3 = 0.0
-#ifndef _B4B
+#ifndef _B4B01R
         !$acc loop gang vector collapse(2) reduction(+:cavg1,cavg2,cavg3)
 #endif
         do j=1,nj
@@ -326,11 +341,11 @@
         cavg(k,2) = cavg2
         cavg(k,3) = cavg3
       enddo
-#ifndef _B4B
+#ifndef _B4B01R
       !$acc end parallel
 #endif
 
-#ifndef _B4B
+#ifndef _B4B02R
       !!$acc parallel default(present) private(i,j,k,n) reduction(+:cavg1,cavg2,cavg3)
       !$acc parallel default(present) private(i,j,k,n,cavgt)
 #endif
@@ -338,7 +353,7 @@
         !----
         do n=1,numq
           cavgt = 0.0
-#ifndef _B4B
+#ifndef _B4B02R
           !$acc loop gang vector collapse(2) reduction(+:cavgt)
 #endif
           do j=1,nj
@@ -350,7 +365,7 @@
         enddo
         !----
       enddo
-#ifndef _B4B
+#ifndef _B4B02R
       !$acc end parallel
 #endif
 
@@ -358,12 +373,12 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*(3+numq),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
-#ifndef _B4B
+#ifndef _B4B03
       !$acc parallel default(present)
 #endif
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
-#ifndef _B4B
+#ifndef _B4B03
       !$acc loop gang vector
 #endif
       do k=1,nk
@@ -374,7 +389,7 @@
           qavg(k,n) = cavg(k,3+n)*temd
         enddo
       enddo
-#ifdef _B4B
+#ifdef _B4B03
       !$acc update device(qavg,uavg,vavg,thavg,cavg)
 #else
       !$acc end parallel
@@ -482,14 +497,14 @@
 !!!        print *
 !!!      endif
 
-#ifdef _B4B01
+#ifdef _B4B04F
       !$acc update host(dum1,dum2,rho0,ql,zf,zir)
 #else
       !non-B4B due to EXP and PWR functions
       !$acc parallel default(present) private(i,j,k,fr1,fr2,fr3)
 #endif
       do k=nk+1,1,-1
-#ifndef _B4B01
+#ifndef _B4B04F
       !$acc loop gang vector collapse(2)
 #endif
       do j=1,nj
@@ -508,12 +523,13 @@
       enddo
       enddo
       enddo
-#ifdef _B4B01
+#ifdef _B4B04F
       !$acc update device(frad,dum1) 
 #else
       !$acc end parallel
 #endif
-      !stop 'simplerad: at the end of the subroutine'
+      !$acc compare(frad,dum1)
+      stop 'simplerad: at the end of the subroutine'
       end subroutine simplerad
 
 

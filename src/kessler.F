@@ -1,3 +1,7 @@
+#ifdef _B4B
+#undef _B4B01
+#define _B4B02R
+#endif
   MODULE kessler_module
 
   implicit none
@@ -704,7 +708,6 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-
       subroutine fallout_GPU(dt,train,ruh,rvh,zh,mh,mf,rain,prate,rr,rho,   &
                          q3d,vq)
       use input
@@ -731,53 +734,142 @@
 
       double precision :: tem
       double precision, dimension(nj) :: bud
+      double precision :: budt
 
 !--------------------------------------------------------------------
-
     !$acc update host(vq,mh,q3d,rho,rain,rr,ruh,rvh)
-    !$omp parallel do default(shared) private(i,j,k,crmax,nfall,rq,n,dtfall,nr)
     do j=1,nj
-    bud(j)=0.0d0
-    do i=1,ni
-      crmax = 0.0
-      do k=1,nk
-        crmax = max( crmax , vq(i,j,k)*dt*rdz*mh(i,j,k) )
-      enddo
-      nfall = max( 1 , int(crmax+1.0) )
-      ! cm1r17:  following code is needed if nfall is large.
-      !  - below edge of falling precip, set fallspeed to
-      !    value at gridpoint above:
-      do k=(nk-1),1,-1
-        if( q3d(i,j,k).lt.1.0e-8 ) vq(i,j,k) = vq(i,j,k+1)
-      enddo
-      dtfall=dt/nfall
-      do n=1,nfall
+      budt=0.0d0
+      do i=1,ni
+        crmax = 0.0
         do k=1,nk
-          rq(k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
+          crmax = max( crmax , vq(i,j,k)*dt*rdz*mh(i,j,k) )
         enddo
-        rq(nk+1)=0.0
-        do k=1,nk
-          q3d(i,j,k)=q3d(i,j,k)+dtfall*(rq(k+1)-rq(k))   &
+        nfall = max( 1 , int(crmax+1.0) )
+        ! cm1r17:  following code is needed if nfall is large.
+        !  - below edge of falling precip, set fallspeed to
+        !    value at gridpoint above:
+        do k=(nk-1),1,-1
+          if( q3d(i,j,k).lt.1.0e-8 ) vq(i,j,k) = vq(i,j,k+1)
+        enddo
+        dtfall=dt/nfall
+        do n=1,nfall
+          do k=1,nk
+            rq(k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
+          enddo
+          rq(nk+1)=0.0
+          do k=1,nk
+            q3d(i,j,k)=q3d(i,j,k)+dtfall*(rq(k+1)-rq(k))   &
                                      *rdz*mh(i,j,k)/rho(i,j,k)
-        enddo
-        do nr=1,nrain
-          rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall*rq(1)
+          enddo
+          do nr=1,nrain
+            rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall*rq(1)
                                 ! mult by 100 cm/m  (convert from m to cm)
                                 ! div by 1000 kg/m^3  (density of water)
+          enddo
+          prate(i,j) = rq(1)
+          budt=budt+dtfall*rr(i,j,1)*vq(i,j,1)*max(0.0,q3d(i,j,1))*ruh(i)*rvh(j)
         enddo
-        prate(i,j) = rq(1)
-        bud(j)=bud(j)+dtfall*rr(i,j,1)*vq(i,j,1)*max(0.0,q3d(i,j,1))*ruh(i)*rvh(j)
       enddo
-    enddo
+      bud(j)=budt
     enddo
 
-      do j=1,nj
-        train=train+bud(j)*dx*dy
-      enddo
-      !$acc update device(train,rain,q3d,prate)
-      if(timestats.ge.1) time_fall=time_fall+mytime()
+    do j=1,nj
+      train=train+bud(j)*dx*dy
+    enddo
+    !$acc update device(train,rain,q3d,prate)
+    if(timestats.ge.1) time_fall=time_fall+mytime()
 
       end subroutine fallout_GPU
+
+
+#if 0
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine fallout2_GPU(dt,train,ruh,rvh,zh,mh,mf,rain,prate,rr,rho,   &
+                         q3d,vq)
+      use input
+      use constants
+      implicit none
+
+      real :: dt
+      double precision :: train
+      real, dimension(ib:ie) :: ruh
+      real, dimension(jb:je) :: rvh
+      real, dimension(ib:ie,jb:je,kb:ke) :: zh,mh
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: mf
+      real, dimension(ib:ie,jb:je,nrain) :: rain
+      real, intent(inout), dimension(ib:ie,jb:je) :: prate
+      real, dimension(ib:ie,jb:je,kb:ke) :: rr,rho,q3d,vq
+
+      integer :: i,j,k,n,nr,nrk
+      real, dimension(-1:nk+3):: rq
+      real, dimension(0:nk) :: ffk
+      real, dimension(nk) :: qtmp
+
+      integer :: nfall
+      real :: crmax,dtfall
+
+      double precision :: tem
+      double precision, dimension(nj) :: bud
+      double precision :: budt
+
+!--------------------------------------------------------------------
+    !$acc update host(vq,mh,q3d,rho,rain,rr,ruh,rvh)
+    do j=1,nj
+      do i=1,ni
+        crmax = 0.0
+        do k=1,nk
+          crmax = max( crmax , vq(i,j,k)*dt*rdz*mh(i,j,k))
+        enddo
+        nfall(i,j) = max( 1 , int(crmax+1.0) )
+      enddo
+    enddo
+    ! cm1r17:  following code is needed if nfall is large.
+    !  - below edge of falling precip, set fallspeed to
+    !    value at gridpoint above:
+    do k=(nk-1),1,-1
+      do j=1,nj
+      do i=1,ni
+        if( q3d(i,j,k).lt.1.0e-8 ) vq(i,j,k) = vq(i,j,k+1)
+      enddo
+      enddo
+    enddo
+    do j=1,nj
+      budt=0.0d0
+      do i=1,ni
+        dtfall=dt/nfall(i,j)
+        do n=1,nfall(i,j)
+          do k=1,nk
+            rq(k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
+          enddo
+          rq(nk+1)=0.0
+          do k=1,nk
+            q3d(i,j,k)=q3d(i,j,k)+dtfall*(rq(k+1)-rq(k))   &
+                                     *rdz*mh(i,j,k)/rho(i,j,k)
+          enddo
+          do nr=1,nrain
+            rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall*rq(1)
+                                ! mult by 100 cm/m  (convert from m to cm)
+                                ! div by 1000 kg/m^3  (density of water)
+          enddo
+          prate(i,j) = rq(1)
+          budt=budt+dtfall*rr(i,j,1)*vq(i,j,1)*max(0.0,q3d(i,j,1))*ruh(i)*rvh(j)
+        enddo
+      enddo
+      bud(j)=budt
+    enddo
+
+    do j=1,nj
+      train=train+bud(j)*dx*dy
+    enddo
+    !$acc update device(train,rain,q3d,prate)
+    if(timestats.ge.1) time_fall=time_fall+mytime()
+
+      end subroutine fallout2_GPU
+#endif
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -937,7 +1029,7 @@
       double precision :: budt
 
       !$acc data create(bud)
-#ifdef _B4B
+#ifdef _B4B02R
       !$acc update host(ruh,rvh,erain,t,rr,q3d,vr)
 #else
       !$omp parallel do default(shared) private(i,j)
@@ -946,7 +1038,7 @@
 #endif
       do j=1,nj
         budt=0.0d0
-#ifndef _B4B
+#ifndef _B4B02R
         !$acc loop vector reduction(+:budt)
 #endif
         do i=1,ni
@@ -956,13 +1048,13 @@
       enddo
 
      
-#ifndef _B4B
+#ifndef _B4B02R
       !$acc loop vector reduction(+:erain)
 #endif
       do j=1,nj
         erain=erain+bud(j)*dx*dy
       enddo
-#ifdef _B4B
+#ifdef _B4B02R
       !$acc update device(erain)
 #else
       !$acc end parallel

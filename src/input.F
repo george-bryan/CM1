@@ -199,6 +199,7 @@
            base_tbot,base_ttop,base_pibot,base_pitop
 
 !$acc declare create(alph,kdiv)
+!$acc declare create(cflmax)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

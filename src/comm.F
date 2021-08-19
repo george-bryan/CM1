@@ -11667,14 +11667,10 @@ print *, "comm_2dns_end_GPU: Im called"
 !-----
 
       tag1=5061
-!      !$acc update host(s)
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-!!$acc host_data use_device(s)
         call mpi_irecv(s(0,nj+1),1,MPI_REAL,mynw,tag1,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
-!!$acc end host_data
-        !$acc update device(s(0,nj+1))
       endif
 
 !-----
@@ -11683,11 +11679,8 @@ print *, "comm_2dns_end_GPU: Im called"
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-!!$acc host_data use_device(s)
         call mpi_irecv(s(0,0),1,MPI_REAL,mysw,tag2,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
-!!$acc end host_data
-        !$acc update device(s(0,0))
       endif
 
 !-----
@@ -11696,11 +11689,8 @@ print *, "comm_2dns_end_GPU: Im called"
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-!!$acc host_data use_device(s)
         call mpi_irecv(s(ni+1,nj+1),1,MPI_REAL,myne,tag3,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
-!!$acc end host_data
-        !$acc update device(s(ni+1,nj+1))
       endif
 
 !-----
@@ -11709,11 +11699,8 @@ print *, "comm_2dns_end_GPU: Im called"
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-!!$acc host_data use_device(s)
         call mpi_irecv(s(ni+1,0),1,MPI_REAL,myse,tag4,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
-!!$acc end host_data
-        !$acc update device(s(ni+1,0))
       endif
 
 !------------------------------------------------
@@ -11725,10 +11712,8 @@ print *, "comm_2dns_end_GPU: Im called"
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nrb = nrb + 1
         !$acc update host(s(ni,1))
-!!$acc host_data use_device(s)
         call mpi_isend(s(ni,1),1,MPI_REAL,myse,tag1,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
-!!$acc end host_data
       endif
 
 !-----
@@ -11736,10 +11721,8 @@ print *, "comm_2dns_end_GPU: Im called"
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nrb = nrb + 1
         !$acc update host(s(ni,nj))
-!!$acc host_data use_device(s)
         call mpi_isend(s(ni,nj),1,MPI_REAL,myne,tag2,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
-!!$acc end host_data
       endif
 
 !-----
@@ -11747,10 +11730,8 @@ print *, "comm_2dns_end_GPU: Im called"
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nrb = nrb + 1
         !$acc update host(s(1,1))
-!!$acc host_data use_device(s)
         call mpi_isend(s(1,1),1,MPI_REAL,mysw,tag3,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
-!!$acc end host_data
       endif
 
 !-----
@@ -11758,10 +11739,8 @@ print *, "comm_2dns_end_GPU: Im called"
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nrb = nrb + 1
          !$acc update host(s(1,nj))
-!!$acc host_data use_device(s)
         call mpi_isend(s(1,nj),1,MPI_REAL,mynw,tag4,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
-!!$acc end host_data
       endif
 
 !------------------------------------------------
@@ -11779,9 +11758,12 @@ print *, "comm_2dns_end_GPU: Im called"
     if( nrb.ge.1 )then
       call MPI_WAITALL(nrb,reqs(5:5+nrb-1),status1(1:mpi_status_size,5:5+nrb-1),ierr)
     endif
+    !$acc update device(s(ni+1,0))
+    !$acc update device(s(ni+1,nj+1))
+    !$acc update device(s(0,0))
+    !$acc update device(s(0,nj+1))
 
 !-----
-      !$acc update device(s)
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
 
       end subroutine comm_2d_corner_GPU
@@ -13146,7 +13128,6 @@ print *, "prepcorners3_GPU: Im called"
 
       integer :: i,j
 
-      !!$acc data copy(s)
       call bc2d_GPU(s)
 #ifdef MPI
 print *,"calling comm_1s2d_end_GPU from prepcorner2d"
@@ -13158,7 +13139,6 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       call comm_2d_corner_GPU(s)
 #endif
       !$acc compare(s)
-      !!$acc end data
        
       end subroutine prepcorner2d
 

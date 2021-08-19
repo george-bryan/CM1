@@ -1,3 +1,9 @@
+#ifdef _B4B
+#define _B4B01R
+#define _B4B02R
+#define _B4B03F
+#define _B4B04R
+#endif
   MODULE misclibs
 
   implicit none
@@ -1125,13 +1131,13 @@
 
 !----------------------------------------------------------------------
 
-#ifndef _B4B
+#ifndef _B4B01R
       !$acc data create(budj,budk)
 #endif
       tem = dx*dy*dz
       IF(pdscheme.eq.1)THEN
 
-#ifdef _B4B
+#ifdef _B4B01R
         !$acc update host(asq,ruh,rvh,rmh,rho,q3d)
 #else
         !!$acc parallel loop gang vector default(present) private(i,j,k)
@@ -1167,7 +1173,7 @@
           budj(j)=budt
         enddo
 
-#ifndef _B4B
+#ifndef _B4B01R
         !$acc end parallel
         !$acc parallel loop reduction(+:asq)
 #endif
@@ -1178,7 +1184,7 @@
       ELSE
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
-#ifndef _B4B
+#ifndef _B4B01R
         !$acc parallel loop gang vector default(present) private(i,j,k,a1,a2)
 #endif
         do k=1,nk
@@ -1194,7 +1200,7 @@
         enddo
         enddo
 
-#ifndef _B4B
+#ifndef _B4B01R
         !$acc parallel loop reduction(+:asq)
 #endif
         do k=1,nk
@@ -1202,7 +1208,7 @@
         enddo
 
       ENDIF
-#ifdef _B4B
+#ifdef _B4B01R
       !$acc update device(asq,q3d)
 #else
       !$acc end data
@@ -1305,7 +1311,7 @@
         enddo
         !$acc end parallel
 
-#ifdef _B4B
+#ifdef _B4B02R
         !$acc update host(dum2d5,dum2d2) 
 #else
         !$acc parallel loop vector collapse(2) default(present) private(i,j) reduction(+:asq)
@@ -1315,7 +1321,7 @@
           asq=asq+(dum2d5(i,j)-dum2d2(i,j))*tem
         enddo
         enddo
-#ifdef _B4B
+#ifdef _B4B02R
         !$acc update device(asq)
 #endif
 
@@ -2454,7 +2460,7 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n,tx,cpm)
-#ifdef _B4B
+#ifdef _B4B03F
             !$acc update host(zh,th0,tha,pi0,ppi,qa,prs,rh,the) 
 #else
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n,tx,cpm)
@@ -2475,7 +2481,7 @@
       enddo
       enddo
       enddo
-#ifdef _B4B
+#ifdef _B4B03F
       !$acc update device(the)
 #endif
 
@@ -3023,7 +3029,10 @@
       real :: dtdx,dtdy,fmax,tem1,tem2,tem3
       real, dimension(nk) :: ks
       real :: kstmp
-      !$acc data create(ks,fmax) copy(cflmax,ksmax,kmh,kmv,khh,khv,reqk)
+
+      !$acc compare(uh,vh,kmh,kmv,khh,khv)
+      !!$acc data create(ks,fmax) copy(cflmax,ksmax,kmh,kmv,khh,khv,reqk)
+      !$acc data create(ks)
  
       dtdx=dt*rdx*rdx
       dtdy=dt*rdy*rdy
@@ -3031,18 +3040,18 @@
       if(nx.gt.1.and.ny.gt.1)then
         ! 3d:
         !$omp parallel do default(shared) private(i,j,k,tem1,tem2,tem3)
-#ifdef _B4B
+#ifdef _B4B04R
         !$acc update host(uh,vh,kmh,kmv,khh,khv)
 #else
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
 #endif
         ks(1)=0.0
-#ifndef _B4B
+#ifndef _B4B04R
         !$acc loop gang 
 #endif
         do k=2,nk
            kstmp = 0.0
-#ifndef _B4B
+#ifndef _B4B04R
            !$acc loop vector collapse(2) reduction(max:kstmp)
 #endif
            do j=1,nj
@@ -3058,7 +3067,7 @@
           enddo
           ks(k) = kstmp
         enddo
-#ifdef _B4B
+#ifdef _B4B04R
         !$acc update device(ks)
 #else
         !$acc end parallel
