@@ -2,7 +2,7 @@
 #define _B4B01R
 #define _B4B02R
 #define _B4B03
-#define _B4B04F
+#undef _B4B04F
 #endif
   MODULE simple_phys_module
 

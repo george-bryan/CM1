@@ -1,14 +1,12 @@
 #ifdef _B4B
+
 #undef _B4B01F
-
-#define _B4B02F
-#define _B4B03F
-#define _B4B04F
-#define _B4B05F
-#define _B4B08F
-
+#undef _B4B02F
+#undef _B4B03F
+#undef _B4B04F
+#undef _B4B05F
+#undef _B4B08F
 #undef _B4B06F
-
 
 #define _B4B07R
 #define _B4B09R
