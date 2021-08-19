@@ -392,7 +392,8 @@
 !--------------------------------------------------------------------
 !  iterative sat adj.
 
-    !$acc update host(ruh,rvh,rmh,pi0,th0,rho,rr,prs,th3d,q3d)
+!$acc data create(bud1, bud2)
+
     nmax=0
     iflag=0
 
@@ -408,13 +409,15 @@
 
       rdt = 1.0/dt
 
-
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n,tnew,pnew,esl,qvs,qvnew,qcnew,cvml,rm,lhv,   &
 !$omp tlast,dqv,t1,d1,tem,ql,qi,doit)
+      !$acc parallel default(present) private(i,j,k,n,tnew,pnew,esl,qvs,qvnew,qcnew,cvml,rm,lhv,tlast,dqv,t1,d1,tem,ql,qi,doit) 
+      !$acc loop gang vector 
       do k=1,nk
       bud1(k)=0.0d0
       bud2(k)=0.0d0
+      !$acc loop gang vector collapse(2)
       do j=1,nj
       do i=1,ni
 
@@ -500,7 +503,7 @@
       enddo
       enddo
       enddo
-
+!$acc end parallel
 
     ELSE
 
@@ -508,9 +511,12 @@
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm)
+      !$acc parallel default(present) private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm) 
+      !$acc loop gang vector 
       do k=1,nk
       bud1(k)=0.0d0
       bud2(k)=0.0d0
+      !$acc loop gang vector collapse(2)
       do j=1,nj
       do i=1,ni
 
@@ -542,19 +548,24 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
     ENDIF
 
+    !$acc parallel
     IF(nrk.ge.nrkmax)THEN
       dum=dx*dy*dz
+      !$acc loop gang vector reduction(+:tcond)
       do k=1,nk
         tcond=tcond+bud1(k)*dum
       enddo
 
+      !$acc loop gang vector reduction(+:tevac)
       do k=1,nk
         tevac=tevac+bud2(k)*dum
       enddo
     ENDIF
+    !$acc end parallel
 
 !!!#ifdef MPI
 !!!      omax=0
@@ -577,8 +588,8 @@
         print *
         call stopcm1
       endif
-      !$acc update device(prs,pp3d,th3d,q3d,rho)
 
+!$acc end data
       if(timestats.ge.1) time_satadj=time_satadj+mytime()
 
       end subroutine satadj_GPU
@@ -734,12 +745,16 @@
 
 !--------------------------------------------------------------------
 
-    !$acc update host(vq,mh,q3d,rho,rain,rr,ruh,rvh)
+    !$acc data create(bud)
+    !$acc parallel default(present) private(i,j,k,crmax,nfall,rq,n,dtfall,nr) 
+    !$acc loop gang vector 
     !$omp parallel do default(shared) private(i,j,k,crmax,nfall,rq,n,dtfall,nr)
     do j=1,nj
     bud(j)=0.0d0
+    !$acc loop gang vector
     do i=1,ni
       crmax = 0.0
+      !$acc loop gang vector reduction(max:crmax)
       do k=1,nk
         crmax = max( crmax , vq(i,j,k)*dt*rdz*mh(i,j,k) )
       enddo
@@ -747,19 +762,24 @@
       ! cm1r17:  following code is needed if nfall is large.
       !  - below edge of falling precip, set fallspeed to
       !    value at gridpoint above:
+      !$acc loop gang vector
       do k=(nk-1),1,-1
         if( q3d(i,j,k).lt.1.0e-8 ) vq(i,j,k) = vq(i,j,k+1)
       enddo
       dtfall=dt/nfall
+      !$acc loop gang vector
       do n=1,nfall
+        !$acc loop gang vector
         do k=1,nk
           rq(k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
         enddo
         rq(nk+1)=0.0
+        !$acc loop gang vector
         do k=1,nk
           q3d(i,j,k)=q3d(i,j,k)+dtfall*(rq(k+1)-rq(k))   &
                                      *rdz*mh(i,j,k)/rho(i,j,k)
         enddo
+        !$acc loop gang vector
         do nr=1,nrain
           rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall*rq(1)
                                 ! mult by 100 cm/m  (convert from m to cm)
@@ -770,11 +790,13 @@
       enddo
     enddo
     enddo
+    !$acc end parallel
 
+      !$acc parallel loop gang vector default(present) private(j) reduction(+:train)
       do j=1,nj
         train=train+bud(j)*dx*dy
       enddo
-      !$acc update device(train,rain,q3d,prate)
+      !$acc end data
       if(timestats.ge.1) time_fall=time_fall+mytime()
 
       end subroutine fallout_GPU
