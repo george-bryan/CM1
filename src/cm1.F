@@ -2620,13 +2620,15 @@
       if( adapt_dt.eq.1 )then
         dt = dbldt
         if( .not. restarted )then
-          print *,'cm1: before call to calccflquick'
+          print *,'cm1: before call to calccflquick: ',dbldt
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
-          !$acc update device(cflmax)
+          !!$acc compare(cflmax) 
+          !!$acc update device(cflmax)
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
+          print *,'cm1: cflmax: ',cflmax
 #endif
           if( cm1setup.ge.1 )then
             call calcksquick(dt,uh,vh,mf,kmh,kmv,khh,khv,reqk)
@@ -2635,6 +2637,8 @@
             if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif
           endif
+          print *,'cm1: ksmax: ',ksmax
+          !stop 'cm1: after call to calcflquick'
           stopit = .false.
           ndt  = 0
           adt  = 0.0
@@ -3036,7 +3040,7 @@
 !$acc compare(rru,rrv)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_solve1
-       !stop 'cm1: after solve1' 
+       ! stop 'cm1: after solve1' 
 !$acc compare(tha)
 #ifdef _NVTX
         call nvtxEndRange
@@ -3526,7 +3530,7 @@
                           ua,va,wa,ppi,tha,qa,qten,kmh,kmv,khh,khv,tkea,qke,  &
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
-        stop 'after call to statpack'
+        !stop 'after call to statpack'
 #endif
         nrec = nrec + 1
         nstatout = nstatout + 1
@@ -4147,7 +4151,7 @@
 
       !print *,'nstep: ',nstep
       !print *,'mtime: ',mtime
-      if(nstep .eq. 10) then 
+      if(nstep .eq. 1) then 
         !stop 'cm1: at the end of timeloop'
       endif
 

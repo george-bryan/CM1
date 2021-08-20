@@ -1,3 +1,4 @@
+#undef _GPUDIRECT
   MODULE comm_module
 
   implicit none
@@ -2492,15 +2493,8 @@
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
-#ifdef _GPUDIRECT
-!        !$acc host_data use_device(neweast)
         call mpi_irecv(neweast,cs2we,MPI_REAL,myeast,tag1,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
-!        !$acc end host_data
-#else
-        call mpi_irecv(neweast,cs2we,MPI_REAL,myeast,tag1,   &
-                      MPI_COMM_WORLD,reqs(nr),ierr)
-#endif
       endif
 
 !----------
@@ -2511,15 +2505,8 @@
       ! receive west
       if(ibw.eq.0)then
         nr = nr + 1
-#ifdef _GPUDIRECT
-!        !$acc host_data use_device(newwest)
         call mpi_irecv(newwest,cs2we,MPI_REAL,mywest,tag2,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
-!        !$acc end host_data
-#else
-        call mpi_irecv(newwest,cs2we,MPI_REAL,mywest,tag2,   &
-                      MPI_COMM_WORLD,reqs(nr),ierr)
-#endif
       endif
 
 !------------------------------------------------
@@ -7540,14 +7527,17 @@
 
       nf=nf+1
       tag1=nf
-      !!$acc update device(s(1:ni,1:nj,1:nk))
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
-!!$acc host_data use_device(neweast)
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(neweast)
+#endif
         call mpi_irecv(neweast,cs1we,MPI_REAL,myeast,tag1,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
 
 !----------
@@ -7558,10 +7548,14 @@
       ! receive west
       if(ibw.eq.0)then
         nr = nr + 1
-!!$acc host_data use_device(newwest)
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(newwest)
+#endif
         call mpi_irecv(newwest,cs1we,MPI_REAL,mywest,tag2,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
 
 !----------
@@ -7572,10 +7566,14 @@
       ! receive south
       if(ibs.eq.0)then
         nr = nr + 1
-!!$acc host_data use_device(newsouth)
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(newsouth)
+#endif
         call mpi_irecv(newsouth,cs1sn,MPI_REAL,mysouth,tag3,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
 
 !----------
@@ -7586,10 +7584,14 @@
       ! receive north
       if(ibn.eq.0)then
         nr = nr + 1
-!!$acc host_data use_device(newnorth)
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(newnorth)
+#endif
         call mpi_irecv(newnorth,cs1sn,MPI_REAL,mynorth,tag4,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
 
 !------------------------------------------------
@@ -7608,11 +7610,16 @@
         enddo
         enddo
         nr = nr + 1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(west)
+#else
         !$acc update host(west)
-!!$acc host_data use_device(west)
+#endif
         call mpi_isend(west,cs1we,MPI_REAL,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
  
 !----------
@@ -7627,11 +7634,16 @@
         enddo
         enddo
         nr = nr + 1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(east)
+#else
         !$acc update host(east)
-!!$acc host_data use_device(east)
+#endif
         call mpi_isend(east,cs1we,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
  
 !----------
@@ -7646,11 +7658,16 @@
         enddo
         enddo
         nr = nr + 1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(north)
+#else
         !$acc update host(north)
-!!$acc host_data use_device(north)
+#endif
         call mpi_isend(north,cs1sn,MPI_REAL,mynorth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
  
 !----------
@@ -7665,11 +7682,16 @@
         enddo
         enddo
         nr = nr + 1
+#ifdef _GPUDIRECT
+        !$acc host_data use_device(south)
+#else
         !$acc update host(south)
-!!$acc host_data use_device(south)
+#endif
         call mpi_isend(south,cs1sn,MPI_REAL,mysouth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-!!$acc end host_data
+#ifdef _GPUDIRECT
+        !$acc end host_data
+#endif
       endif
 
 !----------
@@ -7945,7 +7967,9 @@
         nn = nn + 1
  
       if(index.eq.index_east)then
+#ifndef _GPUDIRECT
         !$acc update device(neweast)
+#endif
         !$omp parallel do default(shared) private(j,k)
         !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
         do k=1,nk
@@ -7954,7 +7978,9 @@
         enddo
         enddo
       elseif(index.eq.index_west)then
+#ifndef _GPUDIRECT
         !$acc update device(newwest)
+#endif
         !$omp parallel do default(shared) private(j,k)
         !$acc parallel loop gang vector default(present) collapse(2) private(j,k)
         do k=1,nk
@@ -7963,7 +7989,9 @@
         enddo
         enddo
       elseif(index.eq.index_south)then
+#ifndef _GPUDIRECT
         !$acc update device(newsouth)
+#endif
         !$omp parallel do default(shared) private(i,k)
         !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
         do k=1,nk
@@ -7972,7 +8000,9 @@
         enddo
         enddo
       elseif(index.eq.index_north)then
+#ifndef _GPUDIRECT
         !$acc update device(newnorth)
+#endif
         !$omp parallel do default(shared) private(i,k)
         !$acc parallel loop gang vector default(present) collapse(2) private(i,k)
         do k=1,nk
@@ -8100,7 +8130,6 @@
       call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
     endif
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
-!      !$acc update device(s(0:ni+1,0:nj+1,1:nk)) 
 !----------
  
       end subroutine comm_1s_end_GPU
@@ -11758,10 +11787,20 @@ print *, "comm_2dns_end_GPU: Im called"
     if( nrb.ge.1 )then
       call MPI_WAITALL(nrb,reqs(5:5+nrb-1),status1(1:mpi_status_size,5:5+nrb-1),ierr)
     endif
-    !$acc update device(s(ni+1,0))
-    !$acc update device(s(ni+1,nj+1))
-    !$acc update device(s(0,0))
-    !$acc update device(s(0,nj+1))
+#ifdef _OPENACC
+    if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
+      !$acc update device(s(ni+1,0))
+    endif
+    if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
+      !$acc update device(s(ni+1,nj+1))
+    endif
+    if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
+      !$acc update device(s(0,0))
+    endif
+    if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
+      !$acc update device(s(0,nj+1))
+    endif
+#endif
 
 !-----
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()

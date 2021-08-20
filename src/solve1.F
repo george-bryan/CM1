@@ -1,6 +1,7 @@
 #ifdef _B4B
-#define _B4B01
-#define _B4B02
+#undef _B4B01F
+#undef _B4B02F
+#define _B4B03R
 #endif
   MODULE solve1_module
 
@@ -503,6 +504,7 @@
       endif
 
     ENDIF
+    !$acc compare(uavg,vavg,thavg,qavg,cavg)
 
 !--------------------------------------------------------------------
 !  radbc
@@ -1021,19 +1023,19 @@
           endif
         enddo
         enddo
-#ifdef _B4B
+#ifdef _B4B03R
         !$acc update host(budarray,qbudget)
 #else
         !$acc parallel default(present) reduction(+:budtmp,qtmp)
 #endif
 
         qtmp =0.0
-#ifndef _B4B
+#ifndef _B4B03R
         !$acc loop gang reduction(+:budtmp) reduction(+:qtmp)
 #endif
         do j=1,nj
           budtmp=0.0
-#ifndef _B4B
+#ifndef _B4B03R
           !$acc loop vector reduction(+:budtmp)
 #endif
           do i=1,ni
@@ -1043,7 +1045,7 @@
           qtmp = qtmp + tem0*bud2(j)
         enddo
         qbudget(9) = qtmp;
-#ifdef _B4B
+#ifdef _B4B03R
         !$acc update device(qbudget)
 #else
         !$acc end parallel
@@ -1154,6 +1156,7 @@
           enddo
         endif
         tem0 = dt*dx*dy*dz
+        !FIXME
         !$omp parallel do default(shared) private(i,j,k,thrad,prad)
         !$acc parallel loop gang vector default(present) private(i,j,k,thrad,prad)
         do k=1,nk
@@ -1174,6 +1177,7 @@
         enddo
         enddo
         enddo
+        !FIXME
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           qbudget(10) = qbudget(10) + tem0*bud(k)
@@ -1610,22 +1614,22 @@
         if( myid.eq.0 ) print *,'  nudging with nudgefac,taunudge = ',nudgefac,taunudge
         tem = nudgefac/taunudge
         if( imoist.eq.0 )then
-          !$acc parallel loop gang vector default(present) private(i,j,k,tn)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tn)
           do k=1,nk
-            tn = -(thavg(k)-th0(1,1,k))*tem
             do j=1,nj+1
             do i=1,ni+1
+              tn = -(thavg(k)-th0(1,1,k))*tem
               thten1(i,j,k) = thten1(i,j,k) + tn
             enddo
             enddo
           enddo
         else
-          !$acc parallel loop gang vector default(present) private(i,j,k,tn,qn)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tn,qn)
           do k=1,nk
-            tn = -(thavg(k)-th0(1,1,k))*tem
-            qn = -(qavg(k,nqv)-qv0(1,1,k))*tem
             do j=1,nj+1
             do i=1,ni+1
+              tn = -(thavg(k)-th0(1,1,k))*tem
+              qn = -(qavg(k,nqv)-qv0(1,1,k))*tem
               thten1(i,j,k) = thten1(i,j,k) + tn
               qten(i,j,k,nqv) = qten(i,j,k,nqv) + qn
             enddo
@@ -1638,7 +1642,7 @@
 
       if( imoist.eq.0 .and. td_nudge.ge.1   &
           .and. dotbud )then
-        !$acc parallel loop gang vector default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1648,7 +1652,7 @@
         enddo
       elseif( imoist.eq.1 .and. td_nudge.ge.1   &
           .and. dotbud .and. doqbud .and. qd_nudge.ge.1 )then
-        !$acc parallel loop gang vector default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj+1
         do i=1,ni+1
@@ -1789,11 +1793,9 @@
         rdt = 1.0/dt
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
-#ifdef _B4B01
+#ifdef _B4B01F
           !$acc update host(thten1,qten,tha,qa,rho,th0,pi0,ppi)
 #else
-          !$acc data copyin(tem,qsmall,dt,nqv,rd,rv,rddcv,rdt)
-          !non-B4B due to the use of PWR function 
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew,qvnew)
 #endif
           !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
@@ -1815,10 +1817,8 @@
           enddo
           enddo
           enddo
-#ifdef _B4B01
+#ifdef _B4B01F
           !$acc update device(ppten)
-#else
-          !$acc end data
 #endif
           if( ptype.ge.1 )then
             ! use diabatic tendencies from last timestep as a good estimate:
@@ -1837,7 +1837,7 @@
             enddo
           endif
         ELSE
-#ifdef _B4B02
+#ifdef _B4B02F
           !$acc update host(thten1,tha,rho,th0,pi0,ppi)
 #else
           !$acc data copyin(tem,dt,rd,rp00,rddcv,rdt)
@@ -1862,7 +1862,7 @@
           enddo
           enddo
           enddo
-#ifdef _B4B02
+#ifdef _B4B02F
           !$acc update device(ppten)
 #else
           !$acc end data

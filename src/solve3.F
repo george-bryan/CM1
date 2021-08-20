@@ -457,7 +457,7 @@
 
       IF( dot2p )THEN
         rdt = 1.0/dt
-        print *, 'Here 4  -- Not being executed'
+        !print *, 'Here 4  -- Not being executed'
         ! 200413:  all tendencies except turbz term:
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,ntwk

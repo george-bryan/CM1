@@ -1,9 +1,11 @@
 #ifdef _B4B
-#define _B4B01
-#define _B4B02
-#define _B4B03
-#define _B4B04
-#define _B4B05
+
+#undef _B4B01F
+#undef _B4B02F
+#undef _B4B03F
+#undef _B4B04F
+#define _B4B05R
+
 #endif
   MODULE solve2_module
 
@@ -1248,12 +1250,10 @@
 
 !$acc compare(u3d,v3d,w3d)
 !--------------------------------------------------------------------
-        !print *,'solve2: point #11'
 #ifdef MPI
         call comm_1s_end_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
-#endif
         !$acc compare(t11)
-        !print *,'solve2: point #12'
+#endif
 !--------------------------------------------------------------------
 !$acc compare(u3d,v3d,w3d)
 !  call sound
@@ -1396,7 +1396,7 @@
         IF(axisymm.eq.1)THEN
 
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1759,7 +1759,7 @@
         ENDIF
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
-#ifdef _B4B01
+#ifdef _B4B01F
           !$acc update host(pi0,pp3d,th0,th3d,pp3d,q3d)    
 #else
           !non-B4B01
@@ -1776,7 +1776,7 @@
           enddo
           enddo
           enddo
-#ifdef _B4B01
+#ifdef _B4B01F
           !$acc update device(prs,rho)
 #endif
         ENDIF
@@ -1784,7 +1784,7 @@
       ELSE
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
-#ifdef _B4B02
+#ifdef _B4B02F
           !$acc update host(pi0,pp3d,th0,th3d,pp3d)    
 #else
           !non-B4B02
@@ -1800,7 +1800,7 @@
           enddo
           enddo
           enddo
-#ifdef _B4B02
+#ifdef _B4B02F
           !$acc update device(prs,rho)
 #endif
         ENDIF
@@ -1813,7 +1813,7 @@
       IF( apmasscon.eq.1 .and. nrk.eq.nrkmax )THEN
         ! cm1r18:  adjust average pressure perturbation to ensure 
         !          conservation of total dry-air mass
-
+        !FIXME
         !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
         !$acc parallel private(tmp1,tmp2) reduction(+:tmp1,tmp2)
         IF( axisymm.eq.0 )THEN
@@ -1854,11 +1854,10 @@
 
         !print *,'solve2: point #17'
 #ifdef MPI
-        !$acc update self(dumk1,dumk2)
+        !$acc update host(dumk1,dumk2)
         call MPI_IALLREDUCE(mpi_in_place,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
         call MPI_IALLREDUCE(mpi_in_place,dumk2(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
 #endif
-        !$acc compare(dumk1,dumk2)
         !print *,'solve2: point #18'
 
         dopf = .true.
@@ -2197,14 +2196,14 @@
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
         !$acc update device(dumk1,dumk2)
 #endif
-#ifndef _B4B05
+#ifndef _B4B05R
         !$acc parallel copy(temq1,temq2) reduction(+:temq1,temq2)
 #endif
 
 
         temq1 = 0.0
         temq2 = 0.0
-#ifndef _B4B05
+#ifndef _B4B05R
         !$acc loop reduction(+:temq1,temq2)
 #endif 
         do k=1,nk
@@ -2216,14 +2215,14 @@
         p2 = temq2
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
-#ifndef _B4B05
+#ifndef _B4B05R
         !$acc end parallel
 #endif
 
 !!!        if( myid.eq.0 ) print *,'  temd,tem = ',temd,tem
 
         IF( imoist.eq.1 )THEN
-#ifdef _B4B03
+#ifdef _B4B03F
           !$acc update host(pi0,pp3d,th0,th3d,pp3d,prs,q3d)    
 #else
           !non-B4B03
@@ -2241,11 +2240,11 @@
           enddo
           enddo
           enddo
-#ifdef _B4B03
+#ifdef _B4B03F
           !$acc update device(rho,prs,pp3d)
 #endif
         ELSE
-#ifdef _B4B04
+#ifdef _B4B04F
           !$acc update host(pi0,pp3d,th0,th3d,pp3d,prs)    
 #else
           !non-B4B04
@@ -2262,7 +2261,7 @@
           enddo
           enddo
           enddo
-#ifdef _B4B04
+#ifdef _B4B04F
           !$acc update device(rho,prs,pp3d)
 #endif
         ENDIF

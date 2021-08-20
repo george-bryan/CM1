@@ -1,7 +1,7 @@
 #ifdef _B4B
 #define _B4B01R
 #define _B4B02R
-#define _B4B03F
+#undef _B4B03F
 #define _B4B04R
 #endif
   MODULE misclibs
@@ -561,7 +561,8 @@
         ! only processor 0 does this:
 
         cflmax = max(cflmax,1.0e-10)
-
+        print *, 'getnewdt: cflmax:= ',cflmax
+        print *, 'getnewdt: ksmax:= ',ksmax
         IF( cflmax.gt.cfl_limit )THEN
           ! decrease timestep:
           dbldt = dbldt*(cfl_limit/cflmax)
@@ -1147,12 +1148,16 @@
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
         do j=1,nj
           budt = 0.0d0
+#ifndef _B4B01R
           !$acc loop reduction(+:budt)
+#endif
           do i=1,ni
             t1=0.0d0
             t2=0.0d0
             a1=0.0d0
+#ifndef _B4B01R
             !$acc loop reduction(+:a1,t1,t2)
+#endif
             do k=1,nk
               t1=t1+rho(i,j,k)*q3d(i,j,k)
               a1=a1+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -1163,7 +1168,9 @@
             t3=(t1+1.0d-20)/(t2+1.0d-20)
             if(t3.lt.0.0) t3=1.0d0
             a2=0.0d0
+#ifndef _B4B01R
             !$acc loop reduction(+:a2)
+#endif
             do k=1,nk
               q3d(i,j,k)=t3*q3d(i,j,k)
               a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -1327,6 +1334,7 @@
 
       ELSE
 
+        !FIXME
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
         !$acc parallel default(present) private(k) reduction(+:budt) 
         !$acc loop gang 
@@ -2939,7 +2947,6 @@
       real :: dtdx,dtdy,dtdz,fmax,wsp,tem
       !$acc declare present(uh,vh,mh,ua,va,wa)
  
-      !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
       dtdx=0.5*dt*rdx
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
@@ -2947,8 +2954,10 @@
       fmax=-99999999.
 
       if(nx.gt.1.and.ny.gt.1)then
+        print *,'calcflquick: point #1'
+        !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-        !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        !!$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2960,7 +2969,10 @@
           enddo
           enddo
         enddo
+        !$acc end parallel
       elseif(nx.gt.1)then
+        print *,'calcflquick: point #2'
+        !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
         !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
@@ -2973,7 +2985,10 @@
           enddo
           enddo
         enddo
+        !$acc end parallel
       elseif(axisymm.eq.0.and.ny.gt.1)then
+        print *,'calcflquick: point #3'
+        !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
@@ -2985,19 +3000,23 @@
           enddo
           enddo
         enddo
+        !$acc end parallel
       endif
 
       cflmax = fmax
-      !$acc end parallel
       print *,'calccflquick: ',cflmax
 #ifdef MPI
+!     !$acc compare(cflmax)
 !!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
+!     call mpi_wait(reqc,mpi_status_ignore,ierr)
 !!$acc update device(cflmax)
+!     !$acc compare(cflmax)
 ! interesting cflmax is never used.
 #endif
 
 !!!      if(cflmax.ge.1.50) stopit=.true.
+    ! stop 'calcflquick: end of subroutine'
 
 
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
@@ -3031,7 +3050,7 @@
       real :: kstmp
 
       !$acc compare(uh,vh,kmh,kmv,khh,khv)
-      !!$acc data create(ks,fmax) copy(cflmax,ksmax,kmh,kmv,khh,khv,reqk)
+
       !$acc data create(ks)
  
       dtdx=dt*rdx*rdx
@@ -3075,12 +3094,20 @@
       elseif(nx.gt.1)then
         ! 2d (including axisymm):
         !$omp parallel do default(shared) private(i,j,tem1,tem2,tem3)
+#ifdef _B4B04R
+        !$acc update host(uh,vh,kmh,kmv,khh,khv)
+#else
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
+#endif
         ks(1)=0.0
+#ifndef _B4B04R
         !$acc loop gang
+#endif
         do k=2,nk
           kstmp = 0.0
+#ifndef _B4B04R
           !$acc loop vector collapse(2) reduction(max:kstmp)
+#endif
           do j=1,nj
           do i=1,ni
             tem1 = kmh(i,j,k)*dtdx*uh(i)*uh(i)
@@ -3091,7 +3118,11 @@
           enddo
           ks(k) = kstmp
         enddo
+#ifdef _B4B04R
+        !$acc update device(ks)
+#else
         !$acc end parallel
+#endif
       elseif(axisymm.eq.0.and.ny.gt.1)then
         stop 1112
       endif
@@ -3108,7 +3139,9 @@
       !$acc end data
 
 #ifdef MPI
+#ifndef _B4B04R
       !$acc update host(ksmax)
+#endif
       call MPI_IALLREDUCE(MPI_IN_PLACE,ksmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqk,ierr)
       !$acc update device(ksmax)
 #endif

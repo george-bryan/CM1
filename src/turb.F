@@ -6,7 +6,8 @@
 #undef _B4B04F
 #undef _B4B05F
 #undef _B4B08F
-#undef _B4B06F
+
+#define _B4B06F
 
 #define _B4B07R
 #define _B4B09R
@@ -5010,7 +5011,8 @@
 #else
       !non-B4B
       !$acc parallel default(present) &
-      !$acc private(pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
+      !$acc private(i,j,k,pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
+      !$acc loop seq
 #endif
       do k=2,nk
 #ifndef _B4B06F
