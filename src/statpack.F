@@ -229,6 +229,7 @@
       if(stat_rmw.eq.1)then
         call getrmw(nstat,rstat,xh,zh,ua,va)
       endif
+
  
       if(stat_pipert.eq.1) call maxmin(ni,nj,nk,ppi,nstat,rstat,kmin,kmax,'PPIMAX','PPIMIN')
 
@@ -283,6 +284,7 @@
       if( sgsmodel.ge.1 .or. ipbl.eq.2 )then
         if(stat_kh.eq.1) call maxmin(ni,nj,nk+1,khv,nstat,rstat,kmin,kmax,'KHVMAX','KHVMIN')
       endif
+#if 0
 
     if( ipbl.eq.1 )then
     if( stat_kh.eq.1 .or. stat_km.eq.1 )then
@@ -682,6 +684,7 @@
     ENDIF
 
   ENDIF
+#endif
 
   ENDIF  dostats
 !  !$acc update &

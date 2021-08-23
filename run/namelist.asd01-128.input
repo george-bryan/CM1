@@ -14,7 +14,7 @@
  dx     =    40.0,
  dy     =    40.0,
  dz     =    20.0,
- dtl    =   0.625,
+ dtl    =   2.000,
  timax  = 60.0,
  run_time =  -999.9,
  tapfrq =   900.0,
@@ -26,7 +26,7 @@
  &param2
  cm1setup  =  1,
  testcase  = 10,
- adapt_dt  =  0,
+ adapt_dt  =  1,
  irst      =  0,
  rstnum    =  1,
  iconly    =  0,
@@ -340,7 +340,7 @@
 
  &param14
  dodomaindiag   =    .true.,
- diagfrq        =       60.0,
+ diagfrq        =      60.0,
  /
 
  &param15

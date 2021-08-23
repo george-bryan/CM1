@@ -1298,6 +1298,7 @@
 #ifdef MPI
       !print *,'droplet_driver: before call to MPI_ALLREDUCE'
       !$acc update host(pdata)
+      !!$acc host_data use_device(pdata)
       if( .not. terrain_flag )then
         !call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
@@ -1305,10 +1306,12 @@
         !JMD not clear why two MPI_ALLREDUCE are being performed here
         ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
+      !!$acc end host_data
       !$acc update device(pdata)
-      !print *,'droplet_driver: after call to MPI_ALLREDUCE'
+      !$acc compare(pdata)
+      stop 'droplet_driver: after call to MPI_ALLREDUCE'
       if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
      
 #endif

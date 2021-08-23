@@ -7311,7 +7311,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      stop 'domaindiag: ub_hadv'
+      !stop 'domaindiag: ub_hadv'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7344,7 +7344,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-      stop 'domaindiag: ub_vadv'
+      !stop 'domaindiag: ub_vadv'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -7699,6 +7699,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
+#if 0
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -7745,6 +7746,7 @@
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+#endif
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9441,7 +9443,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       endif
-       stop 'domaindiag: after vwb_idiff'
+      ! stop 'domaindiag: after vwb_idiff'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9618,6 +9620,7 @@
         call getmin(w3d(ib,jb,kb),savg,nkp1)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+#if 0
       !c-c-c-c-c-c-c-c-c-c
 
         nvar = nvar+1
@@ -9683,6 +9686,7 @@
 #endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+#endif
 
       !c-c-c-c-c-c-c-c-c-c
 

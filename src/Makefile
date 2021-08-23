@@ -46,18 +46,17 @@
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
-FC   = pgf90
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
+#FC   = pgf90
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
 #
 # -------PERF-------
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
 #DM   = -D_OPENACC
 # -------END PERF------
 #
 # -------DEBUG------
-OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O0 -gpu=math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-DM   = -D_OPENACC -D_B4B
+#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#DM   = -D_OPENACC -D_B4B
 # -------END DEBUG------
 #
 #
@@ -71,18 +70,20 @@ DM   = -D_OPENACC -D_B4B
 #DM   = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
-#FC   = mpif90
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+FC   = mpif90
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #
 # -------PERF-------
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
 #OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
+OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
 #DM   = -DMPI -D_OPENACC 
 # -------END PERF------
 #
 # -------DEBUG------
-#OPTS = -Mfree -g -O2 -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma,autocompare
-#DM   = -DMPI -D_OPENACC -D_B4B
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+DM   = -DMPI -D_OPENACC -D_B4B
 # -------END DEBUG------
 #
 # if NVTX performance analysis
@@ -285,7 +286,7 @@ diff2.o: constants.o input.o
 domaindiag.o: constants.o input.o interp_routines.o cm1libs.o getcape.o sfcphys.o turb.o lsnudge.o writeout_nc.o
 eddy_recycle.o: constants.o input.o
 goddard.o: constants.o input.o cm1libs.o
-hifrq.o: input.o constants.o cm1libs.o adv_routines.o ib_module.o writeout_nc.o comm.o
+hifrq.o: input.o constants.o cm1libs.o adv_routines.o ib_module.o writeout_nc.o adv.o comm.o
 ib_module.o: input.o constants.o bc.o comm.o
 init3d.o:  constants.o input.o misclibs.o cm1libs.o bc.o comm.o module_mp_nssl_2mom.o poiss.o parcel.o ib_module.o turb.o
 init_physics.o: constants.o input.o sfclay.o sfclayrev.o slab.o radtrns3d.o irrad3d.o goddard.o module_ra_rrtmg_lw.o module_ra_rrtmg_sw.o module_sf_gfdl.o module_sf_mynn.o module_bl_mynn.o module_sf_myjsfc.o
