@@ -117,10 +117,11 @@
         !$omp parallel do default(shared) private(i,j,k)
         !$acc loop gang vector
         DO k=1,nk
-          ufrc(k) = +uavg(k)*uavg(k)*tem  &
-                    +vavg(k)*v0(1,1,k)*tem
-          vfrc(k) = -uavg(k)*dvdr(k)  &
-                    -uavg(k)*v0(1,1,k)*tem
+          ! ghb, 210826: account for moving domain
+          ufrc(k) = +(uavg(k)+umove)*(uavg(k)+umove)*tem  &
+                    +(vavg(k)+vmove)*(v0(1,1,k)+vmove)*tem
+          vfrc(k) = -(uavg(k)+umove)*dvdr(k)  &
+                    -(uavg(k)+umove)*(v0(1,1,k)+vmove)*tem
         ENDDO
         !$acc end parallel
         !$acc compare(ufrc,vfrc,uavg,vavg,thavg,cavg)
