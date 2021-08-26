@@ -761,7 +761,8 @@
           !$omp parallel do default(shared) private(i,j,k,tem)
           !$acc parallel loop gang vector default(present) private(i,j,k,tem)
           do k=1,nk
-            ulspg(k) = -fcor*v0(1,1,k)-v0(1,1,k)*v0(1,1,k)/hurr_rad
+            ! ghb, 210826: account for moving domain
+            ulspg(k) = -fcor*(v0(1,1,k)+vmove)-(v0(1,1,k)+vmove)*(v0(1,1,k)+vmove)/hurr_rad
             vlspg(k) =  0.0
             do j=1,nj
             do i=1,ni+1

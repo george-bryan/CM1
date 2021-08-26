@@ -2789,7 +2789,8 @@
 
         ! radial gradient of tangential velocity (defined on scalar levels)
 !!!        dvdr(k) = -0.00085*max(0.0,1.0-zh(1,1,k)/18000.0)
-        dvdr(k) = -var3*v0(1,1,k)/var2
+        ! ghb, 210826: account for moving domain
+        dvdr(k) = -var3*(v0(1,1,k)+vmove)/var2
 
         ! subsidence (defined on w levels)
         if( zf(1,1,k).le.z1 )then
