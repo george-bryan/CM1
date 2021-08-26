@@ -17,7 +17,7 @@ In order to run CM1 on a single GPU, uncomment the correspoding flags and config
 
 ```
     module purge
-    module load ncarenv/1.3 nvhpc/20.9 cuda/10.1 ncarcompilers/0.5.0
+    module load ncarenv/1.3 nvhpc/21.7 cuda/11.4 ncarcompilers/0.5.0
 ```
 
 In the 'src' directory, You can then build the executable using make:
@@ -42,7 +42,7 @@ In order to run CM1 on multiple GPUs, uncomment the correspoding flags and confi
 
 ```
     module purge
-    module load ncarenv/1.3 nvhpc/20.9 cuda/10.1 ncarcompilers/0.5.0 openmpi
+    module load ncarenv/1.3 nvhpc/21.7 cuda/11.4 ncarcompilers/0.5.0 openmpi
 ```
 
 You can then build the executable using make in the 'src' directory:
