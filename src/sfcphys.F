@@ -1,12 +1,12 @@
 #ifdef _B4B
 
-#undef _B4B01F
-#undef _B4B02F
-#undef _B4B03F
-#undef _B4B04F
-#undef _B4B05F
-#undef _B4B07F
-#undef _B4B11F
+#define _B4B01F
+#define _B4B02F
+#define _B4B03F
+#define _B4B04F
+#define _B4B05F
+#define _B4B07F
+#define _B4B11F
 
 #define _B4B06R
 #define _B4B08R
@@ -249,13 +249,13 @@
 #ifdef _B4B11F
     !$acc update device(s10,cd,u10,v10,ust,znt)
 #endif
-    print *,'getcecd: before convergeFail check' 
+    !print *,'getcecd: before convergeFail check' 
     if(convergeFail) then 
       call stopcm1
     endif
 
   ENDIF  sfc_options
-  print *,'after sfc_options'
+  !print *,'after sfc_options'
   !$acc compare(cd,s10,u10,v10,ust)
 
 !-----------------------------------------------------------------------
@@ -330,7 +330,7 @@
 !!!      print *,'  nmax = ',nmax
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
-      print *,'getcecd: end of subroutine'
+      !print *,'getcecd: end of subroutine'
 
       end subroutine getcecd
 
@@ -1205,7 +1205,9 @@
         avgsfct = avgsfct + t1(i,j)
       enddo
       enddo
-#ifndef _B4B08R
+#ifdef _B4B08R
+      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
+#else
       !$acc end parallel
 #endif
   

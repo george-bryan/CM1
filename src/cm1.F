@@ -66,6 +66,7 @@
       double precision :: adt,acfl,dbldt
       double precision :: mass1,mass2
       double precision :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      logical :: misc_detail
       logical :: dosfcflx
       logical, dimension(maxq) :: cloudvar,rhovar
       real, dimension(maxq) :: qmag
@@ -2738,7 +2739,7 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
     !$acc data &
-    !$acc copyin(thten,sten,ksmax) &
+    !$acc copyin(thten,sten,ksmax,cflmax) &
     !$acc copyin(rho0,thv0,th0,qv0) &
     !$acc copyin(prs0,rth0,qc0) &
     !$acc copyin(xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
@@ -2952,6 +2953,7 @@
 
         donudge = .false.
 
+        !$acc update host(cflmax,ksmax)
         if( adapt_dt.eq.1 .and. myid.eq.0 ) write(6,122) cflmax,ksmax,dt,nsound
 122     format(1x,'cflmax,ksmax,dt,nsound:',2x,f6.4,2x,f6.4,2x,f9.4,2x,i3)
 
@@ -2963,6 +2965,7 @@
         call nvtxStartRange("solve1 ",id=0)
 #endif
         !$acc compare(rho,tha)
+        !$acc compare(khh,khv)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve1: pre-RK terms
@@ -3036,8 +3039,10 @@
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,epsd2)
+!$acc compare(qbudget)
 !$acc compare(rru,rrv)
+!$acc compare(khh,khv)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_solve1
        ! stop 'cm1: after solve1' 
@@ -3128,8 +3133,10 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,               &
                    doazimwrite,dorestart)
         ! end_solve2
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
+!$acc compare(khh,khv)
 !$acc compare(tha)
+!$acc compare(qbudget)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #ifdef _NVTX
         call nvtxEndRange
@@ -3168,6 +3175,7 @@
 
       ENDIF
       !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
+!$acc compare(qbudget)
 
 
 #ifdef _NVTX
@@ -3253,9 +3261,11 @@
                    doazimwrite,dorestart)
         ! end_solve3
         !stop 'cm1: after call to solve3'
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(khh,khv)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
 !$acc compare(tha,rru,rrv)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!$acc compare(qbudget)
 #ifdef _NVTX
         call nvtxEndRange
 #endif
@@ -3434,8 +3444,10 @@
                    flag  ,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
 !!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+!$acc compare(qbudget)
+!$acc compare(khh,khv)
 #ifdef _NVTX
       call nvtxEndRange()
 #endif
@@ -3519,7 +3531,7 @@
           enddo
           enddo
         ENDIF
-#if 0
+!#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3531,7 +3543,8 @@
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
         !stop 'after call to statpack'
-#endif
+!#endif
+!$acc compare(qbudget)
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
@@ -3658,6 +3671,7 @@
             enddo
             !$acc end parallel
           ENDIF
+#if 0
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
                         name_output,desc_output,unit_output,grid_output,cmpr_output,           &
@@ -3693,6 +3707,7 @@
                         nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,myi1p,myi2p,myj1p,myj2p)
                         ! end_writeout
                         !stop 'cm1: after call to writout'
+#endif
                         
           if(n.eq.1)then
             srec = frec
@@ -3791,7 +3806,7 @@
 #ifdef _NVTX
         call nvtxStartRange("domaindiag",id=7)
 #endif
-#if 0
+        !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8)
         call   domaindiag(nstep,mtime,nwritet,trecs,trecw,qname,qunit,dt,dosfcflx, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
                    yh,vh,rvh,yf,vf,rvf,                                        &
@@ -3832,7 +3847,6 @@
                    gamk,gamwall,kmw,u1b,v1b,l2p,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cmz,csz,ce1z,ce2z, &
                    lsnudge_u,lsnudge_v,lsnudge_th,lsnudge_qv,                  &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
-#endif
         ! end_domaindiag
         nwritet = nwritet+1
         if(diagfrq.gt.0.0)then
@@ -4064,7 +4078,12 @@
         if(timestats.eq.2)then
           steptime2=time_sound+time_poiss+time_buoyan+time_turb+            &
                     time_diffu+time_microphy+time_stat+time_cflq+           &
-                    time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+    &
+                    time_bc+time_nvtx+time_integ+time_rdamp+time_divx+    &
+                    time_misc+time_misc01+time_misc02+time_misc03+time_misc04+time_misc05+ &
+                    time_misc06+time_misc07+time_misc08+time_misc09+time_misc10+ &
+                    time_misc11+time_misc12+time_misc13+time_misc14+time_misc15+ &
+                    time_misc16+time_misc17+time_misc18+time_misc19+time_misc20+ &
+                    time_misc21+time_misc22+time_misc23+ &
                     time_write+time_restart+time_ttend+time_cor+time_fall+  &
                     time_satadj+time_dbz+time_sfcphys+                      &
                     time_parcels+time_parceli+time_droplet+                 &
@@ -4151,7 +4170,7 @@
 
       !print *,'nstep: ',nstep
       !print *,'mtime: ',mtime
-      if(nstep .eq. 1) then 
+      if(nstep .eq. 10) then 
         !stop 'cm1: at the end of timeloop'
       endif
 
@@ -4292,9 +4311,80 @@
         sum = 0.0
         call MPI_REDUCE(time_restart ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_restart = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_misc    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_misc = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc01    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc01 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc02    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc02 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc03    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc03 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc04    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc04 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc05    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc05 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc06    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc06 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc07    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc07 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc08    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc08 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc09    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc09 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc10    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc10 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc11    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc11 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc12    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc12 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc13    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc13 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc14    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc14 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc15    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc15 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc16    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc16 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc17    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc17 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc18    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc18 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc19    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc19 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc20    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc20 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc21    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc21 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc22    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc22 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_misc23    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_misc23 = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_swath   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_swath = sum/float(numprocs)
@@ -4394,7 +4484,11 @@
 
       time_solve=time_sound+time_poiss+time_buoyan+time_turb+             &
                   time_diffu+time_microphy+time_stat+time_cflq+           &
-                  time_bc+time_misc+time_nvtx+time_integ+time_rdamp+time_divx+ &
+                  time_bc+time_nvtx+time_integ+time_rdamp+time_divx+ &
+                  time_misc+time_misc01+time_misc02+time_misc03+time_misc04+time_misc05+ & 
+                  time_misc11+time_misc12+time_misc13+time_misc14+time_misc15+ &
+                  time_misc16+time_misc17+time_misc18+time_misc19+time_misc20+ &
+                  time_misc21+time_misc22+time_misc23+ &
                   time_bcs+time_bcs2+time_bcst+ &
                   time_write+time_restart+time_ttend+time_cor+time_fall+  &
                   time_satadj+time_dbz+time_sfcphys+                      &
@@ -4460,7 +4554,39 @@
       write(outfile,100) 'integ   ',time_integ,time_integ/time_solve
       write(outfile,100) 'write   ',time_write,time_write/time_solve
       write(outfile,100) 'restart ',time_restart,time_restart/time_solve
-      write(outfile,100) 'misc    ',time_misc,time_misc/time_solve
+      misc_detail = .false.
+      if(.not.misc_detail) then  
+        time_misc = time_misc  +time_misc01+time_misc02+time_misc03+time_misc04+time_misc05+ &
+                    time_misc06+time_misc07+time_misc08+time_misc09+time_misc10+time_misc11+ &
+                    time_misc12+time_misc13+time_misc14+time_misc15+time_misc16+time_misc17+ &
+                    time_misc18+time_misc19+time_misc20+time_misc21+time_misc22+time_misc23
+        write(outfile,100) 'misc    ',time_misc,time_misc/time_solve
+      else
+        write(outfile,100) 'misc    ',time_misc,time_misc/time_solve
+        write(outfile,100) 'misc01  ',time_misc01,time_misc01/time_solve
+        write(outfile,100) 'misc02  ',time_misc02,time_misc02/time_solve
+        write(outfile,100) 'misc03  ',time_misc03,time_misc03/time_solve
+        write(outfile,100) 'misc04  ',time_misc04,time_misc04/time_solve
+        write(outfile,100) 'misc05  ',time_misc05,time_misc05/time_solve
+        write(outfile,100) 'misc06  ',time_misc06,time_misc06/time_solve
+        write(outfile,100) 'misc07  ',time_misc07,time_misc07/time_solve
+        write(outfile,100) 'misc08  ',time_misc08,time_misc08/time_solve
+        write(outfile,100) 'misc09  ',time_misc09,time_misc09/time_solve
+        write(outfile,100) 'misc10  ',time_misc10,time_misc10/time_solve
+        write(outfile,100) 'misc11  ',time_misc11,time_misc11/time_solve
+        write(outfile,100) 'misc12  ',time_misc12,time_misc12/time_solve
+        write(outfile,100) 'misc13  ',time_misc13,time_misc13/time_solve
+        write(outfile,100) 'misc14  ',time_misc14,time_misc14/time_solve
+        write(outfile,100) 'misc15  ',time_misc15,time_misc15/time_solve
+        write(outfile,100) 'misc16  ',time_misc16,time_misc16/time_solve
+        write(outfile,100) 'misc17  ',time_misc17,time_misc17/time_solve
+        write(outfile,100) 'misc18  ',time_misc18,time_misc18/time_solve
+        write(outfile,100) 'misc19  ',time_misc19,time_misc19/time_solve
+        write(outfile,100) 'misc20  ',time_misc20,time_misc20/time_solve
+        write(outfile,100) 'misc21  ',time_misc21,time_misc21/time_solve
+        write(outfile,100) 'misc22  ',time_misc22,time_misc22/time_solve
+        write(outfile,100) 'misc23  ',time_misc23,time_misc23/time_solve
+      endif
       write(outfile,100) 'swaths  ',time_swath,time_swath/time_solve
       write(outfile,100) 'pdef    ',time_pdef,time_pdef/time_solve
       write(outfile,100) 'prsrho  ',time_prsrho,time_prsrho/time_solve

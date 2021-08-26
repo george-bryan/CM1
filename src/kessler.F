@@ -1,3 +1,6 @@
+#ifdef _B4B
+#define _B4B01R
+#endif
   MODULE kessler_module
 
   implicit none
@@ -959,7 +962,7 @@
       double precision :: budt
 
       !$acc data create(bud)
-#ifdef _B4B
+#ifdef _B4B01R
       !$acc update host(ruh,rvh,erain,t,rr,q3d,vr)
 #else
       !$omp parallel do default(shared) private(i,j)
@@ -968,7 +971,7 @@
 #endif
       do j=1,nj
         budt=0.0d0
-#ifndef _B4B
+#ifndef _B4B01R
         !$acc loop vector reduction(+:budt)
 #endif
         do i=1,ni
@@ -978,13 +981,13 @@
       enddo
 
      
-#ifndef _B4B
+#ifndef _B4B01R
       !$acc loop vector reduction(+:erain)
 #endif
       do j=1,nj
         erain=erain+bud(j)*dx*dy
       enddo
-#ifdef _B4B
+#ifdef _B4B01R
       !$acc update device(erain)
 #else
       !$acc end parallel

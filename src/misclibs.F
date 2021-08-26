@@ -1,8 +1,16 @@
 #ifdef _B4B
+!JMD-expensive
 #define _B4B01R
+
 #define _B4B02R
-#undef _B4B03F
+#define _B4B03F
 #define _B4B04R
+#define _B4B05R
+#define _B4B06R
+#define _B4B07R
+#define _B4B08R
+#define _B4B09R
+#define _B4B10R
 #endif
   MODULE misclibs
 
@@ -695,12 +703,12 @@
 
       IF( ( dt.ne.dtlast ) .or. doinit )THEN
         IF( (imoist.eq.1).and.(ptype.eq.2) )then
-          if(timestats.ge.1) time_misc=time_misc+mytime()
+          if(timestats.ge.1) time_misc01=time_misc01+mytime()
           call consat2(dt)
           if(timestats.ge.1) time_microphy=time_microphy+mytime()
         ENDIF
         IF( (imoist.eq.1).and.(ptype.eq.4) )then
-          if(timestats.ge.1) time_misc=time_misc+mytime()
+          if(timestats.ge.1) time_misc01=time_misc01+mytime()
           call lfoice_init(dt)
           if(timestats.ge.1) time_microphy=time_microphy+mytime()
         ENDIF
@@ -714,7 +722,7 @@
       adt = adt + dbldt
       acfl = acfl + cflmax
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc01=time_misc01+mytime()
 
       end subroutine getnewdt
 
@@ -855,9 +863,10 @@
     ENDDO
 
     IF( nql1.gt.0 )THEN
-!$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
-    DO k=1,nk
-      do n=nql1,nql2
+    !$acc parallel default(present) private(i,j,k,n)
+    DO n=nql1,nql2
+      !$acc loop gang vector collapse(3)
+      do k=1,nk
         do j=1,nj
         do i=1,ni
           ql(i,j,k)=ql(i,j,k)+q(i,j,k,n)
@@ -865,12 +874,14 @@
         enddo
       enddo
     ENDDO
+    !$acc end parallel
     ENDIF
 
       IF(iice.eq.1)THEN
-!$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
-      DO k=1,nk
-        do n=nqs1,nqs2
+      !$acc parallel default(present) private(i,j,k,n)
+      DO n=nqs1,nqs2
+        !$acc loop gang vector collapse(3)
+        do k=1,nk
           do j=1,nj
           do i=1,ni
             qi(i,j,k)=qi(i,j,k)+q(i,j,k,n)
@@ -878,9 +889,10 @@
           enddo
         enddo
       ENDDO
+      !$acc end parallel
       ENDIF
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc02=time_misc02+mytime()
 
       end subroutine getqli
 
@@ -942,7 +954,7 @@
 
     ENDDO
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc03=time_misc03+mytime()
 
       end subroutine getcvm
 
@@ -1018,7 +1030,7 @@
     ENDIF
 
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc03=time_misc03+mytime()
 
       end subroutine getcvm_GPU
 
@@ -1106,7 +1118,7 @@
 
 !----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc04=time_misc04+mytime()
 
       end subroutine pdefq
 
@@ -1192,27 +1204,33 @@
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
 #ifndef _B4B01R
-        !$acc parallel loop gang vector default(present) private(i,j,k,a1,a2)
+        !$acc parallel default(present) private(i,j,k,a1,a2) reduction(+:budt,asq)
+        !$acc loop gang
 #endif
         do k=1,nk
-        budk(k)=0.0d0
-        do j=1,nj
-        do i=1,ni
-          a1=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+          budt=0.0d0
+          !$acc loop collapse(2) reduction(+:budt)
+          do j=1,nj
+          do i=1,ni
+            a1=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
 !!!          q3d(i,j,k)=max(0.0,q3d(i,j,k))
-          if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
-          a2=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
-          budk(k)=budk(k)+a2-a1
-        enddo
-        enddo
+            if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+            a2=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+            budt=budt+a2-a1
+          enddo
+          enddo
+         budk(k)=budt 
         enddo
 
 #ifndef _B4B01R
-        !$acc parallel loop reduction(+:asq)
+        !$acc loop reduction(+:asq)
 #endif
         do k=1,nk
           asq=asq+budk(k)*tem
         enddo
+#ifndef _B4B01R
+      !$acc end parallel
+#endif
 
       ENDIF
 #ifdef _B4B01R
@@ -1223,7 +1241,7 @@
 
 !----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc23=time_misc23+mytime()
 
       end subroutine pdefq_GPU
 
@@ -1336,8 +1354,12 @@
 
         !FIXME
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
+#ifdef _B4B05R
+        !$acc update host(rho,q3d,ruh,rvh,rmh)
+#else
         !$acc parallel default(present) private(k) reduction(+:budt) 
         !$acc loop gang 
+#endif
         do k=1,nk
           budt = 0.0d0
           !$acc loop vector collapse(2) private(i,j,a1,a2) reduction(+:budt)
@@ -1353,18 +1375,24 @@
           enddo
           budk(k)=budt
         enddo
+#ifdef _B4B05R
+        !$acc update host(budk)
+#else
         !$acc end parallel
-
         !$acc parallel loop vector default(present) private(k) reduction(+:asq)
+#endif
         do k=1,nk
           asq=asq+budk(k)*tem
         enddo
+#ifdef _B4B05R
+        !$acc update device(asq)     
+#endif
 
       ENDIF
 
 !----------------------------------------------------------------------
       !$acc end data
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc05=time_misc05+mytime()
 
       end subroutine pdefqtest
 
@@ -2517,50 +2545,59 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: qci
 
       integer i,j,k
-      real qcbot(nk),qctop(nk),bot,top,var
+      real qcbot(nk),qctop(nk),bot,top,vart,varb
 
-!$acc data create(qcbot,qctop)
+      !$acc compare(zh,qci)
+!$acc data create(bot,top,qcbot,qctop)
 !$omp parallel do default(shared)  &
 !$omp private(k)
-!$acc parallel loop gang vector default(present) private(k)
-      do k=1,nk
-        qcbot(k)=maxz
-        qctop(k)=0.0
-      enddo
-
+!$acc parallel default(present) private(i,j,k) reduction(max:top,vart) reduction(min:bot,varb)
+      !!$acc loop gang vector
+      !do k=1,nk
+      !  qcbot(k)=maxz
+      !  qctop(k)=0.0
+      !enddo
+      print *,'clwsat: ',clwsat
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      !$acc loop gang
       do k=1,nk
+        varb=maxz
+        vart=0.0
+        !$acc loop vector reduction(max:vart) reduction(min:varb)
         do j=1,nj
         do i=1,ni
           if(qci(i,j,k).ge.clwsat)then
-            qctop(k)=max(qctop(k),zh(i,j,k))
-            qcbot(k)=min(qcbot(k),zh(i,j,k))
+            vart=max(vart,zh(i,j,k))
+            varb=min(varb,zh(i,j,k))
           endif
         enddo
         enddo
+        qctop(k) = vart
+        qcbot(k) = varb
       enddo
 
       top=0.0
+      !$acc loop vector reduction(max:top)
       do k=1,nk
         top=max(top,qctop(k))
       enddo
 
       bot=maxz
+      !$acc loop vector reduction(min:bot)
       do k=1,nk
         bot=min(bot,qcbot(k))
       enddo
+      !$acc end parallel
+      !$acc update host(bot,top)
 
 #ifdef MPI
-      !$acc update host(bot,top)
-      !!$acc host_data use_device(bot,top)
-      call MPI_REDUCE(bot,var,1,MPI_REAL,MPI_MIN,0,MPI_COMM_WORLD,ierr)
-      bot=var
-      call MPI_REDUCE(top,var,1,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-      top=var
-      !$acc update device(bot,top)
-      !!$acc end host_data
+      !!$acc update host(bot,top)
+      call MPI_REDUCE(bot,varb,1,MPI_REAL,MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      call MPI_REDUCE(top,vart,1,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      !!$acc update device(bot,top)
+      bot=varb
+      top=vart
       if(myid.eq.0)then
 #endif
 
@@ -2568,7 +2605,7 @@
 
       write(6,100) 'QCTOP ',top,1,1,1,   &
                    'QCBOT ',bot,1,1,1
-100   format(2x,a6,':',1x,f13.6,i5,i5,i5,   &
+100   format(2x,'stat:: ',a6,':',1x,f13.6,i5,i5,i5,   &
              4x,a6,':',1x,f13.6,i5,i5,i5)
  
       nstat = nstat + 1
@@ -2673,6 +2710,7 @@
         enddo
       ENDIF
 
+      !FIXME-JMD inefficient loop 
       do n=1,6
         vmax = 0.0
         if(n.eq.1)then
@@ -2738,11 +2776,11 @@
     ENDIF  kcheck
 #ifdef MPI
 !!$acc host_data use_device(vmax)
-!$acc update host(vmax)
+!!$acc update host(vmax)
         call MPI_REDUCE(vmax,var,1,MPI_REAL,MPI_MAX,0,   &
                         MPI_COMM_WORLD,ierr)
         vmax=var
-!$acc update device(vmax)
+!!$acc update device(vmax)
 !!$acc end host_data
         if(myid.eq.0)then
 #endif
@@ -2754,7 +2792,7 @@
 #endif
       ENDDO
 
-100   format(2x,a6,':',1x,e13.6)
+100   format(2x,'stat:: ',a6,':',1x,e13.6)
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
  
@@ -2794,7 +2832,7 @@
       integer :: loc
       real, dimension(2) :: mmax,nmax
 
-!$acc data create(imaxt,jmaxt,kmaxt,cfl,mmax,nmax)
+!$acc data create(imaxt,jmaxt,kmaxt,cfl,fmax,mmax,nmax)
 
       dtdx=0.5*dt*rdx
       dtdy=0.5*dt*rdy
@@ -2816,9 +2854,13 @@
                        +((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2 )   &
                        +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
           if( wsp.gt.cfl(k) )then
+            !$acc atomic write
             cfl(k) = wsp
+            !$acc atomic write
             imaxt(k)=i
+            !$acc atomic write
             jmaxt(k)=j
+            !$acc atomic write
             kmaxt(k)=k
           endif
         enddo
@@ -2834,9 +2876,13 @@
           wsp = sqrt( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
           if( wsp.gt.cfl(k) )then
+            !$acc atomic write
             cfl(k) = wsp
+            !$acc atomic write
             imaxt(k)=i
+            !$acc atomic write
             jmaxt(k)=j
+            !$acc atomic write
             kmaxt(k)=k
           endif
         enddo
@@ -2852,9 +2898,13 @@
           wsp = sqrt( ((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
           if( wsp.gt.cfl(k) )then
+            !$acc atomic write
             cfl(k) = wsp
+            !$acc atomic write
             imaxt(k)=i
+            !$acc atomic write
             jmaxt(k)=j
+            !$acc atomic write
             kmaxt(k)=k
           endif
         enddo
@@ -2866,18 +2916,24 @@
       imax=1
       jmax=1
       kmax=1
+      !$acc parallel loop default(present) private(k)
       do k=1,nk
         if(cfl(k).gt.fmax)then
+          !$acc atomic write
           fmax=cfl(k)
+          !$acc atomic write
           imax=imaxt(k)
+          !$acc atomic write
           jmax=jmaxt(k)
+          !$acc atomic write
           kmax=kmaxt(k)
         endif
       enddo
 
 #ifdef MPI
 !!$acc host_data use_device(mmax,fmax,myid,imax,jmax,kmax,nmax)
-!$acc update host(mmax,fmax,myid,imax,jmax,kmax,nmax)
+!!$acc update host(mmax,fmax,myid,nmax)
+!!$acc update host(mmax,nmax)
       mmax(1)=fmax
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
@@ -2889,7 +2945,7 @@
       call MPI_BCAST(jmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       fmax=nmax(1)
-!$acc update device(mmax,fmax,myid,imax,jmax,kmax,nmax)
+!!$acc update device(mmax,nmax)
 !!$acc end host_data
       if(myid.eq.0)then
 #endif
@@ -2903,7 +2959,7 @@
         write(6,100) 'CFLMAX',fmax,imax,jmax,kmax
         rstat(nstat) = fmax
       ENDIF
-100   format(2x,a6,':',1x,f13.6,i5,i5,i5)
+100   format(2x,'stat:: ',a6,':',1x,f13.6,i5,i5,i5)
     ENDIF
 
 #ifdef MPI
@@ -3296,7 +3352,7 @@
 
 #ifdef MPI
 !!$acc host_data use_device(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
-!$acc update host(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
+!!$acc update host(mmax,nmax)
       mmax(1)=fhmax
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
@@ -3320,7 +3376,7 @@
       call MPI_BCAST(jmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       fvmax=nmax(1)
-!$acc update device(fhmax,myid,mmax,imaxh,jmaxh,kmaxh,nmax)
+!!$acc update device(mmax,nmax)
 !!$acc end host_data
       if(myid.eq.0)then
 #endif
@@ -3335,7 +3391,7 @@
       nstat = nstat + 1
       rstat(nstat) = fvmax
 
-100   format(2x,a6,':',1x,g13.6,i5,i5,i5)
+100   format(2x,'stat:: ',a6,':',1x,g13.6,i5,i5,i5)
 
 #ifdef MPI
       endif
@@ -3379,6 +3435,7 @@
         vmaxt(k) = 0.0
       enddo
 
+      !FIXME
 !$omp parallel do default(shared)  &
 !$omp private(i,k,wspd)
 !$acc parallel loop gang vector collapse(2) default(present) private(i,k)
@@ -3410,7 +3467,7 @@
 
       write(6,131) 'RMW   ',rmax,imax,jmax,kmax
       write(6,131) 'ZMW   ',zmax,imax,jmax,kmax
-131   format(2x,a6,':',1x,f13.6,i5,i5,i5)
+131   format(2x,'stat:: ',a6,':',1x,f13.6,i5,i5,i5)
 
       nstat = nstat + 1
       rstat(nstat) = rmax
@@ -3449,16 +3506,23 @@
       double precision, dimension(nk) :: foo
       double precision :: foot
 
-      !$acc data create(foo,foot,tmass)
-      !$acc parallel loop gang vector default(present) private(k)
-      do k=1,nk
-        foo(k)=0.0d0
-      enddo
+      !$acc data create(foo)
+      !!$acc parallel loop gang vector default(present) private(k)
+      !do k=1,nk
+      !  foo(k)=0.0d0
+      !enddo
       !$omp parallel do default(shared) private(i,j,k)
+#ifdef _B4B06R
+      !$acc update host(rho,ruh,rvh,rmh)
+#else
       !$acc parallel default(present) private(i,j,k) reduction(+:foot)
+      !$acc loop gang
+#endif
       do k=1,nk
         foot=0.0d0
-        !$acc loop gang vector collapse(2) reduction(+:foot)
+#ifndef _B4B06R
+        !$acc loop vector collapse(2) reduction(+:foot)
+#endif
         do j=1,nj
         do i=1,ni
           foot=foot+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -3466,33 +3530,39 @@
         enddo
         foo(k)=foot
       enddo
+#ifndef _B4B06R
       !$acc end parallel
-
       !$acc parallel default(present) private(k) reduction(+:tmass)
+#endif
+
       tmass=0.0d0 
+#ifndef _B4B06R
       !$acc loop gang vector reduction(+:tmass)
+#endif
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
+#ifndef _B4B06R
       !$acc end parallel
+#endif
+
       !$acc end data
 
 #ifdef MPI
-!!$acc host_data use_device(tmass)
+#ifndef _B4B06R
 !$acc update host(tmass)
+#endif
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!!$acc end host_data
-!$acc update device(tmass)
       if(myid.eq.0)then
 #endif
 
       tmass=tmass*(dx*dy*dz)
  
       write(6,100) 'TMASS ',tmass
-100   format(2x,a6,':',1x,e13.6)
+100   format(2x,'stat:: ',a6,':',1x,e13.6)
  
       nstat = nstat + 1
       rstat(nstat) = tmass
@@ -3531,43 +3601,59 @@
       integer i,j,k
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
+      double precision :: foot
 
-!$acc data create(foo,tmass)
+!$acc data create(tmass,foo)
 !$omp parallel do default(shared)  &
 !$omp private(k)
-!$acc parallel loop gang vector default(present) private(k)
-      do k=1,nk
-        foo(k)=0.0d0
-      enddo
+!!$acc parallel loop gang vector default(present) private(k)
+!      do k=1,nk
+!        foo(k)=0.0d0
+!      enddo
  
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+#ifdef _B4B07R
+      !$acc update host(rho,qv,ql,qi,ruh,rvh,rmh)
+#else
+      !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
+      !$acc loop gang
+#endif
       do k=1,nk
+        foot = 0.0d0   
+#ifndef _B4B07R
+        !$acc loop vector collapse(2) reduction(+:foot)
+#endif
         do j=1,nj
         do i=1,ni
-          foo(k)=foo(k)+rho(i,j,k)*(qv(i,j,k)+ql(i,j,k)+qi(i,j,k))*ruh(i)*rvh(j)*rmh(i,j,k)
+          foot=foot + rho(i,j,k)*(qv(i,j,k)+ql(i,j,k)+qi(i,j,k))*ruh(i)*rvh(j)*rmh(i,j,k)
         enddo
         enddo
+        foo(k) = foot
       enddo
  
-!$acc parallel default(present) private(k) reduction(+:tmass)
       tmass=0.0d0
-!$acc loop gang vector reduction(+:tmass)
+#ifndef _B4B07R
+      !$acc loop vector reduction(+:tmass)
+#endif
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
-!$acc end parallel
+#ifdef _B4B07R
+      !$acc update device(tmass)
+#else
+      !$acc end parallel
+#endif
 
 #ifdef MPI
-!!$acc host_data use_device(tmass)
-!$acc update host(tmass)
+#ifndef _B4B07R
+!!$acc update host(tmass)
+#endif
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!$acc update device(tmass)
-!!$acc end host_data
+!!$acc update device(tmass)
       if(myid.eq.0)then
 #endif
 
@@ -3576,7 +3662,7 @@
       tmass=tmass*(dx*dy*dz)
 
       write(6,100) 'TMOIS ',tmass
-100   format(2x,a6,':',1x,e13.6)
+100   format(2x,'stat:: ',a6,':',1x,e13.6)
  
       nstat = nstat + 1
       rstat(nstat) = tmass
@@ -3616,50 +3702,66 @@
       integer i,j,k
       double precision :: tmass,var
       double precision, dimension(nk) :: foo
+      double precision :: foot
 
 !$acc data create(foo,tmass)
 !$omp parallel do default(shared)  &
 !$omp private(k)
-!$acc parallel loop gang vector default(present) private(k)
-      do k=1,nk
-        foo(k)=0.0d0
-      enddo
+!!$acc parallel loop gang vector default(present) private(k)
+!      do k=1,nk
+!        foo(k)=0.0d0
+!      enddo
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+#ifdef _B4B08R
+      !$acc update host(rho,q,ruh,rvh,rmh)
+#else
+      !$acc parallel default(present) private(i,j,k) reduction(+:tmass,foot)
+      !$acc loop gang
+#endif
       do k=1,nk
-      do j=1,nj
-      do i=1,ni
-        foo(k)=foo(k)+rho(i,j,k)*q(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
-      enddo
-      enddo
+        foot=0.0d0
+#ifndef _B4B08R
+        !$acc loop vector collapse(2) redution(+:foot)
+#endif
+        do j=1,nj
+        do i=1,ni
+          foot=foot+rho(i,j,k)*q(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+        enddo
+        enddo
+        foo(k)=foot
       enddo
 
-!$acc parallel default(present) private(k) reduction(+:tmass)
       tmass=0.0d0
-!$acc loop gang vector reduction(+:tmass)
+#ifndef _B4B08R
+      !$acc loop vector reduction(+:tmass)
+#endif
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
-!$acc end parallel
+#ifdef _B4B08R
+      !$acc update device(tmass)
+#else
+      !$acc end parallel
+#endif
 
 #ifdef MPI
-!!$acc host_data use_device(tmass)
+#ifndef _B4B08R
 !$acc update host(tmass)
+#endif
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
 !$acc update device(tmass)
-!!$acc end host_data
       if(myid.eq.0)then
 #endif
 
       tmass=tmass*(dx*dy*dz)
 
       write(6,100) aname,tmass
-100   format(2x,a6,':',1x,e13.6)
+100   format(2x,'stat:: ',a6,':',1x,e13.6)
 
       nstat = nstat + 1
       rstat(nstat) = tmass
@@ -3751,7 +3853,7 @@
 
 #ifdef MPI
 !!$acc host_data use_device(ek,ei,ep,le)
-!$acc update host(ek,ei,ep,le)
+!!$acc update host(ek,ei,ep,le)
       var=0.0d0
       call MPI_REDUCE(ek,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
@@ -3768,7 +3870,7 @@
       call MPI_REDUCE(le,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       le=var
-!$acc update device(ek,ei,ep,le)
+!!$acc update device(ek,ei,ep,le)
 !!$acc end host_data
       if(myid.eq.0)then
 #endif
@@ -3776,7 +3878,7 @@
       et=ek+ei+ep+le
  
       write(6,100) 'TENERG',et
-100   format(2x,a6,':',1x,e13.6)
+100   format(2x,'stat:: ',a6,':',1x,e13.6)
 
       nstat = nstat + 1
       rstat(nstat) = ek
@@ -3827,13 +3929,20 @@
       double precision, dimension(nk) :: foo1,foo2,foo3
       double precision :: foot1,foot2,foot3
 
+      !$acc data create(tmu,tmv,tmw)
+#ifdef _B4B09R
+      !$acc update host(qv,ql,qi,ruh,rvh,rmh,ua,va,wa,vr,rho)
+#else
+      !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
+#endif
       tmu=0.0d0
       tmv=0.0d0
       tmw=0.0d0
-      !$acc data copy(tmu,tmv,tmw)
 
       !$omp parallel do default(shared) private(i,j,k,qtot,tem)
-      !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
+#ifndef _B4B09R
+      !$acc loop vector collapse(3) reduction(+:tmu,tmv,tmw)
+#endif
       do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3849,17 +3958,21 @@
         enddo
         enddo
       enddo
-      !$acc end parallel
 
-      !$acc end data
       tmu=tmu*(dx*dy*dz)
       tmv=tmv*(dx*dy*dz)
       tmw=tmw*(dx*dy*dz)
+#ifdef _B4B09R
+      !$acc update device(tmu,tmv,tmw)
+#else
+      !$acc end parallel
+#endif
       
 
 #ifdef MPI
-!!$acc host_data use_device(tmu,tmv,tmw,var)
-!$acc update host(tmu,tmv,tmw,var)
+#ifndef _B4B09R
+!!$acc update host(tmu,tmv,tmw)
+#endif
       var=0.0d0
       call MPI_REDUCE(tmu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
@@ -3872,15 +3985,14 @@
       call MPI_REDUCE(tmw,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmw=var
-!$acc update device(tmu,tmv,tmw,var)
-!!$acc end host_data
+!!$acc update device(tmu,tmv,tmw)
       if(myid.eq.0)then
 #endif
  
       write(6,100) 'TMU   ',tmu
       write(6,100) 'TMV   ',tmv
       write(6,100) 'TMW   ',tmw
-100   format(2x,a6,':',1x,e13.6)
+100   format(2x,'stat:: ',a6,':',1x,e13.6)
  
       nstat = nstat + 1
       rstat(nstat) = tmu
@@ -3892,6 +4004,7 @@
 #ifdef MPI
       endif
 #endif
+      !$acc end data
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
@@ -3925,16 +4038,22 @@
       double precision, dimension(nk) :: foo1,foo2
       double precision :: foo1t,foo2t
 
-     !$acc data create(foo1,foo2)
+     !$acc data create(foo1,foo2,tmfu,tmfd)
 
      !$omp parallel do default(shared) private(i,j,k,mf)
-     !$acc parallel default(present)  private(i,j,k,mf) copyout(tmfu,tmfd) &
+#ifdef _B4B10R
+     !$acc update host(wa,ruh,rvh)
+#else
+     !$acc parallel default(present)  private(i,j,k,mf) reduction(+:foo1t,foo2t) &
      !$acc reduction(+:tmfu,tmfd)
      !$acc loop gang 
+#endif
       do k=1,nk
         foo1t = 0.0d0
         foo2t = 0.0d0
+#ifndef _B4B10R
         !$acc loop vector collapse(2) reduction(+:foo1t,foo2t)
+#endif
         do j=1,nj
         do i=1,ni
           mf=rho(i,j,k)*0.5*(wa(i,j,k)+wa(i,j,k+1))*ruh(i)*rvh(j)
@@ -3945,21 +4064,26 @@
         foo1(k) = foo1t
         foo2(k) = foo2t
       enddo
-      !$acc compare(foo1,foo2)
 
       tmfu=0.0d0
       tmfd=0.0d0
+#ifndef _B4B10R
       !$acc loop vector reduction(+:tmfu,tmfd)
+#endif
       do k=1,nk
         tmfu=tmfu+foo1(k)
         tmfd=tmfd+foo2(k)
       enddo
+#ifdef _B4B10R
+      !$acc update device(tmfu,tmfd)
+#else
       !$acc compare(tmfu,tmfd)
       !$acc end parallel
+#endif
 
 #ifdef MPI
 !!$acc host_data use_device(tmfu,tmfd,var)
-!$acc update host(tmfu,tmfd,var)
+!!$acc update host(tmfu,tmfd,var)
 
       var=0.0d0
       call MPI_REDUCE(tmfu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
@@ -3969,7 +4093,7 @@
       call MPI_REDUCE(tmfd,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmfd=var
-!$acc update device(tmfu,tmfd,var)
+!!$acc update device(tmfu,tmfd,var)
 !!$acc end host_data
       if(myid.eq.0)then
 #endif
@@ -3978,7 +4102,7 @@
 
       write(6,100) 'TMFU  ',tmfu
       write(6,100) 'TMFD  ',tmfd
-100   format(2x,a6,':',1x,e13.6)
+100   format(2x,'stat:: ',a6,':',1x,e13.6)
 
       nstat = nstat + 1
       rstat(nstat) = tmfu
@@ -4094,6 +4218,29 @@
       time_bcs2=0.0
       time_bcst=0.0
       time_misc=0.0
+      time_misc01=0.0
+      time_misc02=0.0
+      time_misc03=0.0
+      time_misc04=0.0
+      time_misc05=0.0
+      time_misc06=0.0
+      time_misc07=0.0
+      time_misc08=0.0
+      time_misc09=0.0
+      time_misc10=0.0
+      time_misc11=0.0
+      time_misc12=0.0
+      time_misc13=0.0
+      time_misc14=0.0
+      time_misc15=0.0
+      time_misc16=0.0
+      time_misc17=0.0
+      time_misc18=0.0
+      time_misc19=0.0
+      time_misc20=0.0
+      time_misc21=0.0
+      time_misc22=0.0
+      time_misc23=0.0
       time_integ=0.0
       time_rdamp=0.0
       time_divx=0.0

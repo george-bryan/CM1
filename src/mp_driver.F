@@ -1,5 +1,5 @@
 #ifdef _B4B
-#undef _B4B01F
+#define _B4B01F
 #endif
   MODULE mp_driver_module
 
@@ -1367,7 +1367,7 @@
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !CC   END microphysics   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-    print *,'ptype: ',ptype
+    !print *,'ptype: ',ptype
     if(ptype.ne.5 .and. ptype .ne.6) then 
       !$acc update &
       !$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &

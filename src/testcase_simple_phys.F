@@ -1,9 +1,8 @@
 #ifdef _B4B
 #define _B4B01R
-#define _B4B02R
-#define _B4B03
-#undef _B4B04F
-#define _B4B05R
+#define _B4B04F
+!JMD-expensive
+#define _B4B05R   
 #endif
   MODULE simple_phys_module
 
@@ -239,7 +238,9 @@
         cavg(k,3) = tmp3
         !----
       enddo
-#ifndef _B4B05R
+#ifdef _B4B05R
+      !$acc update device(cavg)
+#else
       !$acc end parallel
 #endif
 
@@ -321,7 +322,9 @@
 !      !$acc end parallel
 !#endif
       !!$acc parallel default(present) private(i,j,k) reduction(+:cavg1,cavg2,cavg3)
-#ifndef _B4B01R
+#ifdef _B4B01R
+      !$acc update host(th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
+#else
       !$acc parallel default(present) private(i,j,k,cavg1,cavg2,cavg3) &
       !$acc reduction(+:cavg1,cavg2,cavg3,cavgt)
       !$acc loop gang
@@ -369,7 +372,9 @@
         enddo
         !----
       enddo
-#ifndef _B4B01R
+#ifdef _B4B01R
+      !$acc update device(cavg)
+#else
       !$acc end parallel
 #endif
 

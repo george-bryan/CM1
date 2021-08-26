@@ -1,14 +1,14 @@
 #ifdef _B4B
 
-#undef _B4B01F
-#undef _B4B02F
-#undef _B4B03F
-#undef _B4B04F
-#undef _B4B05F
-#undef _B4B08F
+#define _B4B01F
+#define _B4B02F
+#define _B4B03F
+#define _B4B04F
+#define _B4B05F
+#define _B4B08F
 
+!JMD-expensive These break B4B 
 #define _B4B06F
-
 #define _B4B07R
 #define _B4B09R
 #define _B4B10R
@@ -688,6 +688,7 @@
                          rho,rf,u1,v1,s1,ppi,tha,divx, &
                          qbudget(8),psfc,u10,v10,s10,qsfc,znt,rtime)
           endif
+          !$acc compare(qbudget)
 
           ! get sfc diagnostics needed by pbl scheme:
           !$acc compare(znt)
@@ -1673,6 +1674,7 @@
           IF( dodomaindiag .and. dotdwrite )then
             call getepsd(xh,rxh,uh,xf,rxf,uf,vh,vf,mh,c1,c2,mf,ua ,va ,wa ,  &
                          dum1,dum2,epsd1,epsd2,rho0,rf0,rrf0,rru,rrv,rrw,dt)
+            !$acc compare(epsd2)
           ENDIF
 
     ENDIF
@@ -5529,6 +5531,7 @@
     !  surface vars:
 
         !print *,'t2pcode: point #1'
+        !$acc data create(ustbar,zntbar)
 #ifdef _B4B07R
         !$acc update host(s13,s23,rf,zntmp)
 #else
@@ -5549,7 +5552,9 @@
           zntbar = zntbar + zntmp(i,j)
         enddo
         enddo
-#ifndef _B4B07R
+#ifdef _B4B07R
+        !$acc update device(ustbar,zntbar)
+#else
         !$acc end parallel
 #endif
         !print *,'t2pcode: point #2'
@@ -5560,6 +5565,7 @@
         call MPI_ALLREDUCE(MPI_IN_PLACE,zntbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         !!$acc update device(ustbar,zntbar)
 #endif
+        !$acc end data
 
 #ifndef _B4B08F
         !$acc parallel default(present) private(k)
@@ -6121,6 +6127,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+  !$acc compare(ua,va,rrv) 
   acheck:  IF( axisymm.eq.0 )THEN
 
 !----------
@@ -6175,8 +6182,8 @@
     enddo
     enddo
   ENDIF
-
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc compare(dum1,dum2,c1,c2)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -6187,6 +6194,7 @@
     enddo
     enddo
     enddo
+    !$acc compare(epsd1,epsd2)
 
 !----------
 !  u-y:
@@ -6241,7 +6249,8 @@
     enddo
   ENDIF
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,vbar,ubar)
+    !$acc compare(c1,c2,dum1)
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -6253,6 +6262,7 @@
     enddo
     enddo
     enddo
+    !$acc compare(epsd2)
 
 !----------
 !  w-x:
@@ -6545,6 +6555,7 @@
     enddo
     enddo
     enddo
+    !$acc compare(epsd2)
 
 !----------
 ! w-z:
@@ -6669,6 +6680,7 @@
     enddo
     enddo
     enddo
+    !$acc compare(epsd2)
 
 !--------------------------------------------------------------
 !  finished

@@ -1,19 +1,20 @@
 #ifdef _B4B
+
 #define _B4B01F
 #define _B4B02F
 #define _B4B03F
 #define _B4B04F
 #define _B4B05F
+
 #define _B4B06
+
 #define _B4B07F
 #define _B4B08F
 #define _B4B09F
-#undef _B4B10F
+#define _B4B10F
 #define _B4B11F
 #define _B4B12F
-#define _B4B13
-#define _B4B14
-#define _B4B15
+
 #define _B4B16R
 #define _B4B19R
 #define _B4B21R
@@ -229,7 +230,7 @@
     !$acc data &
     !$acc   create(wstar,fbmin,zfbmin) &
     !$acc   create(ravg,savg,tavg,uub,vvb,wwb,sfr,sfs,sfd,tmass,clw,cli,plw,pli) &
-    !$acc   create(wavg,wvar,thvavg,rhoavg,rfavg, &
+    !$acc   create(wavg,prsavg,piavg,wvar,thvavg,rhoavg,rfavg, &
     !$acc     ufr,ufs,ufd,vfr,vfs,vfd,ptfr,ptfs, &
     !$acc     ptfd,qvfr,qvfs,qvfd,temavg, &
     !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,savg2d,qcrit, &
@@ -1321,6 +1322,7 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d(prate(ib,jb),savg2d)
+      !$acc update host(savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       if( myid.eq.0 ) print *,'  Metric: preciptation rate (mm/day) = ',86400.0*savg2d
 
@@ -1467,6 +1469,7 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d(dum1(ib,jb,3),savg2d)
+      !$acc update host(savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       lwp = savg2d
       if( myid.eq.0 ) print *,'  Metric: LWP (g/m2) = ',1000.0*lwp
@@ -1682,13 +1685,13 @@
       !$acc end parallel
 
 #ifdef MPI
-      !$acc update host(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
+      !!$acc update host(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qifrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qtfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
+      !!$acc update device(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
 #endif
 
       temd = 1.0d0/dble(nx*ny)
@@ -1724,6 +1727,7 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       savg2d = qlfrac
+      !$acc update host(qlfrac)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       if( myid.eq.0 ) print *,'  Metric: cloud fraction (%) = ',100.0*qlfrac
 
@@ -1779,14 +1783,14 @@
 
 #ifdef MPI
       !!$acc host_data use_device(qcb,qrb,qlb,ncb,nrb,nlb)
-      !$acc update host(qcb,qrb,qlb,ncb,nrb,nlb)
+      !!$acc update host(qcb,qrb,qlb,ncb,nrb,nlb)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,ncb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(qcb,qrb,qlb,ncb,nrb,nlb)
+      !!$acc update device(qcb,qrb,qlb,ncb,nrb,nlb)
       !!$acc end host_data
 #endif
 
@@ -1868,6 +1872,7 @@
         dum2(i,j,3) = (dum1(i,j,3)-qlb)**2
       enddo
       enddo
+      !$acc compare(dum2)
 
       call getavg2d(dum2(ib,jb,3),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -1957,14 +1962,14 @@
 
 #ifdef MPI
       !!$acc host_data use_device(qct,qrt,qlt,nct,nrt,nlt)
-      !$acc update host(qct,qrt,qlt,nct,nrt,nlt)
+      !!$acc update host(qct,qrt,qlt,nct,nrt,nlt)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nct,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(qct,qrt,qlt,nct,nrt,nlt)
+      !!$acc update device(qct,qrt,qlt,nct,nrt,nlt)
       !!$acc end host_data
 #endif
       qct = qct/dble(max(1,nct))
@@ -2019,6 +2024,7 @@
       call getavg2d(dum2(ib,jb,1),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
+      !$acc compare(dum1)
       nvar = nvar+1
       varname(nvar) = 'qrtvar'
       vardesc(nvar) = 'variance of height of qr top'
@@ -2032,6 +2038,7 @@
         dum2(i,j,2) = (dum1(i,j,2)-qrt)**2
       enddo
       enddo
+      !$acc compare(dum2)
 
       call getavg2d(dum2(ib,jb,2),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -3941,7 +3948,7 @@
       !c-c-c-c-c-c-c-c-c-c
 
       IF( cm1setup.ge.1 )THEN
-
+        !$acc compare(epsd2)
         nvar = nvar+1
         varname(nvar) = 'epsd2'
         vardesc(nvar) = 'epsd2'
@@ -5749,13 +5756,10 @@
         !$acc compare(dum1)
         call getavg3d(dum1,savg)
         !$acc compare(savg)
-        !$acc parallel default(present)
-        wvar(1) = 0.0
-        !$acc loop gang vector private(k)
+        !$acc parallel loop gang vector default(present) private(k)
         do k=2,nk
           wvar(k) = savg(k)
         enddo
-        !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -5867,8 +5871,8 @@
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-#if 0
       !c-c-c-c-c-c-c-c-c-c
+#if 0
         !$acc compare(u3d,v3d,w3d)
         call     momentum_flux(u3d,v3d,w3d,t13,t23,m13,m23,rf,rf0,c1,c2,dum3,dum4,dum5,ufr,ufs,ufd,vfr,vfs,vfd)
 
@@ -8718,9 +8722,11 @@
           tavg(k) = tavg(k) + savg(k)
           uub(k) = uub(k) + savg(k)
         enddo
-
+    
         call rtkeb_addv(dum1,vtk,vdiag,vd_pgrad,v_pgrad)
+        !$acc compare(dum1)
         call getavg3d(dum1,savg)
+        !$acc compare(savg)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
@@ -8815,6 +8821,7 @@
           uub(k) = uub(k) + savg(k)
         enddo
 
+        !$acc compare(dum1)
         call rtkeb_addv(dum1,vtk,vdiag,vd_vadv,v_vadv)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -8888,13 +8895,18 @@
           uub(k) = uub(k) + savg(k)
         enddo
 
+        
+        !$acc compare(dum1,vtk,vdiag,vvb,savg)
         call rtkeb_addv(dum1,vtk,vdiag,vd_hidiff,v_hidiff)
+        !$acc compare(dum1)
         call getavg3d(dum1,savg)
+        !$acc compare(savg)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
-          vvb(k) = vvb(k) + savg(k)
+          vvb(k)  = vvb(k) + savg(k)
         enddo
+        !$acc compare(vvb,savg)
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_hidiff,w_hidiff)
         call getavg3d(dum1,savg)
@@ -8906,11 +8918,13 @@
 
 
         call rtkeb_addu(dum1,utk,udiag,ud_vidiff,u_vidiff)
+        !$acc compare(dum1)
         call getavg3d(dum1,savg)
+        !$acc compare(savg)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
-          uub(k) = uub(k) + savg(k)
+          uub(k)  = uub(k) + savg(k)
         enddo
 
         !$acc compare(vtk,vvb,vdiag,v_vidiff)
@@ -8919,7 +8933,7 @@
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
-          vvb(k) = vvb(k) + savg(k)
+          vvb(k)  = vvb(k) + savg(k)
         enddo
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_vidiff,w_vidiff)
@@ -8931,6 +8945,7 @@
         enddo
 
 
+        !$acc compare(tavg)
         call write3d(tavg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         !......
@@ -8939,6 +8954,7 @@
         vardesc(nvar) = '<uu> budget: implicit diffusion term'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
+        !$acc compare(uub)
         call write3d(uub,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
         nvar = nvar+1
@@ -8946,6 +8962,7 @@
         vardesc(nvar) = '<vv> budget: implicit diffusion term'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
+        !$acc compare(vvb)
         call write3d(vvb,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
         nvar = nvar+1
@@ -8953,6 +8970,7 @@
         vardesc(nvar) = '<ww> budget: implicit diffusion term'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
+        !$acc compare(wwb)
         call write3d(wwb,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
 
@@ -9705,7 +9723,7 @@
         vardesc(nvar) = 'maximum (grnd-rel) horiz wind speed'
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
-
+        print *,'domaindiag: wspmax'
         call getmax(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -9717,8 +9735,11 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
 
+        print *,'domaindiag: wspmin'
         call getmin(dum1,savg)
+        print *,'domaindiag: wspmin: after getmin'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+        print *,'domaindiag: wspmin: after write3d'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9740,7 +9761,10 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 's'
 
+        
+        print *,'domaindiag: zetamax before getmax'
         call getmax(dum1,savg)
+        print *,'domaindiag: zetamax after getmax'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9751,7 +9775,9 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 's'
 
+        print *,'domaindiag: zetamin before getmin'
         call getmin(dum1,savg)
+        print *,'domaindiag: zetamin after getmin'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -9763,6 +9789,7 @@
     !  more 2d vars
 
       !c-c-c-c-c-c-c-c-c-c
+      print *,'domaindiag: before int_tkes'
 
     IF( cm1setup.eq.1 .and. iusetke )THEN
 
@@ -9814,6 +9841,7 @@
 
     ENDIF
 
+      !$acc compare(wvar)
       !c-c-c-c-c-c-c-c-c-c
 
         nvar2d = nvar2d+1
@@ -9829,9 +9857,9 @@
         do k=2,nk
           savg2d = max( savg2d , dble(wvar(k)) )
         enddo
+        !$acc update host(savg2d)
 
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-
         if( myid.eq.0 ) print *,'  Metric: max w variance (m2/s2) = ',savg2d
 
       !c-c-c-c-c-c-c-c-c-c
@@ -10014,7 +10042,7 @@
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... end domaindiag code ..... '
     if( myid.eq.0 ) print *
-    stop 'domaindiag: at the end of the subroutine'
+    !stop 'domaindiag: at the end of the subroutine'
 
     end subroutine domaindiag
 
@@ -10110,7 +10138,7 @@
 #ifdef _B4B16R
     !$acc update host(dum3)
 #else
-    !$acc parallel default(present) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k) reduction(+:ubart)
     !$acc loop gang vector
 #endif
     do k=1,nk
@@ -10123,7 +10151,7 @@
     do k=2,nk
       ubart = 0.0d0
 #ifndef _B4B16R
-      !$acc loop vector collapse(2)
+      !$acc loop vector collapse(2) reduction(+:ubart)
 #endif
       do j=1,nj
       do i=1,ni
@@ -10306,8 +10334,8 @@
 #ifdef _B4B22R
       !$acc update host(w3d)
 #else
-      !$acc parallel default(present) private(i,j,k,wbar) reduction(+:vfrt,vfdt)
       !$omp parallel do default(shared) private(i,j,k,wbar)
+      !$acc parallel default(present) private(i,j,k,wbar) reduction(+:vfrt,vfdt)
       !$acc loop gang
 #endif
       do k=2,nk
@@ -10828,7 +10856,9 @@
       savg2d = savg2d+s2d(i,j)
     enddo
     enddo
-#ifndef _B4B28R
+#ifdef _B4B28R
+    !$acc update device(savg2d)
+#else
     !$acc end parallel
 #endif
 
@@ -10944,14 +10974,17 @@
     double precision :: temd
     !$acc declare present(s,savg)
 
-    !$acc parallel default(present) private(i,j,k) reduction(max:temd)
-    savg = -1.0e30
 
     k2 = nk
 
     IF( present(nkm) )THEN
       k2 = min(nkm,nk+1)
     ENDIF
+    !$acc parallel default(present) private(i,j,k) reduction(max:temd)
+    !$acc loop gang vector
+    do k=1,nk+1
+      savg(k) = -1.0e30
+    enddo
 
     !$acc loop gang
     do k=1,k2
@@ -10995,14 +11028,17 @@
     double precision :: temd
     !$acc declare present(s,savg)
 
-    !$acc parallel default(present) private(i,j,k) reduction(min:temd)
-    savg = 1.0e30
 
     k2 = nk
 
     IF( present(nkm) )THEN
       k2 = min(nkm,nk+1)
     ENDIF
+    !$acc parallel default(present) private(i,j,k) reduction(min:temd)
+    !$acc loop gang vector
+    do k=1,nk+1
+      savg(k) = 1.0e30
+    enddo
 
     !$acc loop gang
     do k=1,k2

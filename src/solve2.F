@@ -1,9 +1,9 @@
 #ifdef _B4B
 
-#undef _B4B01F
-#undef _B4B02F
-#undef _B4B03F
-#undef _B4B04F
+#define _B4B01F
+#define _B4B02F
+#define _B4B03F
+#define _B4B04F
 #define _B4B05R
 
 #endif
@@ -402,7 +402,7 @@
       afoo=0.0d0
       bfoo=0.0d0
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc13=time_misc13+mytime()
 
 
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -597,7 +597,7 @@
         enddo
         enddo
         enddo
-        if(timestats.ge.1) time_misc=time_misc+mytime()
+        if(timestats.ge.1) time_misc14=time_misc14+mytime()
         !print *,'solve2: point #2'
 !--------------------------------------------------------------------
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
@@ -1117,7 +1117,7 @@
             enddo
             enddo
           endif
-          if(timestats.ge.1) time_misc=time_misc+mytime()
+          if(timestats.ge.1) time_misc15=time_misc15+mytime()
         ENDIF
 
 !--------------------------------------------------------------------
@@ -1222,7 +1222,7 @@
           enddo
           enddo
         ENDIF
-        if(timestats.ge.1) time_misc=time_misc+mytime()
+        if(timestats.ge.1) time_misc16=time_misc16+mytime()
 
       if( psolver.eq.1 )then
         !$omp parallel do default(shared) private(i,j,k)
@@ -1404,7 +1404,7 @@
           enddo
           enddo
           enddo
-          if(timestats.ge.1) time_misc=time_misc+mytime()
+          if(timestats.ge.1) time_misc17=time_misc17+mytime()
 
         ENDIF
 
@@ -1598,7 +1598,7 @@
           enddo
         ENDIF
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc18=time_misc18+mytime()
 
         weps = 10.0*epsilon
         diffit = 0
@@ -1647,7 +1647,7 @@
       enddo
       enddo
       enddo
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc19=time_misc19+mytime()
 
       if(nrk.eq.nrkmax)then
         pdef = 1
@@ -1945,7 +1945,7 @@
           enddo
           enddo
           enddo
-          if(timestats.ge.1) time_misc=time_misc+mytime()
+          if(timestats.ge.1) time_misc20=time_misc20+mytime()
 
 #ifdef MPI
         IF(nrk.ge.2)THEN
@@ -2047,7 +2047,7 @@
           enddo
           enddo
         ENDIF
-        if(timestats.ge.1) time_misc=time_misc+mytime()
+        if(timestats.ge.1) time_misc21=time_misc21+mytime()
 
         !call flush(6)
         !print *,'solve2: before bcs_GPU #7'
@@ -2128,7 +2128,7 @@
       enddo
       enddo
       enddo
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc22=time_misc22+mytime()
 
 
         !print *,'solve2: point #23'
@@ -2215,7 +2215,9 @@
         p2 = temq2
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
-#ifndef _B4B05R
+#ifdef _B4B05R
+!        !$acc update device(tem)
+#else
         !$acc end parallel
 #endif
 

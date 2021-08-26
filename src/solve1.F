@@ -1,6 +1,6 @@
 #ifdef _B4B
-#undef _B4B01F
-#undef _B4B02F
+#define _B4B01F
+#define _B4B02F
 #define _B4B03R
 #endif
   MODULE solve1_module
@@ -429,7 +429,7 @@
         endif
       endif
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc06=time_misc06+mytime()
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cc   subgrid turbulence schemes  cccccccccccccccccccccccccccccccccccccc
@@ -574,7 +574,7 @@
           enddo
           enddo
         enddo
-        if(timestats.ge.1) time_misc=time_misc+mytime()
+        if(timestats.ge.1) time_misc07=time_misc07+mytime()
       ENDIF
 
       IF(iptra.eq.1)THEN
@@ -605,7 +605,6 @@
         enddo
         enddo
         enddo
-        !576 $acc end data
       endif
       if( dovbud .and. vd_rdamp.ge.1 )then
         !$omp parallel do default(shared) private(i,j,k)
@@ -788,7 +787,7 @@
           enddo
 
         endif
-        if(timestats.ge.1) time_misc=time_misc+mytime()
+        if(timestats.ge.1) time_misc08=time_misc08+mytime()
 
       ENDIF
 
@@ -989,9 +988,8 @@
       
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
-        tem0 = dt*dx*dy*dz
         !JMD-FIXME review the indexing in this loop 
-        !$acc data copyin(tem0) create(budtmp,budarray)
+        !$acc data create(budtmp,budarray)
         !$omp parallel do default(shared) private(i,j,delpi,delth,delqv,delt,n)
         !$acc parallel loop gang vector collapse(2) default(present) &
         !$acc private(i,j,delpi,delth,delqv,delt,n)
@@ -1010,12 +1008,18 @@
                  + cvv*(pi0(i,j,1)+ppi(i,j,1))*(th0(i,j,1)+tha(i,j,1))*delqv &
                  + g*zh(i,j,1)*delqv   )
 
-        if( nql1.ge.1 )then
-          do n=nql1,nql2
-            budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpl*qa(i,j,1,n)*delt
-          enddo
-        endif
+          if( nql1.ge.1 )then
+#ifndef _B4B03R
+            !$acc loop seq
+#endif
+            do n=nql1,nql2
+              budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpl*qa(i,j,1,n)*delt
+            enddo
+          endif
           if(iice.eq.1)then
+#ifndef _B4B03R
+            !$acc loop seq
+#endif
             do n=nqs1,nqs2
               !bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpi*qa(i,j,k,n)*delt
               budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpi*qa(i,j,1,n)*delt
@@ -1042,7 +1046,7 @@
             budtmp = budtmp + budarray(i,j) 
           enddo
           bud2(j)=budtmp
-          qtmp = qtmp + tem0*bud2(j)
+          qtmp = qtmp + dt*dx*dy*dz*bud2(j)
         enddo
         qbudget(9) = qtmp;
 #ifdef _B4B03R
@@ -1051,7 +1055,7 @@
         !$acc end parallel
 #endif
         !$acc end data
-        if(timestats.ge.1) time_misc=time_misc+mytime()
+        if(timestats.ge.1) time_misc09=time_misc09+mytime()
       endif
 
       !---- Dissipative heating term:
@@ -1194,7 +1198,7 @@
           enddo
         endif
       ENDIF
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc10=time_misc10+mytime()
 
       IF( radopt.ge.1 )THEN
         ! Radiation tendencies:
@@ -1665,7 +1669,7 @@
 
       if( terrain_flag ) stop 82701
 
-      if(timestats.ge.1) time_misc=time_misc+mytime()
+      if(timestats.ge.1) time_misc11=time_misc11+mytime()
 
     ENDIF
 
@@ -1680,7 +1684,7 @@
                    uavg,vavg,thavg,qavg,cavg,                        &
                    ua,va,tha,qa,uten1,vten1,thten1,qten,             &
                    o30 ,zir,ruh,ruf,rvh,rvf)
-        if(timestats.ge.1) time_misc=time_misc+mytime()
+        if(timestats.ge.1) time_misc12=time_misc12+mytime()
         
       ENDIF
       !$acc compare(dum1,dum2,dum3,dum4,dum5)

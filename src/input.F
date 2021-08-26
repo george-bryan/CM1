@@ -221,7 +221,11 @@
       real clock_rate,time_sound,time_buoyan,time_turb,              &
            time_diffu,time_microphy,time_stat,time_cflq,time_bc,     &
            time_bcs,time_bcst,time_bcs2, &
-           time_misc,time_integ,time_rdamp,time_divx,time_write,time_nvtx,     &
+           time_integ,time_rdamp,time_divx,time_write,time_nvtx,     &
+           time_misc,time_misc01,time_misc02,time_misc03,time_misc04,time_misc05, &
+           time_misc06,time_misc07,time_misc08,time_misc09,time_misc10,time_misc11, &
+           time_misc12,time_misc13,time_misc14,time_misc15,time_misc16,time_misc17, &
+           time_misc18,time_misc19,time_misc20,time_misc21,time_misc22,time_misc23, &
            time_ttend,time_cor,time_fall,time_satadj,                &
            time_sfcphys,time_dbz,time_last,                          &
            time_advs,time_advu,time_advv,time_advw,                  &
