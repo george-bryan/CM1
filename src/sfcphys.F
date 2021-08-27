@@ -8,10 +8,10 @@
 #undef _B4B07F
 #undef _B4B11F
 
-#undef _B4B06R
-#undef _B4B08R
-#undef _B4B09R
-#undef _B4B10
+#define _B4B06R
+#define _B4B08R
+#define _B4B09R
+#define _B4B10
 #endif
   MODULE sfcphys_module
 

@@ -4,14 +4,14 @@
 #undef _B4B01R
 
 !JMD-expensive
-#undef _B4B02R
-#undef _B4B04R
-#undef _B4B05R
-#undef _B4B06R
-#undef _B4B07R
-#undef _B4B08R
-#undef _B4B09R
-#undef _B4B10R
+#define _B4B02R
+#define _B4B04R
+#define _B4B05R
+#define _B4B06R
+#define _B4B07R
+#define _B4B08R
+#define _B4B09R
+#define _B4B10R
 #endif
   MODULE misclibs
 

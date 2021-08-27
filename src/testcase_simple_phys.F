@@ -1,8 +1,7 @@
 #ifdef _B4B
-#undef _B4B01R
+#define _B4B01R
 #undef _B4B04F
-!JMD-expensive
-#undef _B4B05R   
+#define _B4B05R   
 #endif
   MODULE simple_phys_module
 

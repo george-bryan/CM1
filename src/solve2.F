@@ -1,12 +1,12 @@
 #ifdef _B4B
 
-#undef _B4B01F
-#undef _B4B02F
-#undef _B4B03F
-#undef _B4B04F
+#define _B4B01F
+#define _B4B02F
+#define _B4B03F
+#define _B4B04F
 
-#undef _B4B05RF
-#undef _B4B06R
+#define _B4B05RF
+#define _B4B06R
 
 #endif
   MODULE solve2_module

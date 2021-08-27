@@ -1,20 +1,18 @@
 #ifdef _B4B
 
-#undef _B4B01F
-#undef _B4B02F
-#undef _B4B03F
-#undef _B4B04F
-#undef _B4B05F
-#undef _B4B08F
+#define _B4B01F
+#define _B4B02F
+#define _B4B03F
+#define _B4B04F
+#define _B4B05F
+#define _B4B08F
 
 !JMD-changes answers
-#undef _B4B06F
-
-!JMD-expensive These break B4B 
-#undef _B4B07R
-#undef _B4B09R
-#undef _B4B10R
-#undef _B4B11R
+#define _B4B06F
+#define _B4B07R
+#define _B4B09R
+#define _B4B10R
+#define _B4B11R
 
 #endif
   MODULE turb_module
@@ -5554,9 +5552,7 @@
           zntbar = zntbar + zntmp(i,j)
         enddo
         enddo
-#ifdef _B4B07R
-        !$acc update device(ustbar,zntbar)
-#else
+#ifndef _B4B07R
         !$acc end parallel
 #endif
         !print *,'t2pcode: point #2'
