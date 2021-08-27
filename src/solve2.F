@@ -1,10 +1,12 @@
 #ifdef _B4B
 
-#define _B4B01F
-#define _B4B02F
-#define _B4B03F
-#define _B4B04F
-#define _B4B05R
+#undef _B4B01F
+#undef _B4B02F
+#undef _B4B03F
+#undef _B4B04F
+
+#undef _B4B05RF
+#undef _B4B06R
 
 #endif
   MODULE solve2_module
@@ -1815,14 +1817,22 @@
         !          conservation of total dry-air mass
         !FIXME
         !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
+#ifdef _B4B06R
+        !$acc update host(rho,ruh,rvh,rmh,pi0,pp3d,xf)
+#else
         !$acc parallel private(tmp1,tmp2) reduction(+:tmp1,tmp2)
+#endif
         IF( axisymm.eq.0 )THEN
-          !$acc loop gang reduction(+:tmp1,tmp2)
+#ifndef _B4B06R
+          !$acc loop gang
+#endif
           do k=1,nk
             tmp1=0;
             tmp2=0;
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
+#ifndef _B4B06R
             !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
+#endif
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -1833,12 +1843,16 @@
             dumk2(k) = tmp2
           enddo
         ELSEIF( axisymm.eq.1 )THEN
-          !$acc loop gang reduction(+:tmp1,tmp2)
+#ifndef _B4B06R
+          !$acc loop gang
+#endif
           do k=1,nk
             tmp1=0;
             tmp2=0;
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2
+#ifndef _B4B06R
             !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
+#endif
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*pi*(xf(i+1)**2-xf(i)**2)
@@ -1849,14 +1863,18 @@
             dumk2(k) = tmp2
           enddo
         ENDIF
+#ifdef _B4B06R
+        !$acc update device(dumk1,dumk2)
+#else
         !$acc end parallel
+#endif
         !print *,'solve2: dumk{1,2} loop'
 
         !print *,'solve2: point #17'
 #ifdef MPI
         !$acc update host(dumk1,dumk2)
-        call MPI_IALLREDUCE(mpi_in_place,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
-        call MPI_IALLREDUCE(mpi_in_place,dumk2(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
+        call MPI_IALLREDUCE(mpi_in_place,dumk1,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
+        call MPI_IALLREDUCE(mpi_in_place,dumk2,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
 #endif
         !print *,'solve2: point #18'
 
@@ -2196,15 +2214,16 @@
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
         !$acc update device(dumk1,dumk2)
 #endif
-#ifndef _B4B05R
-        !$acc parallel copy(temq1,temq2) reduction(+:temq1,temq2)
+#ifdef _B4B05RF
+        !$acc update host(dumk1,dumk2)
+#else
+        !$acc parallel reduction(+:temq1,temq2)
 #endif
-
 
         temq1 = 0.0
         temq2 = 0.0
-#ifndef _B4B05R
-        !$acc loop reduction(+:temq1,temq2)
+#ifndef _B4B05RF
+        !$acc loop vector reduction(+:temq1,temq2)
 #endif 
         do k=1,nk
           temq1 = temq1 + dumk1(k)
@@ -2215,9 +2234,7 @@
         p2 = temq2
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
-#ifdef _B4B05R
-!        !$acc update device(tem)
-#else
+#ifndef _B4B05RF
         !$acc end parallel
 #endif
 

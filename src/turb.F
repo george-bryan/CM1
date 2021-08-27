@@ -1,18 +1,20 @@
 #ifdef _B4B
 
-#define _B4B01F
-#define _B4B02F
-#define _B4B03F
-#define _B4B04F
-#define _B4B05F
-#define _B4B08F
+#undef _B4B01F
+#undef _B4B02F
+#undef _B4B03F
+#undef _B4B04F
+#undef _B4B05F
+#undef _B4B08F
+
+!JMD-changes answers
+#undef _B4B06F
 
 !JMD-expensive These break B4B 
-#define _B4B06F
-#define _B4B07R
-#define _B4B09R
-#define _B4B10R
-#define _B4B11R
+#undef _B4B07R
+#undef _B4B09R
+#undef _B4B10R
+#undef _B4B11R
 
 #endif
   MODULE turb_module
@@ -5531,7 +5533,7 @@
     !  surface vars:
 
         !print *,'t2pcode: point #1'
-        !$acc data create(ustbar,zntbar)
+        !!$acc data create(ustbar,zntbar)
 #ifdef _B4B07R
         !$acc update host(s13,s23,rf,zntmp)
 #else
@@ -5541,7 +5543,7 @@
         zntbar = 0.0
 
 #ifndef _B4B07R
-        !$acc loop gang vector collapse(2) reduction(+:ustbar,zntbar)
+        !$acc loop vector collapse(2) reduction(+:ustbar,zntbar)
 #endif
         do j=1,nj
         do i=1,ni
@@ -5565,7 +5567,7 @@
         call MPI_ALLREDUCE(MPI_IN_PLACE,zntbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         !!$acc update device(ustbar,zntbar)
 #endif
-        !$acc end data
+        !!$acc end data
 
 #ifndef _B4B08F
         !$acc parallel default(present) private(k)

@@ -10190,6 +10190,7 @@
       !$acc update host(w3d,dum3,dum4)
 #else
       !$omp parallel default(shared) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
+      !$acc parallel default(present) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
       !$acc loop gang 
 #endif
       do k=2,nk

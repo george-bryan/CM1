@@ -1,7 +1,7 @@
 #ifdef _B4B
-#define _B4B01F
-#define _B4B02F
-#define _B4B03R
+#undef _B4B01F
+#undef _B4B02F
+#undef _B4B03R
 #endif
   MODULE solve1_module
 

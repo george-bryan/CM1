@@ -1,5 +1,5 @@
 #ifdef _B4B
-#define _B4B01F
+#undef _B4B01F
 #endif
   MODULE mp_driver_module
 

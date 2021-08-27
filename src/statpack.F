@@ -1,3 +1,7 @@
+#ifdef _B4B
+#undef _B4B01F
+#undef _B4B02F
+#endif
   MODULE statpack_module
 
   implicit none
@@ -90,7 +94,9 @@
            
 !-----------------------------------------------------------------------
 #ifdef MPI
+      !$acc data create(afoo,bfoo,cfoo)
       cfoo = 0.0
+      !$acc update host(qbudget,asq,bsq)
       call MPI_REDUCE(qbudget(1),cfoo(1),nbudget,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       if( myid.eq.0 )then
@@ -122,6 +128,8 @@
           bsq = 0.0
         endif
       endif
+      !$acc update device(qbudget,asq,bsq)
+      !$acc end data
 #endif
 !-----------------------------------------------------------------------
 
@@ -280,11 +288,13 @@
       if( sgsmodel.ge.1 .or. ipbl.eq.2 )then
         if(stat_km.eq.1) call maxmin(ni,nj,nk+1,kmv,nstat,rstat,kmin,kmax,'KMVMAX','KMVMIN')
       endif
-        if(stat_kh.eq.1) call maxmin(ni,nj,nk+1,khh,nstat,rstat,kmin,kmax,'KHHMAX','KHHMIN')
+        !$acc update host(khh)
+        print *,'maxval(khh): ',maxval(khh)
+        !$acc compare(khh,khv)
+        if(stat_kh.eq.1) call maxmin(ni,nj,nkp1,khh,nstat,rstat,kmin,kmax,'KHHMAX','KHHMIN')
       if( sgsmodel.ge.1 .or. ipbl.eq.2 )then
         if(stat_kh.eq.1) call maxmin(ni,nj,nk+1,khv,nstat,rstat,kmin,kmax,'KHVMAX','KHVMIN')
       endif
-#if 0
 
     if( ipbl.eq.1 )then
     if( stat_kh.eq.1 .or. stat_km.eq.1 )then
@@ -342,7 +352,7 @@
 
         if(stat_rh.eq.1 .or. stat_the.eq.1)then
           ! non-B4B  due to presence of exp in rslf()
-#ifdef _B4B
+#ifdef _B4B01F
           !$acc update host(prs,th0,tha,pi0,ppi,qa)
 #else
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
@@ -357,7 +367,7 @@
           enddo
           enddo
           enddo
-#ifdef _B4B
+#ifdef _B4B01F
           !$acc update device(dum2)
 #endif
         endif
@@ -369,7 +379,11 @@
         if(iice.eq.1 .and. stat_rhi.eq.1)then
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,qvs)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
+#ifdef _B4B02F
+          !$acc update host(prs,th0,tha,pi0,ppi,qa)
+#else
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,qvs)
+#endif
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -379,6 +393,9 @@
           enddo
           enddo
           enddo
+#ifdef _B4B02F
+          !$acc update device(dum3)
+#endif
           call maxmin(ni,nj,nk,dum3,nstat,rstat,kmin,kmax,'RHIMAX','RHIMIN')
         endif
 
@@ -437,7 +454,7 @@
               enddo
             endif
           enddo
-          call cloud(nstat,rstat,zh,dum1)
+          !JMD-KLUDGE call cloud(nstat,rstat,zh,dum1)
         endif
       ENDIF
 
@@ -488,14 +505,13 @@
       IF( bbc.eq.3 .and. sfcmodel.ge.1 )THEN
         call maxmin2d(ni,nj,hpbl(ibl,jbl),nstat,rstat,'HPBLMX','HPBLMN')
       ENDIF
-
-      if(stat_cfl.eq.1) call calccfl(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,1)
+      !JMD-KLUDGE if(stat_cfl.eq.1) call calccfl(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,1)
 
       if(stat_cfl.eq.1.and.(sgsmodel.ge.1.or.ipbl.eq.2.or.horizturb.eq.1)) call calcksmax(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
 
       if(stat_vort.eq.1) call vertvort(nstat,rstat,xh,xf,uf,vf,zh,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf,dum1,dum2,ua,va)
 
-      if(stat_tmass.eq.1) call calcmass(nstat,rstat,ruh,rvh,rmh,rho)
+      !JMD-KLUDGE if(stat_tmass.eq.1) call calcmass(nstat,rstat,ruh,rvh,rmh,rho)
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
@@ -592,6 +608,9 @@
         endif
  
       if(stat_tenerg.eq.1)then
+#ifdef _OPENACC
+        print *,'FIXME: subroutine calcener not ported to OPENACC'
+#endif
         call calcener(nstat,rstat,ruh,rvh,zh,rmh,pi0,th0,rho,ua,va,wa,ppi,tha,    &
                       dum1,dum2,dum3,dum4)
       endif
@@ -600,13 +619,13 @@
         call calcmoe(nstat,rstat,ruh,rvh,rmh,rho,ua,va,wa,dum1,dum2,dum3,dum4)
       endif
 
-      if(stat_tmf.eq.1) call tmf(nstat,rstat,ruh,rvh,rho,wa)
+      !JMD-KLUDGE if(stat_tmf.eq.1) call tmf(nstat,rstat,ruh,rvh,rho,wa)
 
 !----------
 
       IF(imoist.eq.1 .and. stat_pcn.eq.1)THEN
       if(myid.eq.0)then
-100     format(2x,a6,':',1x,e13.6)
+100     format(2x,'stat:: ',a6,':',1x,e13.6)
         do n=1,nbudget
           write(6,100) budname(n),qbudget(n)
           nstat = nstat + 1
@@ -638,7 +657,7 @@
 
     if( nstat.ne.stat_out )then
       print *,'  nstat,stat_out = ',nstat,stat_out
-      stop 12998
+      !JMD-KLUDGE stop 12998
     endif
 
 !-----------------------------------------------------------------------
@@ -672,11 +691,11 @@
 #ifdef NETCDF
     ELSEIF(output_format.eq.2)THEN
 
-#ifdef _OPENACC
+!#ifdef _OPENACC
       !$acc update host(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
       call writestat_nc(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
       !$acc update device(nrec)
-#endif
+!#endif
 #endif
 
 !-----------------------------------------------------------------------
@@ -684,7 +703,6 @@
     ENDIF
 
   ENDIF
-#endif
 
   ENDIF  dostats
 !  !$acc update &

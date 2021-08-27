@@ -1,17 +1,17 @@
 #ifdef _B4B
 
-#define _B4B01F
-#define _B4B02F
-#define _B4B03F
-#define _B4B04F
-#define _B4B05F
-#define _B4B07F
-#define _B4B11F
+#undef _B4B01F
+#undef _B4B02F
+#undef _B4B03F
+#undef _B4B04F
+#undef _B4B05F
+#undef _B4B07F
+#undef _B4B11F
 
-#define _B4B06R
-#define _B4B08R
-#define _B4B09R
-#define _B4B10
+#undef _B4B06R
+#undef _B4B08R
+#undef _B4B09R
+#undef _B4B10
 #endif
   MODULE sfcphys_module
 
