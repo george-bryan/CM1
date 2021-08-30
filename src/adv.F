@@ -1974,6 +1974,7 @@
 
       IF(sbc.eq.2 .and. ibs.eq.1) doits = .true.
       IF(nbc.eq.2 .and. ibn.eq.1) doitn = .true.
+    !$acc compare(dumy)
 
 !----------------------------------------------------------------
 
@@ -1994,9 +1995,12 @@
       call advvaxi(doweno,xh,rxh,arh1,arh2,uh,xf,vf,rho0,rr0,rf0,rrf0,dumx,advx,advz,rru,hadvordrv)
 
     ELSE
+    !$acc compare(rru,rrv,v3d,dumy)
 
 !-----------------
-
+    !print *,'weno_order: ',weno_order
+    !print *,'hadvordrv: ',hadvordrv
+    !print *,'doweno: ',doweno
     IF( doweno )THEN
 
       if(     weno_order.eq.3 )then
@@ -2068,6 +2072,7 @@
       endif
 
     ENDIF
+    !$acc compare(dumy)
 
     IF( do_ib .and. hadvordrv.ge.3 )THEN
       IF( doweno )THEN
@@ -2078,6 +2083,7 @@
         call   ib_side_flx(  3 ,ni,nj+1,nk,c1,c2,rru,rrv,dumx,dumy,v3d,hadvordrv,bndy,hflxw,hflxe,hflxs,hflxn)
       ENDIF
     ENDIF
+    !$acc compare(dumy)
 
     !-------------------------------------------------------
     !  open bc:  set hadv to zero at inflow
@@ -2230,6 +2236,7 @@
         ENDDO
       ENDIF
     ENDIF
+    !$acc compare(dumy)
     !-------------------------------------------------------
 
 
@@ -2599,6 +2606,7 @@
       ENDDO
     ENDIF
     ENDIF
+    !$acc compare(dumy)
     !--------
     gethidiffv:  &
     IF( vd_hidiff.ge.1 )THEN
@@ -2644,6 +2652,7 @@
       print *,'before call to advvaxi'
       call advvaxi(.false.,xh,rxh,arh1,arh2,uh,xf,vf,rho0,rr0,rf0,rrf0,dumx,advx,advz,rru,hadv)
     ENDIF
+    !$acc compare(dumy)
       ! step2: get non-diffusive and diffusive components of advection:
       ! buh41 !
     IF(.not.terrain_flag)THEN

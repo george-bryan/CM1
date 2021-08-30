@@ -1375,6 +1375,7 @@
     !$acc present(rru,rrv) &
     !$acc present(dumx,dumy,a)
 
+  !print *,'hadv_flx5: stag: ',stag
   IF( stag.eq.1 )THEN
 
 !$omp parallel do default(shared)   &

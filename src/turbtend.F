@@ -51,7 +51,6 @@
 
       integer :: i,j,k,k1,k2
       real :: rdt,tema,temb,temc
-      real :: tem,r1,r2,cfa,cfb,cfc,cfd,kappa,ptcb,ptct
       real :: tem,r1,r2,cfa,cfb,cfc,cfd,kappa,ptcb,ptct,le_num
       !$acc declare present(xh,rxh,arh1,arh2,uh) &
       !$acc present(xf,arf1,arf2,uf,vh,vf) &

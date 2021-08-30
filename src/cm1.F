@@ -251,7 +251,6 @@
 
       double precision :: adaptmovetim
       integer :: mvrec,nwritemv
-      integer id
 
 #ifdef MPI
       integer :: reqs,rc,ii,jj,id,itmp1,itmp2,jtmp1,jtmp2

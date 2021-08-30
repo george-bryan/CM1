@@ -570,8 +570,8 @@
         ! only processor 0 does this:
 
         cflmax = max(cflmax,1.0e-10)
-        print *, 'getnewdt: cflmax:= ',cflmax
-        print *, 'getnewdt: ksmax:= ',ksmax
+        !print *, 'getnewdt: cflmax:= ',cflmax
+        !print *, 'getnewdt: ksmax:= ',ksmax
         IF( cflmax.gt.cfl_limit )THEN
           ! decrease timestep:
           dbldt = dbldt*(cfl_limit/cflmax)
@@ -797,9 +797,9 @@
             dtsm = 0.50*min( min_dx , min_dy , min_dz )/csound
           ENDIF
         ENDIF
-        print *,'dtsmall: min_{dx,dy,dz}: ', min_dx,min_dy,min_dz
-        print *,'dtsmall: dbldt: ',dbldt
-        print *,'dtsmall: dtsm: ',dtsm
+        !print *,'dtsmall: min_{dx,dy,dz}: ', min_dx,min_dy,min_dz
+        !print *,'dtsmall: dbldt: ',dbldt
+        !print *,'dtsmall: dtsm: ',dtsm
 
         nsound = max( nint( dbldt/dtsm ) , 4 )
         if( mod(nsound,2).ne.0 ) nsound = nsound + 1
@@ -1145,7 +1145,7 @@
 
 !----------------------------------------------------------------------
 
-      print *,'pdefq_GPU: pdscheme: ',pdscheme
+      !print *,'pdefq_GPU: pdscheme: ',pdscheme
 #ifndef _B4B01R
       !$acc data create(budj,budk)
 #endif
@@ -3013,7 +3013,7 @@
       fmax=-99999999.
 
       if(nx.gt.1.and.ny.gt.1)then
-        print *,'calcflquick: point #1'
+        !print *,'calcflquick: point #1'
         !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
         !!$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
@@ -3030,7 +3030,7 @@
         enddo
         !$acc end parallel
       elseif(nx.gt.1)then
-        print *,'calcflquick: point #2'
+        !print *,'calcflquick: point #2'
         !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
         !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
@@ -3046,7 +3046,7 @@
         enddo
         !$acc end parallel
       elseif(axisymm.eq.0.and.ny.gt.1)then
-        print *,'calcflquick: point #3'
+        !print *,'calcflquick: point #3'
         !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk

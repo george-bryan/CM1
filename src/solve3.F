@@ -1077,7 +1077,7 @@
 
 
       ! cm1r19.6  (preliminary ... needs more testing)
-      IF( imove.eq.1 )THEN
+      IF( imove.eq.999 )THEN
       IF( (sfcmodel.eq.2) .or. (sfcmodel.eq.3) .or. (sfcmodel.eq.4) )THEN
 
         weps = 0.0001*epsilon
@@ -1130,7 +1130,7 @@
 
     IF( output_rain.eq.1 )THEN
 
-      if(imove.eq.1.and.imoist.eq.1)then
+      if(imove.eq.999.and.imoist.eq.1)then
         weps = 10.0*epsilon
         call movesfc(0.0,dt,weps,uh,vh,rain(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3), &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
@@ -1161,7 +1161,7 @@
       enddo
       if(timestats.ge.1) time_swath=time_swath+mytime()
 
-      if(imove.eq.1)then
+      if(imove.eq.999)then
         weps = 10.0*epsilon
         call movesfc(0.0,dt,weps,uh,vh,sws(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3),  &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
@@ -1256,7 +1256,7 @@ print *,'Here 27 -- Not being executed'
   ENDIF
       if(timestats.ge.1) time_swath=time_swath+mytime()
 
-      if(imove.eq.1)then
+      if(imove.eq.999)then
         weps = 1.0*epsilon
         call movesfc(-1000.0,dt,weps,uh,vh,svs(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3), &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
@@ -1283,7 +1283,7 @@ print *,'Here 27 -- Not being executed'
       enddo
       if(timestats.ge.1) time_swath=time_swath+mytime()
 
-      if(imove.eq.1)then
+      if(imove.eq.999)then
         weps = 1000.0*epsilon
         call movesfc(-200000.0,dt,weps,uh,vh,sps(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3), &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
@@ -1311,7 +1311,7 @@ print *,'Here 27 -- Not being executed'
       enddo
       if(timestats.ge.1) time_swath=time_swath+mytime()
 
-      if(imove.eq.1)then
+      if(imove.eq.999)then
         weps = 0.01*epsilon
         call movesfc(0.0,dt,weps,uh,vh,srs(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3),  &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
@@ -1341,7 +1341,7 @@ print *,'Here 27 -- Not being executed'
       enddo
       if(timestats.ge.1) time_swath=time_swath+mytime()
 
-      if(imove.eq.1)then
+      if(imove.eq.999)then
         weps = 0.01*epsilon
         call movesfc(0.0,dt,weps,uh,vh,sgs(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3),  &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
@@ -1407,7 +1407,7 @@ print *,'Here 28 -- Not being executed'
       enddo
       if(timestats.ge.1) time_swath=time_swath+mytime()
 
-      if(imove.eq.1)then
+      if(imove.eq.999)then
         weps = 10.0*epsilon
         call movesfc(-1000.0,dt,weps,uh,vh,sus(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3), &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
@@ -1437,7 +1437,7 @@ print *,'Here 28 -- Not being executed'
       enddo
       if(timestats.ge.1) time_swath=time_swath+mytime()
 
-      if(imove.eq.1)then
+      if(imove.eq.999)then
         weps = 100.0*epsilon
         call movesfc(0.0,dt,weps,uh,vh,shs(ib,jb,2),dum1(ib,jb,1),dum1(ib,jb,2),dum1(ib,jb,3),  &
                      reqs_s,sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),               &
