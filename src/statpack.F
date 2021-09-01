@@ -692,9 +692,7 @@
     ELSEIF(output_format.eq.2)THEN
 
 !#ifdef _OPENACC
-      !$acc update host(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
       call writestat_nc(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
-      !$acc update device(nrec)
 !#endif
 #endif
 
