@@ -1,4 +1,10 @@
 #define TROUBLE 0
+#define PITER 1048576
+#ifdef _B4B
+#undef _B4B01F
+#undef _B4B02F
+#undef _B4B03F
+#endif
   MODULE parcel_module
 
   implicit none
@@ -200,7 +206,6 @@
   !enddo
   !enddo
 
-  !print *,'parcel: {ni,nj,nk}: ',ni,nj,nk
   !$acc loop gang vector collapse(3)
   do k=kb,ke
     do j=jb,je
@@ -219,25 +224,18 @@
   !stop 'droplet_driver: after first compare'
   !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
   ! GHB 210714:
-      !print *,'droplet_driver: point #2'
     call prepcorners3_GPU( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-      !print *,'droplet_driver: point #2.1'
     call prepcorners3_GPU(rho,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-      !print *,'droplet_driver: point #2.2'
     call prepcorners3_GPU(prs,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-      !print *,'droplet_driver: point #2.3'
     call prepcorners3_GPU(qa(ib,jb,kb,nqv),sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-      !print *,'droplet_driver: point #3'
     !$acc compare(rho)
     !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
     !!$acc compare(sigma)
-  !print *,'droplet_driver: number of parcels: ',nparcels
-  !print *,'terrain_flag: ',terrain_flag
-  !stop 'droplet_driver: after call to prepcorners'
+!  print *, 'droplet_driver: after call to prepcorners'
 
 
 
@@ -249,7 +247,7 @@
     part_grav2 = 0.0
     part_grav3 = -0.84
 
-#ifdef _B4B
+#ifdef _B4B01F
     !$acc update &
     !$acc host(pdata,xf,yf,zf,zh,sigma,sigmaf, &
     !$acc      ua,va,wa,qa,ta,rho,prs,znt,qten,thten,zs)
@@ -370,6 +368,7 @@
       drpdt    = pdata(np,prrp)
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
+      !HERE print *,'before rkloop np: ',np
       !$acc loop seq
       rkloop:  DO nrkp = 1,2
 
@@ -422,15 +421,9 @@
           enddo
         endif
 
-      !if(np==100) then 
-      !  print *,'parcel: i,j,k:',iflag,jflag,kflag
-      !endif
-
-
 !JMD-debug
 !----------------------------------------------------------------------
 !  Data on u points
-        !print *,'parcel: data on u-points'
 
         i=iflag
         j=jflag
@@ -439,7 +432,6 @@
         if( y3d.lt.yh(j) )then
           j=j-1
         endif
-        !print *,'terrain_flag: ',terrain_flag
         if( .not. terrain_flag )then
           if( z3d.lt.zh(iflag,jflag,k) )then
             k=k-1
@@ -539,9 +531,6 @@
         w6 = (1.0-rx)*ry*rz
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
-        !if(np==100) then 
-        !  print *,'parcel: before vval: ',i,j,k
-        !endif
         vval = tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,va)
         ! vval = va(i  ,j  ,k  )*w1 &
         !      + va(i+1,j  ,k  )*w2 &
@@ -556,7 +545,6 @@
 !----------------------------------------------------------------------
 !  Data on w points
 
-        !print *,'parcel: data on w-points'
         i=iflag
         j=jflag
         k=kflag
@@ -595,9 +583,6 @@
         w6 = (1.0-rx)*ry*rz
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
-        !if(np==100) then 
-        !  print *,'parcel: before wval: ',i,j,k
-        !endif
         wval = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
         ! wval = wa(i  ,j  ,k  )*w1 &
         !      + wa(i+1,j  ,k  )*w2 &
@@ -609,7 +594,6 @@
         !      + wa(i+1,j+1,k+1)*w8
 
         if( terrain_flag )then
-          ! print *,'parcel: before sigdot'
           sigdot = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
           ! sigdot = wa(i  ,j  ,k  )*w1 &
           !    + wa(i+1,j  ,k  )*w2 &
@@ -627,7 +611,6 @@
 !----------------------------------------------------------------------
 !  Data on scalar points
 
-        !print *,'parcel: data on scalar-points'
         i=iflag
         j=jflag
         k=kflag
@@ -669,10 +652,6 @@
         w6 = (1.0-rx)*ry*rz
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
-
-      !if(np==100) then 
-      !  print *,'parcel: before qval: ',i,j,k
-      !endif
 
       if(imoist.eq.1)then
         !!print *,'parcel: before qval'
@@ -1021,7 +1000,9 @@
       ENDIF
 
       ENDDO  rkloop
+      !HERE print *,'after rkloop np: ',np
       ENDIF dropalive1
+      
 
     dropalive2:  &
     IF (pdata(np,pract).gt.0.0) THEN
@@ -1055,19 +1036,26 @@
           do j=0,nj+1
             if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) ) jflag=j
           enddo
+          if(mod(np,PITER)==0) then
+            print *,'second loop: jflag: ',jflag
+          endif
           ! cm1r19:
           j = nj+2
           do while( jflag.lt.0 .and. j.gt.0 )
+            !print *,'j: ',j
             j = j-1
             if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
               jflag = j
             endif
           enddo
+          if(mod(np,PITER)==0) then
+             print *,'after dowhile loop: ',jflag
+          endif
           i=iflag
           j=jflag
         ENDIF
 
-
+        !HERE print *,'droplet_driver: point #3'
 #if 0
         IF(debug)THEN
         if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
@@ -1086,6 +1074,7 @@
         ENDIF
 #endif
 
+        !print *,'droplet_driver: point #4'
         kflag = 1
         if( .not. terrain_flag )then
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
@@ -1112,6 +1101,7 @@
         ENDIF
 #endif
 
+        !print *,'droplet_driver: point #5'
       !--------
       !PORTME
       !Recall that the "old" value is stored here
@@ -1136,42 +1126,46 @@
       dV = (xh(iflag+1)-xh(iflag))*   &
            (yh(jflag+1)-yh(jflag))*   &
            (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+       ! print *,'droplet_driver: point #6'
 
-      !write(*,*) '{np,iflag,jflag,kflag}: ',np,iflag,jflag,kflag
+      if(mod(np,PITER)==0) then 
+          print *,'{i,j,k}flag: ',iflag,jflag,kflag 
+      endif
       !Loop over all nodes surrounding droplet
-      !$acc loop seq
+      !!$acc loop seq
       do i=0,1
-      !$acc loop seq
+      !!$acc loop seq
       do j=0,1
-      !$acc loop seq
+      !!$acc loop seq
       do k=0,1
 
         ix = iflag+i
         iy = jflag+j
         iz = kflag+k
+        !print *,'point #1: ix,iy,iz: ',ix,iy,iz
 
         xv = xh(ix)
         yv = yh(iy)
         zv = zh(iflag,jflag,iz)
-
 
         wtx = 1.0 - abs(x3d-xv)/(xh(iflag+1)-xh(iflag))
         wty = 1.0 - abs(y3d-yv)/(yh(jflag+1)-yh(jflag))
         wtz = 1.0 - abs(z3d-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
         wtt = wtx*wty*wtz
 
-        !$acc atomic write
+        !!$acc atomic write
         qten(ix,iy,iz) = qten(ix,iy,iz) - &
             dmvdt/rhoval/dV*wtt*pdata(np,prmult)
 
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
-        !$acc atomic write
+        !!$acc atomic write
         !thten(ix,iy,iz) = thten(ix,iy,iz) - &
         !    (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
         thten(ix,iy,iz) = thten(ix,iy,iz) - &
             dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
 
+#if 0
         if((np==TROUBLE)) then 
           print *,'dd2: {ix,iy,iz}: ',ix,iy,iz
           print *,'dd2: 2-way ',ix,iy,iz,rhow,rhoval,dtpdt,dv,wtt,pdata(np,prmult)
@@ -1184,6 +1178,7 @@
             print *,'dd: wtt: ',wtt
             print *,'dd: dmvdt: ',dmvdt
         endif
+#endif
 !        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
 !        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
 !        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
@@ -1193,9 +1188,10 @@
       enddo
       enddo
       enddo
+      !HERE print *,'after interpolation loops ',np
 
     ENDIF dropalive2
-       
+    !HERE print *,'after dropalive2' 
 
 
 !-----------------------------------------------------
@@ -1284,13 +1280,13 @@
       ENDIF  myparcel
 
     ENDDO  nploop
-#ifdef _B4B
+    !print *,'droplet_driver: after the nploop'
+#ifdef _B4B01F
     !$acc update device(pdata,qten,thten)
 #else
     !$acc end parallel
 #endif
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
-
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
@@ -1308,10 +1304,9 @@
         ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
-      !!$acc end host_data
       !$acc update device(pdata)
       !$acc compare(pdata)
-      stop 'droplet_driver: after call to MPI_ALLREDUCE'
+      !stop 'droplet_driver: after call to MPI_ALLREDUCE'
       if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
      
 #endif
@@ -2495,7 +2490,7 @@
 
       !print *,'parcel_interp: point #12'
     IF( prqsl.ge.1 )THEN
-#ifdef _B4B
+#ifdef _B4B02F
       !$acc update host(prs,t)
 #else
       !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2507,16 +2502,17 @@
       enddo
       enddo
       enddo
-      if(timestats.ge.1) time_parceli=time_parceli+mytime()
-#ifndef _B4B
+#ifndef _B4B02F
       !$acc update device(dum1)
 #endif
+      if(timestats.ge.1) time_parceli=time_parceli+mytime()
+
       call prepcorners_GPU(dum1,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       !!$acc update host(dum1)
     ENDIF
     IF( prqsi.ge.1 )THEN
-#ifdef _B4B
+#ifdef _B4B03F
       !$acc update host(prs,t)
 #else
       !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2528,10 +2524,11 @@
       enddo
       enddo
       enddo
-      if(timestats.ge.1) time_parceli=time_parceli+mytime()
-#ifndef _B4B
+#ifndef _B4B03F
       !$acc update device(dum2)
 #endif
+      if(timestats.ge.1) time_parceli=time_parceli+mytime()
+
       call prepcorners_GPU(dum2,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       !!$acc update host(dum2)
@@ -2560,7 +2557,7 @@
 
     ENDIF
     !$acc compare(zv)
-    print *,'parcel_interp: before nploop2'
+    !HERE print *,'parcel_interp: before nploop2'
 !----------------------------------------------------------------------
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !----------------------------------------------------------------------
@@ -3121,11 +3118,6 @@
 #endif
 !----------------------------------------------------------------------
 
-!      !$acc update &
-!      !$acc device(dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
-!      !$acc      vpg,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
-!      !$acc      tdiag,qdiag)
-      if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
       !stop 'parcel_interp: at the end of the subroutine'
 
       end subroutine parcel_interp

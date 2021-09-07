@@ -237,7 +237,7 @@
     !$acc     u_hturb,u_vturb,u_hadv,u_vadv,u_pgrad,u_cor,u_hidiff,u_vidiff,u_rdamp, &
     !$acc     v_hturb,v_vturb,v_hadv,v_vadv,v_pgrad,v_cor,v_hidiff,v_vidiff,v_rdamp, &
     !$acc     w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,w_buoy,w_hidiff,w_vidiff,w_rdamp, &
-    !$acc     zimin,zimax,qcfrac,qrfrac,qlfrac,qifrac,qtfrac,qcb,qrb,qlb,ncb,nrb,nlb, &
+    !$acc     qcfrac,qrfrac,qlfrac,qifrac,qtfrac,qcb,qrb,qlb,ncb,nrb,nlb, &
     !$acc     qct,qrt,qlt,nct,nrt,nlt,ubar)
 
     !$acc compare(znt)
@@ -485,8 +485,6 @@
 
       nvar = 0
 
-!HERE
-!#if 0
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1145,18 +1143,20 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-!BLOCK01a
-#if 0
     ziflag:  &
     IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 )THEN
 
+        !$acc parallel private(i,j,k,zi,tmax,dtdz) &
+        !$acc   reduction(min:zimin) &
+        !$acc   reduction(max:zimax)
         zimin =  1.0e30
         zimax = -1.0e30
-        !PORTME
+        !$acc loop vector collapse(2)
         do j=1,nj
         do i=1,ni
           zi = 0.0
           tmax = 0.0
+          !!$acc loop seq
           do k=nk,2,-1
             dtdz = (thv(i,j,k)-thv(i,j,k-1))*rdz*mf(i,j,k)
             if( dtdz .ge. tmax )then
@@ -1165,18 +1165,17 @@
             endif
           enddo
           dum1(i,j,1) = zi
-          zimin = min( zimin , zi )
           zimax = max( zimax , zi )
+          zimin = min( zimin , zi )
         enddo
         enddo
+        print *,'zimin: ',zimin
+        print *,'zimax: ',zimax
+        !$acc end parallel
 
 #ifdef MPI
-      !!$acc host_data use_device(zimin,zimax)
-      !$acc update host(zimin,zimax)
       call MPI_ALLREDUCE(mpi_in_place,zimin,1,MPI_REAL,MPI_MIN,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(mpi_in_place,zimax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-      !$acc update device(zimin,zimax)
-      !!$acc end host_data
 #endif
 
       !c-c-c-c-c-c-c-c-c-c
@@ -1189,18 +1188,23 @@
       vargrid(nvar) = '2'
       call getavg2d( dum1(ib,jb,1) ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: boundary-layer depth (m)= ',savg2d
       zibar = savg2d
 
       !c-c-c-c-c-c-c-c-c-c
 
+      !JMD-BUG:  for some reason zimin is still not set properly 
       nvar = nvar+1
       varname(nvar) = 'zimin'
       vardesc(nvar) = 'minimum value of zi'
       varunit(nvar) = 'm'
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
+      if( myid.eq.0 ) print *,'  Metric: boundary-layer depth min (m)= ',zimin
       savg2d = zimin
+      if( myid.eq.0 ) print *,'  Metric: boundary-layer depth min (m)= ',zimin
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: boundary-layer depth min (m)= ',savg2d
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -1212,6 +1216,7 @@
       vargrid(nvar) = '2'
       savg2d = zimax
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: boundary-layer depth max (m)= ',savg2d
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -1229,10 +1234,10 @@
       enddo
       call getavg2d( dum1(ib,jb,2) ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: boundary-layer depth variance (m)= ',savg2d
 
     ENDIF  ziflag
-!END-BLOCK01a
-#endif
+    !stop 'domaindiag: after boundary-layer depth diagnostics'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -1307,7 +1312,6 @@
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF
-!#endif
 
 
       !c-c-c-c-c-c-c-c-c-c
@@ -1329,7 +1333,6 @@
     ENDIF
 
 
-!#if 0
       !c-c-c-c-c-c-c-c-c-c
 
     IF( imoist.eq.1 )THEN
@@ -3308,11 +3311,11 @@
 #ifdef MPI
       !!$acc host_data use_device(tmass,clw,cli,plw,pli)
       !$acc update host(tmass,clw,cli,plw,pli)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,tmass(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,clw(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,cli(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,plw(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,pli(1)  ,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,tmass,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,clw  ,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,cli  ,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,plw  ,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,pli  ,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(tmass,clw,cli,plw,pli)
       !!$acc end host_data
 #endif
@@ -9665,7 +9668,7 @@
 #ifdef MPI
         !!$acc host_data use_device(savg)
         !$acc update host(savg)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,savg,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         !$acc update device(savg)
         !!$acc end host_data
 #endif
@@ -9698,7 +9701,7 @@
 #ifdef MPI
         !!$acc host_data use_device(savg)
         !$acc update host(savg)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,savg,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         !$acc update device(savg)
         !!$acc end host_data
 #endif
@@ -10033,7 +10036,6 @@
     ENDIF  of2
 
     ENDIF  id0
-!#endif
 
   ENDDO  bigwloop
 
@@ -10171,7 +10173,7 @@
 #ifndef _B4B16R
     !$acc update host(ubar)
 #endif
-    call MPI_ALLREDUCE(MPI_IN_PLACE,ubar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE,ubar,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     !$acc update device(ubar)
 #endif
 
@@ -10317,7 +10319,7 @@
 #ifndef _B4B21R
     !$acc update host(vbar)
 #endif
-    call MPI_ALLREDUCE(MPI_IN_PLACE,vbar(2),(nk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE,vbar,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
     !$acc update device(vbar)
 #endif
 
@@ -10899,22 +10901,22 @@
     double precision :: temd
     
 
-#ifdef _B4B29R
-    !$acc update host(s)
-#else
-    !$acc parallel default(present) copyout(k2) reduction(+:stmp)
-    !$acc loop 
-#endif
-    do k=1,nk+1
-      savg(k) = 0.0
-    enddo
-
 !!!    k2 = nk
     k2 = nk+1
 
     IF( present(nkm) )THEN
       k2 = min(nkm,nk+1)
     ENDIF
+
+#ifdef _B4B29R
+    !$acc update host(s)
+#else
+    !$acc parallel default(present) reduction(+:stmp)
+    !$acc loop 
+#endif
+    do k=1,nk+1
+      savg(k) = 0.0
+    enddo
 
 #ifndef _B4B29R
     !$acc loop gang
@@ -11002,7 +11004,7 @@
     !$acc end parallel
 #ifdef MPI
     !$acc update host(savg)
-    call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),k2,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE,savg,k2,MPI_DOUBLE_PRECISION,MPI_MAX,MPI_COMM_WORLD,ierr)
     !$acc update device(savg)
 #endif
 
@@ -11057,7 +11059,7 @@
 
 #ifdef MPI
     !$acc update host(savg)
-    call MPI_ALLREDUCE(MPI_IN_PLACE,savg(1),k2,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE,savg,k2,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,ierr)
     !$acc update device(savg)
 #endif
 

@@ -2769,7 +2769,7 @@
 #endif
 
         !$omp parallel do default(shared) private(i,j)
-        !$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=0,nj+1
         do i=0,ni+1
           kmv(i,j,1) = kmh(i,j,1)
@@ -2787,7 +2787,7 @@
       IF( tbc.eq.3 )THEN
 
         !$omp parallel do default(shared) private(i,j)
-        !$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=1,nj
         do i=1,ni
           ! Pope, pg 288:
@@ -2827,7 +2827,7 @@
 !$acc compare(kmh,kmv,khh,khv,tkea)
 
         !$omp parallel do default(shared) private(i,j)
-        !$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=0,nj+1
         do i=0,ni+1
           kmv(i,j,nk+1) = kmh(i,j,nk+1)
@@ -4779,7 +4779,7 @@
       real :: pavg,tavg,qtavg,qvs,lh,cpml,gamma,drdt
       real :: nml,nmi,ff,qvsl,qvsi,qvciavg,qv,ql,qi
       real :: rtt1,rtt2
-      real, dimension(ib:ie,jb:je,kb:ke) :: qvslArray,qvsiArray
+      !real, dimension(ib:ie,jb:je,kb:ke) :: qvslArray,qvsiArray
 
       real, parameter :: nmsat = 1.0e-10
       !$acc declare &
@@ -4790,7 +4790,7 @@
       !$acc present(t,qt,thv,qvci) &
       !$acc present(iamsat)
 
-      !$acc data create(qvslArray,qvsiArray)
+      !!$acc data create(qvslArray,qvsiArray)
 !----------------------------------------------------------------------
 !  Dry nm
 
@@ -4935,9 +4935,9 @@
         rtt1    = alog(t(i,j,k)/t(i,j,k-1))
         rtt2    = alog((1.0+qt(i,j,k))/(1.0+qt(i,j,k-1)))
         qvsl    = rslf(pavg,tavg)
-        qvslArray(i,j,k) = qvsl
+        !qvslArray(i,j,k) = qvsl
         qvsi    = rsif(pavg,tavg)
-        qvsiArray(i,j,k) = qvsi
+        !qvsiArray(i,j,k) = qvsi
 
         if( tavg.ge.273.15 )then
           qvs=qvsl
@@ -5011,7 +5011,7 @@
 #ifdef _B4B06F
       !$acc update host(th0,th,pi0,pp,qa,qt,mf,c1,c2,prs,t,qt,qvci)
 #else
-      !non-B4B
+      !JMD-KLUDGE This loop does not appear to have a vertical dependency.... 
       !$acc parallel default(present) &
       !$acc private(i,j,k,pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
       !$acc loop seq
@@ -5075,7 +5075,7 @@
 !----------------------------------------------------------------------
 
     if(timestats.ge.1) time_turb=time_turb+mytime()
-    !$acc end data
+    !!$acc end data
 
       return
       end subroutine calcnm

@@ -45,7 +45,7 @@
       IF(.not.terrain_flag)THEN
         IF(axisymm.eq.0)THEN
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang collapse(2) private(i,j,k)
+          !$acc parallel loop gang collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -56,7 +56,7 @@
           enddo
         ELSE
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang collapse(2) private(i,j,k)
+          !$acc parallel loop gang collapse(3) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -231,7 +231,7 @@
         !-----
 
     ELSE
-
+      !JMD-KLUDGE
       !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)
       !$acc parallel loop gang private(i,j,k,foo1,foo2,foo3)
       DO k=1,nk
@@ -321,7 +321,7 @@
       IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !$acc parallel loop gang collapse(2) private(i,j,k)
+        !$acc parallel loop gang collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -333,7 +333,7 @@
       ELSE
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k)
-        !$acc parallel loop gang collapse(2) private(i,j,k)
+        !$acc parallel loop gang collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,nj
         do i=1,ni

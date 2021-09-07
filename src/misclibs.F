@@ -804,7 +804,7 @@
         nsound = max( nint( dbldt/dtsm ) , 4 )
         if( mod(nsound,2).ne.0 ) nsound = nsound + 1
         if( dbldt/float(nsound).gt.dtsm ) nsound = nsound + 2
-        print *,'dtsmall: nsound: ',nsound
+        !print *,'dtsmall: nsound: ',nsound
 
         if( nsound.gt.max_nsound )then
           ! GHB:  this is arbitrary ... could be changed
@@ -3012,11 +3012,11 @@
 
       fmax=-99999999.
 
+      !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
       if(nx.gt.1.and.ny.gt.1)then
         !print *,'calcflquick: point #1'
-        !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
-        !!$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
+        !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -3028,10 +3028,8 @@
           enddo
           enddo
         enddo
-        !$acc end parallel
       elseif(nx.gt.1)then
         !print *,'calcflquick: point #2'
-        !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
         !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
@@ -3044,10 +3042,9 @@
           enddo
           enddo
         enddo
-        !$acc end parallel
       elseif(axisymm.eq.0.and.ny.gt.1)then
         !print *,'calcflquick: point #3'
-        !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
+        !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
         !$acc loop collapse(3) private(i,j,k,wsp) reduction(max:fmax)
         do k=1,nk
           do j=1,nj
@@ -3059,8 +3056,8 @@
           enddo
           enddo
         enddo
-        !$acc end parallel
       endif
+      !$acc end parallel
 
       cflmax = fmax
       print *,'calccflquick: ',cflmax
@@ -3808,14 +3805,32 @@
       integer i,j,k
       double precision :: u,v,w,tmp,qtot,ek,ei,ep,et,le,var,tem
       double precision, dimension(nk) :: foo1,foo2,foo3,foo4
+      double precision :: foo1t,foo2t,foo3t,foo4t
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,u,v,w,tmp,qtot,tem)
+      ek=0.0d0
+      ei=0.0d0
+      ep=0.0d0
+      le=0.0d0
+      !$acc data create(foo1,foo2,foo3,foo4)
+#ifdef _B4B
+      !$acc update host(ruh,rvh,rmh,ua,va,wa,qv,ql,qi,rho,vr,pi0,ppi)
+#else
+      !$acc parallel default(present) private(i,j,k,u,v,w,tmp,qtot,tem) &
+      !$acc reduction(+:foo1t,foo2t,foo3t,foo4t,ek,ei,ep,le)
+#endif
+      !$omp parallel do default(shared)  &
+      !$omp private(i,j,k,u,v,w,tmp,qtot,tem)
+#ifndef _B4B
+      !$acc loop gang 
+#endif
       do k=1,nk
-        foo1(k)=0.0d0      ! = ek
-        foo2(k)=0.0d0      ! = ei
-        foo3(k)=0.0d0      ! = ep
-        foo4(k)=0.0d0      ! = le
+        foo1t=0.0d0      ! = ek
+        foo2t=0.0d0      ! = ei
+        foo3t=0.0d0      ! = ep
+        foo4t=0.0d0      ! = le
+#ifndef _B4B
+        !$acc loop vector collapse(2) reduction(+:foo1t,foo2t,foo3t,foo4t)
+#endif
         do j=1,nj
         do i=1,ni
           tem=ruh(i)*rvh(j)*rmh(i,j,k)
@@ -3823,31 +3838,37 @@
           v=vmove+0.5*(va(i,j,k)+va(i,j+1,k))
           w=0.5*(wa(i,j,k)+wa(i,j,k+1))
           qtot=qv(i,j,k)+ql(i,j,k)+qi(i,j,k)
-          foo1(k)=foo1(k)+rho(i,j,k)*tem*(1.0+qtot)*0.5*(        &
+          foo1t=foo1t+rho(i,j,k)*tem*(1.0+qtot)*0.5*(        &
                          0.5*( ua(i,j,k)**2 + ua(i+1,j,k)**2 )   &
                         +0.5*( va(i,j,k)**2 + va(i,j+1,k)**2 )   &
                         +0.5*( wa(i,j,k)**2 + wa(i,j,k+1)**2 ) ) &
                +ql(i,j,k)*rho(i,j,k)*tem*0.5*(vr(i,j,k)**2-2.0*w*vr(i,j,k))
           tmp=(th0(i,j,k)+tha(i,j,k))*(pi0(i,j,k)+ppi(i,j,k))
-          foo2(k)=foo2(k)+rho(i,j,k)*tem*(cv+cvv*qv(i,j,k))*tmp
-          foo3(k)=foo3(k)+rho(i,j,k)*tem*(1.0+qtot)*g*zh(i,j,k)
-          foo4(k)=foo4(k)+rho(i,j,k)*tem*ql(i,j,k)*(cpl*tmp-lv1)   &
+          foo2t=foo2t+rho(i,j,k)*tem*(cv+cvv*qv(i,j,k))*tmp
+          foo3t=foo3t+rho(i,j,k)*tem*(1.0+qtot)*g*zh(i,j,k)
+          foo4t=foo4t+rho(i,j,k)*tem*ql(i,j,k)*(cpl*tmp-lv1)   &
                          +rho(i,j,k)*tem*qi(i,j,k)*(cpi*tmp-ls1)
         enddo
         enddo
+        foo1(k) = foo1t
+        foo2(k) = foo2t
+        foo3(k) = foo3t
+        foo4(k) = foo4t
       enddo
-
-      ek=0.0d0
-      ei=0.0d0
-      ep=0.0d0
-      le=0.0d0
  
+#ifndef _B4B
+      !$acc loop vector reduction(+:ek,ei,ep,le)
+#endif
       do k=1,nk
         ek=ek+foo1(k)
         ei=ei+foo2(k)
         ep=ep+foo3(k)
         le=le+foo4(k)
       enddo
+#ifndef _B4B
+      !$acc end parallel
+#endif
+      !$acc end data
 
       ek=ek*(dx*dy*dz)
       ei=ei*(dx*dy*dz)
