@@ -2919,7 +2919,7 @@
     hadvsection:  IF(axisymm.eq.1)THEN
       call advwaxi(doweno,xh,rxh,arh1,arh2,uh,xf,vh,rho0,rr0,rf0,rrf0,dumx,advx,rru,w3d,c1,c2,hadvorder)
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang collapse(3) vector private(i,j,k)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3019,7 +3019,7 @@
       if(doitw)then
         i=1
         !$omp parallel do default(shared) private(j,k,ubar,cc1,cc2)
-        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(i-1,j,k)+c2(i,j,k))
@@ -3035,7 +3035,7 @@
       if(doite)then
         i=ni+1
         !$omp parallel do default(shared) private(j,k,ubar,vbar,cc1,cc2)
-        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(i-1,j,k)+c2(i,j,k))
@@ -3051,7 +3051,7 @@
       if(doits)then
         j=1
         !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
-        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,j-1,k)+c2(i,j,k))
@@ -3067,7 +3067,7 @@
       if(doitn)then
         j=nj+1
         !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
-        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,j-1,k)+c2(i,j,k))
@@ -3102,7 +3102,7 @@
       IF(doitw)THEN
         i=1
         !$omp parallel do default(shared) private(j,k,ubar,cc1,cc2)
-        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(0,j,k)+c2(1,j,k))
@@ -3120,7 +3120,7 @@
       IF(doite)THEN
         i=ni
         !$omp parallel do default(shared) private(j,k,ubar,cc1,cc2)
-        !$acc parallel loop gang vector private(j,k,ubar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(j,k,ubar,cc1,cc2)
         DO k=2,nk
         do j=1,nj
           cc2 = 0.5*(c2(ni,j,k)+c2(ni+1,j,k))
@@ -3138,7 +3138,7 @@
       IF(doits)THEN
         j=1
         !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
-        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,0,k)+c2(i,1,k))
@@ -3156,7 +3156,7 @@
       IF(doitn)THEN
         j=nj
         !$omp parallel do default(shared) private(i,k,vbar,cc1,cc2)
-        !$acc parallel loop gang vector private(i,k,vbar,cc1,cc2)
+        !$acc parallel loop gang vector collapse(2) private(i,k,vbar,cc1,cc2)
         DO k=2,nk
         do i=1,ni
           cc2 = 0.5*(c2(i,nj,k)+c2(i,nj+1,k))
@@ -3176,7 +3176,7 @@
     IF( idiff.ge.1 .and. difforder.eq.6 )THEN
       IF( dowbud .and. nrk.eq.nrkmax .and. wd_hediff.ge.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         DO k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3185,6 +3185,7 @@
         enddo
         ENDDO
       ENDIF
+    !JMD-KLUDGE This loop could be improved significantly
     !$omp parallel do default(shared) private(i,j,k,cc1,cc2)
     !$acc parallel loop gang vector private(i,j,k,cc1,cc2)
     DO k=2,nk
@@ -3241,7 +3242,7 @@
     ENDDO
       IF( dowbud .and. nrk.eq.nrkmax .and. wd_hediff.ge.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         DO k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3461,7 +3462,7 @@
         ! axisymmetric grid:
         j=1
         !$omp parallel do default(shared) private(i,k)
-        !$acc parallel loop gang vector private(i,k)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=2,nk
         do i=1,ni
           wdiag(i,j,k,wd_hadv) = ( advx(i,j,k)                         &
@@ -3478,7 +3479,7 @@
     ELSE
         ! Cartesian with terrain:
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3501,7 +3502,7 @@
     IF( wd_hediff.ge.1 )THEN
       ! subtract-off diffusion from advection:
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) private(i,j,k)
       DO k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3574,7 +3575,7 @@
         ! axisymmetric grid:
         j=1
         !$omp parallel do default(shared) private(i,k,tot,ndiff)
-        !$acc parallel loop gang vector private(i,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(2) private(i,k,tot,ndiff)
         do k=2,nk
         do i=1,ni
           tot = wdiag(i,j,k,wd_hadv)
@@ -3590,7 +3591,7 @@
     ELSE
         ! Cartesian with terrain:
         !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
-        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=2,nk
         do j=1,nj
         do i=1,ni
@@ -3651,7 +3652,7 @@
     ELSE
         ! Cartesian with terrain:
         !$omp parallel do default(shared) private(i,j,k,tot,ndiff)
-        !$acc parallel loop gang vector private(i,j,k,tot,ndiff)
+        !$acc parallel loop gang vector collapse(3) private(i,j,k,tot,ndiff)
         do k=2,nk
         do j=1,nj
         do i=1,ni

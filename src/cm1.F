@@ -303,6 +303,7 @@
       np3o = 1
       cflmax = 0.0
       ksmax = 0.0
+!$acc enter data copyin(cflmax,ksmax)
       ndt = 0
       adt = 0.0
       acfl = 0.0
@@ -732,7 +733,7 @@
 
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
-      print *,'cm1: copyin of (ngzy,ngz): ',ngxy,ngz 
+      !print *,'cm1: copyin of (ngzy,ngz): ',ngxy,ngz 
       !$acc update device (ngxy,ngz)
       !stop 'after call to data copyin()'
       
@@ -2625,7 +2626,7 @@
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
           !!$acc compare(cflmax) 
-          !!$acc update device(cflmax)
+          !$acc update device(cflmax)
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
           print *,'cm1: cflmax: ',cflmax
@@ -2738,7 +2739,7 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
     !$acc data &
-    !$acc copyin(thten,sten,ksmax,cflmax) &
+    !$acc copyin(thten,sten,ksmax) &
     !$acc copyin(rho0,thv0,th0,qv0) &
     !$acc copyin(prs0,rth0,qc0) &
     !$acc copyin(xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
@@ -2952,8 +2953,10 @@
 
         donudge = .false.
 
-        !$acc update host(cflmax,ksmax)
-        if( adapt_dt.eq.1 .and. myid.eq.0 ) write(6,122) cflmax,ksmax,dt,nsound
+        if( adapt_dt.eq.1 .and. myid.eq.0 ) then 
+           !!$acc update host(cflmax,ksmax)
+           write(6,122) cflmax,ksmax,dt,nsound
+        endif
 122     format(1x,'cflmax,ksmax,dt,nsound:',2x,f6.4,2x,f6.4,2x,f9.4,2x,i3)
 
         if(timestats.ge.1) time_misc=time_misc+mytime()
@@ -3670,7 +3673,7 @@
             enddo
             !$acc end parallel
           ENDIF
-#if 0
+!#if 0
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
                         name_output,desc_output,unit_output,grid_output,cmpr_output,           &
@@ -3706,7 +3709,7 @@
                         nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,myi1p,myi2p,myj1p,myj2p)
                         ! end_writeout
                         !stop 'cm1: after call to writout'
-#endif
+!#endif
                         
           if(n.eq.1)then
             srec = frec
@@ -4007,7 +4010,7 @@
           enddo
         endif
 #ifdef _OPENACC
-        stop 'ERROR: write_restart not supported in OpenACC'
+        print *,'ERROR: write_restart not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)

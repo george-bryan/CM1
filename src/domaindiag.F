@@ -1172,6 +1172,7 @@
         print *,'zimin: ',zimin
         print *,'zimax: ',zimax
         !$acc end parallel
+        !!$acc update host(zimin)
 
 #ifdef MPI
       call MPI_ALLREDUCE(mpi_in_place,zimin,1,MPI_REAL,MPI_MIN,MPI_COMM_WORLD,ierr)
@@ -1193,6 +1194,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
+      !JMD need to verify that zimin is still incorrect
       !JMD-BUG:  for some reason zimin is still not set properly 
       nvar = nvar+1
       varname(nvar) = 'zimin'
@@ -10845,7 +10847,8 @@
 
     integer :: i,j
 
-
+    !JMD Need to double check following bit of code.  We should be able to move 
+    !JMD calculation to the GPU
 #ifdef _B4B28R
     !$acc update host(s2d)
     savg2d = 0.0
