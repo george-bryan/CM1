@@ -288,6 +288,7 @@
       if( sgsmodel.ge.1 .or. ipbl.eq.2 )then
         if(stat_km.eq.1) call maxmin(ni,nj,nk+1,kmv,nstat,rstat,kmin,kmax,'KMVMAX','KMVMIN')
       endif
+        !JMD Probably should remove this update host(khh) call
         !$acc update host(khh)
         print *,'maxval(khh): ',maxval(khh)
         !$acc compare(khh,khv)
