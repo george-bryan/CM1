@@ -736,12 +736,13 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: rr,rho,q3d,vq
 
       integer :: i,j,k,n,nr,nrk
-      real, dimension(-1:nk+3):: rq
+      real, dimension(nj,-1:nk+3):: rq
       real, dimension(0:nk) :: ffk
       real, dimension(nk) :: qtmp
 
-      integer,dimension(ni) :: nfall !made into an array by SM
-      real,dimension(ni) :: dtfall !made into an array by SM
+      integer,dimension(ni,nj) :: nfall !made into an array by SM
+      integer :: ll
+      real,dimension(ni,nj) :: dtfall !made into an array by SM
       real :: crmax
 
       double precision :: tem
@@ -749,67 +750,86 @@
 
 !--------------------------------------------------------------------
 
-    !$acc data create(bud,nfall,dtfall)
-    !$acc parallel default(present) private(i,j,k,crmax,rq,n,nr) 
-    !$acc loop gang vector 
+    !$acc data create(bud,nfall,dtfall,rq)
+!    !$acc parallel default(present) private(i,j,k,crmax,rq,n,nr) 
+    !$acc parallel loop gang vector  default(present) private(j) 
     !$omp parallel do default(shared) private(i,j,k,crmax,nfall,rq,n,dtfall,nr)
     do j=1,nj
-    bud(j)=0.0d0
-    !$acc loop gang vector
+      bud(j)=0.0d0
+    enddo
+    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n,nr) 
+    do j=1,nj
     do i=1,ni
-      crmax = 0.0
-      !$acc loop gang vector reduction(max:crmax)
+      !crmax = 0.0
       do k=1,nk
+        if (k==1) crmax = 0.0
         crmax = max( crmax , vq(i,j,k)*dt*rdz*mh(i,j,k) )
       enddo
-      nfall(i) = max( 1 , int(crmax+1.0) )
-      dtfall(i)=dt/nfall(i)
+      nfall(i,j) = max( 1 , int(crmax+1.0) )
+      dtfall(i,j)=dt/nfall(i,j)
+    enddo
     enddo
       ! cm1r17:  following code is needed if nfall is large.
       !  - below edge of falling precip, set fallspeed to
       !    value at gridpoint above:
-    !$acc loop gang vector collapse(2)
+    !$acc parallel loop gang vector default(present) private(i,j,k,n) collapse(3)
+    do k=(nk-1),1,-1
+    do j=1,nj
     do i=1,ni
-      do k=(nk-1),1,-1
         if( q3d(i,j,k).lt.1.0e-8 ) vq(i,j,k) = vq(i,j,k+1)
       enddo
     enddo
+    enddo
       !!dtfall=dt/nfall(i) moved to up above
-    !$acc loop collapse(3) gang vector
+    !$acc parallel default(present) private(i,j,k,n)
+    !$acc loop gang vector collapse(4) 
+    do n=1,nfall(i,j)
+    do k=1,nk
+    do j=1,nj
     do i=1,ni
-      do n=1,nfall(i)
-        do k=1,nk
-         rq(k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
-          rq(nk+1)=0.0 ! Added here from below by SM
+         rq(j,k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
+         rq(j,nk+1)=0.0 ! Added here from below by SM
         enddo
       enddo
     enddo
-    !$acc loop collapse(3) gang vector
+    enddo
+    !$acc end parallel
+
+    !$acc parallel default(present) private(i,j,k,n)
+    !$acc loop gang vector collapse(4) 
+    do n=1,nfall(i,j)
+    do k=1,nk
+    do j=1,nj
     do i=1,ni
-      do n=1,nfall(i)
-        !rq(nk+1)=0.0
-        !!!$acc loop gang vector
-        do k=1,nk
-          q3d(i,j,k)=q3d(i,j,k)+dtfall(i)*(rq(k+1)-rq(k))   &
+          q3d(i,j,k)=q3d(i,j,k)+dtfall(i,j)*(rq(j,k+1)-rq(j,k))   &
                                      *rdz*mh(i,j,k)/rho(i,j,k)
         enddo
       enddo
     enddo
-    !$acc loop collapse(3) gang vector
+    enddo
+
+    !$acc end parallel
+    !$acc parallel default(present) private(i,j,n,nr)
+    !$acc loop gang vector collapse(4)
+    do n=1,nfall(i,j)
+    do nr=1,nrain
+    do j=1,nj
     do i=1,ni
-      do n=1,nfall(i)
-        do nr=1,nrain
-          rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall(i)*rq(1)
+          rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall(i,j)*rq(j,1)
                                 ! mult by 100 cm/m  (convert from m to cm)
                                 ! div by 1000 kg/m^3  (density of water)
         enddo
       enddo
     enddo
-    !$acc loop collapse(2) gang vector
+    enddo
+    !$acc end parallel
+    !$acc parallel default(present) private(i,j,n)
+    !$acc loop gang vector collapse(3) 
+    do n=1,nfall(i,j)
+    do j=1,nj
     do i=1,ni
-      do n=1,nfall(i)
-        prate(i,j) = rq(1)
-        bud(j)=bud(j)+dtfall(i)*rr(i,j,1)*vq(i,j,1)*max(0.0,q3d(i,j,1))*ruh(i)*rvh(j)
+        prate(i,j) = rq(j,1)
+        bud(j)=bud(j)+dtfall(i,j)*rr(i,j,1)*vq(i,j,1)*max(0.0,q3d(i,j,1))*ruh(i)*rvh(j)
       enddo
     enddo
     enddo
