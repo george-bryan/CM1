@@ -57,6 +57,12 @@ Once the 'cm1.exe' command has been built, you will need to request a multiple G
     execcasper -l select=1:ncpus=2:mpiprocs=2:ngpus=2 -l gpu_type=v100 -l walltime=1:00:00
 ```
 
+It is also pssible submit a job into the gpudev queue using the following command:
+   
+```
+qsub -I -q gpudev -A <PROJECT_ID> -l select=1:ncpus=2:mpiprocs=2:ngpus=2 -l gpu_type=v100 -l walltime=00:30:00
+```
+
 This will allocated an interactive job.  You will need to set several environment variables before you execute the job on multiple CPU.  
 
 ```
