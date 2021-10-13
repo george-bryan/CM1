@@ -3953,7 +3953,6 @@
       double precision, dimension(nk) :: foo1,foo2,foo3
       double precision :: foot1,foot2,foot3
 
-      !$acc data create(tmu,tmv,tmw)
 #ifdef _B4B09R
       !$acc update host(qv,ql,qi,ruh,rvh,rmh,ua,va,wa,vr,rho)
 #else
@@ -3987,7 +3986,7 @@
       tmv=tmv*(dx*dy*dz)
       tmw=tmw*(dx*dy*dz)
 #ifdef _B4B09R
-      !$acc update device(tmu,tmv,tmw)
+      !!$acc update device(tmu,tmv,tmw)
 #else
       !$acc end parallel
 #endif
@@ -3995,7 +3994,7 @@
 
 #ifdef MPI
 #ifndef _B4B09R
-!!$acc update host(tmu,tmv,tmw)
+!$acc update host(tmu,tmv,tmw)
 #endif
       var=0.0d0
       call MPI_REDUCE(tmu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
@@ -4009,7 +4008,6 @@
       call MPI_REDUCE(tmw,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmw=var
-!!$acc update device(tmu,tmv,tmw)
       if(myid.eq.0)then
 #endif
  
@@ -4028,7 +4026,6 @@
 #ifdef MPI
       endif
 #endif
-      !$acc end data
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
