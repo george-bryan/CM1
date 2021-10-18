@@ -331,7 +331,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bcs=time_bcs+mytime()
 
       end subroutine bcs
 #endif
@@ -357,7 +357,7 @@
 #ifndef MPI
       if(wbc.eq.1)then
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
         do k=1,nk
         do j=0,nj+1
           p(0,j,k)=p(ni,j,k)
@@ -368,7 +368,7 @@
       if(ibw.eq.1.and.wbc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
         do k=1,nk
         do j=0,nj+1
           p(0,j,k)=p(1,j,k)
@@ -380,7 +380,7 @@
       elseif(wbc.eq.3.or.wbc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
         do k=1,nk
         do j=0,nj+1
           p(0,j,k)=p(1,j,k)
@@ -394,7 +394,7 @@
 #ifndef MPI
       if(ebc.eq.1)then
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
         do k=1,nk
         do j=0,nj+1
           p(ni+1,j,k)=p(1,j,k)
@@ -405,7 +405,7 @@
       if(ibe.eq.1.and.ebc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
         do k=1,nk
         do j=0,nj+1
           p(ni+1,j,k)=p(ni,j,k)
@@ -417,7 +417,7 @@
       elseif(ebc.eq.3.or.ebc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(j,k)
         do k=1,nk
         do j=0,nj+1
           p(ni+1,j,k)=p(ni,j,k)
@@ -431,7 +431,7 @@
 #ifndef MPI
       if(sbc.eq.1)then
         !$omp parallel do default(shared) private(i,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=0,ni+1
           p(i,0,k)=p(i,nj,k)
@@ -442,7 +442,7 @@
       if(ibs.eq.1.and.sbc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(i,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=0,ni+1
           p(i,0,k)=p(i,1,k)
@@ -454,7 +454,7 @@
       elseif(sbc.eq.3.or.sbc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(i,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=0,ni+1
           p(i,0,k)=p(i,1,k)
@@ -468,7 +468,7 @@
 #ifndef MPI
       if(nbc.eq.1)then
         !$omp parallel do default(shared) private(i,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=0,ni+1
           p(i,nj+1,k)=p(i,1,k)
@@ -479,7 +479,7 @@
       if(ibn.eq.1.and.nbc.eq.2)then
 #endif
         !$omp parallel do default(shared) private(i,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=0,ni+1
           p(i,nj+1,k)=p(i,nj,k)
@@ -491,7 +491,7 @@
       elseif(nbc.eq.3.or.nbc.eq.4)then
 #endif
         !$omp parallel do default(shared) private(i,k)
-        !$acc parallel loop gang vector collapse(2)
+        !$acc parallel loop gang vector collapse(2) private(i,k)
         do k=1,nk
         do i=0,ni+1
           p(i,nj+1,k)=p(i,nj,k)
@@ -1107,7 +1107,7 @@
 
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bcst=time_bcst+mytime()
 
       end subroutine bcs_tend_halo
 
@@ -1267,7 +1267,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bcs2=time_bcs2+mytime()
 
       end subroutine bcs2
 #endif
@@ -3597,7 +3597,7 @@
    !$acc end parallel
 !-----------------------------------------------------------------------
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bcs=time_bcs+mytime()
 
       end subroutine bcs_GPU
 
@@ -4469,7 +4469,7 @@
 
       endif
 
-      if(timestats.ge.1) time_bc=time_bc+mytime()
+      if(timestats.ge.1) time_bcs2=time_bcs2+mytime()
 
       end subroutine bcs2_GPU
 

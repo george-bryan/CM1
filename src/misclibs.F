@@ -3994,7 +3994,7 @@
 
 #ifdef MPI
 #ifndef _B4B09R
-!$acc update host(tmu,tmv,tmw)
+!!$acc update host(tmu,tmv,tmw)
 #endif
       var=0.0d0
       call MPI_REDUCE(tmu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
