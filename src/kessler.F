@@ -783,11 +783,8 @@
     do k=1,nk
     do j=1,nj
     do i=1,ni
-    ll = nfall(i,j)
-    do n=1,ll
          rq(j,k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
          rq(j,nk+1)=0.0
-        enddo
       enddo
     enddo
     enddo
