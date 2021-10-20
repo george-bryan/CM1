@@ -736,7 +736,7 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: rr,rho,q3d,vq
 
       integer :: i,j,k,n,nr,nrk
-      real, dimension(nj,-1:nk+3):: rq
+      real, dimension(ni,nj,-1:nk+3):: rq
       real, dimension(0:nk) :: ffk
       real, dimension(nk) :: qtmp
 
@@ -783,8 +783,8 @@
     do k=1,nk
     do j=1,nj
     do i=1,ni
-         rq(j,k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
-         rq(j,nk+1)=0.0
+         rq(i,j,k)=rho(i,j,k)*vq(i,j,k)*max(0.0,q3d(i,j,k))
+         rq(i,j,nk+1)=0.0
       enddo
     enddo
     enddo
@@ -797,7 +797,7 @@
     do i=1,ni
     ll = nfall(i,j)
     do n=1,ll
-          q3d(i,j,k)=q3d(i,j,k)+dtfall(i,j)*(rq(j,k+1)-rq(j,k))   &
+          q3d(i,j,k)=q3d(i,j,k)+dtfall(i,j)*(rq(i,j,k+1)-rq(i,j,k))   &
                                      *rdz*mh(i,j,k)/rho(i,j,k)
         enddo
       enddo
@@ -812,7 +812,7 @@
     do i=1,ni
     ll = nfall(i,j)
     do n=1,ll
-          rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall(i,j)*rq(j,1)
+          rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall(i,j)*rq(i,j,1)
                                 ! mult by 100 cm/m  (convert from m to cm)
                                 ! div by 1000 kg/m^3  (density of water)
         enddo
@@ -826,7 +826,7 @@
     do i=1,ni
     ll = nfall(i,j)
     do n=1,ll
-        prate(i,j) = rq(j,1)
+        prate(i,j) = rq(i,j,1)
         bud(j)=bud(j)+dtfall(i,j)*rr(i,j,1)*vq(i,j,1)*max(0.0,q3d(i,j,1))*ruh(i)*rvh(j)
       enddo
     enddo
