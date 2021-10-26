@@ -12,6 +12,14 @@
   private
   public :: droplet_driver,parcel_driver,parcel_interp,parcel_write,setup_parcel_vars,getparcelzs
 
+  ! If we already know that a parcel stays on the same process 
+  !    in the previous time step and it is still here, we start 
+  !    the location search from the previous index and limit 
+  !    the search range using the parameter below;
+  ! This assumes that a parcel does not move too far and does
+  !    not move between processes within this subroutine?
+  integer, parameter :: location_offset = 4 
+
   CONTAINS
 
       subroutine droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
@@ -21,7 +29,7 @@
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
-                               uten,vten,wten,thten,qten)
+                               uten,vten,wten,thten,qten,ipdata)
       use input
       use constants
       use bc_module
@@ -67,7 +75,7 @@
       real, intent(inout), dimension(imp,cmp,kmp)   :: ss31,ss32,sn31,sn32
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
-
+      integer, intent(inout), dimension(nparcels)   :: ipdata 
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -292,13 +300,25 @@
       iflag = 1
     ELSE
       ! cm1r19:
-      i = ni+1
-      do while( iflag.lt.0 .and. i.gt.1 )
-        i = i-1
-        if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
-          iflag = i
-        endif
-      enddo
+      IF (ipdata(np) .ne. 0) THEN
+        i = ipdata(np) + location_offset + 1 
+        do while( iflag .lt. 0 .and. i .gt. (ipdata(np) - location_offset) )
+           i = i - 1
+           if ( x3d .ge. xf(i) .and. x3d .le. xf(i+1) )then
+              iflag = i
+              ipdata(np) = iflag
+           endif
+        enddo
+      ELSE                          
+        i = ni+1
+        do while( iflag.lt.0 .and. i.gt.1 )
+          i = i-1
+          if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
+            iflag = i
+            ipdata(np) = iflag
+          endif
+        enddo
+      ENDIF
     ENDIF
 
     IF(axisymm.eq.1.or.ny.eq.1)THEN
@@ -314,6 +334,8 @@
       enddo
     ENDIF
 
+  ELSE ! re-initialize ipdata
+    ipdata(np) = 0
   ENDIF  haveit1
 
 #ifdef MPI
