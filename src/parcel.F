@@ -75,7 +75,7 @@
       real, intent(inout), dimension(imp,cmp,kmp)   :: ss31,ss32,sn31,sn32
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
-      integer, intent(inout), dimension(nparcels)   :: ipdata 
+      integer, intent(inout), dimension(nparcels)   :: ipdata, jpdata, kpdata 
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -300,16 +300,11 @@
       iflag = 1
     ELSE
       ! cm1r19:
-      IF (ipdata(np) .ne. 0) THEN
-        i = ipdata(np) + location_offset + 1 
-        do while( iflag .lt. 0 .and. i .gt. (ipdata(np) - location_offset) )
-           i = i - 1
-           if ( x3d .ge. xf(i) .and. x3d .le. xf(i+1) )then
-              iflag = i
-              ipdata(np) = iflag
-           endif
-        enddo
-      ELSE                          
+      IF (ipdata(np) .ne. -100) THEN
+        call find_location_index (ipdata, np, x3d, xf, iflag) 
+      ELSE ! Always search from the end when:
+           !    - it is the first time step
+           !    - the first time a parcel enters a process
         i = ni+1
         do while( iflag.lt.0 .and. i.gt.1 )
           i = i-1
@@ -325,17 +320,25 @@
       jflag = 1
     ELSE
       ! cm1r19:
-      j = nj+1
-      do while( jflag.lt.0 .and. j.gt.1 )
-        j = j-1
-        if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
-          jflag = j
-        endif
-      enddo
+      IF (jpdata(np) .ne. -100) THEN
+        call find_location_index (jpdata, np, y3d, yf, jflag)
+      ELSE ! Always search from the end when:
+           !    - it is the first time step
+           !    - the first time a parcel enters a process
+        j = nj+1
+        do while( jflag.lt.0 .and. j.gt.1 )
+          j = j-1
+          if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
+            jflag = j
+          endif
+        enddo
+      ENDIF
     ENDIF
 
-  ELSE ! re-initialize ipdata
-    ipdata(np) = 0
+  ELSE     ! re-initialize location index array 
+           ! if a parcel is not on this process
+    ipdata(np) = -100
+    jpdata(np) = -100
   ENDIF  haveit1
 
 #ifdef MPI
@@ -3844,7 +3847,44 @@
  
       end subroutine calcWeights
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+      ! This subroutine is added by following John Dennis's suggestion
+      !      to optimize the location search for a parcel in a process
+      subroutine find_location_index (loc_ind, par_id, loc, dsize, ind)
+      implicit none
+
+      use input
+
+      integer, dimension(nparcels), intent(inout) :: loc_ind ! array to store x/y/z location index
+      integer,                      intent(in)    :: par_id  ! parcel index in pdata
+      real,                         intent(in)    :: loc     ! current x/y/z location index of a parcel
+      real, dimension(:),           intent(in)    :: dsize   ! range of x/y/z dimension
+      integer,                      intent(inout) :: ind     ! return the location index closest to 
+                                                             ! the current parcel location
+
+      ! local variable
+      integer :: i
+
+      i = loc_ind(par_id) + location_offset
+      do while( ind .lt. 0 .and. i .gt. (loc_ind(par_id) - location_offset) )
+         i = i - 1
+         if ( loc .ge. dsize(i) .and. loc .le. dsize(i+1) )then
+            ind = i
+            loc_ind(par_id) = ind
+         end if
+      end do
+
+      ! Sanity check: 
+      ! - If a parcel moves too far, this scheme would fail;
+      ! - Issue an error in this case
+      if ( ind .lt. 0 ) then
+         stop 'Parcel location searching fails...' 
+      end if
+ 
+      end subroutine find_location_index
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
