@@ -263,6 +263,8 @@
       integer :: ndev,idev
 #endif
 
+      integer, dimension(:), allocatable :: ipdata,jpdata,kpdata  ! 1-D array to store parcel x/y/z location index
+
 !----------------------------------------------------------------------
 
       nstep = 0
@@ -2207,6 +2209,12 @@
       pdata = 0.0
       allocate(   ploc(nparcels,  3   ) )
       ploc = 0.0
+      allocate(  ipdata(nparcels) )
+      ipdata = -100
+      allocate(  jpdata(nparcels) )
+      jpdata = -100
+      allocate(  kpdata(nparcels) )
+      kpdata = -100
 
       allocate( dpten(ib:ie,jb:je,kb:ke,2) )
       dpten = 0.0
