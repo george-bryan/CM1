@@ -3268,7 +3268,7 @@
                    bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                &
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
-                   doazimwrite,dorestart)
+                   doazimwrite,dorestart,ipdata,jpdata,kpdata)
         ! end_solve3
         !stop 'cm1: after call to solve3'
 !$acc compare(khh,khv)

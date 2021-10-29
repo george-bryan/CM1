@@ -301,7 +301,7 @@
     ELSE
       ! cm1r19:
       IF (ipdata(np) .ne. -100) THEN
-        call find_location_index (ipdata, np, x3d, xf, iflag) 
+        call find_location_index (ipdata, np, x3d, xf, iflag, .FALSE.) 
       ELSE ! Always search from the end when:
            !    - it is the first time step
            !    - the first time a parcel enters a process
@@ -321,7 +321,7 @@
     ELSE
       ! cm1r19:
       IF (jpdata(np) .ne. -100) THEN
-        call find_location_index (jpdata, np, y3d, yf, jflag)
+        call find_location_index (jpdata, np, y3d, yf, jflag, .FALSE.)
       ELSE ! Always search from the end when:
            !    - it is the first time step
            !    - the first time a parcel enters a process
@@ -356,7 +356,7 @@
       kflag = 1
       if( .not. terrain_flag )then
         IF (kpdata(np) .ne. -100) THEN
-           call find_location_index (kpdata, np, z3d, zf, kflag, iflag, jflag)
+           call find_location_index (kpdata, np, z3d, zf(iflag,jflag,:), kflag, .TRUE.)
         ELSE ! Always search from the end when:
            !    - it is the first time step
            !    - the first time a parcel enters a process
@@ -367,7 +367,7 @@
         ENDIF
       else
         IF (kpdata(np) .ne. -100) THEN
-           call find_location_index (kpdata, np, sig3d, sigmaf, kflag)
+           call find_location_index (kpdata, np, sig3d, sigmaf, kflag, .TRUE.)
         ELSE ! Always search from the end when:
            !    - it is the first time step
            !    - the first time a parcel enters a process
@@ -422,7 +422,7 @@
         ELSE
           ! cm1r19:
           IF (ipdata(np) .ne. -100) THEN
-            call find_location_index (ipdata, np, x3d, xf, iflag)
+            call find_location_index (ipdata, np, x3d, xf, iflag, .FALSE.)
           ELSE
             i = ni+2
             do while( iflag.lt.0 .and. i.gt.0 )
@@ -439,7 +439,7 @@
           jflag = 1
         ELSE
           IF (jpdata(np) .ne. -100) THEN
-            call find_location_index (jpdata, np, y3d, yf, jflag)
+            call find_location_index (jpdata, np, y3d, yf, jflag, .FALSE.)
           ELSE
 ! JS: comment out this acc loop and use the original version
 !!!            !$acc loop seq
@@ -464,7 +464,7 @@
         kflag = 1
         if( .not. terrain_flag )then
           IF (kpdata(np) .ne. -100) THEN
-             call find_location_index (kpdata, np, z3d, zf, kflag, iflag, jflag)
+             call find_location_index (kpdata, np, z3d, zf(iflag,jflag,:), kflag, .TRUE.)
           ELSE
              do while( z3d.ge.zf(iflag,jflag,kflag+1) )
                kflag = kflag+1
@@ -473,7 +473,7 @@
           ENDIF
         else
           IF (kpdata(np) .ne. -100) THEN
-             call find_location_index (kpdata, np, sig3d, sigmaf, kflag)
+             call find_location_index (kpdata, np, sig3d, sigmaf, kflag, .TRUE.)
           ELSE
              do while( sig3d.ge.sigmaf(kflag+1) )
                kflag = kflag+1
@@ -1084,7 +1084,7 @@
         ELSE
           ! cm1r19:
           IF (ipdata(np) .ne. -100) THEN
-            call find_location_index (ipdata, np, x3d, xf, iflag)
+            call find_location_index (ipdata, np, x3d, xf, iflag, .FALSE.)
           ELSE
             i = ni+2
             do while( iflag.lt.0 .and. i.gt.0 )
@@ -1101,7 +1101,7 @@
         ELSE
           ! cm1r19:
           IF (jpdata(np) .ne. -100) THEN
-            call find_location_index (jpdata, np, y3d, yf, jflag)
+            call find_location_index (jpdata, np, y3d, yf, jflag, .FALSE.)
           ELSE
 ! JS: comment out this acc loop and use the original version
 !!!            !$acc loop seq
@@ -1148,7 +1148,7 @@
         kflag = 1
         if( .not. terrain_flag )then
           IF (kpdata(np) .ne. -100) THEN
-             call find_location_index (kpdata, np, z3d, zf, kflag, iflag, jflag)
+             call find_location_index (kpdata, np, z3d, zf(iflag,jflag,:), kflag, .TRUE.)
           ELSE
              do while( z3d.gt.zf(iflag,jflag,kflag+1) )
                kflag = kflag+1
@@ -1157,7 +1157,7 @@
           ENDIF
         else
           IF (kpdata(np) .ne. -100) THEN
-             call find_location_index (kpdata, np, sig3d, sigmaf, kflag)
+             call find_location_index (kpdata, np, sig3d, sigmaf, kflag, .TRUE.)
           ELSE
              do while( sig3d.gt.sigmaf(kflag+1) )
                kflag = kflag+1
@@ -3914,10 +3914,11 @@
 
       ! This subroutine is added by following John Dennis's suggestion
       !      to optimize the location search for a parcel in a process
-      subroutine find_location_index (loc_ind, par_id, loc, dsize, ind, ind1, ind2)
-      implicit none
+      subroutine find_location_index (loc_ind, par_id, loc, dsize, ind, search_z)
 
       use input
+
+      implicit none
 
       integer, dimension(nparcels), intent(inout) :: loc_ind    ! array to store x/y/z location index
       integer,                      intent(in)    :: par_id     ! parcel index in pdata
@@ -3925,45 +3926,42 @@
       real, dimension(:),           intent(in)    :: dsize      ! range of x/y/z dimension
       integer,                      intent(inout) :: ind        ! return the location index closest to 
                                                                 ! the current parcel location
-      integer, optional,            intent(in)    :: ind1, ind2 ! x/y location index for zf array
+      logical,                      intent(in)    :: search_z   ! TRUE if searching the z-dimension index
 
       ! local variable
       integer :: i
-      logical :: present_ind1, present_ind2
-
-      present_ind1 = present(ind1)
-      present_ind2 = present(ind2)
-
-      if (present_ind1 .ne. present_ind2) then
-         stop 'x and y location index must be both present or not present'
-      end if
 
       ! we always search from the smaller index to the larger one
       i = max (1, loc_ind(par_id) - location_offset - 1)
 
-      if ( present_ind1 ) then
-         do while( loc .ge. dsize(ind1,ind2,i+1) )
+      if ( search_z ) then
+         ! Sanity check: 
+         ! - If a parcel falls too low and outside search range, this scheme would fail;
+         ! - Issue an error in this case
+         if ( loc .lt. dsize(i) ) then
+            stop 'Parcel location searching fails...'
+         end if
+         do while( loc .ge. dsize(i+1) )
             i = i + 1
          end do
          ind = i
          loc_ind(par_id) = ind
       else
          do while( ind .lt. 0 .and. i .lt. (loc_ind(par_id) + location_offset) )
-            i = i + 1
             if ( loc .ge. dsize(i) .and. loc .le. dsize(i+1) )then
                ind = i
                loc_ind(par_id) = ind
             end if
+            i = i + 1
          end do
+         ! Sanity check: 
+         ! - If a parcel moves too far and outside search range, this scheme would fail;
+         ! - Issue an error in this case
+         if ( ind .lt. 0 ) then
+            stop 'Parcel location searching fails...'
+         end if
       end if
 
-      ! Sanity check: 
-      ! - If a parcel moves too far, this scheme would fail;
-      ! - Issue an error in this case
-      if ( ind .lt. 0 ) then
-         stop 'Parcel location searching fails...' 
-      end if
- 
       end subroutine find_location_index
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
