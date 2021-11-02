@@ -29,7 +29,7 @@
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
-                               uten,vten,wten,thten,qten,ipdata,jpdata,kpdata)
+                               uten,vten,wten,thten,qten,pdata_locind)
       use input
       use constants
       use bc_module
@@ -75,7 +75,7 @@
       real, intent(inout), dimension(imp,cmp,kmp)   :: ss31,ss32,sn31,sn32
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
-      integer, intent(inout), dimension(nparcels)   :: ipdata, jpdata, kpdata 
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind    ! x/y/z location index of each parcel
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -300,20 +300,20 @@
       iflag = 1
     ELSE
       ! cm1r19:
-      call find_horizontal_location_index (ipdata, np, x3d, xf, ni+1, iflag) 
+      call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+1, iflag) 
     ENDIF
 
     IF(axisymm.eq.1.or.ny.eq.1)THEN
       jflag = 1
     ELSE
       ! cm1r19:
-      call find_horizontal_location_index (jpdata, np, y3d, yf, nj+1, yflag)  
+      call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+1, jflag)  
     ENDIF
 
-  ELSE     ! re-initialize location index array 
-           ! if a parcel is not on this process
-    ipdata(np) = -100
-    jpdata(np) = -100
+  ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
+    pdata_locind(np,1) = -100
+    pdata_locind(np,2) = -100
+    pdata_locind(np,3) = -100
   ENDIF  haveit1
 
 #ifdef MPI
@@ -330,9 +330,9 @@
 
       kflag = 1
       if( .not. terrain_flag )then
-        call find_vertical_location_index (kpdata, np, z3d, zf(iflag,jflag,:), kflag)
+        call find_vertical_location_index (pdata_locind(:,3), np, z3d, zf(iflag,jflag,:), kflag)
       else
-        call find_vertical_location_index (kpdata, np, sig3d, sigmaf, kflag)
+        call find_vertical_location_index (pdata_locind(:,3), np, sig3d, sigmaf, kflag)
       endif
 !      !Store these for two-way coupling
 !      iflag_s=iflag
@@ -378,14 +378,14 @@
           iflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (ipdata, np, x3d, xf, ni+2, iflag)
+          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+2, iflag)
         ENDIF
 
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           jflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (jpdata, np, y3d, yf, nj+2, jflag)
+          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+2, jflag)
         ENDIF
         i=iflag
         j=jflag
@@ -393,9 +393,9 @@
 
         kflag = 1
         if( .not. terrain_flag )then
-          call find_vertical_location_index (kpdata, np, z3d, zf(iflag,jflag,:), kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, z3d, zf(iflag,jflag,:), kflag)
         else
-          call find_vertical_location_index (kpdata, np, sig3d, sigmaf, kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, sig3d, sigmaf, kflag)
         endif
 
 !JMD-debug
@@ -999,13 +999,13 @@
           iflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (ipdata, np, x3d, xf, ni+2, iflag)
+          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+2, iflag)
         ENDIF
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           jflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (jpdata, np, y3d, yf, nj+2, jflag)
+          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+2, jflag)
           if(mod(np,PITER)==0) then
              print *,'after dowhile loop: ',jflag
           endif
@@ -1035,9 +1035,9 @@
         !print *,'droplet_driver: point #4'
         kflag = 1
         if( .not. terrain_flag )then
-          call find_vertical_location_index (kpdata, np, z3d, zf(iflag,jflag,:), kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, z3d, zf(iflag,jflag,:), kflag)
         else
-          call find_vertical_location_index (kpdata, np, sig3d, sigmaf, kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, sig3d, sigmaf, kflag)
         endif
 
 #if 0
@@ -1189,30 +1189,30 @@
 
         if(x3d.lt.minx)then
           x3d=x3d+(maxx-minx)
-          ipdata(np) = -100
+          pdata_locind(np,1) = -100
         endif
         if(x3d.gt.maxx)then
           x3d=x3d-(maxx-minx)
-          ipdata(np) = -100
+          pdata_locind(np,1) = -100
         endif
 
         if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
           y3d=y3d-(maxy-miny)
-          jpdata(np) = -100
+          pdata_locind(np,2) = -100
         endif
         if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
           y3d=y3d+(maxy-miny)
-          jpdata(np) = -100
+          pdata_locind(np,2) = -100
         endif
 
         pdata(np,prx)=x3d
         pdata(np,pry)=y3d
         if( .not. terrain_flag )then
           pdata(np,prz)=z3d
-          kpdata(np) = -100
+          pdata_locind(np,3) = -100
         else
           pdata(np,prsig)=sig3d
-          kpdata(np) = -100
+          pdata_locind(np,3) = -100
         endif
 
 #ifdef MPI

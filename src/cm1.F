@@ -263,7 +263,7 @@
       integer :: ndev,idev
 #endif
 
-      integer, dimension(:), allocatable :: ipdata,jpdata,kpdata  ! 1-D array to store parcel x/y/z location index
+      integer, dimension(:,:), allocatable :: pdata_locind  ! 2-D array to store parcel x/y/z location index
 
 !----------------------------------------------------------------------
 
@@ -2209,12 +2209,8 @@
       pdata = 0.0
       allocate(   ploc(nparcels,  3   ) )
       ploc = 0.0
-      allocate(  ipdata(nparcels) )
-      ipdata = -100
-      allocate(  jpdata(nparcels) )
-      jpdata = -100
-      allocate(  kpdata(nparcels) )
-      kpdata = -100
+      allocate(  pdata_locind(nparcels,3) )
+      pdata_locind = -100
 
       allocate( dpten(ib:ie,jb:je,kb:ke,2) )
       dpten = 0.0
@@ -3268,7 +3264,7 @@
                    bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                &
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
-                   doazimwrite,dorestart,ipdata,jpdata,kpdata)
+                   doazimwrite,dorestart,pdata_locind)
         ! end_solve3
         !stop 'cm1: after call to solve3'
 !$acc compare(khh,khv)
