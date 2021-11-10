@@ -3988,7 +3988,16 @@ print *, '3rd jflag = ', jflag
          !      this scheme would fail;
          ! - Issue an error in this case
          if ( ind .lt. 0 ) then
-            stop 'Parcel x/y location searching fails...'
+            print *, 'Parcel x/y location searching fails...'
+            print *, 'Switch back to the original search scheme...'
+            i = end_ind
+            do while( ind .lt. 0 .and. i .gt. 1 )
+               i = i - 1
+               if ( loc .ge. dsize(i) .and. loc .le. dsize(i+1) ) then
+                  ind = i
+                  loc_ind(par_id) = ind
+               end if
+            end do
          end if
       else ! Always search from the end when:
            !    - it is the first time step
@@ -4018,19 +4027,25 @@ print *, '3rd jflag = ', jflag
       integer,                      intent(inout) :: ind        ! return the z location index closest
                                                                 ! to the current parcel location
 
+      ! Local variable
+      integer :: i
+
       if (loc_ind(par_id) .ne. -100) then 
-         ind = max (ind, loc_ind(par_id) - location_offset - 1)
+         i = max (ind, loc_ind(par_id) - location_offset - 1)
          ! Sanity check: 
          ! - If a parcel falls too low and outside search range,
          !      this scheme would fail;
          ! - Issue an error in this case
-         if ( loc .lt. dsize(ind) ) then
-            stop 'Parcel z location searching fails...'
+         if ( loc .lt. dsize(i) ) then
+            print *, 'Parcel z location is outside search range...'
+            print *, 'Search from the input index instead...'
+            i = ind
          end if
-         do while( loc .ge. dsize(ind+1) )
-            ind = ind + 1
+         do while( loc .ge. dsize(i+1) )
+            i = i + 1
          end do
-         loc_ind(par_id) = ind
+         loc_ind(par_id) = i
+         ind = i
       else ! Always search from the end when:
            !    - it is the first time step
            !    - a parcel enters a new or different MPI process
