@@ -18,7 +18,7 @@
   !    the search range using the parameter below;
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
-  integer, parameter :: location_offset = 4 
+  integer, parameter :: location_offset = 100 
 
   CONTAINS
 
@@ -305,6 +305,7 @@
     ELSE
       ! cm1r19:
       call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+1, iflag) 
+print *, 'iflag = ', iflag
 #ifdef _VERIFY_FIND_LOC
       iflag_ori = -100
       i = ni+1
@@ -327,6 +328,7 @@
     ELSE
       ! cm1r19:
       call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+1, jflag)  
+print *, 'jflag = ', jflag
 #ifdef _VERIFY_FIND_LOC
       jflag_ori = -100
       j = nj+1
@@ -435,6 +437,7 @@
         ELSE
           ! cm1r19:
           call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+2, iflag)
+print *, '2nd iflag = ', iflag
 #ifdef _VERIFY_FIND_LOC
           iflag_ori = -100
           i = ni+2
@@ -457,6 +460,7 @@
         ELSE
           ! cm1r19:
           call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+2, jflag)
+print *, '2nd jflag = ', jflag
 #ifdef _VERIFY_FIND_LOC
           jflag_ori = -100
           j = nj+2
@@ -1108,6 +1112,7 @@
         ELSE
           ! cm1r19:
           call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+2, iflag)
+print *, '3rd iflag = ', iflag
 #ifdef _VERIFY_FIND_LOC
           iflag_ori = -100
           i = ni+2
@@ -1128,7 +1133,9 @@
           jflag = 1
         ELSE
           ! cm1r19:
+print * , 'nj = ', nj, ', y3d = ', y3d, ', yf = ', yf
           call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+2, jflag)
+print *, '3rd jflag = ', jflag
 #ifdef _VERIFY_FIND_LOC
           jflag_ori = -100
           j = nj+2
@@ -3981,7 +3988,7 @@
          !      this scheme would fail;
          ! - Issue an error in this case
          if ( ind .lt. 0 ) then
-            stop 'Parcel x location searching fails...'
+            stop 'Parcel x/y location searching fails...'
          end if
       else ! Always search from the end when:
            !    - it is the first time step
