@@ -19,6 +19,7 @@
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
   integer, parameter :: location_offset = 100 
+  integer, parameter :: neg_hundred = -100    ! define constant for initial value  
 
   CONTAINS
 
@@ -291,8 +292,8 @@
         sig3d = pdata(np,prsig)
       endif
 
-      iflag = -100
-      jflag = -100
+      iflag = neg_hundred
+      jflag = neg_hundred
       kflag = 0
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
@@ -304,10 +305,9 @@
       iflag = 1
     ELSE
       ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+1, iflag) 
-print *, 'iflag = ', iflag
+      call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+1, iflag) 
 #ifdef _VERIFY_FIND_LOC
-      iflag_ori = -100
+      iflag_ori = neg_hundred
       i = ni+1
       do while( iflag_ori.lt.0 .and. i.gt.1 )
         i = i-1
@@ -316,6 +316,7 @@ print *, 'iflag = ', iflag
         endif
       enddo
       if ( iflag .ne. iflag_ori ) then
+         print *, "iflag ori = ", iflag_ori
          stop "Failed verification test: iflag is not the same..."
       else
          print *, "Pass the verification test for iflag..."
@@ -327,10 +328,9 @@ print *, 'iflag = ', iflag
       jflag = 1
     ELSE
       ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+1, jflag)  
-print *, 'jflag = ', jflag
+      call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+1, jflag)  
 #ifdef _VERIFY_FIND_LOC
-      jflag_ori = -100
+      jflag_ori = neg_hundred
       j = nj+1
       do while( jflag_ori.lt.0 .and. j.gt.1 )
         j = j-1
@@ -347,9 +347,9 @@ print *, 'jflag = ', jflag
     ENDIF
 
   ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
-    pdata_locind(np,1) = -100
-    pdata_locind(np,2) = -100
-    pdata_locind(np,3) = -100
+    pdata_locind(np,1) = neg_hundred
+    pdata_locind(np,2) = neg_hundred
+    pdata_locind(np,3) = neg_hundred
   ENDIF  haveit1
 
 #ifdef MPI
@@ -366,7 +366,7 @@ print *, 'jflag = ', jflag
 
       kflag = 1
       if( .not. terrain_flag )then
-        call find_vertical_location_index (pdata_locind(:,3), np, z3d, zf(iflag,jflag,:), kflag)
+        call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .TRUE.)
 #ifdef _VERIFY_FIND_LOC
         kflag_ori = 1
         do while( z3d.ge.zf(iflag,jflag,kflag_ori+1) )
@@ -379,7 +379,7 @@ print *, 'jflag = ', jflag
         end if
 #endif
       else
-        call find_vertical_location_index (pdata_locind(:,3), np, sig3d, sigmaf, kflag)
+        call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
 #ifdef _VERIFY_FIND_LOC
         kflag_ori = 1
         do while( sig3d.ge.sigmaf(kflag_ori+1) )
@@ -430,16 +430,15 @@ print *, 'jflag = ', jflag
         i=iflag
         j=jflag
       ELSE
-        iflag = -100
-        jflag = -100
+        iflag = neg_hundred
+        jflag = neg_hundred
         IF(nx.eq.1)THEN
           iflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+2, iflag)
-print *, '2nd iflag = ', iflag
+          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+2, iflag)
 #ifdef _VERIFY_FIND_LOC
-          iflag_ori = -100
+          iflag_ori = neg_hundred
           i = ni+2
           do while( iflag_ori.lt.0 .and. i.gt.0 )
             i = i-1
@@ -459,10 +458,9 @@ print *, '2nd iflag = ', iflag
           jflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+2, jflag)
-print *, '2nd jflag = ', jflag
+          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+2, jflag)
 #ifdef _VERIFY_FIND_LOC
-          jflag_ori = -100
+          jflag_ori = neg_hundred
           j = nj+2
           do while( jflag_ori.lt.0 .and. j.gt.0 )
             j = j-1
@@ -483,7 +481,7 @@ print *, '2nd jflag = ', jflag
 
         kflag = 1
         if( .not. terrain_flag )then
-          call find_vertical_location_index (pdata_locind(:,3), np, z3d, zf(iflag,jflag,:), kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .FALSE.)
 #ifdef _VERIFY_FIND_LOC
           kflag_ori = 1
           do while( z3d.gt.zf(iflag,jflag,kflag_ori+1) )
@@ -496,7 +494,7 @@ print *, '2nd jflag = ', jflag
           end if
 #endif
         else
-          call find_vertical_location_index (pdata_locind(:,3), np, sig3d, sigmaf, kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .FALSE.)
 #ifdef _VERIFY_FIND_LOC
           kflag_ori = 1
           do while( sig3d.gt.sigmaf(kflag_ori+1) )
@@ -1105,16 +1103,15 @@ print *, '2nd jflag = ', jflag
       ! GHB, 210714:
       ! get i,j,k for final parcel location:
 
-        iflag = -100
-        jflag = -100
+        iflag = neg_hundred
+        jflag = neg_hundred
         IF(nx.eq.1)THEN
           iflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, xf, ni+2, iflag)
-print *, '3rd iflag = ', iflag
+          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+2, iflag)
 #ifdef _VERIFY_FIND_LOC
-          iflag_ori = -100
+          iflag_ori = neg_hundred
           i = ni+2
           do while( iflag_ori.lt.0 .and. i.gt.0 )
             i = i-1
@@ -1133,11 +1130,9 @@ print *, '3rd iflag = ', iflag
           jflag = 1
         ELSE
           ! cm1r19:
-print * , 'nj = ', nj, ', y3d = ', y3d, ', yf = ', yf
-          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, yf, nj+2, jflag)
-print *, '3rd jflag = ', jflag
+          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+2, jflag)
 #ifdef _VERIFY_FIND_LOC
-          jflag_ori = -100
+          jflag_ori = neg_hundred
           j = nj+2
           do while( jflag_ori.lt.0 .and. j.gt.0 )
             !print *,'j: ',j
@@ -1181,7 +1176,7 @@ print *, '3rd jflag = ', jflag
         !print *,'droplet_driver: point #4'
         kflag = 1
         if( .not. terrain_flag )then
-          call find_vertical_location_index (pdata_locind(:,3), np, z3d, zf(iflag,jflag,:), kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .FALSE.)
 #ifdef _VERIFY_FIND_LOC
           kflag_ori = 1
           do while( z3d.gt.zf(iflag,jflag,kflag_ori+1) )
@@ -1194,7 +1189,7 @@ print *, '3rd jflag = ', jflag
           end if
 #endif
         else
-          call find_vertical_location_index (pdata_locind(:,3), np, sig3d, sigmaf, kflag)
+          call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .FALSE.)
 #ifdef _VERIFY_FIND_LOC
           kflag_ori = 1
           do while( sig3d.gt.sigmaf(kflag_ori+1) )
@@ -1357,30 +1352,30 @@ print *, '3rd jflag = ', jflag
 
         if(x3d.lt.minx)then
           x3d=x3d+(maxx-minx)
-          pdata_locind(np,1) = -100
+          pdata_locind(np,1) = neg_hundred
         endif
         if(x3d.gt.maxx)then
           x3d=x3d-(maxx-minx)
-          pdata_locind(np,1) = -100
+          pdata_locind(np,1) = neg_hundred
         endif
 
         if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
           y3d=y3d-(maxy-miny)
-          pdata_locind(np,2) = -100
+          pdata_locind(np,2) = neg_hundred
         endif
         if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
           y3d=y3d+(maxy-miny)
-          pdata_locind(np,2) = -100
+          pdata_locind(np,2) = neg_hundred
         endif
 
         pdata(np,prx)=x3d
         pdata(np,pry)=y3d
         if( .not. terrain_flag )then
           pdata(np,prz)=z3d
-          pdata_locind(np,3) = -100
+          pdata_locind(np,3) = neg_hundred
         else
           pdata(np,prsig)=sig3d
-          pdata_locind(np,3) = -100
+          pdata_locind(np,3) = neg_hundred
         endif
 
 #ifdef MPI
@@ -1602,8 +1597,8 @@ print *, '3rd jflag = ', jflag
         sig3d = pdata(np,prsig)
       endif
 
-      iflag = -100
-      jflag = -100
+      iflag = neg_hundred
+      jflag = neg_hundred
       kflag = 0
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
@@ -1657,8 +1652,8 @@ print *, '3rd jflag = ', jflag
         i=iflag
         j=jflag
       ELSE
-        iflag = -100
-        jflag = -100
+        iflag = neg_hundred
+        jflag = neg_hundred
         IF(nx.eq.1)THEN
           iflag = 1
         ELSE
@@ -2706,8 +2701,8 @@ print *, '3rd jflag = ', jflag
       y3d = pdata(np,pry)
       z3d = pdata(np,prz)
 
-      iflag = -100
-      jflag = -100
+      iflag = neg_hundred
+      jflag = neg_hundred
       kflag = 0
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
@@ -3451,8 +3446,8 @@ print *, '3rd jflag = ', jflag
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
 
-      iflag = -100
-      jflag = -100
+      iflag = neg_hundred
+      jflag = neg_hundred
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
   zshaveit1:  &
@@ -3957,7 +3952,8 @@ print *, '3rd jflag = ', jflag
       ! These two subroutines are added by following John Dennis's suggestion
       !      to optimize the location search for a parcel in a process
 
-      subroutine find_horizontal_location_index (loc_ind, par_id, loc, dsize, end_ind, ind)
+      subroutine find_horizontal_location_index (loc_ind, par_id, loc, lb, ub, dsize, end_ind, ind)
+      !$acc routine seq
 
       use input
 
@@ -3966,7 +3962,8 @@ print *, '3rd jflag = ', jflag
       integer, dimension(nparcels), intent(inout) :: loc_ind    ! array to store x/y location index
       integer,                      intent(in)    :: par_id     ! parcel index in pdata
       real,                         intent(in)    :: loc        ! current x/y location index of a parcel
-      real, dimension(:),           intent(in)    :: dsize      ! range of x/y dimension
+      integer,                      intent(in)    :: lb, ub     ! lower and upper bounds of dsize
+      real, dimension(lb:ub),       intent(in)    :: dsize      ! range of x/y dimension
       integer,                      intent(in)    :: end_ind    ! end index of x/y dimension
       integer,                      intent(inout) :: ind        ! return the x/y location index closest to 
                                                                 ! the current parcel location
@@ -3974,7 +3971,7 @@ print *, '3rd jflag = ', jflag
       ! local variable
       integer :: i
 
-      if (loc_ind(par_id) .ne. -100) then
+      if (loc_ind(par_id) .ne. neg_hundred) then
          i = min (end_ind, loc_ind(par_id) + location_offset)
          do while( ind .lt. 0 .and. i .gt. loc_ind(par_id) - location_offset - 1 )
             i = i - 1
@@ -4014,7 +4011,8 @@ print *, '3rd jflag = ', jflag
 
       end subroutine find_horizontal_location_index
 
-      subroutine find_vertical_location_index (loc_ind, par_id, loc, dsize, ind)
+      subroutine find_vertical_location_index (loc_ind, par_id, loc, lb, ub, dsize, ind, is_ge)
+      !$acc routine seq
 
       use input
 
@@ -4023,14 +4021,16 @@ print *, '3rd jflag = ', jflag
       integer, dimension(nparcels), intent(inout) :: loc_ind    ! array to store z location index
       integer,                      intent(in)    :: par_id     ! parcel index in pdata
       real,                         intent(in)    :: loc        ! current z location index of a parcel
-      real, dimension(:),           intent(in)    :: dsize      ! range of z dimension
+      integer,                      intent(in)    :: lb, ub     ! lower and upper bounds of dsize
+      real, dimension(lb:ub),       intent(in)    :: dsize      ! range of z dimension
       integer,                      intent(inout) :: ind        ! return the z location index closest
                                                                 ! to the current parcel location
+      logical,                      intent(in)    :: is_ge      ! TRUE if use "ge"; FALSE if use "gt"
 
       ! Local variable
       integer :: i
 
-      if (loc_ind(par_id) .ne. -100) then 
+      if (loc_ind(par_id) .ne. neg_hundred) then 
          i = max (ind, loc_ind(par_id) - location_offset - 1)
          ! Sanity check: 
          ! - If a parcel falls too low and outside search range,
@@ -4041,19 +4041,30 @@ print *, '3rd jflag = ', jflag
             print *, 'Search from the input index instead...'
             i = ind
          end if
-         do while( loc .ge. dsize(i+1) )
-            i = i + 1
-         end do
-         loc_ind(par_id) = i
+         if ( is_ge ) then
+            do while( loc .ge. dsize(i+1) )
+               i = i + 1
+            end do
+         else
+            do while( loc .gt. dsize(i+1) )
+               i = i + 1
+            end do
+         end if
          ind = i
       else ! Always search from the end when:
            !    - it is the first time step
            !    - a parcel enters a new or different MPI process
-         do while ( loc .ge. dsize(ind+1) )
-            ind = ind + 1
-         end do
-         loc_ind(par_id) = ind
+         if ( is_ge ) then
+            do while ( loc .ge. dsize(ind+1) )
+               ind = ind + 1
+            end do
+         else
+            do while ( loc .gt. dsize(ind+1) )
+               ind = ind + 1
+            end do
+         end if
       end if
+      loc_ind(par_id) = ind 
 
       end subroutine find_vertical_location_index
 
