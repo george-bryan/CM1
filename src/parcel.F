@@ -18,7 +18,7 @@
   !    the search range using the parameter below;
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
-  integer, parameter :: location_offset = 100 
+  integer, parameter :: location_offset = 3 
   integer, parameter :: neg_hundred = -100    ! define constant for initial value  
 
   CONTAINS
@@ -3961,7 +3961,7 @@
 
       integer, dimension(nparcels), intent(inout) :: loc_ind    ! array to store x/y location index
       integer,                      intent(in)    :: par_id     ! parcel index in pdata
-      real,                         intent(in)    :: loc        ! current x/y location index of a parcel
+      real,                         intent(in)    :: loc        ! current x/y location of a parcel
       integer,                      intent(in)    :: lb, ub     ! lower and upper bounds of dsize
       real, dimension(lb:ub),       intent(in)    :: dsize      ! range of x/y dimension
       integer,                      intent(in)    :: end_ind    ! end index of x/y dimension
@@ -3971,7 +3971,11 @@
       ! local variable
       integer :: i
 
-      if (loc_ind(par_id) .ne. neg_hundred) then
+      ! Sanity check:
+      ! - If input x/y location is outside the x/y range, return directly
+      if ( loc .lt. dsize(lb) .or. loc .gt. dsize(end_ind) ) return
+
+      if ( loc_ind(par_id) .ne. neg_hundred ) then
          i = min (end_ind, loc_ind(par_id) + location_offset)
          do while( ind .lt. 0 .and. i .gt. loc_ind(par_id) - location_offset - 1 )
             i = i - 1
@@ -3983,7 +3987,7 @@
          ! Sanity check: 
          ! - If a parcel moves too far and outside search range, 
          !      this scheme would fail;
-         ! - Issue an error in this case
+         ! - Switch back to the original linear search scheme 
          if ( ind .lt. 0 ) then
             print *, 'Parcel x/y location searching fails...'
             print *, 'Switch back to the original search scheme...'
@@ -4020,7 +4024,7 @@
 
       integer, dimension(nparcels), intent(inout) :: loc_ind    ! array to store z location index
       integer,                      intent(in)    :: par_id     ! parcel index in pdata
-      real,                         intent(in)    :: loc        ! current z location index of a parcel
+      real,                         intent(in)    :: loc        ! current z location of a parcel
       integer,                      intent(in)    :: lb, ub     ! lower and upper bounds of dsize
       real, dimension(lb:ub),       intent(in)    :: dsize      ! range of z dimension
       integer,                      intent(inout) :: ind        ! return the z location index closest
@@ -4030,12 +4034,16 @@
       ! Local variable
       integer :: i
 
-      if (loc_ind(par_id) .ne. neg_hundred) then 
+      ! Sanity check:
+      ! - If input x/y location is outside the x/y range, return directly
+      if ( loc .lt. dsize(lb) .or. loc .gt. dsize(ub) ) return
+
+      if ( loc_ind(par_id) .ne. neg_hundred ) then 
          i = max (ind, loc_ind(par_id) - location_offset - 1)
          ! Sanity check: 
          ! - If a parcel falls too low and outside search range,
          !      this scheme would fail;
-         ! - Issue an error in this case
+         ! - Reset the lower bound in this case
          if ( loc .lt. dsize(i) ) then
             print *, 'Parcel z location is outside search range...'
             print *, 'Search from the input index instead...'
