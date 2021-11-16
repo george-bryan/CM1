@@ -2811,7 +2811,8 @@
     !$acc copyin(dt) &
     !$acc copyin(reqs_s,reqs_u,reqs_p3, &
     !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) &
-    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1)
+    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1) &
+    !$acc copy(pdata_locind)
 
     !$acc compare(lu_index)
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
