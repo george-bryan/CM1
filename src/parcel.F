@@ -105,10 +105,6 @@
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
 
-#ifdef _VERIFY_FIND_LOC
-      integer :: iflag_ori, jflag_ori, kflag_ori
-#endif
-
       logical, parameter :: debug = .false.
       !$acc declare present(rho,prs,qa,wa,sigma)
 
@@ -306,22 +302,6 @@
     ELSE
       ! cm1r19:
       call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+1, iflag) 
-#ifdef _VERIFY_FIND_LOC
-      iflag_ori = neg_hundred
-      i = ni+1
-      do while( iflag_ori.lt.0 .and. i.gt.1 )
-        i = i-1
-        if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
-          iflag_ori = i
-        endif
-      enddo
-      if ( iflag .ne. iflag_ori ) then
-         print *, "iflag ori = ", iflag_ori
-         stop "Failed verification test: iflag is not the same..."
-      else
-         print *, "Pass the verification test for iflag..."
-      end if
-#endif
     ENDIF
 
     IF(axisymm.eq.1.or.ny.eq.1)THEN
@@ -329,21 +309,6 @@
     ELSE
       ! cm1r19:
       call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+1, jflag)  
-#ifdef _VERIFY_FIND_LOC
-      jflag_ori = neg_hundred
-      j = nj+1
-      do while( jflag_ori.lt.0 .and. j.gt.1 )
-        j = j-1
-        if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
-          jflag_ori = j
-        endif
-      enddo
-      if ( jflag .ne. jflag_ori ) then
-         stop "Failed verification test: jflag is not the same..."
-      else
-         print *, "Pass the verification test for jflag..."
-      end if
-#endif
     ENDIF
 
   ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
@@ -367,30 +332,8 @@
       kflag = 1
       if( .not. terrain_flag )then
         call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .TRUE.)
-#ifdef _VERIFY_FIND_LOC
-        kflag_ori = 1
-        do while( z3d.ge.zf(iflag,jflag,kflag_ori+1) )
-          kflag_ori = kflag_ori+1
-        enddo
-        if ( kflag .ne. kflag_ori ) then
-           stop "Failed verification test: kflag is not the same..."
-        else
-           print *, "Pass the verification test for kflag..."
-        end if
-#endif
       else
         call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
-#ifdef _VERIFY_FIND_LOC
-        kflag_ori = 1
-        do while( sig3d.ge.sigmaf(kflag_ori+1) )
-          kflag_ori = kflag_ori+1
-        enddo
-        if ( kflag .ne. kflag_ori ) then
-           stop "Failed verification test: kflag is not the same..."
-        else
-           print *, "Pass the verification test for kflag..."
-        end if
-#endif
       endif
 !      !Store these for two-way coupling
 !      iflag_s=iflag
@@ -437,21 +380,6 @@
         ELSE
           ! cm1r19:
           call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+2, iflag)
-#ifdef _VERIFY_FIND_LOC
-          iflag_ori = neg_hundred
-          i = ni+2
-          do while( iflag_ori.lt.0 .and. i.gt.0 )
-            i = i-1
-            if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
-              iflag_ori = i
-            endif
-          enddo
-          if ( iflag .ne. iflag_ori ) then
-             stop "Failed verification test: iflag is not the same..."
-          else
-             print *, "Pass the verification test for iflag..."
-          end if
-#endif
         ENDIF
 
         IF(axisymm.eq.1.or.ny.eq.1)THEN
@@ -459,21 +387,6 @@
         ELSE
           ! cm1r19:
           call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+2, jflag)
-#ifdef _VERIFY_FIND_LOC
-          jflag_ori = neg_hundred
-          j = nj+2
-          do while( jflag_ori.lt.0 .and. j.gt.0 )
-            j = j-1
-            if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
-              jflag_ori = j
-            endif
-          enddo
-          if ( jflag .ne. jflag_ori ) then
-             stop "Failed verification test: jflag is not the same..."
-          else
-             print *, "Pass the verification test for jflag..."
-          end if
-#endif
         ENDIF
         i=iflag
         j=jflag
@@ -482,30 +395,8 @@
         kflag = 1
         if( .not. terrain_flag )then
           call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .FALSE.)
-#ifdef _VERIFY_FIND_LOC
-          kflag_ori = 1
-          do while( z3d.gt.zf(iflag,jflag,kflag_ori+1) )
-            kflag_ori = kflag_ori+1
-          enddo
-          if ( kflag .ne. kflag_ori ) then
-             stop "Failed verification test: kflag is not the same..."
-          else
-             print *, "Pass the verification test for kflag..."
-          end if
-#endif
         else
           call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .FALSE.)
-#ifdef _VERIFY_FIND_LOC
-          kflag_ori = 1
-          do while( sig3d.gt.sigmaf(kflag_ori+1) )
-            kflag_ori = kflag_ori+1
-          enddo
-          if ( kflag .ne. kflag_ori ) then
-             stop "Failed verification test: kflag is not the same..."
-          else
-             print *, "Pass the verification test for kflag..."
-          end if
-#endif
         endif
 
 !JMD-debug
@@ -1110,43 +1001,12 @@
         ELSE
           ! cm1r19:
           call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+2, iflag)
-#ifdef _VERIFY_FIND_LOC
-          iflag_ori = neg_hundred
-          i = ni+2
-          do while( iflag_ori.lt.0 .and. i.gt.0 )
-            i = i-1
-            if( x3d.ge.xf(i) .and. x3d.le.xf(i+1) )then
-              iflag_ori = i
-            endif
-          enddo
-          if ( iflag .ne. iflag_ori ) then
-             stop "Failed verification test: iflag is not the same..."
-          else
-             print *, "Pass the verification test for iflag..."
-          end if
-#endif
         ENDIF
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           jflag = 1
         ELSE
           ! cm1r19:
           call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+2, jflag)
-#ifdef _VERIFY_FIND_LOC
-          jflag_ori = neg_hundred
-          j = nj+2
-          do while( jflag_ori.lt.0 .and. j.gt.0 )
-            !print *,'j: ',j
-            j = j-1
-            if( y3d.ge.yf(j) .and. y3d.le.yf(j+1) )then
-              jflag_ori = j
-            endif
-          enddo
-          if ( jflag .ne. jflag_ori ) then
-             stop "Failed verification test: jflag is not the same..."
-          else
-             print *, "Pass the verification test for jflag..."
-          end if
-#endif
           if(mod(np,PITER)==0) then
              print *,'after dowhile loop: ',jflag
           endif
@@ -1177,30 +1037,8 @@
         kflag = 1
         if( .not. terrain_flag )then
           call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .FALSE.)
-#ifdef _VERIFY_FIND_LOC
-          kflag_ori = 1
-          do while( z3d.gt.zf(iflag,jflag,kflag_ori+1) )
-            kflag_ori = kflag_ori+1
-          enddo
-          if ( kflag .ne. kflag_ori ) then
-             stop "Failed verification test: kflag is not the same..."
-          else
-             print *, "Pass the verification test for kflag..."
-          end if
-#endif
         else
           call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .FALSE.)
-#ifdef _VERIFY_FIND_LOC
-          kflag_ori = 1
-          do while( sig3d.gt.sigmaf(kflag_ori+1) )
-            kflag_ori = kflag_ori+1
-          enddo
-          if ( kflag .ne. kflag_ori ) then
-             stop "Failed verification test: kflag is not the same..."
-          else
-             print *, "Pass the verification test for kflag..."
-          end if
-#endif
         endif
 
 #if 0
@@ -3970,6 +3808,11 @@
 
       ! local variable
       integer :: i
+#ifdef _VERIFY_FIND_LOC
+      integer :: ind_ori
+
+      ind_ori = ind
+#endif
 
       ! Sanity check:
       ! - If input x/y location is outside the x/y range, return directly
@@ -4000,6 +3843,22 @@
                end if
             end do
          end if
+#ifdef _VERIFY_FIND_LOC
+         ind_ori = ind
+         i = end_ind
+         do while( ind_ori .lt. 0 .and. i .gt. 1 )
+            i = i - 1
+            if ( loc .ge. dsize(i) .and. loc .le. dsize(i+1) ) then
+               ind_ori = i
+            end if
+         end do
+         if ( ind_ori .ne. ind ) then
+            print *, "original search scheme finds x/y index = ", ind_ori, ", new search scheme finds x/y index = ", ind 
+            stop "Failed verification test: x/y index is not the same..."
+         else
+            print *, "Pass the verification test for x/y index..."
+         end if
+#endif
       else ! Always search from the end when:
            !    - it is the first time step
            !    - a parcel enters a new or different MPI process
@@ -4033,6 +3892,11 @@
 
       ! Local variable
       integer :: i
+#ifdef _VERIFY_FIND_LOC
+      integer :: ind_ori
+
+      ind_ori = ind
+#endif
 
       ! Sanity check:
       ! - If input x/y location is outside the x/y range, return directly
@@ -4059,6 +3923,23 @@
             end do
          end if
          ind = i
+#ifdef _VERIFY_FIND_LOC
+         if ( is_ge ) then
+            do while( loc .ge. dsize(ind_ori+1) )
+               ind_ori = ind_ori + 1
+            end do
+         else
+            do while( loc .gt. dsize(ind_ori+1) )
+               ind_ori = ind_ori + 1
+            end do
+         end if
+         if ( ind_ori .ne. ind ) then
+            print *, "original search scheme finds z index = ", ind_ori, ", new search scheme finds z index = ", ind
+            stop "Failed verification test: z index is not the same..."
+         else
+            print *, "Pass the verification test for z index..."
+         end if
+#endif
       else ! Always search from the end when:
            !    - it is the first time step
            !    - a parcel enters a new or different MPI process
