@@ -1048,6 +1048,9 @@
 #endif
         kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
         if( .not. terrain_flag )then
+          if ( z3d.lt.zf(iflag,jflag,kflag) ) then
+            kflag = 1
+          end if
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
@@ -1063,11 +1066,14 @@
           end if
 #endif
         else
+          if ( sig3d.lt.sigmaf(kflag) ) then
+            kflag = 1
+          end if
           do while( sig3d.gt.sigmaf(kflag+1) )
             kflag = kflag+1
           enddo
 #ifdef _VERIFY_FIND_LOC
-          do while( ig3d.gt.sigmaf(tmp_flag+1) )
+          do while( sig3d.gt.sigmaf(tmp_flag+1) )
             tmp_flag = tmp_flag+1
           enddo
           if ( kflag .ne. tmp_flag ) then
