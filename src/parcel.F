@@ -398,10 +398,49 @@
       ENDIF
 
         kflag = 1
+! JS - jflag could be negative somehow, which will break
+!           the find_vertical_location_index subroutine;
+!      use the original interface but with the pdata_locind(:,3) here
+#ifdef _VERIFY_FIND_LOC
+        tmp_flag = kflag
+#endif
+        kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
         if( .not. terrain_flag )then
-          call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .FALSE.)
+          if ( z3d.lt.zf(iflag,jflag,kflag) ) then
+            kflag = 1
+          end if
+          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+            kflag = kflag+1
+          enddo
+#ifdef _VERIFY_FIND_LOC
+          do while( z3d.gt.zf(iflag,jflag,tmp_flag+1) )
+            tmp_flag = tmp_flag+1
+          enddo
+          if ( kflag .ne. tmp_flag ) then
+            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
+            stop "Failed verification test: z index is not the same..."
+          else
+            print *, "Pass the verification test for z index..."
+          end if
+#endif
         else
-          call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .FALSE.)
+          if ( sig3d.lt.sigmaf(kflag) ) then
+            kflag = 1
+          end if
+          do while( sig3d.gt.sigmaf(kflag+1) )
+            kflag = kflag+1
+          enddo
+#ifdef _VERIFY_FIND_LOC
+          do while( sig3d.gt.sigmaf(tmp_flag+1) )
+            tmp_flag = tmp_flag+1
+          enddo
+          if ( kflag .ne. tmp_flag ) then
+            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
+            stop "Failed verification test: z index is not the same..."
+          else
+            print *, "Pass the verification test for z index..."
+          end if
+#endif
         endif
 
 !JMD-debug
