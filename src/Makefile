@@ -74,16 +74,16 @@ FC   = mpif90
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #
 # -------PERF-------
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
-OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma -Kieee
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo -Kieee
+OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -Kieee
 #DM   = -DMPI -D_OPENACC 
 # -------END PERF------
 #
 # -------DEBUG------
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-DM   = -DMPI -D_OPENACC -D_B4B
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -Kieee
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -Kieee
+DM   = -DMPI -D_OPENACC -D_VERIFY_FIND_LOC # -D_B4B
 # -------END DEBUG------
 #
 # if NVTX performance analysis

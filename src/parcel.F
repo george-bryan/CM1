@@ -399,12 +399,16 @@
 
         kflag = 1
 ! JS - jflag could be negative somehow, which will break
-!           the find_vertical_location_index subroutine;
-!      use the original interface but with the pdata_locind(:,3) here
+!        the find_vertical_location_index subroutine;
+!        use the original interface but with the 
+!        pdata_locind(:,3) here
+!    - z3d could be NaN somehow, reset kflag = 1 to be 
+!        consistent with the original implementation
 #ifdef _VERIFY_FIND_LOC
         tmp_flag = kflag
 #endif
         kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
+        if ( z3d .ne. z3d ) kflag = 1
         if( .not. terrain_flag )then
           if ( z3d.lt.zf(iflag,jflag,kflag) ) then
             kflag = 1
@@ -412,11 +416,13 @@
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
+          pdata_locind(np,3) = kflag
 #ifdef _VERIFY_FIND_LOC
           do while( z3d.gt.zf(iflag,jflag,tmp_flag+1) )
             tmp_flag = tmp_flag+1
           enddo
           if ( kflag .ne. tmp_flag ) then
+            print *, "z3d = ", z3d, ", old scheme finds ", zf(iflag,jflag,tmp_flag+1), ", new scheme finds ", zf(iflag,jflag,kflag+1)
             print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
             stop "Failed verification test: z index is not the same..."
           else
@@ -430,6 +436,7 @@
           do while( sig3d.gt.sigmaf(kflag+1) )
             kflag = kflag+1
           enddo
+          pdata_locind(np,3) = kflag
 #ifdef _VERIFY_FIND_LOC
           do while( sig3d.gt.sigmaf(tmp_flag+1) )
             tmp_flag = tmp_flag+1
@@ -1080,12 +1087,16 @@
         !print *,'droplet_driver: point #4'
         kflag = 1
 ! JS - jflag could be negative somehow, which will break
-!           the find_vertical_location_index subroutine;
-!      use the original interface but with the pdata_locind(:,3) here
+!        the find_vertical_location_index subroutine;
+!        use the original interface but with the 
+!        pdata_locind(:,3) here
+!    - z3d could be NaN somehow, reset kflag = 1 to be 
+!        consistent with the original implementation
 #ifdef _VERIFY_FIND_LOC
         tmp_flag = kflag
 #endif
         kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
+        if ( z3d .ne. z3d ) kflag = 1
         if( .not. terrain_flag )then
           if ( z3d.lt.zf(iflag,jflag,kflag) ) then
             kflag = 1
@@ -1093,6 +1104,7 @@
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
+          pdata_locind(np,3) = kflag
 #ifdef _VERIFY_FIND_LOC
           do while( z3d.gt.zf(iflag,jflag,tmp_flag+1) )
             tmp_flag = tmp_flag+1
@@ -1111,6 +1123,7 @@
           do while( sig3d.gt.sigmaf(kflag+1) )
             kflag = kflag+1
           enddo
+          pdata_locind(np,3) = kflag
 #ifdef _VERIFY_FIND_LOC
           do while( sig3d.gt.sigmaf(tmp_flag+1) )
             tmp_flag = tmp_flag+1
