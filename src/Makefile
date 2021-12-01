@@ -83,7 +83,8 @@ OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinli
 # -------DEBUG------
 #OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -Kieee
 #OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -Kieee
-DM   = -DMPI -D_OPENACC -D_VERIFY_FIND_LOC # -D_B4B
+#DM = -DMPI -D_OPENACC -D_B4B
+DM = -DMPI -D_OPENACC -D_VERIFY_FIND_LOC
 # -------END DEBUG------
 #
 # if NVTX performance analysis
