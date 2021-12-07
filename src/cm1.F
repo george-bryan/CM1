@@ -2210,7 +2210,7 @@
       allocate(   ploc(nparcels,  3   ) )
       ploc = 0.0
       allocate(  pdata_locind(nparcels,3) )
-      pdata_locind = -100
+      pdata_locind = undefined_index
 
       allocate( dpten(ib:ie,jb:je,kb:ke,2) )
       dpten = 0.0

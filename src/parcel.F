@@ -19,7 +19,6 @@
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
   integer, parameter :: location_offset = 3 
-  integer, parameter :: neg_hundred = -100    ! define constant for initial value  
 
   CONTAINS
 
@@ -293,8 +292,8 @@
         sig3d = pdata(np,prsig)
       endif
 
-      iflag = neg_hundred
-      jflag = neg_hundred
+      iflag = undefined_index
+      jflag = undefined_index
       kflag = 0
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
@@ -317,9 +316,9 @@
     ENDIF
 
   ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
-    pdata_locind(np,1) = neg_hundred
-    pdata_locind(np,2) = neg_hundred
-    pdata_locind(np,3) = neg_hundred
+    pdata_locind(np,1) = undefined_index
+    pdata_locind(np,2) = undefined_index
+    pdata_locind(np,3) = undefined_index
   ENDIF  haveit1
 
 #ifdef MPI
@@ -378,8 +377,8 @@
         i=iflag
         j=jflag
       ELSE
-        iflag = neg_hundred
-        jflag = neg_hundred
+        iflag = undefined_index
+        jflag = undefined_index
         IF(nx.eq.1)THEN
           iflag = 1
         ELSE
@@ -1045,8 +1044,8 @@
       ! GHB, 210714:
       ! get i,j,k for final parcel location:
 
-        iflag = neg_hundred
-        jflag = neg_hundred
+        iflag = undefined_index
+        jflag = undefined_index
         IF(nx.eq.1)THEN
           iflag = 1
         ELSE
@@ -1286,30 +1285,30 @@
 
         if(x3d.lt.minx)then
           x3d=x3d+(maxx-minx)
-          pdata_locind(np,1) = neg_hundred
+          pdata_locind(np,1) = undefined_index
         endif
         if(x3d.gt.maxx)then
           x3d=x3d-(maxx-minx)
-          pdata_locind(np,1) = neg_hundred
+          pdata_locind(np,1) = undefined_index
         endif
 
         if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
           y3d=y3d-(maxy-miny)
-          pdata_locind(np,2) = neg_hundred
+          pdata_locind(np,2) = undefined_index
         endif
         if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
           y3d=y3d+(maxy-miny)
-          pdata_locind(np,2) = neg_hundred
+          pdata_locind(np,2) = undefined_index
         endif
 
         pdata(np,prx)=x3d
         pdata(np,pry)=y3d
         if( .not. terrain_flag )then
           pdata(np,prz)=z3d
-          pdata_locind(np,3) = neg_hundred
+          pdata_locind(np,3) = undefined_index
         else
           pdata(np,prsig)=sig3d
-          pdata_locind(np,3) = neg_hundred
+          pdata_locind(np,3) = undefined_index
         endif
 
 #ifdef MPI
@@ -1531,8 +1530,8 @@
         sig3d = pdata(np,prsig)
       endif
 
-      iflag = neg_hundred
-      jflag = neg_hundred
+      iflag = undefined_index
+      jflag = undefined_index
       kflag = 0
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
@@ -1586,8 +1585,8 @@
         i=iflag
         j=jflag
       ELSE
-        iflag = neg_hundred
-        jflag = neg_hundred
+        iflag = undefined_index
+        jflag = undefined_index
         IF(nx.eq.1)THEN
           iflag = 1
         ELSE
@@ -2635,8 +2634,8 @@
       y3d = pdata(np,pry)
       z3d = pdata(np,prz)
 
-      iflag = neg_hundred
-      jflag = neg_hundred
+      iflag = undefined_index
+      jflag = undefined_index
       kflag = 0
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
@@ -3359,6 +3358,7 @@
 
       subroutine getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
       use input
+      use constants
 #ifdef MPI
       use mpi
 #endif
@@ -3380,8 +3380,8 @@
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
 
-      iflag = neg_hundred
-      jflag = neg_hundred
+      iflag = undefined_index
+      jflag = undefined_index
 
   ! cm1r19:  skip if we already know this processor doesnt have this parcel
   zshaveit1:  &
@@ -3890,6 +3890,7 @@
       !$acc routine seq
 
       use input
+      use constants
 
       implicit none
 
@@ -3914,7 +3915,7 @@
       ! - If input x/y location is outside the x/y range, return directly
       if ( loc .lt. dsize(lb) .or. loc .gt. dsize(end_ind) ) return
 
-      if ( loc_ind(par_id) .ne. neg_hundred ) then
+      if ( loc_ind(par_id) .ne. undefined_index ) then
          i = min (end_ind, loc_ind(par_id) + location_offset)
          do while( ind .lt. 0 .and. i .gt. loc_ind(par_id) - location_offset - 1 )
             i = i - 1
@@ -3974,6 +3975,7 @@
       !$acc routine seq
 
       use input
+      use constants
 
       implicit none
 
@@ -3998,7 +4000,7 @@
       ! - If input x/y location is outside the x/y range, return directly
       if ( loc .lt. dsize(lb) .or. loc .gt. dsize(ub) ) return
 
-      if ( loc_ind(par_id) .ne. neg_hundred ) then 
+      if ( loc_ind(par_id) .ne. undefined_index ) then 
          i = max (ind, loc_ind(par_id) - location_offset - 1)
          ! Sanity check: 
          ! - If a parcel falls too low and outside search range,

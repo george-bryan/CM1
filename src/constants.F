@@ -63,6 +63,8 @@
 
       real, parameter :: grads_undef  =  -999999.9
 
+      integer, parameter :: undefined_index = -100
+
   CONTAINS
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
