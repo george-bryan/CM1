@@ -140,7 +140,7 @@
                    bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                &
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
-                   doazimwrite,dorestart)
+                   doazimwrite,dorestart,pdata_locind)
         ! end_solve3
       use input
       use constants
@@ -301,6 +301,7 @@
       integer, intent(in), dimension(ibib:ieib,jbib:jeib,kmaxib) :: hflxw,hflxe,hflxs,hflxn
       logical, intent(in) :: dowriteout,dorad,dotdwrite,doazimwrite,dorestart
       logical, intent(inout) :: getdbz,getvt,dotbud,doqbud,doubud,dovbud,dowbud,donudge
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind
 
 !-----------------------------------------------------------------------
 ! Arrays and variables defined inside solve
@@ -987,7 +988,8 @@
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
-                               uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2))
+                               uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2),  &
+                               pdata_locind)
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
           !print *,'solve3: after call to droplet_driver' 
           !$acc compare(dpten)

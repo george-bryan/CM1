@@ -263,6 +263,8 @@
       integer :: ndev,idev
 #endif
 
+      integer, dimension(:,:), allocatable :: pdata_locind  ! 2-D array to store parcel x/y/z location index
+
 !----------------------------------------------------------------------
 
       nstep = 0
@@ -2207,6 +2209,8 @@
       pdata = 0.0
       allocate(   ploc(nparcels,  3   ) )
       ploc = 0.0
+      allocate(  pdata_locind(nparcels,3) )
+      pdata_locind = undefined_index
 
       allocate( dpten(ib:ie,jb:je,kb:ke,2) )
       dpten = 0.0
@@ -2807,7 +2811,8 @@
     !$acc copyin(dt) &
     !$acc copyin(reqs_s,reqs_u,reqs_p3, &
     !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) &
-    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1)
+    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1) &
+    !$acc copy(pdata_locind)
 
     !$acc compare(lu_index)
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
@@ -3260,7 +3265,7 @@
                    bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                &
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
-                   doazimwrite,dorestart)
+                   doazimwrite,dorestart,pdata_locind)
         ! end_solve3
         !stop 'cm1: after call to solve3'
 !$acc compare(khh,khv)
