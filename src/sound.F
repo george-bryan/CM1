@@ -327,10 +327,10 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          !$acc update host(ppd)
+          !!$acc update host(ppd)
           call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
-          !$acc update device(ppd)
+          !!$acc update device(ppd)
         endif
 #endif
 
@@ -710,7 +710,7 @@
         enddo
         enddo
         !$acc parallel default(present) private(i,j,k,aa,bb,cc,dd,fwk,r1)
-        print *,'asq: ',asq
+        !print *,'asq: ',asq
         !$acc loop seq
         do k=3,(nk-1)
         !$omp parallel do default(shared) private(i,j,aa,bb,cc,dd,fwk,r1)
