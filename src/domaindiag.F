@@ -29,7 +29,7 @@
 #define _B4B30
 #else
 !Appears to be a bug in the B4B28 loop
-#define _B4B28R
+#undef _B4B28R
 #endif
   MODULE domaindiag_module
 
@@ -10807,8 +10807,8 @@
     !$acc update host(s2d)
     savg2d = 0.0
 #else
-    !$acc parallel default(present) private(i,j) copy(savg2d) reduction(+:savg2d)
     savg2d = 0.0
+    !$acc parallel default(present) private(i,j) reduction(+:savg2d)
     !$acc loop gang vector collapse(2) reduction(+:savg2d)
 #endif
     do j=1,nj
