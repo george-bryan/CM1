@@ -1248,6 +1248,100 @@
 
       end subroutine pdefq_GPU
 
+      subroutine pdefq2_GPU(rmax,asq,ruh,rvh,rmh,rho,q3d)
+      use input
+      implicit none
+
+      real rmax
+      double precision, intent(inout)    :: asq
+      real, intent(in), dimension(ib:ie) :: ruh
+      real, intent(in), dimension(jb:je) :: rvh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rmh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rho
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: q3d
+
+      integer i,j,k
+      double precision :: t1,t2,t3
+      double precision :: a1,a2,tem
+      double precision, dimension(nj) :: budj
+      double precision, dimension(nk) :: budk
+      double precision :: budt
+      !$acc declare present(ruh,rvh,rmh,rho,q3d)
+
+!----------------------------------------------------------------------
+
+      !print *,'pdefq2_GPU: pdscheme: ',pdscheme
+      !$acc data create(budj,budk)
+      !tem = dx*dy*dz
+      IF(pdscheme.eq.1)THEN
+
+        !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
+        !$acc parallel default(present) private(i,j,k) copy(asq) &
+        !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:asq)
+        !$acc loop gang collapse(2)
+        do j=1,nj
+          do i=1,ni
+            t1=0.0d0
+            t2=0.0d0
+            a1=0.0d0
+            a2=0.0d0
+            !$acc loop vector reduction(+:a1,t1,t2)
+            do k=1,nk
+              t1=t1+rho(i,j,k)*q3d(i,j,k)
+              a1=a1+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+!!!            q3d(i,j,k)=max(0.0,q3d(i,j,k))
+              if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+              t2=t2+rho(i,j,k)*q3d(i,j,k)
+            enddo
+            t3=(t1+1.0d-20)/(t2+1.0d-20)
+            if(t3.lt.0.0) t3=1.0d0
+            !$acc loop vector reduction(+:a2)
+            do k=1,nk
+              q3d(i,j,k)=t3*q3d(i,j,k)
+              a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+            enddo
+            !budt = budt+a2-a1
+            asq=asq+(a2-a1)*dx*dy*dz
+          enddo
+        enddo
+        !$acc end parallel
+
+      ELSE
+
+        !$omp parallel do default(shared) private(i,j,k,a1,a2)
+        !$acc parallel default(present) private(i,j,k,a1,a2) reduction(+:budt,asq)
+        !$acc loop gang
+        do k=1,nk
+          budt=0.0d0
+          !$acc loop vector collapse(2) reduction(+:budt)
+          do j=1,nj
+          do i=1,ni
+            a1=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+!!!          q3d(i,j,k)=max(0.0,q3d(i,j,k))
+            if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+            a2=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+            budt=budt+a2-a1
+          enddo
+          enddo
+          !budk(k)=budt 
+          asq=asq+budt*dx*dy*dz
+        enddo
+
+        !!$acc loop vector reduction(+:asq)
+        !do k=1,nk
+        !  asq=asq+budk(k)*dx*dy*dz
+        !enddo
+        !$acc end parallel
+
+      ENDIF
+      !$acc end data
+
+!----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_misc23=time_misc23+mytime()
+
+      end subroutine pdefq2_GPU
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2550,18 +2644,9 @@
       integer i,j,k
       real qcbot(nk),qctop(nk),bot,top,vart,varb
 
-!$acc data create(bot,top,qcbot,qctop)
-!$omp parallel do default(shared)  &
-!$omp private(k)
-!$acc parallel default(present) private(i,j,k) reduction(max:top,vart) reduction(min:bot,varb)
-      !!$acc loop gang vector
-      !do k=1,nk
-      !  qcbot(k)=maxz
-      !  qctop(k)=0.0
-      !enddo
-      print *,'clwsat: ',clwsat
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
+      !$acc data create(bot,top,qcbot,qctop)
+      !$acc parallel default(present) private(i,j,k) reduction(max:top,vart) reduction(min:bot,varb)
+      !$omp parallel do default(shared) private(i,j,k)
       !$acc loop gang
       do k=1,nk
         varb=maxz
@@ -2594,10 +2679,8 @@
       !$acc update host(bot,top)
 
 #ifdef MPI
-      !!$acc update host(bot,top)
       call MPI_REDUCE(bot,varb,1,MPI_REAL,MPI_MIN,0,MPI_COMM_WORLD,ierr)
       call MPI_REDUCE(top,vart,1,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-      !!$acc update device(bot,top)
       bot=varb
       top=vart
       if(myid.eq.0)then
@@ -2621,7 +2704,7 @@
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
-!$acc end data
+      !$acc end data
  
       end subroutine cloud
 
@@ -3600,8 +3683,8 @@
       double precision :: foot
 
 !$acc data create(tmass,foo)
-!$omp parallel do default(shared)  &
-!$omp private(k)
+!!$omp parallel do default(shared)  &
+!!$omp private(k)
 !!$acc parallel loop gang vector default(present) private(k)
 !      do k=1,nk
 !        foo(k)=0.0d0
@@ -3636,7 +3719,7 @@
         tmass=tmass+foo(k)
       enddo
 #ifdef _B4B07R
-      !$acc update device(tmass)
+      !!$acc update device(tmass)
 #else
       !$acc end parallel
 #endif
@@ -3700,9 +3783,9 @@
       double precision, dimension(nk) :: foo
       double precision :: foot
 
-!$acc data create(foo,tmass)
-!$omp parallel do default(shared)  &
-!$omp private(k)
+!$acc data create(tmass,foo)
+!!$omp parallel do default(shared)  &
+!!$omp private(k)
 !!$acc parallel loop gang vector default(present) private(k)
 !      do k=1,nk
 !        foo(k)=0.0d0
@@ -3737,7 +3820,7 @@
         tmass=tmass+foo(k)
       enddo
 #ifdef _B4B08R
-      !$acc update device(tmass)
+      !!$acc update device(tmass)
 #else
       !$acc end parallel
 #endif
@@ -3750,7 +3833,7 @@
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!$acc update device(tmass)
+!!$acc update device(tmass)
       if(myid.eq.0)then
 #endif
 
@@ -3949,15 +4032,15 @@
       double precision, dimension(nk) :: foo1,foo2,foo3
       double precision :: foot1,foot2,foot3
 
+      tmu=0.0d0
+      tmv=0.0d0
+      tmw=0.0d0
+
 #ifdef _B4B09R
       !$acc update host(qv,ql,qi,ruh,rvh,rmh,ua,va,wa,vr,rho)
 #else
       !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
 #endif
-      tmu=0.0d0
-      tmv=0.0d0
-      tmw=0.0d0
-
       !$omp parallel do default(shared) private(i,j,k,qtot,tem)
 #ifndef _B4B09R
       !$acc loop vector collapse(3) reduction(+:tmu,tmv,tmw)
@@ -3977,15 +4060,15 @@
         enddo
         enddo
       enddo
-
-      tmu=tmu*(dx*dy*dz)
-      tmv=tmv*(dx*dy*dz)
-      tmw=tmw*(dx*dy*dz)
 #ifdef _B4B09R
       !!$acc update device(tmu,tmv,tmw)
 #else
       !$acc end parallel
 #endif
+
+      tmu=tmu*(dx*dy*dz)
+      tmv=tmv*(dx*dy*dz)
+      tmw=tmw*(dx*dy*dz)
       
 
 #ifdef MPI
