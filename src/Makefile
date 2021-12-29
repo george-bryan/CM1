@@ -29,7 +29,7 @@
 ##  multiple processors, distributed memory (MPI), Intel compiler 
 ##      (eg, NCAR's yellowstone/cheyenne)
 #FC   = mpif90
-#OPTS = -O3 -pg -g -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
+#OPTS = -O3 -g -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #DM   = -DMPI
 #-----------------------------------------------------------------------------
@@ -46,16 +46,27 @@
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
-#FC   = pgf90
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
+FC   = pgf90
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
 #
 # -------PERF-------
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
-#DM   = -D_OPENACC
+OPTS = -Mfree -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
+DM   = -D_OPENACC
 # -------END PERF------
 #
 # -------DEBUG------
 #OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O1 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+
+# This set of compiler flags induces a variable not present on device error  
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,redundant,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+
+#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+##OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
 #DM   = -D_OPENACC -D_B4B
 # -------END DEBUG------
 #
@@ -70,21 +81,36 @@
 #DM   = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
-FC   = mpif90
-CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+#FC   = mpif90
+#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #
 # -------PERF-------
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma -Kieee
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo -Kieee
-OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -Kieee
+##OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+##OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
+
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo -Ktrap=none -Mnoinline -Minline=reshape -Minfo=accel
+
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel
+
+#REDUNDANT 
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,redundant,math_uniform,nofma -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -Mnofma
+
+#BASE
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform,nofma -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -Mnofma
+
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform,nofma -Mnofma -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
+
 #DM   = -DMPI -D_OPENACC 
 # -------END PERF------
 #
 # -------DEBUG------
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -Kieee
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -Kieee
-#DM = -DMPI -D_OPENACC -D_B4B
-DM = -DMPI -D_OPENACC -D_VERIFY_FIND_LOC
+#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#DM   = -DMPI -D_OPENACC -D_B4B
 # -------END DEBUG------
 #
 # if NVTX performance analysis
@@ -248,6 +274,7 @@ OBJS = $(addsuffix .o, $(basename $(SRC)))
 OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_NVTX)))
 
 FFLAGS  =  $(OPTS)
+FFLAGS1  =  $(OPTS1)
 AR      = ar cru
 
 .SUFFIXES:
@@ -264,6 +291,21 @@ cm1:			$(OBJS)
 .F.o:
 			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
 			$(FC) $(FFLAGS) $(OUTPUTINC) -c $*.f90
+
+# Specific flags for a subset of files
+#misclibs.o: misclibs.F
+#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) misclibs.F > $*.f90
+#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c misclibs.f90
+#sound.o: sound.F
+#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
+#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c $*.f90
+#sounde.o: sounde.F
+#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
+#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c $*.f90
+#soundcb.o: soundcb.F
+#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
+#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c $*.f90
+			
 
 code:
 			$(AR) onefile.F $(SRC)
