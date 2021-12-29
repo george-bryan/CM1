@@ -919,13 +919,13 @@
       ELSE
         ! Cartesian grid, with terrain:
 
-        tem = dts*csound*csound/(cp*thv0(1,1,k))
 
         !$omp parallel do default(shared) private(i,j,k,div)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,div)
+        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem,div)
         do k=1,nk
         do j=1,nj
         do i=1,ni
+          tem = dts*csound*csound/(cp*thv0(1,1,k))
           !-----
           div=( ( (dum1(i+1,j,k)-dum1(i,j,k))*rdx*uh(i)        &
                  +(dum2(i,j+1,k)-dum2(i,j,k))*rdy*vh(j) )      &
