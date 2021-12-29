@@ -155,7 +155,6 @@
 #ifdef MPI
         call comm_2we_end_GPU(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
 #endif
-        !$acc compare(dum)
 
         rdt=1.0/dt
 
@@ -418,7 +417,6 @@
 #ifdef MPI
       call comm_2sn_end_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
-        !$acc compare(dum)
 
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,foo1,foo2,foo3)

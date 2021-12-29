@@ -240,7 +240,6 @@
     !$acc     qcfrac,qrfrac,qlfrac,qifrac,qtfrac,qcb,qrb,qlb,ncb,nrb,nlb, &
     !$acc     qct,qrt,qlt,nct,nrt,nlt,ubar)
 
-    !$acc compare(znt)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
@@ -1877,7 +1876,6 @@
         dum2(i,j,3) = (dum1(i,j,3)-qlb)**2
       enddo
       enddo
-      !$acc compare(dum2)
 
       call getavg2d(dum2(ib,jb,3),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -1899,7 +1897,6 @@
       enddo
 
         !PORTME
-        !$acc compare(q3d,qcrit,zh)
         !$acc parallel  default(present) private(i,j)
         if( nqc.ge.1 )then
           !$acc loop seq
@@ -1933,7 +1930,6 @@
           enddo
         enddo
         !$acc end parallel
-      !$acc compare(dum1)
       !$acc parallel default(present) private(i,j) reduction(+:qct,nct,qrt,nrt,qlt,nlt)
       qct = 0.0
       qrt = 0.0
@@ -1961,7 +1957,6 @@
         endif
       enddo
       enddo
-      !$acc compare(qct,nct,qrt,nrt,qlt,nlt)
       !$acc end parallel
       !stop 'after calculation of qct,nct, etc...'
 
@@ -2029,7 +2024,6 @@
       call getavg2d(dum2(ib,jb,1),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-      !$acc compare(dum1)
       nvar = nvar+1
       varname(nvar) = 'qrtvar'
       vardesc(nvar) = 'variance of height of qr top'
@@ -2043,7 +2037,6 @@
         dum2(i,j,2) = (dum1(i,j,2)-qrt)**2
       enddo
       enddo
-      !$acc compare(dum2)
 
       call getavg2d(dum2(ib,jb,2),savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -3321,7 +3314,6 @@
       !$acc update device(tmass,clw,cli,plw,pli)
       !!$acc end host_data
 #endif
-      !$acc compare(clw)
       !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk
         clw(k) = clw(k)/tmass(k)
@@ -3329,7 +3321,6 @@
         plw(k) = plw(k)/tmass(k)
         pli(k) = pli(k)/tmass(k)
       enddo
-      !$acc compare(clw)
 
       nvar = nvar+1
       varname(nvar) = 'clw'
@@ -3953,7 +3944,6 @@
       !c-c-c-c-c-c-c-c-c-c
 
       IF( cm1setup.ge.1 )THEN
-        !$acc compare(epsd2)
         nvar = nvar+1
         varname(nvar) = 'epsd2'
         vardesc(nvar) = 'epsd2'
@@ -5691,7 +5681,6 @@
       !dum6(i,j,nk+1) = 0.0
     enddo
     enddo
-    !$acc compare(w3d,wavg)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
     do k=2,nk
     do j=1,nj
@@ -5749,7 +5738,6 @@
         vardesc(nvar) = '< w-prime w-prime >'
         varunit(nvar) = 'm2/s2'
         vargrid(nvar) = 'w'
-        !$acc compare(dum6)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=2,nk
         do j=1,nj
@@ -5758,9 +5746,7 @@
         enddo
         enddo
         enddo
-        !$acc compare(dum1)
         call getavg3d(dum1,savg)
-        !$acc compare(savg)
         !$acc parallel loop gang vector default(present) private(k)
         do k=2,nk
           wvar(k) = savg(k)
@@ -5878,7 +5864,6 @@
 
       !c-c-c-c-c-c-c-c-c-c
 #if 0
-        !$acc compare(u3d,v3d,w3d)
         call     momentum_flux(u3d,v3d,w3d,t13,t23,m13,m23,rf,rf0,c1,c2,dum3,dum4,dum5,ufr,ufs,ufd,vfr,vfs,vfd)
 
         nvar = nvar+1
@@ -6035,7 +6020,6 @@
         enddo
         enddo
 
-        !$acc compare(lenscl,khv,th,mf,tkea)
         !$acc loop gang vector collapse(3) 
         do k=2,nk
         do j=1,nj
@@ -8729,9 +8713,7 @@
         enddo
     
         call rtkeb_addv(dum1,vtk,vdiag,vd_pgrad,v_pgrad)
-        !$acc compare(dum1)
         call getavg3d(dum1,savg)
-        !$acc compare(savg)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
@@ -8826,7 +8808,6 @@
           uub(k) = uub(k) + savg(k)
         enddo
 
-        !$acc compare(dum1)
         call rtkeb_addv(dum1,vtk,vdiag,vd_vadv,v_vadv)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -8891,7 +8872,6 @@
           wwb(k)  = 0.0
         enddo
 
-        !$acc compare(utk,udiag,u_hidiff)
         call rtkeb_addu(dum1,utk,udiag,ud_hidiff,u_hidiff)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -8901,17 +8881,13 @@
         enddo
 
         
-        !$acc compare(dum1,vtk,vdiag,vvb,savg)
         call rtkeb_addv(dum1,vtk,vdiag,vd_hidiff,v_hidiff)
-        !$acc compare(dum1)
         call getavg3d(dum1,savg)
-        !$acc compare(savg)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           vvb(k)  = vvb(k) + savg(k)
         enddo
-        !$acc compare(vvb,savg)
 
         call rtkeb_addw(dum1,wtk,wdiag,wd_hidiff,w_hidiff)
         call getavg3d(dum1,savg)
@@ -8923,16 +8899,13 @@
 
 
         call rtkeb_addu(dum1,utk,udiag,ud_vidiff,u_vidiff)
-        !$acc compare(dum1)
         call getavg3d(dum1,savg)
-        !$acc compare(savg)
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk
           tavg(k) = tavg(k) + savg(k)
           uub(k)  = uub(k) + savg(k)
         enddo
 
-        !$acc compare(vtk,vvb,vdiag,v_vidiff)
         call rtkeb_addv(dum1,vtk,vdiag,vd_vidiff,v_vidiff)
         call getavg3d(dum1,savg)
         !$acc parallel loop gang vector default(present) private(k)
@@ -8950,7 +8923,6 @@
         enddo
 
 
-        !$acc compare(tavg)
         call write3d(tavg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
         !......
@@ -8959,7 +8931,6 @@
         vardesc(nvar) = '<uu> budget: implicit diffusion term'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
-        !$acc compare(uub)
         call write3d(uub,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
         nvar = nvar+1
@@ -8967,7 +8938,6 @@
         vardesc(nvar) = '<vv> budget: implicit diffusion term'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 's'
-        !$acc compare(vvb)
         call write3d(vvb,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
         nvar = nvar+1
@@ -8975,7 +8945,6 @@
         vardesc(nvar) = '<ww> budget: implicit diffusion term'
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
-        !$acc compare(wwb)
         call write3d(wwb,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         !......
 
@@ -9244,7 +9213,6 @@
         enddo
         enddo
         enddo
-        !$acc compare(u_hadv,w_hadv)
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_hadv,wd_hadv,u_hadv,w_hadv)
         call   uwb_term(dum1,utk,wtk,udiag,wdiag,ud_vadv,wd_vadv,u_vadv,w_vadv)
 
@@ -9447,7 +9415,6 @@
         varunit(nvar) = 'm2/s3'
         vargrid(nvar) = 'w'
 
-        !$acc compare(v_hidiff,w_hidiff,v_vidiff,w_vidiff,vtk,wtk,vdiag,wdiag)
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
         do k=kb,ke
         do j=jb,je
@@ -9456,11 +9423,8 @@
         enddo
         enddo
         enddo
-        !$acc compare(dum1)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_hidiff,wd_hidiff,v_hidiff,w_hidiff)
-        !$acc compare(dum1)
         call   vwb_term(dum1,vtk,wtk,vdiag,wdiag,vd_vidiff,wd_vidiff,v_vidiff,w_vidiff)
-        !$acc compare(dum1)
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -9846,7 +9810,6 @@
 
     ENDIF
 
-      !$acc compare(wvar)
       !c-c-c-c-c-c-c-c-c-c
 
         nvar2d = nvar2d+1
@@ -10086,7 +10049,6 @@
     !-------------------------------------------------------
     !  u component:
 
-      !$acc compare(v3d,u3d,w3d,dum3)
       !$acc parallel default(present) private(i,j,k,cc1,cc2)
       !$acc loop gang vector 
       do k=1,nk+1
@@ -10222,7 +10184,6 @@
 
     !-------------------------------------------------------
     !  v component:
-    !$acc compare(v3d,w3d,dum3)
       !$acc parallel loop gang vector default(present) private(k)
       do k=1,nk+1
         vfr(k) = 0.0
@@ -10247,9 +10208,7 @@
 
       if(     weno_order.eq.5 )then
         print *,'momentum_flux: calling vinterp_{weno5,flx6}'
-        !$acc compare(dum3)
         call vinterp_weno5(  3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d ,  0 ,0,weps)
-        !$acc compare(dum3)
  
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum4, v3d )
       endif
@@ -10257,18 +10216,13 @@
     ELSE
 
         !buh3
-      !$acc compare(c1,c2,w3d,dum3,v3d)
       if(     vadvordrs.eq.5 )then
         print *,'momentum_flux: calling vinterp_{flx5,flx6}'
-        !$acc compare(dum3)
         call vinterp_flx5(   3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d )
-        !$acc compare(dum3)
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum4, v3d )
       elseif( vadvordrs.eq.6 )then
         print *,'momentum_flux: calling vinterp_flx6'
-        !$acc compare(dum3)
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d )
-        !$acc compare(dum3)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
         do j=1,nj

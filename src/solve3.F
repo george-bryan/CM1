@@ -360,9 +360,7 @@
       !print *,'solve3: point #3'
 
 
-      !$acc compare(rho)
       call bcs_GPU(rho)
-      !$acc compare(rho)
 #ifdef MPI
       call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
@@ -802,7 +800,6 @@
 !----------
 
 #ifdef MPI
-        !$acc compare(rho)
         !-----
         call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
         call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
@@ -816,7 +813,6 @@
         call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcs2_GPU(rf)
         !-----
-        !$acc compare(rho)
 #endif
       !print *,'solve3: point #14'
 
@@ -851,19 +847,14 @@
         call comm_3u_end_GPU( rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
         call comm_3v_end_GPU( rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
         call comm_3w_end_GPU( rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
-      !$acc compare(rru,rrv,rrw)
         call getcorneru3_GPU(rru,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      !$acc compare(rru,rrv,rrw)
         call getcornerv3_GPU(rrv,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      !$acc compare(rru,rrv,rrw)
         call getcornerw3_GPU(rrw,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
-      !$acc compare(rru,rrv,rrw)
         call bcu2_GPU(rru)
         call bcv2_GPU(rrv)
         call bcw2_GPU(rrw)
-      !$acc compare(rru,rrv,rrw)
 #endif
       !print *,'solve3: point #16'
         prltrn:  &
@@ -979,7 +970,6 @@
           enddo
           !$acc end parallel
 
-          !$acc compare(rho)
           !print *,'solve3: before call to droplet_driver' 
           call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
@@ -992,7 +982,6 @@
                                pdata_locind)
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
           !print *,'solve3: after call to droplet_driver' 
-          !$acc compare(dpten)
 #ifdef MPI
           call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,1))
           call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,2))
@@ -1000,7 +989,6 @@
           call bcs_tend_halo(dpten(ib,jb,kb,1))
           call bcs_tend_halo(dpten(ib,jb,kb,2))
 #endif
-      !$acc compare(dpten)
       !print *,'solve3: point #17'
           if(timestats.ge.1) time_dpc=time_dpc+mytime()
           if( nout3d.ge.2 )then
@@ -1047,7 +1035,6 @@
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
 #endif
-      !$acc compare(q3d,th3d)
       !print *,'solve3: point #18'
             !$omp parallel do default(shared) private(i,j,k)
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)

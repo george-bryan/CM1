@@ -2550,7 +2550,6 @@
       integer i,j,k
       real qcbot(nk),qctop(nk),bot,top,vart,varb
 
-      !$acc compare(zh,qci)
 !$acc data create(bot,top,qcbot,qctop)
 !$omp parallel do default(shared)  &
 !$omp private(k)
@@ -3062,12 +3061,10 @@
       cflmax = fmax
       print *,'calccflquick: ',cflmax
 #ifdef MPI
-!     !$acc compare(cflmax)
 !!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
 !     call mpi_wait(reqc,mpi_status_ignore,ierr)
 !!$acc update device(cflmax)
-!     !$acc compare(cflmax)
 ! interesting cflmax is never used.
 #endif
 
@@ -3105,7 +3102,6 @@
       real, dimension(nk) :: ks
       real :: kstmp
 
-      !$acc compare(uh,vh,kmh,kmv,khh,khv)
 
       !$acc data create(ks)
  
@@ -4098,7 +4094,6 @@
 #ifdef _B4B10R
       !$acc update device(tmfu,tmfd)
 #else
-      !$acc compare(tmfu,tmfd)
       !$acc end parallel
 #endif
 

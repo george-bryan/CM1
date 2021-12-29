@@ -12961,12 +12961,9 @@ print *, "comm_2dns_end_GPU: Im called"
       print *,'comm_all_s_GPU:'
       call comm_3s_start_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
       call comm_3s_end_GPU(  s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
-      !$acc compare(s)
       call getcorner3_GPU(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
                         s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      !$acc compare(s)
       call bcs2_GPU(s)
-      !$acc compare(s)
 
       end subroutine comm_all_s_GPU
 
@@ -13176,7 +13173,6 @@ print *, "prepcorners3: Im called"
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 #endif
       ENDIF
-      !$acc compare(s)
 
       IF( bbc.eq.1 .or. bbc.eq.2 .or. bbc.eq.3 )THEN
         ! extrapolate:
@@ -13270,7 +13266,6 @@ print *,"calling comm_1s2d_end_GPU from prepcorner2d"
       call bcs2_2d_GPU(s)
       call comm_2d_corner_GPU(s)
 #endif
-      !$acc compare(s)
        
       end subroutine prepcorner2d
 

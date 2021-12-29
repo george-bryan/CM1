@@ -75,8 +75,6 @@
 
 !---------------------------------------------------------------------
 
-    !$acc compare(u3d,v3d,w3d,pp3d)
-
     IF( nrkmax.eq.3 )THEN
       if(nrk.eq.1)then
 !!!        nloop=1

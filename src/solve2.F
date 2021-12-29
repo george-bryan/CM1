@@ -393,7 +393,6 @@
        !$acc present(bndy,kbdy)
 
 !--------------------------------------------------------------------
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 #ifdef MPI
       nf=0
       nu=0
@@ -422,7 +421,6 @@
 
         dttmp=dt/float(nrkmax+1-nrk)
 
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !--------------------------------------------------------------------
 !  Calculate misc. variables
 !
@@ -583,7 +581,6 @@
 #ifdef MPI
         call comm_1s_start_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
-      !$acc compare(t11)
 
 !--------------------------------------------------------------------
 !  Set RK tendency arrays:
@@ -602,7 +599,6 @@
         if(timestats.ge.1) time_misc14=time_misc14+mytime()
         !print *,'solve2: point #2'
 !--------------------------------------------------------------------
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
         IF(nrk.ge.2)THEN
 #ifdef MPI
           call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
@@ -617,13 +613,10 @@
             call bc2d_GPU(w3d(ib,jb,1))
           endif
         ENDIF
-        !$acc compare(u3d,v3d,w3d)
         !print *,'solve2: point #27'
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !--------------------------------------------------------------------
 !  Get rru,rrv,rrw,divx
 !  (NOTE:  do not change these arrays until after small steps)
-    !$acc compare(rru,rrv)
     IF(.not.terrain_flag)THEN
       ! without terrain:
 
@@ -720,10 +713,8 @@
     if(timestats.ge.1) time_advs=time_advs+mytime()
 
         !print *,'solve2: point #4'
-        !$acc compare(rrw)
         IF(terrain_flag)THEN
           call bcw_GPU(rrw,0)
-          !$acc compare(rrw)
 #ifdef MPI
           call comm_1w_start_GPU(rrw,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs_w)
@@ -731,7 +722,6 @@
                                ws1,ws2,wn1,wn2,reqs_w)
 #endif
         ENDIF
-        !$acc compare(rrw)
         !print *,'solve2: point #5'
 
       IF(.not.terrain_flag)THEN
@@ -1035,22 +1025,17 @@
           call bcs2_GPU(rho)
         ENDIF
 #endif
-        !$acc compare(rho)
         !print *,'solve2: point #7'
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,rru,rrv,rrw,u3d)
 !--------------------------------------------------------------------
 !  advection:
           call advu(nrk   ,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
                      rru,u3d,uten,rrv,rrw,rdsf,c1,c2,rho,dttmp,doubud,udiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,vf,mf,v3d,w3d)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
           call advv(nrk   ,xh,rxh,arh1,arh2,uh,xf,vh,vf,gz,rgz,gzv,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
                      rru,rrv,v3d,vten,rrw,rdsf,c1,c2,rho,dttmp,dovbud,vdiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,uf,mf,u3d,w3d)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
           call   advw(nrk   ,xh,rxh,arh1,arh2,uh,xf,vh,gz,rgz,mh,mf,rho0,rr0,rf0,rrf0,  &
                       dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx,                       &
                       rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       dowbud ,wdiag,hadvordrv,vadvordrv,advwenov,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 
 !--------------------------------------------------------------------
 !  Buoyancy
@@ -1138,7 +1123,6 @@
         call comm_1s_start_GPU(dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
         call comm_1s_end_GPU(  dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
 #endif
-      !$acc compare(dum6)
   
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -1158,7 +1142,6 @@
             dum1(i,j,nk+1) = 0.0
           enddo
         enddo
-      !$acc compare(dum1)
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -1198,7 +1181,6 @@
         call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
       ENDIF
 #endif
-      !$acc compare(pp3d)
       !print *,'solve2: point #10'
 
       IF( psolver.le.3 )THEN
@@ -1238,26 +1220,21 @@
         enddo
         weps = epsilon
         diffit = 0
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
         call advs(nrk,0,0,bfoo,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,gz,rgz,mh,rmh,           &
                    rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,divx,        &
                    rru,rrv,rrw,ppi,sadv,sten ,0,0,dttmp,weps,                             &
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                    .false.,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,1,1,1,              &
                    1,1,1,wprof,dumk1,dumk2,2,2,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
       endif
 
       ENDIF
 
-!$acc compare(u3d,v3d,w3d)
 !--------------------------------------------------------------------
 #ifdef MPI
         call comm_1s_end_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
-        !$acc compare(t11)
 #endif
 !--------------------------------------------------------------------
-!$acc compare(u3d,v3d,w3d)
 !  call sound
 
         get_time_avg = .false.
@@ -1282,21 +1259,6 @@
                          bndy,kbdy)
 
         ELSEIF( psolver.eq.2 .or. psolver.eq.7 )THEN
-!$acc compare(xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf)     
-!$acc compare(rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf)
-!$acc compare(pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs)
-!$acc compare(gz,rgz,gzu,rgzu,gzv,rgzv)
-!$acc compare(dzdx,dzdy,gx,gxu,gy,gyv)
-!$acc compare(radbcw,radbce,radbcs,radbcn,dtu,dtu0,dtv,dtv0)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(dum7,dum8,t12,t13,t23,t33)
-!$acc compare(u0,rru,ua,u3d,uten)
-!$acc compare(v0,rrv,va,v3d,vten)
-!$acc compare(rrw,wa,w3d,wten)
-!$acc compare(ppi,pp3d,sadv ,ppten,ppx)
-!$acc compare(t11,t22)
-!$acc compare(bndy,kbdy)
-!$acc compare(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2)
           get_time_avg = .true.
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1313,21 +1275,6 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-!$acc compare(xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf)     
-!$acc compare(rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf)
-!$acc compare(pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs)
-!$acc compare(gz,rgz,gzu,rgzu,gzv,rgzv)
-!$acc compare(dzdx,dzdy,gx,gxu,gy,gyv)
-!$acc compare(radbcw,radbce,radbcs,radbcn,dtu,dtu0,dtv,dtv0)
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!$acc compare(dum7,dum8,t12,t13,t23,t33)
-!$acc compare(u0,rru,ua,u3d,uten)
-!$acc compare(v0,rrv,va,v3d,vten)
-!$acc compare(rrw,wa,w3d,wten)
-!$acc compare(ppi,pp3d,sadv ,ppten,ppx)
-!$acc compare(t11,t22)
-!$acc compare(bndy,kbdy)
-!$acc compare(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2)
         ELSEIF(psolver.eq.3)THEN
 
           
@@ -1389,7 +1336,6 @@
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
 
         ENDIF
-      !$acc compare(dum1,dum4,dum5)
       !stop 'solve2: after solver_block'
 
 !--------------------------------------------------------------------
@@ -1504,7 +1450,6 @@
                         rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
       endif
     ENDIF
-      !$acc compare(dum1)
 
 !--------------------------------------------------------------------
 
@@ -1538,7 +1483,6 @@
                                 rs31,rs32,rn31,rn32,reqs_y)
         ENDIF
 #endif
-        !$acc compare(th3d)
         !print *,'solve2: point #14'
 
         ! note: t11 stores 3d divergence
@@ -1609,7 +1553,6 @@
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hadv,td_vadv,td_lsw, &
                    td_hidiff,td_vidiff,td_hediff,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-      !$acc compare(dum1,dum4,dum5)
       !print *,'solve2: point #14.1'
       !stop 'solve2: point #14.1'
 
@@ -1664,7 +1607,6 @@
                        ,reqs_q(1,n) )
       endif
 #endif
-      !$acc compare(q3d)
         !print *,'solve2: point #16'
         !stop 'solve2: after point #16'
 
@@ -1694,7 +1636,6 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
     ENDIF
-      !$acc compare(dum1,dum4,dum5)
 
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -1906,7 +1847,6 @@
       call comm_3w_start_GPU(w3d,ww31,ww32,we31,we32,   &
                              ws31,ws32,wn31,wn32,reqs_w)
 #endif
-      !$acc compare(u3d,v3d,w3d)
       IF(nrk.lt.nrkmax)THEN
         !call flush(6)
         !print *,'solve2: before bcs_GPU #3'
@@ -1920,7 +1860,6 @@
 #ifdef MPI
         call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
 #endif
-      !$acc compare(rho,pp3d)
         !call flush(6)
         !print *,'solve2: before bcs_GPU #5'
         call bcs_GPU(th3d)
@@ -1943,7 +1882,6 @@
           enddo
         ENDIF
       ENDIF
-      !$acc compare(th3d,q3d)
       !print *,'solve2: point #20'
 
 !--------------------------------------------------------------------
@@ -1969,7 +1907,6 @@
                                  tks1,tks2,tkn1,tkn2,reqs_tk)
         ENDIF
 #endif
-      !$acc compare(tke3d) 
       !print *,'solve2: point #20.1'
       !stop 'solve2: point #20.1'
 
@@ -1991,7 +1928,6 @@
                       dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx,                       &
                       rru,rrv,rrw,tke3d,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       .false.,wdiag,hadvordrs,vadvordrs,advwenos,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
-      !$acc compare(dum1,dum4,dum5)
 
         if( dotdwrite .and. kd_adv.ge.1 )then
         if( nrk.eq.nrkmax )then
@@ -2027,7 +1963,6 @@
           call comm_3t_start_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                    tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
-          !$acc compare(tke3d)
 
         ENDIF
         !print *,'solve2: point #21'
@@ -2073,7 +2008,6 @@
         call comm_3s_start_GPU(qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
         call comm_3s_end_GPU(  qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
 #endif
-        !$acc compare(qke3d)
         !print *,'solve2: point #22'
         weps = 10.0*epsilon
         diffit = 0
@@ -2085,7 +2019,6 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
       !print *,'solve2: after advs'
-      !$acc compare(dum1,dum4,dum5)
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2156,7 +2089,6 @@
                   reqs_t(1,n))
           ENDIF
 #endif
-        !$acc compare(pt3d)
         !print *,'solve2: point #24'
 
       weps = 1.0*epsilon
@@ -2169,7 +2101,6 @@
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
       print *,'solve2: after advs'
-      !$acc compare(dum1,dum4,dum5)
 
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) private(i,j,k)
@@ -2193,7 +2124,6 @@
                      ,ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n)     &
                      ,reqs_t(1,n) )
 #endif
-        !$acc compare(pt3d)
       ENDIF
         !print *,'solve2: point #26'
 
@@ -2322,7 +2252,7 @@
         !print *,'solve2: before bcs_GPU #9'
       DO n=1,npt
         if( pdtra.eq.1 ) then 
-            call pdefq_GPU(0.0,afoo,ruh,rvh,rmh,rho,pt3d(ib,jb,kb,n))
+            call pdefq2_GPU(0.0,afoo,ruh,rvh,rmh,rho,pt3d(ib,jb,kb,n))
         endif
         call bcs_GPU(pt3d(ib,jb,kb,n))
 #ifdef MPI
@@ -2332,7 +2262,6 @@
                      ,reqs_t(1,n) )
 #endif
       ENDDO
-      !$acc compare(pt3d)
     endif
 
 !--------------------------------------------------------------------

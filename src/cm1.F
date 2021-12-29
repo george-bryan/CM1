@@ -545,7 +545,8 @@
       nip1 = ni+1
       njp1 = nj+1
       nkp1 = nk+1
-      !$acc enter data copyin(nip1,njp1,nkp1)
+      nkm1 = nk-1
+      !$acc enter data copyin(nip1,njp1,nkp1,nkm1)
 
       nimax = ni
       njmax = nj
@@ -2629,7 +2630,6 @@
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
-          !!$acc compare(cflmax) 
           !$acc update device(cflmax)
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
@@ -2814,21 +2814,18 @@
     !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1) &
     !$acc copy(pdata_locind)
 
-    !$acc compare(lu_index)
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
     !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
     timeloop:  &
     DO WHILE( mtime.lt.timax )
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
       !print *,'cm1: at the top of the do-while loop'
       !$acc compare(dum1)
       ifsolve:  &
       if( dosolve )then
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
         ! call solve, integrate model one time step:
         nstep = nstep + 1
@@ -2974,7 +2971,6 @@
         !$acc compare(rho,tha)
         !$acc compare(khh,khv)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve1: pre-RK terms
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
         call     solve1(nstep,rbufsz,num_soil_layers,                  &
@@ -3050,7 +3046,6 @@
 !$acc compare(qbudget)
 !$acc compare(rru,rrv)
 !$acc compare(khh,khv)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_solve1
        ! stop 'cm1: after solve1' 
 !$acc compare(tha)
@@ -3067,7 +3062,6 @@
        !print *,'cm1: before solve2'
         !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -3144,7 +3138,6 @@
 !$acc compare(khh,khv)
 !$acc compare(tha)
 !$acc compare(qbudget)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #ifdef _NVTX
         call nvtxEndRange
 #endif
@@ -3164,7 +3157,7 @@
       !$acc compare(rho,q3d)
       if( ptype.eq.0 )then
         ! qv only:
-        call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
+        call pdefq2_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
       else
         call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
@@ -3189,15 +3182,12 @@
         call nvtxStartRange("solve3",id=3)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         if(timestats.ge.1) time_nvtx=time_nvtx+mytime()
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
 
 !print *,'cm1: before call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-!!$acc compare(se32)
 
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
@@ -3271,7 +3261,6 @@
 !$acc compare(khh,khv)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
 !$acc compare(tha,rru,rrv)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 !$acc compare(qbudget)
 #ifdef _NVTX
         call nvtxEndRange
@@ -3280,7 +3269,6 @@
 !print *,'cm1: after call to solve3'
 !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
 
@@ -3302,7 +3290,6 @@
       endif  ifsolve
       
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3337,7 +3324,6 @@
       !cc   radiation  ccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
 
       IF( radopt.ge.1 .and. dorad )THEN
@@ -3375,7 +3361,6 @@
 
       ENDIF
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       !cc   Prepare turbulence vars for next time step   cccccccccccccccccc
@@ -3399,7 +3384,6 @@
         call nvtxStartRange("srf_and_turb",id=5)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
@@ -3452,7 +3436,6 @@
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 !$acc compare(qbudget)
 !$acc compare(khh,khv)
 #ifdef _NVTX
@@ -3757,7 +3740,6 @@
 !        stop 'ERROR: parcel_interp not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
                                zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
                                zs,sigma,sigmaf,rds,gz,                 &
@@ -3778,7 +3760,6 @@
 !        stop 'ERROR: parcel_write not supported in OpenACC'
 !#endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 
         call     parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
         prec = prec+1
@@ -3889,7 +3870,6 @@
         stop 'ERROR: azimavg not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call   azimavg(nstep,mtime,nwritea,arecs,arecw,qname,dt,dosfcflx,      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,            &
@@ -3916,7 +3896,6 @@
                    dat1(1,1),dat2(1,1),dat3(1,1,1),                            &
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end_azimavg
         nwritea = nwritea+1
         if(azimavgfrq.gt.0.0)then
@@ -3947,7 +3926,6 @@
         stop 'ERROR: writeout_hifrq not supported in OpenACC'
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         call   writeout_hifrq(                                                 &
                    nstep,mtime,nwriteh,qname,dt,dosfcflx,                      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
@@ -3979,7 +3957,6 @@
                    sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,flag,               &
                    dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,reqs_s)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
-!!$acc compare(kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
         ! end hifrq
 
         nwriteh = nwriteh+1

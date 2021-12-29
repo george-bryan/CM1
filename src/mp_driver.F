@@ -642,8 +642,8 @@
           !!$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
           if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
-          call pdefq_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
-          call pdefq_GPU( qsmall,asq(2),ruh,rvh,rmh,rho,q3d(ib,jb,kb,2))
+          call pdefq2_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
+          call pdefq2_GPU( qsmall,asq(2),ruh,rvh,rmh,rho,q3d(ib,jb,kb,2))
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
@@ -658,7 +658,6 @@
           enddo
           enddo
           call geterain_GPU(dt,cpl,lv1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
-          !$acc compare(qbudget)
           if( efall.ge.1 .and. v_t.gt.1.0e-6 )then
             call getcvm_GPU(dum2,q3d)
             call getefall_GPU(1,cpl,mf,dum1,dum2,dum4,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))

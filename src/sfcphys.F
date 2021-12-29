@@ -256,7 +256,6 @@
 
   ENDIF  sfc_options
   !print *,'after sfc_options'
-  !$acc compare(cd,s10,u10,v10,ust)
 
 !-----------------------------------------------------------------------
 !  ch,cq:
@@ -1182,7 +1181,6 @@
 
 !-----------------------------------------------------------------------
 
-      !$acc compare(u1,v1,s1,t1)     
 #ifndef _B4B08R
       !$acc parallel default(present) &
       !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)

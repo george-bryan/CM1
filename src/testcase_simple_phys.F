@@ -123,7 +123,6 @@
                     -(uavg(k)+umove)*(v0(1,1,k)+vmove)*tem
         ENDDO
         !$acc end parallel
-        !$acc compare(ufrc,vfrc,uavg,vavg,thavg,cavg)
         !stop 'testcase_simple_phys: testcase={6 or 10}'
       ENDIF
 
@@ -449,7 +448,6 @@
         enddo
         !----
       enddo
-      !$acc compare(qa)
       !$acc parallel default(present) private(i,j,k)
       !print *,'nql{1,2}: ',nql1,nql2
 
@@ -465,7 +463,6 @@
       enddo
       !$acc end parallel
       !----
-      !$acc compare(dum2,rho0,ql,zf,qa)
       !$acc parallel default(present) private(i,j,k)
       do k=1,nk
         !$acc loop gang vector collapse(2)
@@ -533,7 +530,6 @@
 #else
       !$acc end parallel
 #endif
-      !$acc compare(frad,dum1)
       stop 'simplerad: at the end of the subroutine'
       end subroutine simplerad
 

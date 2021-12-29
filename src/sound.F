@@ -333,7 +333,6 @@
           !$acc update device(ppd)
         endif
 #endif
-       !$acc compare(ppd)
 
 !-----
 
@@ -710,7 +709,6 @@
           dum2(i,j,k) =  dd*r1
         enddo
         enddo
-        !$acc compare(mm,w3d,pk1,pk2,qk,pp3d,wten,fpk,dum1,dum2)
         !$acc parallel default(present) private(i,j,k,aa,bb,cc,dd,fwk,r1)
         print *,'asq: ',asq
         !$acc loop seq
@@ -736,7 +734,6 @@
         enddo
         !$acc end parallel
         !JMD The previous loop is not running correctly.
-        !$acc compare(w3d,dum1,dum2,wten,mm) 
         k = nk
 
         !$omp parallel do default(shared) private(i,j,aa,bb,cc,dd,fwk,r1)
@@ -755,7 +752,6 @@
         enddo
         enddo
 
-        !$acc compare(w3d,dum1,dum2,wten,mm) 
         !$acc parallel private(i,j,k)
         do k=(nk-1),2,-1
 
@@ -770,7 +766,6 @@
         enddo
         !$acc end parallel
 
-      !$acc compare(w3d,dum1,dum2,wten,mm) 
       IF( do_ib )THEN
           call zero_out_w(bndy,kbdy,w3d)
       ENDIF
@@ -780,7 +775,6 @@
 !-----------------------------------------------------------------------
 !  get new pp,th
 
-      !$acc compare(fpk,w3d,pk1,pk2,qk,ppd,pp3d)
       IF(.not.terrain_flag)THEN
         ! without terrain:
         !$omp parallel do default(shared) private(i,j,k)
@@ -840,7 +834,6 @@
           !$acc update device(ppd)
 #endif
         ENDIF
-        !$acc compare(dum1,ppd,pp3d)
 
 !--------------------------------------------------------------------
 !  time-averaged velocities:

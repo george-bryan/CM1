@@ -838,7 +838,6 @@
         train=train+bud(j)*dx*dy
       enddo
       !$acc end data
-      !$acc compare(prate,train)
 
       if(timestats.ge.1) time_fall=time_fall+mytime()
 

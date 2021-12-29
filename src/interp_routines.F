@@ -706,7 +706,6 @@
       else
         j2=nj+1
       endif
-    !$acc compare(rrw,a)
     !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wbar)
     DO j=j1,j2
@@ -722,7 +721,6 @@
       enddo
       enddo
     ENDDO
-    !$acc compare(dumz)!
 
     k = 3
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wbar)
@@ -738,7 +736,6 @@
         endif
       enddo
     ENDDO
-    !$acc compare(dumz)!
 
     k = nk-1
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wbar)
@@ -753,7 +750,6 @@
         endif
       enddo
     ENDDO
-    !$acc compare(dumz)!
 
     k = 2
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar,cc1,cc2)
@@ -771,7 +767,6 @@
         endif
       enddo
     ENDDO
-    !$acc compare(dumz)!
     k = nk
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar,cc1,cc2)
     DO j=j1,j2
@@ -788,7 +783,6 @@
       enddo
 
     ENDDO
-    !$acc compare(dumz)!
 
 
   ELSEIF( stag.eq.4 )THEN

@@ -4133,7 +4133,6 @@
 
   !.............................................
 
-    !$acc compare(ua)
     if(output_uinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'uinterp '
@@ -4156,7 +4155,6 @@
 
   !.............................................
 
-    !$acc compare(va)
     if(output_vinterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'vinterp '
@@ -4179,7 +4177,6 @@
 
   !.............................................
 
-    !$acc compare(wa)
     if(output_winterp.eq.1)then
       n_out = n_out + 1
       name_output(n_out) = 'winterp '
