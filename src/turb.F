@@ -4925,24 +4925,25 @@
     ELSE  icecheck
 
       ! liquid only:
-#ifdef _B4B06F
-      !$acc update host(th0,th,pi0,pp,qa,qt,mf,c1,c2,prs,t,qt,qvci)
-#else
-      !JMD-KLUDGE This loop does not appear to have a vertical dependency.... 
-      !$acc parallel default(present) &
-      !$acc private(i,j,k,pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
-      !$acc loop seq
-#endif
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       do k=2,nk
-#ifndef _B4B06F
-      ! Only do the two inner loops because of the vertical dependency of nm
-      !$acc loop gang vector collapse(2) 
-#endif
       do j=1,nj
       do i=1,ni
         t(i,j,k)=(th0(i,j,k)+th(i,j,k))*(pi0(i,j,k)+pp(i,j,k))
         thv(i,j,k)=(th0(i,j,k)+th(i,j,k))*(1.0+reps*qa(i,j,k,nqv))   &
                                          /(1.0+qt(i,j,k))
+      enddo
+      enddo
+      enddo
+#ifdef _B4B06F
+      !$acc update host(qt,mf,c1,c2,prs,t,qt,qvci)
+#else
+      !$acc parallel loop gang vector collapse(3) default(present) &
+      !$acc private(i,j,k,pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
+#endif
+      do k=2,nk
+      do j=1,nj
+      do i=1,ni
         ! subsaturated formulation:
         nm(i,j,k)=g*alog(thv(i,j,k)/thv(i,j,k-1))*rdz*mf(i,j,k)
 
