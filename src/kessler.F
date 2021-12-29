@@ -790,7 +790,7 @@
     enddo
     !$acc end parallel
 
-    !$acc parallel default(present) private(i,j,k,n)
+    !$acc parallel default(present) private(i,j,k,ll,n)
     !$acc loop gang vector collapse(3) 
     do k=1,nk
     do j=1,nj
@@ -805,7 +805,7 @@
     enddo
 
     !$acc end parallel
-    !$acc parallel default(present) private(i,j,n,nr)
+    !$acc parallel default(present) private(i,j,n,ll,nr)
     !$acc loop gang vector collapse(3)
     do nr=1,nrain
     do j=1,nj
@@ -820,7 +820,7 @@
     enddo
     enddo
     !$acc end parallel
-    !$acc parallel default(present) private(i,j,n)
+    !$acc parallel default(present) private(i,j,ll,n)
     !$acc loop gang vector collapse(2) 
     do j=1,nj
     do i=1,ni
