@@ -70,6 +70,9 @@
       logical :: dosfcflx
       logical, dimension(maxq) :: cloudvar,rhovar
       real, dimension(maxq) :: qmag
+      character(len=120) :: namelist_input
+      character(len=120) :: arg
+      logical :: different_namelist=.FALSE.
       character(len=3), dimension(maxq) :: qname
       character(len=20), dimension(maxq) :: qunit
       character(len=6), dimension(maxq) :: budname
@@ -354,6 +357,36 @@
 
       cm1version = 'cm1r20.2'
 
+      namelist_input = 'namelist.input'
+
+!----------------------------------------------------------------------
+!  Check to see if the user has specified a different namelist input
+!  file to use
+!
+      n = command_argument_count() 
+
+      do i = 1, n
+          call get_command_argument(number=i, value=arg, length=j)
+
+          select case(adjustl(arg))
+             case ('-n', '--namelist')
+                  different_namelist=.TRUE.
+              case ('-h', '--help')
+                  print *,'cammand line options:'
+                  print *,'-n, --namelist   set a different namelist input file (default: namelist.input)'
+                  print *,'-h, --help       print command line options'
+                  call exit(0) 
+              case default
+                  if(different_namelist) then
+                      namelist_input = adjustl(arg)
+                      different_namelist=.FALSE.
+                  else
+                      print *, 'Unrecognized command line option: ', arg
+                  endif
+          end select
+      end do 
+      print *, 'Using the namelist input file: ', namelist_input
+
 !----------------------------------------------------------------------
 !  For arbitrary 3d output array:  
 !
@@ -446,7 +479,7 @@
 !----------------------------------------------------------------------
 !  Get domain dimensions, allocate some arrays, then call PARAM
 
-      open(unit=20,file='namelist.input',form='formatted',status='old',    &
+      open(unit=20,file=namelist_input,form='formatted',status='old',    &
            access='sequential',err=8778)
       read(20,nml=param0)
       read(20,nml=param2)
@@ -1216,7 +1249,8 @@
       allocate( kn2(imp,kmt,4) )
       kn2 = 0.0
 
-      call       param(dt,dtlast,stattim,taptim,rsttim,radtim,prcltim,  &
+      call       param(namelist_input,                                  &
+                       dt,dtlast,stattim,taptim,rsttim,radtim,prcltim,  &
                        cloudvar,rhovar,qmag,qname,qunit,budname,        &
                        xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
                        yh,vh,rvh,yf,vf,rvf,xfref,xhref,yfref,yhref,     &

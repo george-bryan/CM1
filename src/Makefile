@@ -2,6 +2,17 @@
 #SHELL = /bin/csh
 
 #-----------------------------------------------------------------------------
+#
+# Change all boolean variables to lowercase
+#
+#-----------------------------------------------------------------------------
+USE_OPENMP_L =  $(shell echo $(USE_OPENMP) | tr A-Z a-z)
+USE_MPI_L =  $(shell echo $(USE_MPI) | tr A-Z a-z)
+USE_DOUBLE_L =  $(shell echo $(USE_DOUBLE) | tr A-Z a-z)
+USE_OPENACC_L =  $(shell echo $(USE_OPENACC) | tr A-Z a-z)
+DEBUG_L =  $(shell echo $(DEBUG) | tr A-Z a-z)
+
+#-----------------------------------------------------------------------------
 #                      NETCDF SECTION
 #  (uncomment the following four lines if you want netcdf output capability)
 #   (also, make sure the paths to netcdf files are correct for your machine)
@@ -19,168 +30,254 @@
 #                     HARDWARE SECTION
 #-- Choose the appropriate architecture, and uncomment all lines 
 #-- in that section.  See "README.compile" for more information.
+
+ifeq (${FC},ifort)
 #-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},false)
 #  single processor, Intel compiler 
 #      (eg, NCAR's yellowstone/caldera/cheyenne)
-#FC   = ifort
-#OPTS = -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma -init=snan,arrays -traceback
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+override FC   = ifort
+OPTS = -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma -init=snan,arrays -traceback
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+endif
+endif
 #-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},true)
+ifeq (${USE_OPENMP_L},false)
 ##  multiple processors, distributed memory (MPI), Intel compiler 
 ##      (eg, NCAR's yellowstone/cheyenne)
-#FC   = mpif90
-#OPTS = -O3 -g -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DM   = -DMPI
+override FC   = mpif90
+OPTS = -O3 -pg -g -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+DM   = -DMPI
+endif
+endif
 #-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},true)
 #  multiple processors, shared memory (OpenMP), Intel compiler 
 #      (eg, NCAR's yellowstone/cheyenne)
-#FC   = mpif90
-#OPTS = -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma -qopenmp
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#OMP  = -DOPENMP
+override FC   = mpif90
+OPTS = -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -no-fma -qopenmp
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+OMP  = -DOPENMP
+endif
+endif
 #-----------------------------------------------------------------------------
+endif
+
+
+ifeq (${FC},pgf90)
+ifeq (${USE_OPENACC_L},false)
+#-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},false)
+ifeq (${USE_DOUBLE_L},false)
 ##  single processor, Portland Group compiler
-#FC   = pgf90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mnofma
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+override FC   = pgf90
+OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mnofma
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+endif
+endif
+endif
+#-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},false)
+ifeq (${USE_DOUBLE_L},true)
+#  single processor, Portland Group compiler, double precision
+override FC   = pgf90
+OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -r8
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+DP   = -DDP
+endif
+endif
+endif
+#-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},true)
+ifeq (${USE_DOUBLE_L},true)
+#  multiple processors, shared memory (OpenMP), Portland Group compiler, double precision
+override FC   = pgf90
+OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -r8 -mp
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+DP   = -DDP
+OMP  = -DOPENMP
+endif
+endif
+endif
+#-----------------------------------------------------------------------------
+#  multiple processors, shared memory (OpenMP), Portland Group compiler
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},true)
+ifeq (${USE_DOUBLE_L},false)
+override FC   = pgf90
+OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -mp
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+OMP  = -DOPENMP
+endif
+endif
+endif
+#-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},true)
+ifeq (${USE_OPENMP_L},false)
+ifeq (${USE_DOUBLE_L},false)
+##  multiple processors, distributed memory (MPI), Portland Group compiler
+override FC   = mpif90
+OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+DM   = -DMPI
+endif
+endif
+endif
+endif
+
+ifeq (${USE_OPENACC_L},true)
+ifeq (${USE_OPENMP_L},false)
+ifeq (${USE_DOUBLE_L},false)
 #-----------------------------------------------------------------------------
 #  single processor + GPU, Portland Group compiler
-FC   = pgf90
+ifeq (${USE_MPI_L},false)
+override FC   = pgf90
 CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding 
 #
+ifeq (${DEBUG_L},false)
 # -------PERF-------
-OPTS = -Mfree -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
+OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
 DM   = -D_OPENACC
+endif
 # -------END PERF------
 #
-# -------DEBUG------
-#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O1 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-
-# This set of compiler flags induces a variable not present on device error  
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,redundant,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-
-#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-##OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#DM   = -D_OPENACC -D_B4B
-# -------END DEBUG------
-#
-#
+# -------DEBUG_L------
+ifeq (${DEBUG_L},true)
+OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+DM   = -D_OPENACC -D_B4B
+endif
+# -------END DEBUG_L------
 # if NVTX performance analysis
 # LINKOPTS = -lnvToolsExt -v
-#-----------------------------------------------------------------------------
-##  multiple processors, distributed memory (MPI), Portland Group compiler
-#FC   = mpif90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DM   = -DMPI
+endif
 #-----------------------------------------------------------------------------
 #  multiple processors + GPU,  distributed memory (MPI), Portland Group compiler
-#FC   = mpif90
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+ifeq (${USE_MPI_L},true)
+override override FC  = mpif90
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #
+ifeq (${DEBUG_L},false)
 # -------PERF-------
-##OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
-##OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
-
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo -Ktrap=none -Mnoinline -Minline=reshape -Minfo=accel
-
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo -Ktrap=none -Mautoinline -Minline=reshape -Minfo=accel
-
-#REDUNDANT 
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,redundant,math_uniform,nofma -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -Mnofma
-
-#BASE
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform,nofma -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -Mnofma
-
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform,nofma -Mnofma -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
-
-#DM   = -DMPI -D_OPENACC 
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel -ta=tesla:cc70,lineinfo,nofma
+#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel -ta=tesla:cc70,lineinfo
+OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Minfo=accel
+DM   = -DMPI -D_OPENACC 
+endif
 # -------END PERF------
 #
-# -------DEBUG------
-#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O0 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-#DM   = -DMPI -D_OPENACC -D_B4B
-# -------END DEBUG------
+ifeq (${DEBUG_L},true)
+# -------DEBUG_L------
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+DM   = -DMPI -D_OPENACC -D_B4B
+endif
+# -------END DEBUG_L------
 #
 # if NVTX performance analysis
 #LINKOPTS = -lnvToolsExt -v
 #-----------------------------------------------------------------------------
-#  multiple processors, shared memory (OpenMP), Portland Group compiler
-#FC   = pgf90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -mp
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#OMP  = -DOPENMP
+endif
+endif
+endif
+endif
+endif
+
+ifeq (${FC},gfortran)
 #-----------------------------------------------------------------------------
-#  single processor, Portland Group compiler, double precision
-#FC   = pgf90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -r8
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DP   = -DDP
-#-----------------------------------------------------------------------------
-#  multiple processors, shared memory (OpenMP), Portland Group compiler, double precision
-#FC   = pgf90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape -r8 -mp
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DP   = -DDP
-#OMP  = -DOPENMP
-#-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},false)
 #  single processor, GNU compiler
-#FC   = gfortran
-#OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+override FC   = gfortran
+OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+endif
+endif
+#-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},true)
+#  multiple processors, shared memory (OpenMP), GNU compiler
+override FC   = gfortran
+OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+OMP  = -DOPENMP
+endif
+endif
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), GNU compiler
-#FC = mpif90
-#OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DM = -DMPI
+ifeq (${USE_MPI_L},true)
+ifeq (${USE_OPENMP_L},false)
+override FC = mpif90
+OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+DM = -DMPI
+endif
+endif
 #-----------------------------------------------------------------------------
-#  multiple processors, shared memory (OpenMP), GNU compiler
-#FC   = gfortran
-#OPTS = -ffree-form -ffree-line-length-none -O2 -finline-functions -fopenmp
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#OMP  = -DOPENMP
+endif
+
+
+ifeq (${FC},ftn)
 #-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},false)
 #  single processor, Cray fortran compiler
 #      (eg, NCSA's bluewaters)
 #  Remember to enter this on command line first:  module load libfast
 #      (or, comment-out the "-lfast_mv" line below)
-#FC   = ftn
-#OPTS = -O3 -Ovector3 -Oscalar3 -Othread3 -h noomp
-#LINKOPTS = -lfast_mv
-#CPP  = cpp -C -P -traditional
+override FC   = ftn
+OPTS = -O3 -Ovector3 -Oscalar3 -Othread3 -h noomp
+LINKOPTS = -lfast_mv
+CPP  = cpp -C -P -traditional
+endif
+endif
 #-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},true)
+ifeq (${USE_OPENMP_L},false)
 #  multiple processors, distributed memory (MPI), Cray fortran compiler
 #      (eg, NCSA's bluewaters)
 #  Remember to enter this on command line first:  module load libfast
 #      (or, comment-out the "-lfast_mv" line below)
-#FC   = ftn
-#OPTS = -O3 -Ovector3 -Oscalar3 -Othread3 -h noomp
-#LINKOPTS = -lfast_mv
-#CPP  = cpp -C -P -traditional
-#DM   = -DMPI
+override FC   = ftn
+OPTS = -O3 -Ovector3 -Oscalar3 -Othread3 -h noomp
+LINKOPTS = -lfast_mv
+CPP  = cpp -C -P -traditional
+DM   = -DMPI
+endif
+endif
 #-----------------------------------------------------------------------------
+ifeq (${USE_MPI_L},false)
+ifeq (${USE_OPENMP_L},true)
 #  multiple processors, shared memory (OpenMP), Cray fortran compiler
 #      (eg, NCSA's bluewaters)
 #  Remember to enter this on command line first:  module load libfast
 #      (or, comment-out the "-lfast_mv" line below)
-#FC   = ftn
-#OPTS = -O3 -Ovector3 -Oscalar3 -Othread3 -h omp
-#LINKOPTS = -lfast_mv
-#CPP  = cpp -C -P -traditional
-#DM   = -DMPI
-#OMP  = -DOPENMP
+override FC   = ftn
+OPTS = -O3 -Ovector3 -Oscalar3 -Othread3 -h omp
+LINKOPTS = -lfast_mv
+CPP  = cpp -C -P -traditional
+DM   = -DMPI
+OMP  = -DOPENMP
+endif
+endif
+#-----------------------------------------------------------------------------
+endif
+
+$(info $$DEBUG_L is [${DEBUG_L}])
+$(info $$USE_MPI_L is [${USE_MPI_L}])
+$(info $$FC is [${FC}])
+$(info $$OPTS is [${OPTS}])
+$(info $$CPP is [${CPP}])
+$(info $$OMP is [${OMP}])
+$(info $$DM is [${DM}])
+
+
 #-----------------------------------------------------------------------------
 #-- You shouldn't need to change anything below here
 #-----------------------------------------------------------------------------
@@ -274,7 +371,6 @@ OBJS = $(addsuffix .o, $(basename $(SRC)))
 OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_NVTX)))
 
 FFLAGS  =  $(OPTS)
-FFLAGS1  =  $(OPTS1)
 AR      = ar cru
 
 .SUFFIXES:
@@ -291,21 +387,6 @@ cm1:			$(OBJS)
 .F.o:
 			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
 			$(FC) $(FFLAGS) $(OUTPUTINC) -c $*.f90
-
-# Specific flags for a subset of files
-#misclibs.o: misclibs.F
-#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) misclibs.F > $*.f90
-#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c misclibs.f90
-#sound.o: sound.F
-#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
-#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c $*.f90
-#sounde.o: sounde.F
-#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
-#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c $*.f90
-#soundcb.o: soundcb.F
-#			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
-#			$(FC) $(FFLAGS1) $(OUTPUTINC) -c $*.f90
-			
 
 code:
 			$(AR) onefile.F $(SRC)
