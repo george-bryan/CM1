@@ -235,8 +235,6 @@
 
   !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
   !stop 'droplet_driver: after first compare'
-  !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
-  ! GHB 210714:
     call prepcorners3_GPU( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
     call prepcorners3_GPU(rho,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
