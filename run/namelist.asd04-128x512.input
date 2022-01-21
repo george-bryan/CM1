@@ -82,7 +82,7 @@
  npt       =  1,
  pdtra     =  1,
  iprcl     =  1,
- nparcels  =  1000000,
+ nparcels  =  1000,
  /
 
  &param3

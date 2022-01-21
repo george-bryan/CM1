@@ -290,7 +290,7 @@
       endif
         !JMD Probably should remove this update host(khh) call
         !!$acc update host(khh)
-        print *,'maxval(khh): ',maxval(khh)
+        !print *,'maxval(khh): ',maxval(khh)
         if(stat_kh.eq.1) call maxmin(ni,nj,nkp1,khh,nstat,rstat,kmin,kmax,'KHHMAX','KHHMIN')
       if( sgsmodel.ge.1 .or. ipbl.eq.2 )then
         if(stat_kh.eq.1) call maxmin(ni,nj,nk+1,khv,nstat,rstat,kmin,kmax,'KHVMAX','KHVMIN')
