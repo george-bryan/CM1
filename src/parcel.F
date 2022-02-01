@@ -1089,6 +1089,7 @@
 !        the find_vertical_location_index subroutine and 
 !        lead to invalid access to zf(iflag,jflag,kflag);
 !        revert to the old implementation
+        if( .not. terrain_flag )then
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
@@ -1097,7 +1098,7 @@
             kflag = kflag+1
           enddo
         endif
-
+        pdata_locind(np,3) = kflag
 #if 0
         IF(debug)THEN
         if( kflag.le.0 .or. kflag.ge.(nk+1) )then
