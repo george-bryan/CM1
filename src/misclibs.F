@@ -3053,6 +3053,7 @@
 
 !!!      cflmax = fmax
 
+      print *,'calccfl: fmax is: ',fmax
       if(fmax.ge.1.50) stopit=.true.
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
@@ -3092,9 +3093,8 @@
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
 
-      fmax=-99999999.
-
       !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
+      fmax=-99999999.
       if(nx.gt.1.and.ny.gt.1)then
         !print *,'calcflquick: point #1'
         !$omp parallel do default(shared) private(i,j,k,wsp) reduction(max:fmax)
@@ -3106,7 +3106,7 @@
                        +((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2 )   &
                        +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
           fmax = max(fmax,wsp)
-!!!          if( wsp.ge.1.30 ) print *,'  cfl,myid,i,j,k = ',wsp,myid,i,j,k
+          ! if( abs(wsp).ge.1.30 ) print *,'  cfl,i,j,k = ',wsp,i,j,k
           enddo
           enddo
         enddo
@@ -3139,10 +3139,11 @@
           enddo
         enddo
       endif
+      !print *,'calccflquick: ',fmax
       !$acc end parallel
 
       cflmax = fmax
-      !print *,'calccflquick: ',cflmax
+      !print *,'calccflquick: afterloop: ',cflmax
 #ifdef MPI
 !!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
@@ -3151,8 +3152,8 @@
 ! interesting cflmax is never used.
 #endif
 
-!!!      if(cflmax.ge.1.50) stopit=.true.
-    ! stop 'calcflquick: end of subroutine'
+      if(cflmax.ge.1.50) stopit=.true.
+          !stop 'calcflquick: end of subroutine'
 
 
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
@@ -3281,7 +3282,10 @@
       !$acc update device(ksmax)
 #endif
 
-!!!      if(ksmax.ge.0.50) stopit=.true.
+      if(ksmax.ge.0.50) then 
+         stopit=.true.
+         stop 'calcksquick: end of subroutine'
+      endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
  
@@ -3682,19 +3686,11 @@
       double precision, dimension(nk) :: foo
       double precision :: foot
 
-!$acc data create(tmass,foo)
-!!$omp parallel do default(shared)  &
-!!$omp private(k)
-!!$acc parallel loop gang vector default(present) private(k)
-!      do k=1,nk
-!        foo(k)=0.0d0
-!      enddo
- 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
 #ifdef _B4B07R
       !$acc update host(rho,qv,ql,qi,ruh,rvh,rmh)
 #else
+      !$acc data create(tmass,foo)
+      !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
       !$acc loop gang
 #endif
@@ -3718,9 +3714,7 @@
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
-#ifdef _B4B07R
-      !!$acc update device(tmass)
-#else
+#ifndef _B4B07R
       !$acc end parallel
 #endif
 
@@ -3732,11 +3726,9 @@
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!!$acc update device(tmass)
       if(myid.eq.0)then
 #endif
 
-!!!      tmass=tmass*(dx*dy*dz)+train
       ! cm1r18:  do not include rain:
       tmass=tmass*(dx*dy*dz)
 
@@ -3752,7 +3744,9 @@
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
+#ifndef _B4B07R
 !$acc end data
+#endif
  
       end subroutine totmois
 
@@ -3783,19 +3777,11 @@
       double precision, dimension(nk) :: foo
       double precision :: foot
 
-!$acc data create(tmass,foo)
-!!$omp parallel do default(shared)  &
-!!$omp private(k)
-!!$acc parallel loop gang vector default(present) private(k)
-!      do k=1,nk
-!        foo(k)=0.0d0
-!      enddo
-
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k)
 #ifdef _B4B08R
       !$acc update host(rho,q,ruh,rvh,rmh)
 #else
+      !$acc data create(tmass,foo)
+      !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:tmass,foot)
       !$acc loop gang
 #endif
@@ -3819,9 +3805,7 @@
       do k=1,nk
         tmass=tmass+foo(k)
       enddo
-#ifdef _B4B08R
-      !!$acc update device(tmass)
-#else
+#ifndef _B4B08R
       !$acc end parallel
 #endif
 
@@ -3851,7 +3835,9 @@
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
+#ifndef _B4B08R
 !$acc end data
+#endif
 
       end subroutine totq
 

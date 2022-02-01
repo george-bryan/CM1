@@ -2665,9 +2665,9 @@
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
           !$acc update device(cflmax)
+          print *,'cm1: cflmax: ',cflmax
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
-          print *,'cm1: cflmax: ',cflmax
 #endif
           if( cm1setup.ge.1 )then
             call calcksquick(dt,uh,vh,mf,kmh,kmv,khh,khv,reqk)
@@ -3096,6 +3096,7 @@
        !print *,'cm1: before solve2'
         !$acc compare(rho)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(ust,u1,v1,s1)
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -3222,6 +3223,7 @@
 
 !print *,'cm1: before call to solve3'
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(ust,u1,v1,s1)
 
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
@@ -3418,6 +3420,7 @@
         call nvtxStartRange("srf_and_turb",id=5)
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+!$acc compare(ust,u1,v1,s1)
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
