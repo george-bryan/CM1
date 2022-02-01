@@ -174,8 +174,8 @@ endif
 #
 ifeq (${DEBUG_L},true)
 # -------DEBUG_L------
-#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
-OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+#OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,redundant,math_uniform -Ktrap=none -Mnoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
+OPTS = -Mfree -g -O2 -acc -gpu=cc70,lineinfo,nofma,redundant,math_uniform -Ktrap=none -Mautoinline -Minline=reshape -Mpcast -Mnofma -Minfo=accel
 DM   = -DMPI -D_OPENACC -D_B4B
 endif
 # -------END DEBUG_L------
