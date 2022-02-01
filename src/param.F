@@ -7,7 +7,8 @@
 
   CONTAINS
 
-      subroutine param(dt,dtlast,stattim,taptim,rsttim,radtim,prcltim,  &
+      subroutine param(namelist_input,                                  &
+                       dt,dtlast,stattim,taptim,rsttim,radtim,prcltim,  &
                        cloudvar,rhovar,qmag,qname,qunit,budname,        &
                        xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
                        yh,vh,rvh,yf,vf,rvf,xfref,xhref,yfref,yhref,     &
@@ -62,7 +63,8 @@
       use goddard_module, only : consat,consat2
       use lfoice_module, only : lfoice_init
       implicit none
-
+ 
+      character(len=120) :: namelist_input
       real :: dt,dtlast
       double precision :: stattim,taptim,rsttim,radtim,prcltim
       logical, dimension(maxq) :: cloudvar,rhovar
@@ -194,7 +196,7 @@
       if(myid.eq.0)then
 #endif
 
-      open(unit=20,file='namelist.input',form='formatted',status='old',    &
+      open(unit=20,file=namelist_input,form='formatted',status='old',    &
            access='sequential',err=8000)
       read(20,nml=param1)
       read(20,nml=param2)
