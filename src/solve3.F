@@ -148,7 +148,8 @@
       use comm_module
       use adv_routines, only : movesfc
       use misclibs
-      use parcel_module, only : parcel_driver,droplet_driver
+      use parcel_module, only : parcel_driver
+      use droplet_module, only : droplet_driver
       use pdcomp_module, only : pidcomp
       use lsnudge_module
       use ib_module

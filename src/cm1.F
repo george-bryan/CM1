@@ -2626,7 +2626,7 @@
       if( adapt_dt.eq.1 )then
         dt = dbldt
         if( .not. restarted )then
-          print *,'cm1: before call to calccflquick: ',dbldt
+          !print *,'cm1: before call to calccflquick: ',dbldt
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
