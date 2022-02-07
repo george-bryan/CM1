@@ -3143,7 +3143,7 @@
       !$acc end parallel
 
       cflmax = fmax
-      !print *,'calccflquick: afterloop: ',cflmax
+      !print *,'calccflquick: ',cflmax
 #ifdef MPI
 !!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
