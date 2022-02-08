@@ -45,60 +45,60 @@ LINKOPTS      += -lnetcdf -lnetcdff
 #  NVHPC compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},nvfortran)
-ifeq (${DEBUG_L},true)
-OPTS          += -g -O0
-DM            += -D_B4B
-else
-OPTS          += -O2
-endif
-OPTS          += -Mfree -Ktrap=none -Mautoinline -Minline=reshape
-CPP           += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-ifeq (${USE_DOUBLE_L},true)
-OPTS          += -r8
-DP            += -DDP
-endif
-ifeq (${USE_OPENMP_L},true)
-OPTS          += -mp
-OMP           += -DOPENMP
-endif
-ifeq (${USE_OPENACC_L},true)
-ifeq (${DEBUG_L},true)
-OPTS          += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Mnofma
-else
-OPTS          += -acc -gpu=cc70,lineinfo,math_uniform -Mpcast -Minfo=accel
-endif
-DM            += -D_OPENACC
-endif
+    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape
+    CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+    ifeq (${DEBUG_L},true)
+         OPTS    += -g -O0
+         DM      += -D_B4B
+    else
+         OPTS    += -O2
+    endif
+    ifeq (${USE_DOUBLE_L},true)
+         OPTS    += -r8
+         DP      += -DDP
+    endif
+    ifeq (${USE_OPENMP_L},true)
+         OPTS    += -mp
+         OMP     += -DOPENMP
+    endif
+    ifeq (${USE_OPENACC_L},true)
+        ifeq (${DEBUG_L},true)
+            OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Mnofma
+        else
+            OPTS += -acc -gpu=cc70,lineinfo,math_uniform -Mpcast -Minfo=accel
+        endif
+        DM       += -D_OPENACC
+    endif
 endif
 
 #-----------------------------------------------------------------------------
 #  PGI compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},pgf90)
-ifeq (${DEBUG_L},true)
-OPTS          += -g -O0
-DM            += -D_B4B
-else
-OPTS          += -O2
-endif
-OPTS          += -Mfree -Ktrap=none -Mautoinline -Minline=reshape
-CPP           += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-ifeq (${USE_DOUBLE_L},true)
-OPTS          += -r8
-DP            += -DDP
-endif
-ifeq (${USE_OPENMP_L},true)
-OPTS          += -mp
-OMP           += -DOPENMP
-endif
-ifeq (${USE_OPENACC_L},true)
-ifeq (${DEBUG_L},true)
-OPTS          += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Mnofma
-else
-OPTS          += -acc -gpu=cc70,lineinfo,math_uniform -Mpcast -Minfo=accel
-endif
-DM            += -D_OPENACC
-endif
+    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape
+    CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+    ifeq (${DEBUG_L},true)
+         OPTS    += -g -O0
+         DM      += -D_B4B
+    else
+         OPTS    += -O2
+    endif
+    ifeq (${USE_DOUBLE_L},true)
+         OPTS    += -r8
+         DP      += -DDP
+    endif
+    ifeq (${USE_OPENMP_L},true)
+         OPTS    += -mp
+         OMP     += -DOPENMP
+    endif
+    ifeq (${USE_OPENACC_L},true)
+        ifeq (${DEBUG_L},true)
+            OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Mnofma
+        else
+            OPTS += -acc -gpu=cc70,lineinfo,math_uniform -Mpcast -Minfo=accel
+        endif
+        DM       += -D_OPENACC
+    endif
 endif
 
 #-----------------------------------------------------------------------------
@@ -109,47 +109,47 @@ endif
 #  Intel compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},ifort)
-OPTS          += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback
-CPP           += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-ifeq (${USE_OPENMP_L},true)
-OPTS          += -qopenmp
-OMP           += -DOPENMP
-endif
+    OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback
+    CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+    ifeq (${USE_OPENMP_L},true)
+        OPTS     += -qopenmp
+        OMP      += -DOPENMP
+    endif
 endif
 
 #-----------------------------------------------------------------------------
 #  GNU compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},gfortran)
-OPTS          += -ffree-form -ffree-line-length-none -O2 -finline-functions
-CPP           += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-ifeq (${USE_OPENMP_L},true)
-OPTS          += -fopenmp
-OMP           += -DOPENMP
-endif
+    OPTS         += -ffree-form -ffree-line-length-none -O2 -finline-functions
+    CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+    ifeq (${USE_OPENMP_L},true)
+        OPTS     += -fopenmp
+        OMP      += -DOPENMP
+    endif
 endif
 
 #-----------------------------------------------------------------------------
 #  Cray compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},ftn)
-OPTS          += -O3 -Ovector3 -Oscalar3 -Othread3
-LINKOPTS      += -lfast_mv
-CPP           += cpp -C -P -traditional
-ifeq (${USE_OPENMP_L},true)
-OPTS          += -h omp
-OMP           += -DOPENMP
-else
-OPTS          += -h noomp
-endif
+    OPTS         += -O3 -Ovector3 -Oscalar3 -Othread3
+    LINKOPTS     += -lfast_mv
+    CPP          += cpp -C -P -traditional
+    ifeq (${USE_OPENMP_L},true)
+        OPTS     += -h omp
+        OMP      += -DOPENMP
+    else
+        OPTS     += -h noomp
+    endif
 endif
 
 #-----------------------------------------------------------------------------
 #  Distributed memory (MPI)
 #-----------------------------------------------------------------------------
 ifeq (${USE_MPI_L},true)
-DM            += -DMPI
-override FC   = mpif90
+    DM           += -DMPI
+    override FC  = mpif90
 endif
 
 $(info $$DEBUG_L is [${DEBUG_L}])
