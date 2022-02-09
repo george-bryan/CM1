@@ -307,14 +307,14 @@
       iflag = 1
     ELSE
       ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+1, iflag) 
+      call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
     ENDIF
 
     IF(axisymm.eq.1.or.ny.eq.1)THEN
       jflag = 1
     ELSE
       ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+1, jflag)  
+      call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
     ENDIF
 
   ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
@@ -337,9 +337,9 @@
 
       kflag = 1
       if( .not. terrain_flag )then
-        call find_vertical_location_index (pdata_locind(:,3), np, z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .TRUE.)
+        call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .TRUE.)
       else
-        call find_vertical_location_index (pdata_locind(:,3), np, sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
+        call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
       endif
 !      !Store these for two-way coupling
 !      iflag_s=iflag
@@ -385,14 +385,14 @@
           iflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+2, iflag)
+          call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+2, iflag)
         ENDIF
 
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           jflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+2, jflag)
+          call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+2, jflag)
         ENDIF
         i=iflag
         j=jflag
@@ -1052,13 +1052,13 @@
           iflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(:,1), np, x3d, ib, ie+1, xf, ni+2, iflag)
+          call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+2, iflag)
         ENDIF
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           jflag = 1
         ELSE
           ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(:,2), np, y3d, jb, je+1, yf, nj+2, jflag)
+          call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+2, jflag)
           if(mod(np,PITER)==0) then
              print *,'after dowhile loop: ',jflag
           endif
@@ -1088,56 +1088,19 @@
         !print *,'droplet_driver: point #4'
         kflag = 1
 ! JS - jflag could be negative somehow, which will break
-!        the find_vertical_location_index subroutine;
-!        use the original interface but with the 
-!        pdata_locind(:,3) here
-!    - z3d could be NaN somehow, reset kflag = 1 to be 
-!        consistent with the original implementation
-#ifdef _VERIFY_FIND_LOC
-        tmp_flag = kflag
-#endif
-        kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
-        if ( z3d .ne. z3d ) kflag = 1
+!        the find_vertical_location_index subroutine and 
+!        lead to invalid access to zf(iflag,jflag,kflag);
+!        revert to the old implementation
         if( .not. terrain_flag )then
-          if ( z3d.lt.zf(iflag,jflag,kflag) ) then
-            kflag = 1
-          end if
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
-          pdata_locind(np,3) = kflag
-#ifdef _VERIFY_FIND_LOC
-          do while( z3d.gt.zf(iflag,jflag,tmp_flag+1) )
-            tmp_flag = tmp_flag+1
-          enddo
-          if ( kflag .ne. tmp_flag ) then
-            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
-            stop "Failed verification test: z index is not the same..."
-          else
-            print *, "Pass the verification test for z index..."
-          end if
-#endif
         else
-          if ( sig3d.lt.sigmaf(kflag) ) then
-            kflag = 1
-          end if
           do while( sig3d.gt.sigmaf(kflag+1) )
             kflag = kflag+1
           enddo
-          pdata_locind(np,3) = kflag
-#ifdef _VERIFY_FIND_LOC
-          do while( sig3d.gt.sigmaf(tmp_flag+1) )
-            tmp_flag = tmp_flag+1
-          enddo
-          if ( kflag .ne. tmp_flag ) then
-            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
-            stop "Failed verification test: z index is not the same..."
-          else
-            print *, "Pass the verification test for z index..."
-          end if
-#endif
         endif
-
+        pdata_locind(np,3) = kflag
 #if 0
         IF(debug)THEN
         if( kflag.le.0 .or. kflag.ge.(nk+1) )then
@@ -3888,7 +3851,7 @@
       ! These two subroutines are added by following John Dennis's suggestion
       !      to optimize the location search for a parcel in a process
 
-      subroutine find_horizontal_location_index (loc_ind, par_id, loc, lb, ub, dsize, end_ind, ind)
+      subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
       !$acc routine seq
 
       use input
@@ -3896,8 +3859,7 @@
 
       implicit none
 
-      integer, dimension(nparcels), intent(inout) :: loc_ind    ! array to store x/y location index
-      integer,                      intent(in)    :: par_id     ! parcel index in pdata
+      integer,                      intent(inout) :: loc_ind    ! x/y location index of a parcel
       real,                         intent(in)    :: loc        ! current x/y location of a parcel
       integer,                      intent(in)    :: lb, ub     ! lower and upper bounds of dsize
       real, dimension(lb:ub),       intent(in)    :: dsize      ! range of x/y dimension
@@ -3917,13 +3879,13 @@
       ! - If input x/y location is outside the x/y range, return directly
       if ( loc .lt. dsize(lb) .or. loc .gt. dsize(end_ind) ) return
 
-      if ( loc_ind(par_id) .ne. undefined_index ) then
-         i = min (end_ind, loc_ind(par_id) + location_offset)
-         do while( ind .lt. 0 .and. i .gt. loc_ind(par_id) - location_offset - 1 )
+      if ( loc_ind .ne. undefined_index ) then
+         i = min (end_ind, loc_ind + location_offset)
+         do while( ind .lt. 0 .and. i .gt. loc_ind - location_offset - 1 )
             i = i - 1
             if ( loc .ge. dsize(i) .and. loc .le. dsize(i+1) ) then
                ind = i
-               loc_ind(par_id) = ind
+               loc_ind = ind
             end if
          end do
          ! Sanity check: 
@@ -3938,7 +3900,7 @@
                i = i - 1
                if ( loc .ge. dsize(i) .and. loc .le. dsize(i+1) ) then
                   ind = i
-                  loc_ind(par_id) = ind
+                  loc_ind = ind
                end if
             end do
          end if
@@ -3966,14 +3928,14 @@
             i = i - 1
             if ( loc .ge. dsize(i) .and. loc .le. dsize(i+1) ) then
                ind = i
-               loc_ind(par_id) = ind
+               loc_ind = ind
             end if
          end do
       end if
 
       end subroutine find_horizontal_location_index
 
-      subroutine find_vertical_location_index (loc_ind, par_id, loc, lb, ub, dsize, ind, is_ge)
+      subroutine find_vertical_location_index (loc_ind, loc, lb, ub, dsize, ind, is_ge)
       !$acc routine seq
 
       use input
@@ -3981,8 +3943,7 @@
 
       implicit none
 
-      integer, dimension(nparcels), intent(inout) :: loc_ind    ! array to store z location index
-      integer,                      intent(in)    :: par_id     ! parcel index in pdata
+      integer,                      intent(inout) :: loc_ind    ! z location index of a parcel
       real,                         intent(in)    :: loc        ! current z location of a parcel
       integer,                      intent(in)    :: lb, ub     ! lower and upper bounds of dsize
       real, dimension(lb:ub),       intent(in)    :: dsize      ! range of z dimension
@@ -4002,8 +3963,8 @@
       ! - If input x/y location is outside the x/y range, return directly
       if ( loc .lt. dsize(lb) .or. loc .gt. dsize(ub) ) return
 
-      if ( loc_ind(par_id) .ne. undefined_index ) then 
-         i = max (ind, loc_ind(par_id) - location_offset - 1)
+      if ( loc_ind .ne. undefined_index ) then 
+         i = max (ind, loc_ind - location_offset - 1)
          ! Sanity check: 
          ! - If a parcel falls too low and outside search range,
          !      this scheme would fail;
@@ -4053,7 +4014,7 @@
             end do
          end if
       end if
-      loc_ind(par_id) = ind 
+      loc_ind = ind 
 
       end subroutine find_vertical_location_index
 
