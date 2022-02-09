@@ -257,7 +257,7 @@
       integer reqs(8)
       integer tag1,tag2,tag3,tag4
       integer, dimension(mpi_status_size,8) :: status1
-      logical, parameter :: Debug =.TRUE.
+      logical, parameter :: Debug =.FALSE.
 !-----
 
       nr = 0
@@ -689,7 +689,7 @@
       integer reqs(8)
       integer tag1,tag2,tag3,tag4
       integer, dimension(mpi_status_size,8) :: status1
-      logical, parameter :: Debug =.TRUE.
+      logical, parameter :: Debug =.FALSE.
 
 !-----
 #ifndef _GPUDIRECT02
@@ -2970,7 +2970,7 @@
       !$acc present(south,newsouth,north,newnorth)
 
 #ifndef _GPUDIRECT07
-      if(Debug) print *,'comm_2sn_start_GPU:'
+      !if(Debug) print *,'comm_2sn_start_GPU:'
 #endif
 !----------
       nr = 0
@@ -4163,7 +4163,7 @@
 
       integer i,j,k,nr
       integer tag1,tag2,tag3,tag4
-      logical, parameter :: Debug =.TRUE.
+      logical, parameter :: Debug =.FALSE.
       !$acc declare present(t) &
       !$acc present(west,newwest,east,neweast) &
       !$acc present(south,newsouth,north,newnorth)
