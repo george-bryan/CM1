@@ -84,26 +84,16 @@
       integer :: n,np,i,j,k,iflag,jflag,kflag
       integer :: ix,iy,iz
       integer :: iflag_s,jflag_s,kflag_s
-      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
-      real :: qval,tval,rhoval,prsval
-      real :: rxu,ryv,rzw,rxs,rys,rzs
       real :: x3d,y3d,z3d
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
-      real :: z0,rznt,var,rand
-      real :: sigdot,sig1,zsp,sig3d
-      real :: xrhs1,xrhs2,xrhs3,tprhs,tptmp
-      real :: vtmp1,vtmp2,vtmp3
-      real :: vrhs1,vrhs2,vrhs3
-      real :: rprhs,rptmp,qstar,einf,lhv,qinf
-      real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
-      real :: k1tp,k2tp,k1rp,k2rp
-      real :: taup,th_tmp,Rep,Nup,Shp,diffnorm
-      real :: part_grav1,part_grav2,part_grav3,salinity
-      real :: rhop,volp,rhop0,taup0,rp0,tp0,volp0
+      real :: sig3d,th_tmp,rand
       real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt
+      real :: Nup,rhop0,taup0,rp0,salinity,part_grav1,part_grav2,part_grav3,rhoval
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
+
+      integer :: idropmethod
 
       logical, parameter :: debug = .false.
 
@@ -369,6 +359,399 @@
       dtpdt    = pdata(np,prtp)
       drpdt    = pdata(np,prrp)
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
+
+      idropmethod = 0 !RK2 for droplet time integration
+      !idropmethod = 1 !Implicit backward Euler for droplet time integration
+
+      dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
+
+      call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+
+      ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
+
+      call BE_integration
+
+      ENDIF dropmethod
+
+      ENDIF dropalive1
+      
+
+    dropalive2:  &
+    IF (pdata(np,pract).gt.0.0) THEN
+
+
+!-----------------------------------------------------
+!  Now perform the two-way coupling based on the changes in droplet momentum,
+!  temp, and size
+!-----------------------------------------------------
+
+      ! GHB, 210714:
+      ! get i,j,k for final parcel location:
+
+        iflag = undefined_index
+        jflag = undefined_index
+        IF(nx.eq.1)THEN
+          iflag = 1
+        ELSE
+          ! cm1r19:
+          call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+2, iflag)
+        ENDIF
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          jflag = 1
+        ELSE
+          ! cm1r19:
+          call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+2, jflag)
+          if(mod(np,PITER)==0) then
+             print *,'after dowhile loop: ',jflag
+          endif
+          i=iflag
+          j=jflag
+        ENDIF
+
+        !HERE print *,'droplet_driver: point #3'
+#if 0
+        IF(debug)THEN
+        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
+          print *,'  myid,i,j = ',myid,i,j
+          print *,'  x,x1     = ',x3d,pdata(np,prx)
+          print *,'  y,y1     = ',y3d,pdata(np,pry)
+          do i=0,ni+1
+            print *,i,abs(xh(i)-x3d),0.5*dx*ruh(i)
+          enddo
+          do j=0,nj+1
+            print *,j,abs(yh(j)-y3d),0.5*dy*rvh(j)
+          enddo
+          print *,'  16665 '
+          call stopcm1
+        endif
+        ENDIF
+#endif
+
+        !print *,'droplet_driver: point #4'
+        kflag = 1
+! JS - jflag could be negative somehow, which will break
+!        the find_vertical_location_index subroutine and 
+!        lead to invalid access to zf(iflag,jflag,kflag);
+!        revert to the old implementation
+        if( .not. terrain_flag )then
+          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+            kflag = kflag+1
+          enddo
+        else
+          do while( sig3d.gt.sigmaf(kflag+1) )
+            kflag = kflag+1
+          enddo
+        endif
+        pdata_locind(np,3) = kflag
+#if 0
+        IF(debug)THEN
+        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
+          print *,myid,nrkp
+          print *,iflag,jflag,kflag
+          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
+          print *,x3d,y3d,z3d
+          print *,uval,vval,wval
+          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
+          print *,'  16667 '
+          call stopcm1
+        endif
+        ENDIF
+#endif
+
+        !print *,'droplet_driver: point #5'
+      !--------
+      !PORTME
+      !Recall that the "old" value is stored here
+      dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
+      dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
+      dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
+
+      drpdt = (pdata(np,prrp)-drpdt)/dt
+      !Only the sensible component of energy 
+      !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
+      dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(dtpdt-pdata(np,prtp))
+      if(np==TROUBLE) then  
+        print *,'dd: rhow: ',rhow
+        print *,'dd: before dmvdt: ',dmvdt
+        print *,'dd: pdata(np,prrp): ',pdata(np,prrp)
+      endif
+      dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt)/dt
+
+      !At this point, iflag,jflag,kflag is the node beneath droplet
+
+      !Volume where the droplet finds itself
+      dV = (xh(iflag+1)-xh(iflag))*   &
+           (yh(jflag+1)-yh(jflag))*   &
+           (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+       ! print *,'droplet_driver: point #6'
+
+      if(mod(np,PITER)==0) then 
+          print *,'{i,j,k}flag: ',iflag,jflag,kflag 
+      endif
+      !Loop over all nodes surrounding droplet
+      !!$acc loop seq
+      do i=0,1
+      !!$acc loop seq
+      do j=0,1
+      !!$acc loop seq
+      do k=0,1
+
+        ix = iflag+i
+        iy = jflag+j
+        iz = kflag+k
+        !print *,'point #1: ix,iy,iz: ',ix,iy,iz
+
+        xv = xh(ix)
+        yv = yh(iy)
+        zv = zh(iflag,jflag,iz)
+
+        wtx = 1.0 - abs(x3d-xv)/(xh(iflag+1)-xh(iflag))
+        wty = 1.0 - abs(y3d-yv)/(yh(jflag+1)-yh(jflag))
+        wtz = 1.0 - abs(z3d-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+        wtt = wtx*wty*wtz
+
+        !!$acc atomic write
+        qten(ix,iy,iz) = qten(ix,iy,iz) - &
+            dmvdt/rhoval/dV*wtt*pdata(np,prmult)
+
+        !Ignoring the enthalpy contained in the vapor -- this has been shown to
+        !be negligible
+        !!$acc atomic write
+        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
+        !    (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
+        thten(ix,iy,iz) = thten(ix,iy,iz) - &
+            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
+
+#if 0
+        if((np==TROUBLE)) then 
+          print *,'dd2: {ix,iy,iz}: ',ix,iy,iz
+          print *,'dd2: 2-way ',ix,iy,iz,rhow,rhoval,dtpdt,dv,wtt,pdata(np,prmult)
+          print *,'dd2: 2-way wtx: ',ix,iy,iz,wtx
+          print *,'dd2: 2-way wty: ',ix,iy,iz,wty
+          print *,'dd2: 2-way wtz: ',ix,iy,iz,wtz
+          print *,'dd2: thten: ',np, thten(ix,iy,iz)
+        endif
+        if((np==TROUBLE) .and. (i==0) .and. (j==0) .and. (k==0)) then 
+            print *,'dd: wtt: ',wtt
+            print *,'dd: dmvdt: ',dmvdt
+        endif
+#endif
+!        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
+!        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
+!        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
+!        if(np.eq.1) print *,'    rhow,cpl,cp  = ',rhow,cpl,cp
+!        if(np.eq.1) print *,'    dtpdt        = ',dtpdt
+
+      enddo
+      enddo
+      enddo
+      !HERE print *,'after interpolation loops ',np
+
+    ENDIF dropalive2
+    !HERE print *,'after dropalive2' 
+
+
+!-----------------------------------------------------
+!  Account for boundary conditions (if necessary)
+!-----------------------------------------------------
+
+      !Now that the particles have been updated, do something with those which
+      !have fallen out the bottom:
+      if (pdata(np,pract).lt.0.0) then
+            !Replace with a new droplet at random location
+#if 0
+              !JMD-KLUDGE 
+              call random_number(rand)
+              x3d = rand*maxx
+              call random_number(rand)
+              y3d = rand*maxy
+              call random_number(rand)
+              z3d = rand*maxz
+#endif
+              pdata(np,prvpx) = 0.0
+              pdata(np,prvpy) = 0.0
+              pdata(np,prvpz) = 0.0
+              !Droplet size (radius)
+              pdata(np,prrp) = 20.0e-6
+  
+              !Droplet solute mass
+              salinity = 0.034
+              pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+              !Droplet temperature
+              pdata(np,prtp) = 302.0
+              !Droplet multiplicity
+              pdata(np,prmult) = 1.0
+              !Make it alive again
+              pdata(np,pract) = 1.0
+              
+      end if
+
+        ! New for cm1r17:  if parcel exits domain,
+        ! just assume periodic lateral boundary conditions
+        ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
+
+        if(x3d.lt.minx)then
+          x3d=x3d+(maxx-minx)
+          pdata_locind(np,1) = undefined_index
+        endif
+        if(x3d.gt.maxx)then
+          x3d=x3d-(maxx-minx)
+          pdata_locind(np,1) = undefined_index
+        endif
+
+        if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
+          y3d=y3d-(maxy-miny)
+          pdata_locind(np,2) = undefined_index
+        endif
+        if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
+          y3d=y3d+(maxy-miny)
+          pdata_locind(np,2) = undefined_index
+        endif
+
+        pdata(np,prx)=x3d
+        pdata(np,pry)=y3d
+        if( .not. terrain_flag )then
+          pdata(np,prz)=z3d
+          pdata_locind(np,3) = undefined_index
+        else
+          pdata(np,prsig)=sig3d
+          pdata_locind(np,3) = undefined_index
+        endif
+
+#ifdef MPI
+
+      ELSE
+
+        ! set to really small number (so we can use the allreduce command below)
+        pdata(np,prx) = -1.0e30
+        pdata(np,pry) = -1.0e30
+        if( .not. terrain_flag )then
+          pdata(np,prz) = -1.0e30
+        else
+          pdata(np,prsig) = -1.0e30
+        endif
+        pdata(np,prvpx) = -1.0e30
+        pdata(np,prvpy) = -1.0e30
+        pdata(np,prvpz) = -1.0e30
+        pdata(np,prrp) = -1.0e30
+        pdata(np,prtp) = -1.0e30
+        pdata(np,prms) = -1.0e30
+        pdata(np,prmult) = -1.0e30
+        pdata(np,pract) = -1.0e30
+#endif
+
+      ENDIF  myparcel
+
+    ENDDO  nploop
+    !print *,'droplet_driver: after the nploop'
+#ifdef _B4B01F
+    !$acc update device(pdata,qten,thten)
+#else
+    !$acc end parallel
+#endif
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
+!----------------------------------------------------------------------
+!  communicate data  (for MPI runs)
+
+     !$acc compare(pdata)
+#ifdef MPI
+      !print *,'droplet_driver: before call to MPI_ALLREDUCE'
+      !$acc update host(pdata)
+      !!$acc host_data use_device(pdata)
+      if( .not. terrain_flag )then
+        !call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+      else
+        !JMD not clear why two MPI_ALLREDUCE are being performed here
+        ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+      endif
+      !$acc update device(pdata)
+      !$acc compare(pdata)
+      !stop 'droplet_driver: after call to MPI_ALLREDUCE'
+      if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
+     
+#endif
+
+!----------------------------------------------------------------------
+!  get height ASL:
+
+      if( terrain_flag )then
+            call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
+            DO np=1,nparcels
+              ! get z from sigma:
+              ! (see Section 3 of "The governing equations for CM1", 
+              !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
+              pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
+            ENDDO
+      endif
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
+
+!
+!----------------------------------------------------------------------
+      !$acc end data
+      !!$acc compare(pdata(1:50,1:npvals))
+      !!$acc compare(pdata)
+      !!$acc compare(qten,thten)
+      !stop 'droplet_driver: at the end subroutine'
+
+      end subroutine droplet_driver
+
+      subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+      use input
+      use constants
+      use bc_module
+      use comm_module
+      use misclibs
+      use parcel_module
+      use cm1libs , only : rslf
+      implicit none
+
+      integer, intent(inout) :: iflag,jflag,kflag
+      integer, intent(in) :: np
+      logical, intent(in) :: debug
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
+      real, intent(in), dimension(ib:ie) :: xh,uh,ruh
+      real, intent(in), dimension(jb:je) :: yh,vh,rvh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(kb:ke) :: sigma
+      real, intent(in), dimension(kb:ke+1) :: sigmaf
+      real, intent(in), dimension(ib:ie,jb:je) :: zs
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
+      real, intent(in), dimension(ib:ie,jb:je) :: znt
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval
+      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind
+
+      real, intent(out) :: Nup,rhop0,taup0,rp0
+      real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
+
+      real :: dt2
+      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
+      real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
+      real :: vtmp1,vtmp2,vtmp3
+      real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
+      real :: tprhs,tptmp
+      real :: k1tp,k2tp,k1rp,k2rp
+      real :: rprhs,rptmp,qstar,einf,lhv,qinf
+      real :: taup,Rep,Shp,diff(3),diffnorm
+      real :: rhop,volp,tp0,volp0
+      real :: qval,tval,prsval
+      real :: rxu,ryv,rzw,rxs,rys,rzs
+      real :: zsp,z0,rznt,sigdot,var,sig1
+      integer :: nrkp
+      integer :: i,j,k
+
+
+      dt2 = dt/2.0      
 
       !HERE print *,'before rkloop np: ',np
       !$acc loop seq
@@ -1030,330 +1413,89 @@
 
       ENDDO  rkloop
       !HERE print *,'after rkloop np: ',np
-      ENDIF dropalive1
-      
 
-    dropalive2:  &
-    IF (pdata(np,pract).gt.0.0) THEN
+      end subroutine rk2_integration
 
+      subroutine BE_integration
+      use input
+      use constants
+      use bc_module
+      use comm_module
+      use misclibs
+      use parcel_module
+      use cm1libs , only : rslf
+      implicit none
 
-!-----------------------------------------------------
-!  Now perform the two-way coupling based on the changes in droplet momentum,
-!  temp, and size
-!-----------------------------------------------------
+      !integer, intent(inout) :: iflag,jflag,kflag
+      !real, intent(in), dimension(ib:ie+1) :: xf
+      !real, intent(inout) :: x3d,y3d,z3d
+      !real, intent(inout), dimension(nparcels,npvals) :: pdata
 
-      ! GHB, 210714:
-      ! get i,j,k for final parcel location:
-
-        iflag = undefined_index
-        jflag = undefined_index
-        IF(nx.eq.1)THEN
-          iflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+2, iflag)
-        ENDIF
-        IF(axisymm.eq.1.or.ny.eq.1)THEN
-          jflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+2, jflag)
-          if(mod(np,PITER)==0) then
-             print *,'after dowhile loop: ',jflag
-          endif
-          i=iflag
-          j=jflag
-        ENDIF
-
-        !HERE print *,'droplet_driver: point #3'
-#if 0
-        IF(debug)THEN
-        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
-          print *,'  myid,i,j = ',myid,i,j
-          print *,'  x,x1     = ',x3d,pdata(np,prx)
-          print *,'  y,y1     = ',y3d,pdata(np,pry)
-          do i=0,ni+1
-            print *,i,abs(xh(i)-x3d),0.5*dx*ruh(i)
-          enddo
-          do j=0,nj+1
-            print *,j,abs(yh(j)-y3d),0.5*dy*rvh(j)
-          enddo
-          print *,'  16665 '
-          call stopcm1
-        endif
-        ENDIF
-#endif
-
-        !print *,'droplet_driver: point #4'
-        kflag = 1
-! JS - jflag could be negative somehow, which will break
-!        the find_vertical_location_index subroutine and 
-!        lead to invalid access to zf(iflag,jflag,kflag);
-!        revert to the old implementation
-        if( .not. terrain_flag )then
-          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
-            kflag = kflag+1
-          enddo
-        else
-          do while( sig3d.gt.sigmaf(kflag+1) )
-            kflag = kflag+1
-          enddo
-        endif
-        pdata_locind(np,3) = kflag
-#if 0
-        IF(debug)THEN
-        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
-          print *,myid,nrkp
-          print *,iflag,jflag,kflag
-          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
-          print *,x3d,y3d,z3d
-          print *,uval,vval,wval
-          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
-          print *,'  16667 '
-          call stopcm1
-        endif
-        ENDIF
-#endif
-
-        !print *,'droplet_driver: point #5'
-      !--------
-      !PORTME
-      !Recall that the "old" value is stored here
-      dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
-      dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
-      dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
-
-      drpdt = (pdata(np,prrp)-drpdt)/dt
-      !Only the sensible component of energy 
-      !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
-      dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(tval-pdata(np,prtp))
-      if(np==TROUBLE) then  
-        print *,'dd: rhow: ',rhow
-        print *,'dd: before dmvdt: ',dmvdt
-        print *,'dd: pdata(np,prrp): ',pdata(np,prrp)
-      endif
-      dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt)/dt
-
-      !At this point, iflag,jflag,kflag is the node beneath droplet
-
-      !Volume where the droplet finds itself
-      dV = (xh(iflag+1)-xh(iflag))*   &
-           (yh(jflag+1)-yh(jflag))*   &
-           (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-       ! print *,'droplet_driver: point #6'
-
-      if(mod(np,PITER)==0) then 
-          print *,'{i,j,k}flag: ',iflag,jflag,kflag 
-      endif
-      !Loop over all nodes surrounding droplet
-      !!$acc loop seq
-      do i=0,1
-      !!$acc loop seq
-      do j=0,1
-      !!$acc loop seq
-      do k=0,1
-
-        ix = iflag+i
-        iy = jflag+j
-        iz = kflag+k
-        !print *,'point #1: ix,iy,iz: ',ix,iy,iz
-
-        xv = xh(ix)
-        yv = yh(iy)
-        zv = zh(iflag,jflag,iz)
-
-        wtx = 1.0 - abs(x3d-xv)/(xh(iflag+1)-xh(iflag))
-        wty = 1.0 - abs(y3d-yv)/(yh(jflag+1)-yh(jflag))
-        wtz = 1.0 - abs(z3d-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-        wtt = wtx*wty*wtz
-
-        !!$acc atomic write
-        qten(ix,iy,iz) = qten(ix,iy,iz) - &
-            dmvdt/rhoval/dV*wtt*pdata(np,prmult)
-
-        !Ignoring the enthalpy contained in the vapor -- this has been shown to
-        !be negligible
-        !!$acc atomic write
-        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
-        !    (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
-        thten(ix,iy,iz) = thten(ix,iy,iz) - &
-            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
-
-#if 0
-        if((np==TROUBLE)) then 
-          print *,'dd2: {ix,iy,iz}: ',ix,iy,iz
-          print *,'dd2: 2-way ',ix,iy,iz,rhow,rhoval,dtpdt,dv,wtt,pdata(np,prmult)
-          print *,'dd2: 2-way wtx: ',ix,iy,iz,wtx
-          print *,'dd2: 2-way wty: ',ix,iy,iz,wty
-          print *,'dd2: 2-way wtz: ',ix,iy,iz,wtz
-          print *,'dd2: thten: ',np, thten(ix,iy,iz)
-        endif
-        if((np==TROUBLE) .and. (i==0) .and. (j==0) .and. (k==0)) then 
-            print *,'dd: wtt: ',wtt
-            print *,'dd: dmvdt: ',dmvdt
-        endif
-#endif
-!        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
-!        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
-!        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
-!        if(np.eq.1) print *,'    rhow,cpl,cp  = ',rhow,cpl,cp
-!        if(np.eq.1) print *,'    dtpdt        = ',dtpdt
-
-      enddo
-      enddo
-      enddo
-      !HERE print *,'after interpolation loops ',np
-
-    ENDIF dropalive2
-    !HERE print *,'after dropalive2' 
+      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
+      real :: qval,tval,rhoval,prsval
+      real :: rxu,ryv,rzw,rxs,rys,rzs
+      integer :: i,j
 
 
 !-----------------------------------------------------
-!  Account for boundary conditions (if necessary)
+!  Update droplet position, velocity, etc.
 !-----------------------------------------------------
 
-      !Now that the particles have been updated, do something with those which
-      !have fallen out the bottom:
-      if (pdata(np,pract).lt.0.0) then
-            !Replace with a new droplet at random location
-#if 0
-              !JMD-KLUDGE 
-              call random_number(rand)
-              x3d = rand*maxx
-              call random_number(rand)
-              y3d = rand*maxy
-              call random_number(rand)
-              z3d = rand*maxz
-#endif
-              pdata(np,prvpx) = 0.0
-              pdata(np,prvpy) = 0.0
-              pdata(np,prvpz) = 0.0
-              !Droplet size (radius)
-              pdata(np,prrp) = 20.0e-6
-  
-              !Droplet solute mass
-              salinity = 0.034
-              pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
-              !Droplet temperature
-              pdata(np,prtp) = 302.0
-              !Droplet multiplicity
-              pdata(np,prmult) = 1.0
-              !Make it alive again
-              pdata(np,pract) = 1.0
-              
-      end if
-
-        ! New for cm1r17:  if parcel exits domain,
-        ! just assume periodic lateral boundary conditions
-        ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
-
-        if(x3d.lt.minx)then
-          x3d=x3d+(maxx-minx)
-          pdata_locind(np,1) = undefined_index
-        endif
-        if(x3d.gt.maxx)then
-          x3d=x3d-(maxx-minx)
-          pdata_locind(np,1) = undefined_index
-        endif
-
-        if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
-          y3d=y3d-(maxy-miny)
-          pdata_locind(np,2) = undefined_index
-        endif
-        if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
-          y3d=y3d+(maxy-miny)
-          pdata_locind(np,2) = undefined_index
-        endif
-
-        pdata(np,prx)=x3d
-        pdata(np,pry)=y3d
-        if( .not. terrain_flag )then
-          pdata(np,prz)=z3d
-          pdata_locind(np,3) = undefined_index
-        else
-          pdata(np,prsig)=sig3d
-          pdata_locind(np,3) = undefined_index
-        endif
-
-#ifdef MPI
-
-      ELSE
-
-        ! set to really small number (so we can use the allreduce command below)
-        pdata(np,prx) = -1.0e30
-        pdata(np,pry) = -1.0e30
-        if( .not. terrain_flag )then
-          pdata(np,prz) = -1.0e30
-        else
-          pdata(np,prsig) = -1.0e30
-        endif
-        pdata(np,prvpx) = -1.0e30
-        pdata(np,prvpy) = -1.0e30
-        pdata(np,prvpz) = -1.0e30
-        pdata(np,prrp) = -1.0e30
-        pdata(np,prtp) = -1.0e30
-        pdata(np,prms) = -1.0e30
-        pdata(np,prmult) = -1.0e30
-        pdata(np,pract) = -1.0e30
-#endif
-
-      ENDIF  myparcel
-
-    ENDDO  nploop
-    !print *,'droplet_driver: after the nploop'
-#ifdef _B4B01F
-    !$acc update device(pdata,qten,thten)
-#else
-    !$acc end parallel
-#endif
-    if(timestats.ge.1) time_droplet=time_droplet+mytime()
-!----------------------------------------------------------------------
-!  communicate data  (for MPI runs)
-
-     !$acc compare(pdata)
-#ifdef MPI
-      !print *,'droplet_driver: before call to MPI_ALLREDUCE'
-      !$acc update host(pdata)
-      !!$acc host_data use_device(pdata)
-      if( .not. terrain_flag )then
-        !call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-      else
-        !JMD not clear why two MPI_ALLREDUCE are being performed here
-        ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-        ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-      endif
-      !$acc update device(pdata)
-      !$acc compare(pdata)
-      !stop 'droplet_driver: after call to MPI_ALLREDUCE'
-      if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
-     
-#endif
-
-!----------------------------------------------------------------------
-!  get height ASL:
-
-      if( terrain_flag )then
-            call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcels
-              ! get z from sigma:
-              ! (see Section 3 of "The governing equations for CM1", 
-              !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
-              pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
-            ENDDO
-      endif
-    if(timestats.ge.1) time_droplet=time_droplet+mytime()
-
+!      uf = (/ uval,vval,wval /)
 !
-!----------------------------------------------------------------------
-      !$acc end data
-      !!$acc compare(pdata(1:50,1:npvals))
-      !!$acc compare(pdata)
-      !!$acc compare(qten,thten)
-      !stop 'droplet_driver: at the end subroutine'
+!      xrhs = (/ pdata(np,prvpx),pdata(np,prvpy),pdata(np,prvpz) /)
+!
+!      volp = 4.0/3.0*pi*pdata(np,prrp)**3
+!      rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute
+!      mass
+!      taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+!
+!      rhop0 = rhop
+!      taup0 = taup
+!      rp0 = pdata(np,prrp)
+!      tp0 = pdata(np,prtp)
+!      volp0 = 4.0/3.0*pi*rp0**3
+!
+!      diff(1) = uf(1)-pdata(np,prvpx)
+!      diff(2) = uf(2)-pdata(np,prvpy)
+!      diff(3) = uf(3)-pdata(np,prvpz)
+!      diffnorm = sqrt(diff(1)**2+diff(2)**2+diff(3)**2)
+!
+!      Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
+!      Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+!      Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+!
+!      vrhs(1) = 1.0/taup*(uf(1) - pdata(np,prvpx)) + part_grav(1)
+!      vrhs(2) = 1.0/taup*(uf(2) - pdata(np,prvpy)) + part_grav(2)
+!      vrhs(3) = 1.0/taup*(uf(3) - pdata(np,prvpz)) + part_grav(3)
+!
+!      qinf = rslf(prsval,tval)
+!      einf = qinf*rhoval/mw*ru*tval
+!      lhv=lv1-lv2*tval
+!
+!      qstar = qinf*exp(                                                   &
+!                   mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
+!                  +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
+!                  -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
+!                      )
+!
+!      rprhs = Shp/9.0/sc_num*rhop/rhow*pdata(np,prrp)/taup*(qval-qstar)
+!
+!      tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
+!              3.0*lhv/cpl/pdata(np,prrp)*rprhs
+!
+!      x3d = pdata(np,prx) + dt*pdata(np,prvpx)
+!      y3d = pdata(np,pry) + dt*pdata(np,prvpy)
+!      z3d = pdata(np,prz) + dt*pdata(np,prvpz)
+!
+!      pdata(np,prvpx) = (pdata(np,prvpx) + dt*uf(1)/taup + dt*part_grav(1))/(1
+!      + dt/taup)
+!      pdata(np,prvpy) = (pdata(np,prvpy) + dt*uf(2)/taup + dt*part_grav(2))/(1
+!      + dt/taup)
+!      pdata(np,prvpz) = (pdata(np,prvpz) + dt*uf(3)/taup + dt*part_grav(3))/(1
+!      + dt/taup)
 
-      end subroutine droplet_driver
+      end subroutine BE_integration
 
 
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
