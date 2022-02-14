@@ -735,7 +735,7 @@
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
 
       real :: dt2
-      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
+      real :: uval,vval,wval
       real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
       real :: vtmp1,vtmp2,vtmp3
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
@@ -745,8 +745,7 @@
       real :: taup,Rep,Shp,diff(3),diffnorm
       real :: rhop,volp,tp0,volp0
       real :: qval,tval,prsval
-      real :: rxu,ryv,rzw,rxs,rys,rzs
-      real :: zsp,z0,rznt,sigdot,var,sig1
+      real :: sig1,sigdot
       integer :: nrkp
       integer :: i,j,k
 
@@ -833,352 +832,15 @@
 #endif
         endif
 
-!JMD-debug
-!----------------------------------------------------------------------
-!  Data on u points
+       call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
 
-        i=iflag
-        j=jflag
-        k=kflag
-
-        if( y3d.lt.yh(j) )then
-          j=j-1
-        endif
-        if( .not. terrain_flag )then
-          if( z3d.lt.zh(iflag,jflag,k) )then
-            k=k-1
-          endif
-          rz = ( z3d-zh(iflag,jflag,k) )/( zh(iflag,jflag,k+1)-zh(iflag,jflag,k) )
-        else
-          if( sig3d.lt.sigma(k) )then
-            k=k-1
-          endif
-          rz = ( sig3d-sigma(k) )/( sigma(k+1)-sigma(k) )
-        endif
-
-        rx = ( x3d-xf(i) )/( xf(i+1)-xf(i) )
-        ry = ( y3d-yh(j) )/( yh(j+1)-yh(j) )
-
-        ! saveit:
-        rxu = rx
-        rys = ry
-        rzs = rz
-
-
-        !w1 = calcW1(rx,ry,rz)
-        !w2 = calcW2(rx,ry,rz)
-        !w3 = calcW3(rx,ry,rz)
-        !w4 = calcW4(rx,ry,rz)
-        !w5 = calcW5(rx,ry,rz)
-        !w6 = calcW6(rx,ry,rz)
-        !w7 = calcW7(rx,ry,rz)
-        !w8 = calcW8(rx,ry,rz)
-
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
-        if(np==TROUBLE) then 
-          print *,'parcel: before uval: ',i,j,k
-          print *,'parcel: ngxy,ngz: ',ngxy,ngz
-          print *,'parcel: ni+1,nj,nk: ',nip1,nj,nk
-        endif
-
-        uval = tri_interp(nip1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ua)
-        ! uval = ua(i  ,j  ,k  )*w1 &
-        !      + ua(i+1,j  ,k  )*w2 &
-        !      + ua(i  ,j+1,k  )*w3 &
-        !      + ua(i  ,j  ,k+1)*w4 &
-        !      + ua(i+1,j  ,k+1)*w5 &
-        !      + ua(i  ,j+1,k+1)*w6 &
-        !      + ua(i+1,j+1,k  )*w7 &
-        !      + ua(i+1,j+1,k+1)*w8
-
-!----------------------------------------------------------------------
-!  Data on v points
-
-        !print *,'parcel: data on v-points'
-        i=iflag
-        j=jflag
-        k=kflag
-
-        if( x3d.lt.xh(i) )then
-          i=i-1
-        endif
-        if( .not. terrain_flag )then
-          if( z3d.lt.zh(iflag,jflag,k) )then
-            k=k-1
-          endif
-        else
-          if( sig3d.lt.sigma(k) )then
-            k=k-1
-          endif
-        endif
-
-        rx = ( x3d-xh(i) )/( xh(i+1)-xh(i) )
-        ry = ( y3d-yf(j) )/( yf(j+1)-yf(j) )
-        rz = rzs
-
-        ! saveit:
-        rxs = rx
-        ryv = ry
-
-        !w1 = calcW1(rx,ry,rz)
-        !w2 = calcW2(rx,ry,rz)
-        !w3 = calcW3(rx,ry,rz)
-        !w4 = calcW4(rx,ry,rz)
-        !w5 = calcW5(rx,ry,rz)
-        !w6 = calcW6(rx,ry,rz)
-        !w7 = calcW7(rx,ry,rz)
-        !!w8 = calcW8(rx,ry,rz)
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
-        vval = tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,va)
-        ! vval = va(i  ,j  ,k  )*w1 &
-        !      + va(i+1,j  ,k  )*w2 &
-        !      + va(i  ,j+1,k  )*w3 &
-        !      + va(i  ,j  ,k+1)*w4 &
-        !      + va(i+1,j  ,k+1)*w5 &
-        !      + va(i  ,j+1,k+1)*w6 &
-        !      + va(i+1,j+1,k  )*w7 &
-        !      + va(i+1,j+1,k+1)*w8
-
-
-!----------------------------------------------------------------------
-!  Data on w points
-
-        i=iflag
-        j=jflag
-        k=kflag
-
-        if( x3d.lt.xh(i) )then
-          i=i-1
-        endif
-        if( y3d.lt.yh(j) )then
-          j=j-1
-        endif
-
-        rx = rxs
-        ry = rys
-        if( .not. terrain_flag )then
-          rz = ( z3d-zf(iflag,jflag,k) )/( zf(iflag,jflag,k+1)-zf(iflag,jflag,k) )
-        else
-          rz = ( sig3d-sigmaf(k) )/( sigmaf(k+1)-sigmaf(k) )
-        endif
-
-        ! saveit:
-        rzw = rz
-
-        !w1 = calcW1(rx,ry,rz)
-        !w2 = calcW2(rx,ry,rz)
-        !w3 = calcW3(rx,ry,rz)
-        !w4 = calcW4(rx,ry,rz)
-        !w5 = calcW5(rx,ry,rz)
-        !w6 = calcW6(rx,ry,rz)
-        !w7 = calcW7(rx,ry,rz)
-        !w8 = calcW8(rx,ry,rz)
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
-        wval = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
-        ! wval = wa(i  ,j  ,k  )*w1 &
-        !      + wa(i+1,j  ,k  )*w2 &
-        !      + wa(i  ,j+1,k  )*w3 &
-        !      + wa(i  ,j  ,k+1)*w4 &
-        !      + wa(i+1,j  ,k+1)*w5 &
-        !      + wa(i  ,j+1,k+1)*w6 &
-        !      + wa(i+1,j+1,k  )*w7 &
-        !      + wa(i+1,j+1,k+1)*w8
-
-        if( terrain_flag )then
-          sigdot = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
-          ! sigdot = wa(i  ,j  ,k  )*w1 &
-          !    + wa(i+1,j  ,k  )*w2 &
-          !    + wa(i  ,j+1,k  )*w3 &
-          !    + wa(i  ,j  ,k+1)*w4 &
-          !    + wa(i+1,j  ,k+1)*w5 &
-          !    + wa(i  ,j+1,k+1)*w6 &
-          !    + wa(i+1,j+1,k  )*w7 &
-          !    + wa(i+1,j+1,k+1)*w8
-          zsp = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs)
-          z3d = zsp + sig3d*((zt-zsp)*rzt)
-        endif
-
-
-!----------------------------------------------------------------------
-!  Data on scalar points
-
-        i=iflag
-        j=jflag
-        k=kflag
-
-        if( x3d.lt.xh(i) )then
-          i=i-1
-        endif
-        if( y3d.lt.yh(j) )then
-          j=j-1
-        endif
-        if( .not. terrain_flag )then
-          if( z3d.lt.zh(iflag,jflag,k) )then
-            k=k-1
-          endif
-        else
-          if( z3d.lt.sigma(k) )then
-            k=k-1
-          endif
-        endif
-
-
-        rx = rxs
-        ry = rys
-        rz = rzs
-
-        !w1 = calcW1(rx,ry,rz)
-        !w2 = calcW2(rx,ry,rz)
-        !w3 = calcW3(rx,ry,rz)
-        !w4 = calcW4(rx,ry,rz)
-        !w5 = calcW5(rx,ry,rz)
-        !w6 = calcW6(rx,ry,rz)
-        !w7 = calcW7(rx,ry,rz)
-        !w8 = calcW8(rx,ry,rz)
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
-
-      if(imoist.eq.1)then
-        !!print *,'parcel: before qval'
-        qval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,qa(ib,jb,kb,nqv))
-        ! qval = qa(i  ,j  ,k  ,nqv)*w1 &
-        !      + qa(i+1,j  ,k  ,nqv)*w2 &
-        !      + qa(i  ,j+1,k  ,nqv)*w3 &
-        !      + qa(i  ,j  ,k+1,nqv)*w4 &
-        !      + qa(i+1,j  ,k+1,nqv)*w5 &
-        !      + qa(i  ,j+1,k+1,nqv)*w6 &
-        !      + qa(i+1,j+1,k  ,nqv)*w7 &
-        !      + qa(i+1,j+1,k+1,nqv)*w8
-      endif
-      !if(np==100) then 
-      !  print *,'parcel: ngxy,ngz: ',ngxy,ngz
-      !  print *,'parcel: before tval: ',i,j,k
-      !endif
-      tval   = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ta)
-      ! tval   = ta(i  ,j  ,k  )*w1 &
-      !        + ta(i+1,j  ,k  )*w2 &
-      !        + ta(i  ,j+1,k  )*w3 &
-      !        + ta(i  ,j  ,k+1)*w4 &
-      !        + ta(i+1,j  ,k+1)*w5 &
-      !        + ta(i  ,j+1,k+1)*w6 &
-      !        + ta(i+1,j+1,k  )*w7 &
-      !        + ta(i+1,j+1,k+1)*w8
-      if(nrkp==1 .and. np==TROUBLE) then 
-        print *,'point #2: i,j,k: ',i,j,k
-        print *,'point #2: ni,nj,nk: ',ni,nj,nk
-        print *,'point #2: ib,jb,kb: ',ib,jb,kb
-        print *,'point #2: ie,je,ke: ',ie,je,ke
-        print *,'point #2: nqv: ',nqv
-        print *,'point #2: rx,ry,rz: ',rx,ry,rz
-        print *,'point #2: after tval: ',tval
-        print *,'point #2: after qval: ',tval
-      endif
-      !if(np==100) then 
-      !  print *,'parcel: before rhoval: ',i,j,k
-      !endif
-      rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
-      ! rhoval = rho(i  ,j  ,k  )*w1 &
-      !        + rho(i+1,j  ,k  )*w2 &
-      !        + rho(i  ,j+1,k  )*w3 &
-      !        + rho(i  ,j  ,k+1)*w4 &
-      !        + rho(i+1,j  ,k+1)*w5 &
-      !        + rho(i  ,j+1,k+1)*w6 &
-      !        + rho(i+1,j+1,k  )*w7 &
-      !        + rho(i+1,j+1,k+1)*w8
-      !if(np==100) then 
-      !  print *,'parcel: before prsval: ',i,j,k
-      !endif
-      prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
-      ! prsval = prs(i  ,j  ,k  )*w1 &
-      !        + prs(i+1,j  ,k  )*w2 &
-      !        + prs(i  ,j+1,k  )*w3 &
-      !        + prs(i  ,j  ,k+1)*w4 &
-      !        + prs(i+1,j  ,k+1)*w5 &
-      !        + prs(i  ,j+1,k+1)*w6 &
-      !        + prs(i+1,j+1,k  )*w7 &
-      !        + prs(i+1,j+1,k+1)*w8
-
-
-!----------------------------------------------------------------------
-!  uv for parcels below lowest model level:
-
-      IF( bbc.eq.3 )THEN
-        ! semi-slip lower boundary condition:
-        if( z3d.lt.zh(1,1,1) )then
-          ! re-calculate velocities if parcel is below lowest model level:
-          !------
-          ! u at lowest model level:
-          i=iflag
-          j=jflag
-          if( y3d.lt.yh(j) )then
-            j=j-1
-          endif
-          uval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 0, 1, 0,ua(ib,jb,1))
-          !------
-          ! v at lowest model level:
-          i=iflag
-          j=jflag
-          if( x3d.lt.xh(i) )then
-            i=i-1
-          endif
-          vval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 1, 0, 1,va(ib,jb,1))
-          !------
-          ! z0:
-          i=iflag
-          j=jflag
-          if( x3d.lt.xh(i) )then
-            i=i-1
-          endif
-          if( y3d.lt.yh(j) )then
-            j=j-1
-          endif
-          z0 = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,znt)
-          !------
-          ! get u,v from (neutral) log-layer equation:
-          rznt = 1.0/z0
-          var = alog((z3d+z0)*rznt)/alog((zh(1,1,1)+z0)*rznt)
-          if( imove.eq.1 )then
-            uval = (uval+umove)*var - umove
-            vval = (vval+vmove)*var - vmove
-          else
-            uval = uval*var
-            vval = vval*var
-          endif
-        endif
-      ENDIF
 
       if(np==TROUBLE) then 
         print *,'before rslf: tval: ',tval 
       endif
-      qinf = rslf(prsval,tval)
+      qinf = rslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
       lhv=lv1-lv2*tval
+
 
 !-----------------------------------------------------
 !  Update droplet position, velocity, etc.
@@ -1496,6 +1158,382 @@
 !      + dt/taup)
 
       end subroutine BE_integration
+
+      subroutine interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+      use input
+      use constants
+      use parcel_module
+      use cm1libs , only : rslf
+      implicit none
+
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
+      real, intent(in), dimension(ib:ie) :: xh
+      real, intent(in), dimension(jb:je) :: yh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(ib:ie,jb:je) :: zs
+      real, intent(in), dimension(kb:ke) :: sigma
+      real, intent(in), dimension(kb:ke+1) :: sigmaf
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
+      real, intent(in), dimension(ib:ie,jb:je) :: znt
+
+      integer, intent(in) :: iflag,jflag,kflag,np
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,sigdot
+      real :: rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
+      real :: rxu,ryv,rzw,rxs,rys,rzs
+      real :: zsp,rznt,z0,var
+      integer :: i,j,k
+
+
+!JMD-debug
+!----------------------------------------------------------------------
+!  Data on u points
+
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( y3d.lt.yh(j) )then
+          j=j-1
+        endif
+        if( .not. terrain_flag )then
+          if( z3d.lt.zh(iflag,jflag,k) )then
+            k=k-1
+          endif
+          rz = ( z3d-zh(iflag,jflag,k) )/( zh(iflag,jflag,k+1)-zh(iflag,jflag,k) )
+        else
+          if( sig3d.lt.sigma(k) )then
+            k=k-1
+          endif
+          rz = ( sig3d-sigma(k) )/( sigma(k+1)-sigma(k) )
+        endif
+
+        rx = ( x3d-xf(i) )/( xf(i+1)-xf(i) )
+        ry = ( y3d-yh(j) )/( yh(j+1)-yh(j) )
+
+        ! saveit:
+        rxu = rx
+        rys = ry
+        rzs = rz
+
+
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !w8 = calcW8(rx,ry,rz)
+
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
+        if(np==TROUBLE) then 
+          print *,'parcel: before uval: ',i,j,k
+          print *,'parcel: ngxy,ngz: ',ngxy,ngz
+          print *,'parcel: ni+1,nj,nk: ',nip1,nj,nk
+        endif
+
+        uval = tri_interp(nip1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ua)
+        ! uval = ua(i  ,j  ,k  )*w1 &
+        !      + ua(i+1,j  ,k  )*w2 &
+        !      + ua(i  ,j+1,k  )*w3 &
+        !      + ua(i  ,j  ,k+1)*w4 &
+        !      + ua(i+1,j  ,k+1)*w5 &
+        !      + ua(i  ,j+1,k+1)*w6 &
+        !      + ua(i+1,j+1,k  )*w7 &
+        !      + ua(i+1,j+1,k+1)*w8
+
+!----------------------------------------------------------------------
+!  Data on v points
+
+        !print *,'parcel: data on v-points'
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( x3d.lt.xh(i) )then
+          i=i-1
+        endif
+        if( .not. terrain_flag )then
+          if( z3d.lt.zh(iflag,jflag,k) )then
+            k=k-1
+          endif
+        else
+          if( sig3d.lt.sigma(k) )then
+            k=k-1
+          endif
+        endif
+
+        rx = ( x3d-xh(i) )/( xh(i+1)-xh(i) )
+        ry = ( y3d-yf(j) )/( yf(j+1)-yf(j) )
+        rz = rzs
+
+        ! saveit:
+        rxs = rx
+        ryv = ry
+
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !!w8 = calcW8(rx,ry,rz)
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
+        vval = tri_interp(ni,nj+1,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,va)
+        ! vval = va(i  ,j  ,k  )*w1 &
+        !      + va(i+1,j  ,k  )*w2 &
+        !      + va(i  ,j+1,k  )*w3 &
+        !      + va(i  ,j  ,k+1)*w4 &
+        !      + va(i+1,j  ,k+1)*w5 &
+        !      + va(i  ,j+1,k+1)*w6 &
+        !      + va(i+1,j+1,k  )*w7 &
+        !      + va(i+1,j+1,k+1)*w8
+
+
+!----------------------------------------------------------------------
+!  Data on w points
+
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( x3d.lt.xh(i) )then
+          i=i-1
+        endif
+        if( y3d.lt.yh(j) )then
+          j=j-1
+        endif
+
+        rx = rxs
+        ry = rys
+        if( .not. terrain_flag )then
+          rz = ( z3d-zf(iflag,jflag,k) )/( zf(iflag,jflag,k+1)-zf(iflag,jflag,k) )
+        else
+          rz = ( sig3d-sigmaf(k) )/( sigmaf(k+1)-sigmaf(k) )
+        endif
+
+        ! saveit:
+        rzw = rz
+
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !w8 = calcW8(rx,ry,rz)
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
+        wval = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
+        ! wval = wa(i  ,j  ,k  )*w1 &
+        !      + wa(i+1,j  ,k  )*w2 &
+        !      + wa(i  ,j+1,k  )*w3 &
+        !      + wa(i  ,j  ,k+1)*w4 &
+        !      + wa(i+1,j  ,k+1)*w5 &
+        !      + wa(i  ,j+1,k+1)*w6 &
+        !      + wa(i+1,j+1,k  )*w7 &
+        !      + wa(i+1,j+1,k+1)*w8
+
+        if( terrain_flag )then
+          sigdot = tri_interp(ni,nj,nkp1,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,wa)
+          ! sigdot = wa(i  ,j  ,k  )*w1 &
+          !    + wa(i+1,j  ,k  )*w2 &
+          !    + wa(i  ,j+1,k  )*w3 &
+          !    + wa(i  ,j  ,k+1)*w4 &
+          !    + wa(i+1,j  ,k+1)*w5 &
+          !    + wa(i  ,j+1,k+1)*w6 &
+          !    + wa(i+1,j+1,k  )*w7 &
+          !    + wa(i+1,j+1,k+1)*w8
+          zsp = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,zs)
+          z3d = zsp + sig3d*((zt-zsp)*rzt)
+        endif
+
+
+!----------------------------------------------------------------------
+!  Data on scalar points
+
+        i=iflag
+        j=jflag
+        k=kflag
+
+        if( x3d.lt.xh(i) )then
+          i=i-1
+        endif
+        if( y3d.lt.yh(j) )then
+          j=j-1
+        endif
+        if( .not. terrain_flag )then
+          if( z3d.lt.zh(iflag,jflag,k) )then
+            k=k-1
+          endif
+        else
+          if( z3d.lt.sigma(k) )then
+            k=k-1
+          endif
+        endif
+
+
+        rx = rxs
+        ry = rys
+        rz = rzs
+
+        !w1 = calcW1(rx,ry,rz)
+        !w2 = calcW2(rx,ry,rz)
+        !w3 = calcW3(rx,ry,rz)
+        !w4 = calcW4(rx,ry,rz)
+        !w5 = calcW5(rx,ry,rz)
+        !w6 = calcW6(rx,ry,rz)
+        !w7 = calcW7(rx,ry,rz)
+        !w8 = calcW8(rx,ry,rz)
+        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+        w2 = rx*(1.0-ry)*(1.0-rz)
+        w3 = (1.0-rx)*ry*(1.0-rz)
+        w4 = (1.0-rx)*(1.0-ry)*rz
+        w5 = rx*(1.0-ry)*rz
+        w6 = (1.0-rx)*ry*rz
+        w7 = rx*ry*(1.0-rz)
+        w8 = rx*ry*rz
+
+      if(imoist.eq.1)then
+        !!print *,'parcel: before qval'
+        qval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,qa(ib,jb,kb,nqv))
+        ! qval = qa(i  ,j  ,k  ,nqv)*w1 &
+        !      + qa(i+1,j  ,k  ,nqv)*w2 &
+        !      + qa(i  ,j+1,k  ,nqv)*w3 &
+        !      + qa(i  ,j  ,k+1,nqv)*w4 &
+        !      + qa(i+1,j  ,k+1,nqv)*w5 &
+        !      + qa(i  ,j+1,k+1,nqv)*w6 &
+        !      + qa(i+1,j+1,k  ,nqv)*w7 &
+        !      + qa(i+1,j+1,k+1,nqv)*w8
+      endif
+      !if(np==100) then 
+      !  print *,'parcel: ngxy,ngz: ',ngxy,ngz
+      !  print *,'parcel: before tval: ',i,j,k
+      !endif
+      tval   = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ta)
+      ! tval   = ta(i  ,j  ,k  )*w1 &
+      !        + ta(i+1,j  ,k  )*w2 &
+      !        + ta(i  ,j+1,k  )*w3 &
+      !        + ta(i  ,j  ,k+1)*w4 &
+      !        + ta(i+1,j  ,k+1)*w5 &
+      !        + ta(i  ,j+1,k+1)*w6 &
+      !        + ta(i+1,j+1,k  )*w7 &
+      !        + ta(i+1,j+1,k+1)*w8
+      if(np==TROUBLE) then 
+        print *,'point #2: i,j,k: ',i,j,k
+        print *,'point #2: ni,nj,nk: ',ni,nj,nk
+        print *,'point #2: ib,jb,kb: ',ib,jb,kb
+        print *,'point #2: ie,je,ke: ',ie,je,ke
+        print *,'point #2: nqv: ',nqv
+        print *,'point #2: rx,ry,rz: ',rx,ry,rz
+        print *,'point #2: after tval: ',tval
+        print *,'point #2: after qval: ',tval
+      endif
+      !if(np==100) then 
+      !  print *,'parcel: before rhoval: ',i,j,k
+      !endif
+      rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
+      ! rhoval = rho(i  ,j  ,k  )*w1 &
+      !        + rho(i+1,j  ,k  )*w2 &
+      !        + rho(i  ,j+1,k  )*w3 &
+      !        + rho(i  ,j  ,k+1)*w4 &
+      !        + rho(i+1,j  ,k+1)*w5 &
+      !        + rho(i  ,j+1,k+1)*w6 &
+      !        + rho(i+1,j+1,k  )*w7 &
+      !        + rho(i+1,j+1,k+1)*w8
+      !if(np==100) then 
+      !  print *,'parcel: before prsval: ',i,j,k
+      !endif
+      prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
+      ! prsval = prs(i  ,j  ,k  )*w1 &
+      !        + prs(i+1,j  ,k  )*w2 &
+      !        + prs(i  ,j+1,k  )*w3 &
+      !        + prs(i  ,j  ,k+1)*w4 &
+      !        + prs(i+1,j  ,k+1)*w5 &
+      !        + prs(i  ,j+1,k+1)*w6 &
+      !        + prs(i+1,j+1,k  )*w7 &
+      !        + prs(i+1,j+1,k+1)*w8
+
+
+!----------------------------------------------------------------------
+!  uv for parcels below lowest model level:
+
+      IF( bbc.eq.3 )THEN
+        ! semi-slip lower boundary condition:
+        if( z3d.lt.zh(1,1,1) )then
+          ! re-calculate velocities if parcel is below lowest model level:
+          !------
+          ! u at lowest model level:
+          i=iflag
+          j=jflag
+          if( y3d.lt.yh(j) )then
+            j=j-1
+          endif
+          uval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 1, 0, 1, 0,ua(ib,jb,1))
+          !------
+          ! v at lowest model level:
+          i=iflag
+          j=jflag
+          if( x3d.lt.xh(i) )then
+            i=i-1
+          endif
+          vval = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 1, 0, 1,va(ib,jb,1))
+          !------
+          ! z0:
+          i=iflag
+          j=jflag
+          if( x3d.lt.xh(i) )then
+            i=i-1
+          endif
+          if( y3d.lt.yh(j) )then
+            j=j-1
+          endif
+          z0 = get2d(i,j,x3d,y3d,xh,xf,yh,yf, 0, 0, 0, 0,znt)
+          !------
+          ! get u,v from (neutral) log-layer equation:
+          rznt = 1.0/z0
+          var = alog((z3d+z0)*rznt)/alog((zh(1,1,1)+z0)*rznt)
+          if( imove.eq.1 )then
+            uval = (uval+umove)*var - umove
+            vval = (vval+vmove)*var - vmove
+          else
+            uval = uval*var
+            vval = vval*var
+          endif
+        endif
+      ENDIF
+
+
+      end subroutine interpolate_to_parcel
 
 
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
