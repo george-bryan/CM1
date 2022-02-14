@@ -505,6 +505,7 @@
     ENDIF
 
   ENDIF  ps27a
+  !$acc compare(u3d,v3d)
 
 !----------------------------------------------
 !  convergence forcing:

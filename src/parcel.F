@@ -19,6 +19,7 @@
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
   integer, parameter :: location_offset = 3 
+  
 
   CONTAINS
 
@@ -2447,55 +2448,55 @@
       end subroutine write_prclctl
 
       real function calcW1(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW1=(1.0-rx)*(1.0-ry)*(1.0-rz)
       end function calcW1
 
       real function calcW2(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW2=rx*(1.0-ry)*(1.0-rz)
       end function calcW2
 
       real function calcW3(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW3=(1.0-rx)*ry*(1.0-rz)
       end function calcW3
 
       real function calcW4(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW4=(1.0-rx)*(1.0-ry)*rz
       end function calcW4
 
       real function calcW5(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW5=rx*(1.0-ry)*rz
       end function calcW5
 
       real function calcW6(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW6=(1.0-rx)*ry*rz
       end function calcW6
 
       real function calcW7(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW7=rx*ry*(1.0-rz)
       end function calcW7
 
       real function calcW8(rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
       real, intent(in) :: rx,ry,rz
         calcW8=rx*ry*rz
       end function calcW8
 
       subroutine calcWeights(w1,w2,w3,w4,w5,w6,w7,w8,rx,ry,rz)
-      !$acc routine vector 
+      !$acc routine vector
         real, intent(in)  :: rx,ry,rz
         real, intent(inout) :: w1,w2,w3,w4,w5,w6,w7,w8
 

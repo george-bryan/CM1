@@ -1,5 +1,31 @@
 #-----------------------------------------------------------------------------
 #
+#  To compile the CM1 codes with this Makefile, use the following command:
+#
+#        make [argu_list]
+#
+#  where the optional argument list includes:
+#  - USE_OPENMP: turn on OpenMP (default=false)
+#  - USE_MPI: turn on MPI (default=false)
+#  - USE_DOUBLE: turn on double precision calculation (for PGI/NVHPC only, default=false)
+#  - USE_OPENACC: turn on OpenACC (for PGI/NVHPC only, default=false)
+#  - USE_NETCDF: turn on netCDF output (default=false)
+#  - DEBUG: turn on DEBUG mode (default=false)
+#
+#  Some example usages are:
+#    make USE_OPENMP=true                 # shared memory only
+#    make USE_OPENMP=true USE_MPI=true    # shared + distributed memory
+#    make USE_OPENACC=true USE_MPI=true   # distributed memory + GPU offloading
+#
+#  Note that the logical values set to the argument variables are case insensitive.
+#
+#  If the "FC" env variable is not set on your system, you could also specify it through:
+#    make FC=ifort                        # use Intel compiler
+#
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+#
 #  Change all boolean variables to lowercase
 #
 #-----------------------------------------------------------------------------
@@ -7,6 +33,7 @@ USE_OPENMP_L  = $(shell echo $(USE_OPENMP) | tr A-Z a-z)
 USE_MPI_L     = $(shell echo $(USE_MPI) | tr A-Z a-z)
 USE_DOUBLE_L  = $(shell echo $(USE_DOUBLE) | tr A-Z a-z)
 USE_OPENACC_L = $(shell echo $(USE_OPENACC) | tr A-Z a-z)
+USE_NETCDF_L  = $(shell echo $(USE_NETCDF) | tr A-Z a-z)
 DEBUG_L       = $(shell echo $(DEBUG) | tr A-Z a-z)
 
 #-----------------------------------------------------------------------------
@@ -29,10 +56,12 @@ LINKOPTS      =
 #              (NOTE: Don't change lines 3 and 4!)
 #  Note:  you may need to remove -DNCFPLUS if you use an old version of netcdf
 #-----------------------------------------------------------------------------
-OUTPUTINC     += -I$(NETCDFBASE)/include
-OUTPUTLIB     += -L$(NETCDFBASE)/lib
-OUTPUTOPT     += -DNETCDF -DNCFPLUS
-LINKOPTS      += -lnetcdf -lnetcdff
+ifeq (${USE_NETCDF_L},true)
+    OUTPUTINC    += -I$(NETCDFBASE)/include
+    OUTPUTLIB    += -L$(NETCDFBASE)/lib
+    OUTPUTOPT    += -DNETCDF -DNCFPLUS
+    LINKOPTS     += -lnetcdf -lnetcdff
+endif
 
 #-----------------------------------------------------------------------------
 #                    HARDWARE SECTION
