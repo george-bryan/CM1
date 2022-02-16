@@ -9692,7 +9692,7 @@
         vardesc(nvar) = 'maximum (grnd-rel) horiz wind speed'
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
-        print *,'domaindiag: wspmax'
+        !print *,'domaindiag: wspmax'
         call getmax(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -9704,11 +9704,11 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
 
-        print *,'domaindiag: wspmin'
+        !print *,'domaindiag: wspmin'
         call getmin(dum1,savg)
-        print *,'domaindiag: wspmin: after getmin'
+        !print *,'domaindiag: wspmin: after getmin'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-        print *,'domaindiag: wspmin: after write3d'
+        !print *,'domaindiag: wspmin: after write3d'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9731,9 +9731,9 @@
         vargrid(nvar) = 's'
 
         
-        print *,'domaindiag: zetamax before getmax'
+        !print *,'domaindiag: zetamax before getmax'
         call getmax(dum1,savg)
-        print *,'domaindiag: zetamax after getmax'
+        !print *,'domaindiag: zetamax after getmax'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9744,9 +9744,9 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 's'
 
-        print *,'domaindiag: zetamin before getmin'
+        !print *,'domaindiag: zetamin before getmin'
         call getmin(dum1,savg)
-        print *,'domaindiag: zetamin after getmin'
+        !print *,'domaindiag: zetamin after getmin'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -9758,7 +9758,7 @@
     !  more 2d vars
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'domaindiag: before int_tkes'
+      !print *,'domaindiag: before int_tkes'
 
     IF( cm1setup.eq.1 .and. iusetke )THEN
 

@@ -14,7 +14,7 @@
 ! A FUNCTION OF TEMPERATURE AND PRESSURE
 !
       REAL FUNCTION RSLF(P,T)
-      !$acc routine vector
+      !$acc routine seq
 
       use input, only : ptype
       use constants
@@ -69,7 +69,7 @@
 ! FUNCTION OF TEMPERATURE AND PRESSURE
 !
       REAL FUNCTION RSIF(P,T)
-      !$acc routine vector
+      !$acc routine seq
 
       use input, only : ptype
       use constants

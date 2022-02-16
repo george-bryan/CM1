@@ -1260,6 +1260,7 @@
 
         ELSEIF( psolver.eq.2 .or. psolver.eq.7 )THEN
           get_time_avg = .true.
+          !print *,'solve2: before call to sounde'
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
                         pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs,           &
@@ -1275,6 +1276,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+          !print *,'solve2: after call to sounde'
         ELSEIF(psolver.eq.3)THEN
 
           
@@ -1295,7 +1297,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-          !stop 'solve2: after call to sound'
+          print *,'solve2: after call to sound'
 
         ELSEIF(psolver.eq.4.or.psolver.eq.5)THEN
           ! anelastic/incompressible solver:
@@ -1418,6 +1420,7 @@
 !  on final RK step, get max CFL
 
         IF( nrk.eq.nrkmax )THEN
+          !print *,'solve2: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
         ENDIF
 
@@ -2269,6 +2272,7 @@
 #ifdef MPI
       ! finish comms for cflquick:
       call mpi_wait(reqc,mpi_status_ignore,ierr)
+      print *,'solve2: cflmax is: ',cflmax
       if(cflmax.ge.1.50) stopit=.true.
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif
