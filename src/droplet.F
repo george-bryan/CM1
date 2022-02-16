@@ -369,7 +369,7 @@
 
       ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
 
-      call BE_integration
+      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
 
       ENDIF dropmethod
 
@@ -742,7 +742,7 @@
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
       real :: rprhs,rptmp,qstar,einf,lhv,qinf
-      real :: taup,Rep,Shp,diff(3),diffnorm
+      real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
       real :: qval,tval,prsval
       real :: sig1,sigdot
@@ -756,83 +756,8 @@
       !$acc loop seq
       rkloop:  DO nrkp = 1,2
 
-      IF( nrkp.eq.1 )THEN
-        i=iflag
-        j=jflag
-      ELSE
-        iflag = undefined_index
-        jflag = undefined_index
-        IF(nx.eq.1)THEN
-          iflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+2, iflag)
-        ENDIF
 
-        IF(axisymm.eq.1.or.ny.eq.1)THEN
-          jflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+2, jflag)
-        ENDIF
-        i=iflag
-        j=jflag
-      ENDIF
-
-        kflag = 1
-! JS - jflag could be negative somehow, which will break
-!        the find_vertical_location_index subroutine;
-!        use the original interface but with the 
-!        pdata_locind(:,3) here
-!    - z3d could be NaN somehow, reset kflag = 1 to be 
-!        consistent with the original implementation
-#ifdef _VERIFY_FIND_LOC
-        tmp_flag = kflag
-#endif
-        kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
-        if ( z3d .ne. z3d ) kflag = 1
-        if( .not. terrain_flag )then
-          if ( z3d.lt.zf(iflag,jflag,kflag) ) then
-            kflag = 1
-          end if
-          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
-            kflag = kflag+1
-          enddo
-          pdata_locind(np,3) = kflag
-#ifdef _VERIFY_FIND_LOC
-          do while( z3d.gt.zf(iflag,jflag,tmp_flag+1) )
-            tmp_flag = tmp_flag+1
-          enddo
-          if ( kflag .ne. tmp_flag ) then
-            print *, "z3d = ", z3d, ", old scheme finds ", zf(iflag,jflag,tmp_flag+1), ", new scheme finds ", zf(iflag,jflag,kflag+1)
-            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
-            stop "Failed verification test: z index is not the same..."
-          else
-            print *, "Pass the verification test for z index..."
-          end if
-#endif
-        else
-          if ( sig3d.lt.sigmaf(kflag) ) then
-            kflag = 1
-          end if
-          do while( sig3d.gt.sigmaf(kflag+1) )
-            kflag = kflag+1
-          enddo
-          pdata_locind(np,3) = kflag
-#ifdef _VERIFY_FIND_LOC
-          do while( sig3d.gt.sigmaf(tmp_flag+1) )
-            tmp_flag = tmp_flag+1
-          enddo
-          if ( kflag .ne. tmp_flag ) then
-            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
-            stop "Failed verification test: z index is not the same..."
-          else
-            print *, "Pass the verification test for z index..."
-          end if
-#endif
-        endif
-
-       call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+       call interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
 
 
       if(np==TROUBLE) then 
@@ -872,17 +797,12 @@
         rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
         taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
 
-!PREVIOUS
-
+        !Original, for calculating changes in momentum, mass, and energy
         rhop0 = rhop
         taup0 = taup
         rp0 = pdata(np,prrp)
         tp0 = pdata(np,prtp)
         volp0 = 4.0/3.0*pi*rp0**3
-
-        volp = 4.0/3.0*pi*pdata(np,prrp)**3
-        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
-        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
 
         diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
                          (vval-pdata(np,prvpy))**2+ &
@@ -1078,7 +998,7 @@
 
       end subroutine rk2_integration
 
-      subroutine BE_integration
+      subroutine BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
       use input
       use constants
       use bc_module
@@ -1088,53 +1008,99 @@
       use cm1libs , only : rslf
       implicit none
 
-      !integer, intent(inout) :: iflag,jflag,kflag
-      !real, intent(in), dimension(ib:ie+1) :: xf
-      !real, intent(inout) :: x3d,y3d,z3d
-      !real, intent(inout), dimension(nparcels,npvals) :: pdata
+      integer, intent(inout) :: iflag,jflag,kflag
+      integer, intent(in) :: np
+      logical, intent(in) :: debug
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
+      real, intent(in), dimension(ib:ie) :: xh,uh,ruh
+      real, intent(in), dimension(jb:je) :: yh,vh,rvh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(kb:ke) :: sigma
+      real, intent(in), dimension(kb:ke+1) :: sigmaf
+      real, intent(in), dimension(ib:ie,jb:je) :: zs
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
+      real, intent(in), dimension(ib:ie,jb:je) :: znt
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval
+      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind
 
-      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
-      real :: qval,tval,rhoval,prsval
-      real :: rxu,ryv,rzw,rxs,rys,rzs
-      integer :: i,j
+      real, intent(out) :: Nup,rhop0,taup0,rp0
+      real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
+
+      real :: dt2
+      real :: uval,vval,wval
+      real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
+      real :: vtmp1,vtmp2,vtmp3
+      real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
+      real :: tprhs,tptmp
+      real :: k1tp,k2tp,k1rp,k2rp
+      real :: rprhs,rptmp,qstar,einf,lhv,qinf
+      real :: taup,Rep,Shp,diffnorm
+      real :: rhop,volp,tp0,volp0
+      real :: qval,tval,prsval
+      real :: sig1,sigdot
+      integer :: nrkp
+      integer :: i,j,k
+
+
+       call interpolate_to_parcel(np,1,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+
+      if(np==TROUBLE) then 
+        print *,'before rslf: tval: ',tval 
+      endif
+      qinf = rslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
+      lhv=lv1-lv2*tval
 
 
 !-----------------------------------------------------
 !  Update droplet position, velocity, etc.
 !-----------------------------------------------------
 
-!      uf = (/ uval,vval,wval /)
-!
-!      xrhs = (/ pdata(np,prvpx),pdata(np,prvpy),pdata(np,prvpz) /)
-!
-!      volp = 4.0/3.0*pi*pdata(np,prrp)**3
-!      rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute
-!      mass
-!      taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
-!
-!      rhop0 = rhop
-!      taup0 = taup
-!      rp0 = pdata(np,prrp)
-!      tp0 = pdata(np,prtp)
-!      volp0 = 4.0/3.0*pi*rp0**3
-!
-!      diff(1) = uf(1)-pdata(np,prvpx)
-!      diff(2) = uf(2)-pdata(np,prvpy)
-!      diff(3) = uf(3)-pdata(np,prvpz)
-!      diffnorm = sqrt(diff(1)**2+diff(2)**2+diff(3)**2)
-!
-!      Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
-!      Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
-!      Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
-!
-!      vrhs(1) = 1.0/taup*(uf(1) - pdata(np,prvpx)) + part_grav(1)
-!      vrhs(2) = 1.0/taup*(uf(2) - pdata(np,prvpy)) + part_grav(2)
-!      vrhs(3) = 1.0/taup*(uf(3) - pdata(np,prvpz)) + part_grav(3)
-!
-!      qinf = rslf(prsval,tval)
-!      einf = qinf*rhoval/mw*ru*tval
-!      lhv=lv1-lv2*tval
-!
+        xrhs1 = pdata(np,prvpx)
+        xrhs2 = pdata(np,prvpy)
+        xrhs3 = pdata(np,prvpz)
+        volp = 4.0/3.0*pi*pdata(np,prrp)**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+
+        !Original, for calculating changes in momentum, mass, and energy
+        rhop0 = rhop
+        taup0 = taup
+        rp0 = pdata(np,prrp)
+        tp0 = pdata(np,prtp)
+        volp0 = 4.0/3.0*pi*rp0**3
+
+
+        diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
+                         (vval-pdata(np,prvpy))**2+ &
+                         (wval-pdata(np,prvpz))**2)
+
+        Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
+        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
+        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
+
+      !Position and velocity are straightforward:
+
+      x3d = pdata(np,prx) + dt*pdata(np,prvpx)
+      y3d = pdata(np,pry) + dt*pdata(np,prvpy)
+      z3d = pdata(np,prz) + dt*pdata(np,prvpz)
+
+      pdata(np,prvpx) = (pdata(np,prvpx) + dt*uval/taup + dt*part_grav1)/(1 + dt/taup)
+      pdata(np,prvpy) = (pdata(np,prvpy) + dt*vval/taup + dt*part_grav2)/(1 + dt/taup)
+      pdata(np,prvpz) = (pdata(np,prvpz) + dt*wval/taup + dt*part_grav3)/(1 + dt/taup)
+
+
 !      qstar = qinf*exp(                                                   &
 !                   mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
 !                  +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
@@ -1146,20 +1112,11 @@
 !      tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
 !              3.0*lhv/cpl/pdata(np,prrp)*rprhs
 !
-!      x3d = pdata(np,prx) + dt*pdata(np,prvpx)
-!      y3d = pdata(np,pry) + dt*pdata(np,prvpy)
-!      z3d = pdata(np,prz) + dt*pdata(np,prvpz)
 !
-!      pdata(np,prvpx) = (pdata(np,prvpx) + dt*uf(1)/taup + dt*part_grav(1))/(1
-!      + dt/taup)
-!      pdata(np,prvpy) = (pdata(np,prvpy) + dt*uf(2)/taup + dt*part_grav(2))/(1
-!      + dt/taup)
-!      pdata(np,prvpz) = (pdata(np,prvpz) + dt*uf(3)/taup + dt*part_grav(3))/(1
-!      + dt/taup)
 
       end subroutine BE_integration
 
-      subroutine interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+      subroutine interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
       use input
       use constants
       use parcel_module
@@ -1182,13 +1139,91 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(in), dimension(ib:ie,jb:je) :: znt
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind    ! x/y/z location index of each parcel
 
-      integer, intent(in) :: iflag,jflag,kflag,np
+      integer, intent(in) :: np,nrkp
+      integer, intent(inout) :: iflag,jflag,kflag
       real, intent(inout) :: x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,sigdot
       real :: rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
       real :: rxu,ryv,rzw,rxs,rys,rzs
       real :: zsp,rznt,z0,var
       integer :: i,j,k
+
+      IF( nrkp.eq.1 )THEN
+        i=iflag
+        j=jflag
+      ELSE
+        iflag = undefined_index
+        jflag = undefined_index
+        IF(nx.eq.1)THEN
+          iflag = 1
+        ELSE
+          ! cm1r19:
+          call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+2, iflag)
+        ENDIF
+
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          jflag = 1
+        ELSE
+          ! cm1r19:
+          call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+2, jflag)
+        ENDIF
+        i=iflag
+        j=jflag
+      ENDIF
+
+        kflag = 1
+! JS - jflag could be negative somehow, which will break
+!        the find_vertical_location_index subroutine;
+!        use the original interface but with the 
+!        pdata_locind(:,3) here
+!    - z3d could be NaN somehow, reset kflag = 1 to be 
+!        consistent with the original implementation
+#ifdef _VERIFY_FIND_LOC
+        tmp_flag = kflag
+#endif
+        kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
+        if ( z3d .ne. z3d ) kflag = 1
+        if( .not. terrain_flag )then
+          if ( z3d.lt.zf(iflag,jflag,kflag) ) then
+            kflag = 1
+          end if
+          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+            kflag = kflag+1
+          enddo
+          pdata_locind(np,3) = kflag
+#ifdef _VERIFY_FIND_LOC
+          do while( z3d.gt.zf(iflag,jflag,tmp_flag+1) )
+            tmp_flag = tmp_flag+1
+          enddo
+          if ( kflag .ne. tmp_flag ) then
+            print *, "z3d = ", z3d, ", old scheme finds ", zf(iflag,jflag,tmp_flag+1), ", new scheme finds ", zf(iflag,jflag,kflag+1)
+            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
+            stop "Failed verification test: z index is not the same..."
+          else
+            print *, "Pass the verification test for z index..."
+          end if
+#endif
+        else
+          if ( sig3d.lt.sigmaf(kflag) ) then
+            kflag = 1
+          end if
+          do while( sig3d.gt.sigmaf(kflag+1) )
+            kflag = kflag+1
+          enddo
+          pdata_locind(np,3) = kflag
+#ifdef _VERIFY_FIND_LOC
+          do while( sig3d.gt.sigmaf(tmp_flag+1) )
+            tmp_flag = tmp_flag+1
+          enddo
+          if ( kflag .ne. tmp_flag ) then
+            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
+            stop "Failed verification test: z index is not the same..."
+          else
+            print *, "Pass the verification test for z index..."
+          end if
+#endif
+        endif
 
 
 !JMD-debug
