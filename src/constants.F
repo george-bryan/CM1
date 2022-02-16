@@ -11,7 +11,7 @@
 !$acc declare create(g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp) &
 !$acc create(cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1) &
 !$acc create(cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2) &
-!$acc create(rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo)
+!$acc create(rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo,surften,ms,ru,mw,os,ion)
 
       !----------------
 
@@ -180,7 +180,7 @@
 !$acc update device(g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp) &
 !$acc device(cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1) &
 !$acc device(cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2) &
-!$acc device(rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo)
+!$acc device(rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo,surften,ms,ru,mw,os,ion)
 
 
       end subroutine set_constants

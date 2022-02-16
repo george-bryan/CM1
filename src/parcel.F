@@ -1884,7 +1884,7 @@
 
 
       real function tri_interp(iz,jz,kz,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,s)
-      !$acc routine vector
+      !$acc routine seq
       use input
       implicit none
 
@@ -1913,7 +1913,7 @@
 
 
     real function get2d(i,j,x3d,y3d,xh,xf,yh,yf,xs,ys,is,js,s)
-    !$acc routine vector
+    !$acc routine seq 
     use input
     implicit none
 
