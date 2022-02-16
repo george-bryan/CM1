@@ -2775,8 +2775,6 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. ptype.eq.5 ) getvt = .true.
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
-!!!!$acc update device (avgsfcu,avgsfcv,avgsfcs,avgsfct,dt)
-
 !$acc data copyin (thten,sten,rho0,thv0,th0,qv0,prs0,rth0,qc0,xh,rxh,  &
 !$acc              arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,yh,vh,rvh, &
 !$acc              yf,vf,rvf,rds,sigma,rdsf,sigmaf,zh,mh,rmh,zf,mf,    &
