@@ -308,7 +308,6 @@
       np3o = 1
       cflmax = 0.0
       ksmax = 0.0
-!$acc enter data copyin(cflmax,ksmax)
       ndt = 0
       adt = 0.0
       acfl = 0.0
@@ -485,9 +484,6 @@
       read(20,nml=param2)
       read(20,nml=param8)
       close(unit=20)
-      !OpenACC data movement directives
-      !$acc enter data copyin(nx,ny)
-
       ! note:  read remainder of namelist sections in param.F !
 
 !----------------------------------------------------------------------
@@ -579,7 +575,6 @@
       njp1 = nj+1
       nkp1 = nk+1
       nkm1 = nk-1
-      !$acc enter data copyin(nip1,njp1,nkp1,nkm1)
 
       nimax = ni
       njmax = nj
@@ -770,7 +765,6 @@
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
       !print *,'cm1: copyin of (ngzy,ngz): ',ngxy,ngz 
-      !$acc update device (ngxy,ngz)
       !stop 'after call to data copyin()'
       
 
@@ -789,7 +783,6 @@
       je = nj + ngxy
       kb =  1 - ngz
       ke = nk + ngz
-      !$acc update device(ib,ie,jb,je,kb,ke)
 
       allocate(    xh(ib:ie) )
       xh = 0.0
@@ -1265,7 +1258,17 @@
                        uw31,uw32,ue31,ue32,us31,us32,un31,un32,         &
                        vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,         &
                        ww31,ww32,we31,we32,ws31,ws32,wn31,wn32)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
+
+      !$acc update device (nx,ny,nz,nparcels,npvals,axisymm,numq,    &
+      !$acc                terrain_flag,nz,rzt,zt,imoist,nqv,bbc,    &
+      !$acc                imove,umove,vmove,viscosity,pr_num,       &
+      !$acc                sc_num,maxz,prvpx,prvpy,prvpz,prrp,prms,  &
+      !$acc                prx,pry,prsig,prz,rdx,rdy,rdz,ptype,ni,   &
+      !$acc                nj,nk,nip1,njp1,nkp1,nkm1,ngxy,ngz,prtp,  &
+      !$acc                ib,ie,jb,je,kb,ke,cgs1,cgs2,cgs3,vd_vadv, &
+      !$acc                minx,maxx,miny,maxy,dx,dy,dz,wbc,ebc,sbc, &
+      !$acc                nbc,alph,kdiv,nqs1,nqs2,nqr,nqi,nqs,nqg,  &
+      !$acc                nnci,nncc,pract,cgt1,cgt2,cgt3)
 
 !----------------------------------------------------------------------
 
@@ -2654,9 +2657,8 @@
       reqc = 0
       reqk = 0
 
-      !$acc data &
-      !$acc copyin(uh,vh,mh,u3d,v3d,w3d) &
-      !$acc copyin(kmh,kmv,khh,khv,ksmax)
+      !$acc update device (ksmax,cflmax)
+      !$acc data copyin(uh,vh,mh,u3d,v3d,w3d,kmh,kmv,khh,khv)
       if( adapt_dt.eq.1 )then
         dt = dbldt
         if( .not. restarted )then
@@ -2664,7 +2666,7 @@
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
-          !$acc update device(cflmax)
+          !$acc update device (cflmax)
           print *,'cm1: cflmax: ',cflmax
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
@@ -2677,7 +2679,6 @@
 #endif
           endif
           print *,'cm1: ksmax: ',ksmax
-          !stop 'cm1: after call to calcflquick'
           stopit = .false.
           ndt  = 0
           adt  = 0.0
@@ -2692,8 +2693,6 @@
         endif
       endif
       !$acc end data
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-
 
       ! cm1r19:  nsound is always determined diagnostically
       call dtsmall(dt,dbldt)
@@ -2776,77 +2775,53 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. ptype.eq.5 ) getvt = .true.
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
-    !$acc data &
-    !$acc copyin(thten,sten,ksmax) &
-    !$acc copyin(rho0,thv0,th0,qv0) &
-    !$acc copyin(prs0,rth0,qc0) &
-    !$acc copyin(xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
-    !$acc   yh,vh,rvh,yf,vf,rvf,rds,sigma,rdsf,sigmaf,zh,mh,rmh,zf,mf,rmf, &
-    !$acc   zs,gz,rgz,gzu,rgzu,gzv,rgzv,dzdx,dzdy,gx,gxu,gy,gyv) &
-    !$acc copyin(c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw,u1b,v1b, &
-    !$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
-    !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland) &
-    !$acc copyin(avgsfcu,avgsfcv,avgsfcs,avgsfct) &
-    !$acc copyin(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
-    !$acc copyin(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
-    !$acc copyin(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
-    !$acc copyin(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
-    !$acc copyin(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
-    !$acc copyin(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
-    !$acc copyin(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
-    !$acc copyin(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
-    !$acc copyin(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
-    !$acc copyin(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
-    !$acc copyin(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
-    !$acc copyin(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-    !$acc copyin(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
-    !$acc copyin(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2) &
-    !$acc copyin( &
-    !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
-    !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
-    !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
-    !$acc   kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
-    !$acc copyin(taux,tauy,gamwall,l2p,t2pm1,t2pm2,t2pm3,t2pm4) &
-    !$acc copyin(udiag,vdiag,wdiag,kdiag,tdiag,qdiag) &
-    !$acc copyin(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
-    !$acc copyin(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
-    !$acc copyin(defv,defh,lenscl,dissten, &
-    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
-    !$acc      wspd,gz1oz0,br,brcr,phim,phih,swspd,cpmm,zol,mavail,mol,rmol,dsxy,cda,psim,psih, &
-    !$acc      psiq,fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z) &
-    !$acc copyin(stau,ustt,ut,vt,st,cd,ch,cq,tlh,u1,v1,s1,t1) &
-    !$acc copyin(znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
-    !$acc copyin(sws,svs,sps,srs,sgs,sus,shs) &
-    !$acc copyin(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
-    !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
-    !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
-    !$acc copyin(chklowq,flqc,ch_out,cd_out) &
-    !$acc copyin(pdata,dpten) &
-    !$acc copyin(zkmax,CHS,CHS2,CQS2,flhc,lh,QGH,smois,charn,msang,scurx,scury,s2p,s2b) &
-    !$acc copyin(lu_index) &
-    !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
-    !$acc copyin(rho,rr,rf,prs,o30,zir)  &
-    !$acc copyin(flag) &
-    !$acc copyin(pi0) &
-    !$acc copyin(ug,vg) &
-    !$acc copyin(tke_myj,xkzh,xkzq,xkzm) &
-    !$acc copyin(xfref,xhref,yfref,yhref,dvdr) &
-    !$acc copyin(qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen) &
-    !$acc copyin(effc,effi,effs,effr,effg,effis,out2d,out3d) &  ! physics only 
-    !$acc copyin(rain,prate,p3a,p3o) & ! physics only
-    !$acc copyin(qbudget,asq,bsq) &
-    !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
-    !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
-    !$acc copyin(thten1,thterm) &
-    !$acc copyin(glw,gsw) &
-    !$acc copyin(ulspg,vlspg) &
-    !$acc copyin(savg,pavg,uavg,vavg,thavg) &
-    !$acc copyin(lsnudge_u, lsnudge_v) &
-    !$acc copyin(dt) &
-    !$acc copyin(reqs_s,reqs_u,reqs_p3, &
-    !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) &
-    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1) &
-    !$acc copy(pdata_locind)
+!$acc data copyin (thten,sten,rho0,thv0,th0,qv0,prs0,rth0,qc0,xh,rxh,  &
+!$acc              arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,yh,vh,rvh, &
+!$acc              yf,vf,rvf,rds,sigma,rdsf,sigmaf,zh,mh,rmh,zf,mf,    &
+!$acc              rmf,zs,gz,rgz,gzu,rgzu,gzv,rgzv,dzdx,dzdy,gx,gxu,   &
+!$acc              gy,gyv,c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw, &
+!$acc              u1b,v1b,tauh,tauf,taus,bndy,kbdy,phi1,pt3d,xland,   &
+!$acc              p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,pw1,pw2,    &
+!$acc              pe1,pe2,ps1,ps2,pn1,pn2,uw31,uw32,ue31,ue32,us31,   &
+!$acc              us32,un31,un32,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,tw1, &
+!$acc              tw2,te1,te2,ts1,ts2,tn1,tn2,tkw1,tkw2,tke1,tke2,    &
+!$acc              tks1,tks2,tkn1,tkn2,ww1,ww2,we1,we2,ws1,ws2,wn1,    &
+!$acc              wn2,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,vw31,vw32,ve31, &
+!$acc              ve32,vs31,vs32,vn31,vn32,ww31,ww32,we31,we32,ws31,  &
+!$acc              ws32,wn31,wn32,qw31,qw32,qe31,qe32,qs31,qs32,qn31,  &
+!$acc              qn32,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rw31,  &
+!$acc              rw32,re31,re32,rs31,rs32,rn31,rn32,p3w1,p3w2,p3e1,  &
+!$acc              p3e2,p3s1,p3s2,p3n1,p3n2,n3w1,n3w2,n3e1,n3e2,s3w1,  &
+!$acc              s3w2,s3e1,s3e2,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,kw1, &
+!$acc              kw2,ke1,ke2,ks1,ks2,kn1,kn2,taux,tauy,gamwall,l2p,  &
+!$acc              t2pm1,t2pm2,t2pm3,t2pm4,udiag,vdiag,wdiag,kdiag,    &
+!$acc              tdiag,qdiag,pdiag,dum1,dum2,dum3,dum4,dum5,dum6,    &
+!$acc              dum7,dum8,dum9,dum2d1,dum2d2,dum2d3,dum2d4,dum2d5,  &
+!$acc              defv,defh,lenscl,dissten,epst,epsd1,epsd2,thpten,   &
+!$acc              upten,vpten,psfc,u10,v10,s10,hpbl,wspd,gz1oz0,br,   &
+!$acc              brcr,phim,phih,swspd,cpmm,zol,mavail,mol,rmol,dsxy, &
+!$acc              cda,psim,psih,psiq,fm,fh,th2,q2,t2,gamk,cmz,csz,    &
+!$acc              ce1z,ce2z,stau,ustt,ut,vt,st,cd,ch,cq,tlh,u1,v1,s1, &
+!$acc              t1,znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb,sws,svs, &
+!$acc              sps,srs,sgs,sus,shs,bud2,ufrc,vfrc,thfrc,qvfrc,t11, &
+!$acc              t12,t13,t22,t23,t33,thflux,qvflux,radbcw,radbce,    &
+!$acc              radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx,nm,epst,pta, &
+!$acc              pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d,chklowq,     &
+!$acc              flqc,ch_out,cd_out,pdata,dpten,zkmax,CHS,CHS2,CQS2, &
+!$acc              flhc,lh,QGH,smois,charn,msang,scurx,scury,s2p,s2b,  &
+!$acc              lu_index,qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0,rho,rr,   &
+!$acc              rf,prs,o30,zir,flag,pi0,ug,vg,tke_myj,xkzh,xkzq,    &
+!$acc              xkzm,xfref,xhref,yfref,yhref,dvdr,qpten,qtten,      &
+!$acc              qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d, &
+!$acc              tketen,effc,effi,effs,effr,effg,effis,out2d,out3d,  &
+!$acc              rain,prate,p3a,p3o,qbudget,asq,bsq,qavg,cavg,gsw,   &
+!$acc              cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,    &
+!$acc              mznt,ppi,pp3d,ppten,sadv,ppx,tha,thten1,thterm,glw, &
+!$acc              ulspg,vlspg,savg,pavg,uavg,vavg,thavg,lsnudge_u,    &
+!$acc              lsnudge_v,reqs_s,reqs_u,reqs_p3,reqs_v,reqs_w,      &
+!$acc              reqs_x,reqs_y,reqs_p2,reqs_z,rru,ua,u3d,uten,uten1, &
+!$acc              rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,    &
+!$acc              wten1,pdata_locind)
 
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 

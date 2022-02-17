@@ -19,7 +19,7 @@
  run_time =  -999.9,
  tapfrq =    60.0,
  rstfrq =    60.0,
- statfrq =   60.0,
+ statfrq =   10.0,
  prclfrq =   60.0,
  /
 
