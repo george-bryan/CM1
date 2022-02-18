@@ -50,9 +50,12 @@
       real :: wsp,wlast,var,rznt,usave,vsave,ssave
       logical :: convergeFail
 
-      !$acc declare present (xh,za,xland,u1,v1,s1,u10,v10,s10, &
-      !$acc                  znt,ust,cd,ch,cq)
-
+      !$acc declare &
+      !$acc present(xh,za,xland) &
+      !$acc present(u1,v1,s1) &
+      !$acc present(u10,v10,s10) &
+      !$acc present(znt,ust,cd,ch,cq) &
+      !$acc present(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 !-----------------------------------------------------------------------
 !
 !  This subroutine determines several important variables at the surface
