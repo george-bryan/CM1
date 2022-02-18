@@ -160,6 +160,9 @@
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk
 
+!$acc declare copyin(ptype)
+!$acc declare create(ngxy,ngz)
+!$acc declare create(ib,ie,jb,je,kb,ke)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -195,16 +198,8 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
-!$acc declare create (nx,ny,nz,nparcels,ni,nj,nk,npvals,axisymm,numq, &
-!$acc                 terrain_flag,nip1,njp1,nkp1,nkm1,nparcels,rzt,  &
-!$acc                 zt,imoist,nqv,bbc,imove,umove,vmove,viscosity,  &
-!$acc                 pr_num,sc_num,maxz,prvpx,prvpy,prvpz,prrp,prms, &
-!$acc                 prtp,prx,pry,prsig,prz,pract,cflmax,ksmax,alph, &
-!$acc                 kdiv,ptype,ngxy,ngz,ib,ie,jb,je,kb,ke,rdz,cgs1, &
-!$acc                 cgs2,cgs3,vd_vadv,minx,maxx,miny,maxy,dx,dy,dz, &
-!$acc                 wbc,ebc,sbc,nbc,nqs1,nqs2,nqr,nqi,nqs,nqg,nnci, &
-!$acc                 nncc,rdx,rdy,rdz,cgt1,cgt2,cgt3)
-
+!$acc declare create(alph,kdiv)
+!$acc declare create(cflmax)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
