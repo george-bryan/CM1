@@ -360,6 +360,7 @@
       drpdt    = pdata(np,prrp)
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
+
       idropmethod = 0 !RK2 for droplet time integration
       !idropmethod = 1 !Implicit backward Euler for droplet time integration
 
@@ -372,6 +373,8 @@
       call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
 
       ENDIF dropmethod
+
+      !write(*,'(a6,5e15.6)') 'DHR:',x3d,y3d,z3d,pdata(np,prtp),pdata(np,prrp)
 
       ENDIF dropalive1
       
@@ -511,16 +514,17 @@
         wtt = wtx*wty*wtz
 
         !!$acc atomic write
-        qten(ix,iy,iz) = qten(ix,iy,iz) - &
-            dmvdt/rhoval/dV*wtt*pdata(np,prmult)
+        !qten(ix,iy,iz) = qten(ix,iy,iz) - &
+        !    dmvdt/rhoval/dV*wtt*pdata(np,prmult)
 
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
         !!$acc atomic write
         !thten(ix,iy,iz) = thten(ix,iy,iz) - &
         !    (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
-        thten(ix,iy,iz) = thten(ix,iy,iz) - &
-            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
+
+        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
+        !    dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
 
 #if 0
         if((np==TROUBLE)) then 
@@ -734,6 +738,7 @@
       real, intent(out) :: Nup,rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
 
+      !Common with BE_integration
       real :: dt2
       real :: uval,vval,wval
       real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
@@ -746,8 +751,10 @@
       real :: rhop,volp,tp0,volp0
       real :: qval,tval,prsval
       real :: sig1,sigdot
-      integer :: nrkp
       integer :: i,j,k
+
+      !Unique to rk2_integration
+      integer :: nrkp
 
 
       dt2 = dt/2.0      
@@ -765,6 +772,13 @@
       endif
       qinf = rslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
       lhv=lv1-lv2*tval
+
+       qval = 0.008807098199749
+       tval = 282.3
+       uval = 0.0
+       vval = 0.0
+       wval = 0.0
+      write(*,*) 'DHR1:',qinf,pdata(np,prms)
 
 
 !-----------------------------------------------------
@@ -808,9 +822,14 @@
                          (vval-pdata(np,prvpy))**2+ &
                          (wval-pdata(np,prvpz))**2)
 
+
         Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        diffnorm = 0.0 !DHR
+        Nup = 2.0 !DHR
+        Shp = 2.0 !DHR
 
         vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
         vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
@@ -916,6 +935,10 @@
         Rep = 2.0*rptmp*diffnorm/viscosity
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        diffnorm = 0.0 !DHR
+        Nup = 2.0 !DHR
+        Shp = 2.0 !DHR
 
         vrhs1 = 1.0/taup*(uval - vtmp1) + part_grav1
         vrhs2 = 1.0/taup*(vval - vtmp2) + part_grav2
@@ -1030,10 +1053,12 @@
       real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval
       real, intent(inout), dimension(nparcels,npvals) :: pdata
       integer, intent(inout), dimension(nparcels,3) :: pdata_locind
-
       real, intent(out) :: Nup,rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
 
+      integer :: nrkp
+
+      !Common with rk2_integration
       real :: dt2
       real :: uval,vval,wval
       real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
@@ -1041,13 +1066,17 @@
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
-      real :: rprhs,rptmp,qstar,einf,lhv,qinf
+      real :: rprhs,rptmp,qstar,einf,qinf
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
       real :: qval,tval,prsval
       real :: sig1,sigdot
-      integer :: nrkp
       integer :: i,j,k
+
+      !Unique to BE_integration:
+      real :: taup_scale,dt_nondim
+      real :: guess,rt_zeros(2),rt_start(2)
+      integer :: mflag,flag
 
 
        call interpolate_to_parcel(np,1,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
@@ -1056,7 +1085,6 @@
         print *,'before rslf: tval: ',tval 
       endif
       qinf = rslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
-      lhv=lv1-lv2*tval
 
 
 !-----------------------------------------------------
@@ -1100,19 +1128,36 @@
       pdata(np,prvpy) = (pdata(np,prvpy) + dt*vval/taup + dt*part_grav2)/(1 + dt/taup)
       pdata(np,prvpz) = (pdata(np,prvpz) + dt*wval/taup + dt*part_grav3)/(1 + dt/taup)
 
+      !Nonlinear solver for the radius and temperature:
 
-!      qstar = qinf*exp(                                                   &
-!                   mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
-!                  +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
-!                  -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
-!                      )
-!
-!      rprhs = Shp/9.0/sc_num*rhop/rhow*pdata(np,prrp)/taup*(qval-qstar)
-!
-!      tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
-!              3.0*lhv/cpl/pdata(np,prrp)*rprhs
-!
-!
+      !Nondimensionalize parameters before the solver using 1-micron water droplet as ref
+      taup_scale = rhow*(1.0e-6)**2/(18*rhoval*viscosity)
+
+      dt_nondim = dt/taup_scale
+      
+
+      !write(*,'(a6,5e15.6)') 'DHR1:',x3d,y3d,z3d,pdata(np,prtp),pdata(np,prrp)
+      !Gives initial guess into nonlinear solver
+      !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
+      call rad_solver2(guess,mflag,prsval,rhoval,tval,qinf,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+      !write(*,'(a6,5e15.6)') 'DHR2:',guess,prsval,rhoval,tval,qinf
+
+      if (mflag.eq.0) then
+         rt_start(1) = guess/pdata(np,prrp)
+         rt_start(2) = tval/pdata(np,prtp)
+      else
+         rt_start(1) = 1.0
+         rt_start(2) = 1.0
+      end if
+
+      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+      !write(*,'(a6,2i,4e15.6)') 'DHR3:',myid,np,rt_start(1),rt_start(2),rt_zeros(1),rt_zeros(2)
+
+      !Now redimsionalize
+      pdata(np,prrp) = rt_zeros(1)*pdata(np,prrp)
+      pdata(np,prtp) = rt_zeros(2)*pdata(np,prtp)
+
+
 
       end subroutine BE_integration
 
@@ -1738,6 +1783,234 @@
 
       end subroutine find_vertical_location_index
 
+      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qinf,Tp,m_s,radius)
+      use constants
+      use cm1libs , only : rslf
+      implicit none
+
+      real, intent(out) :: guess
+      integer, intent(out) :: mflag
+      real, intent(in) :: prsval,rhoval,tval,qinf,Tp,m_s,radius
+      real :: a, c, esa, Q, R, M, val, theta, S, T
+
+      mflag = 0
+      esa = rslf(prsval,Tp)  !Saturation humidity at droplet temperature
+
+      a = -(2*mw*surften)/(ru*rhow*tval)/LOG((ru*tval*rhoval*qinf)/(mw*esa))
+      c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG((ru*tval*rhoval*qinf)/(mw*esa))
+
+      Q = (a**2.0)/9.0
+      R = (2.0*a**3.0+27.0*c)/54.0
+      M = R**2.0-Q**3.0
+      val = (R**2.0)/(Q**3.0)
+
+      if (M<0) then
+        theta = acos(R/sqrt(Q**3.0))
+        guess = -(2*sqrt(Q)*cos((theta-pi*2.0)/3.0))-a/3.0
+
+        if (guess < 0) then
+        guess = -(2*sqrt(Q)*cos((theta+pi*2.0)/3.0))-a/3.0
+        end if
+
+      else
+        S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0/3.0)
+        T = Q/S
+        guess = S + T - a/3.0
+
+        if (guess < 0) then
+                guess = radius
+                mflag = 1
+        end if
+      end if
+
+      end subroutine rad_solver2
+
+      subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        implicit none
+
+        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        real, intent(out) :: rt_zeros(2)
+        integer, intent(out) :: flag
+
+        real :: error,fv1(2),fv2(2),v1(2),rel
+        real :: diff, temp1(2), temp2(2), relax, coeff, correct(2)
+        real, dimension(1:2, 1:2) :: J,fancy,inv,finalJ
+        integer :: iterations,neg,counts
+
+        iterations = 0
+        flag = 0
+        error = 1.e-8
+
+        v1 = rt_start
+        fv2 = (/1., 1./)
+        coeff = 0.1
+        do while ((sqrt(dot_product(fv2, fv2)) > error) .AND. (iterations<1000))
+
+
+                iterations = iterations + 1
+        !write(*,'(a6,i,4e15.6)') 'DHR4:',iterations,rt_zeros(1),rt_zeros(2),rt_start(1),rt_start(2)
+
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        !write(*,'(a6,i,4e15.6)') 'DHR5:',iterations,v1(1),v1(2),fv1(1),fv1(2)
+                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+
+                fancy = matmul(transpose(J),J)
+
+                call inverse_finder_2d(fancy, inv)
+
+                finalJ = matmul(inv, transpose(J))
+
+                correct = matmul(finalJ,fv1)
+                rt_zeros = v1 - correct
+
+        !write(*,'(a8,i,4e15.6)') 'DHR5.2:',iterations,J(1,1),J(1,2),J(2,1),J(2,2)
+        !write(*,'(a8,i,4e15.6)') 'DHR5.3:',iterations,inv(1,1),inv(1,2),inv(2,1),inv(2,2)
+        !write(*,'(a8,i,4e15.6)') 'DHR5.4:',iterations,finalJ(1,1),finalJ(1,2),finalJ(2,1),finalJ(2,2)
+        !write(*,'(a8,i,4e15.6)') 'DHR5.5:',iterations,correct(1),correct(2),rt_zeros(1),rt_zeros(2)
+
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+
+        !write(*,'(a6,i,6e15.6)') 'DHR6:',iterations,v1(1),v1(2),temp1(1),temp1(2),rt_zeros(1),rt_zeros(2)
+
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+
+        !write(*,'(a6,i,6e15.6)') 'DHR7:',iterations,v1(1),v1(2),temp2(1),temp2(2),rt_zeros(1),rt_zeros(2)
+
+                diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
+
+                if (sqrt(dot_product(correct,correct))<error) then
+                        EXIT
+                end if
+
+                relax = 1.0
+                counts = 0
+
+               do while ((diff<0).OR.(rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. isnan(rt_zeros(1)))
+                        counts = counts + 1
+                        coeff = 0.5
+                        relax = relax * coeff
+                        rt_zeros = v1-matmul(finalJ,fv1)*relax
+                        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        !write(*,'(a6,i,4e15.6)') 'DHR8:',counts,rt_zeros(1),rt_zeros(2),temp2(1),temp2(2)
+                        diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
+
+                        if (counts>10) EXIT
+                end do
+
+                v1 = rt_zeros
+
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        end do
+      if (iterations == 100) flag = 1
+      if (isnan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. isnan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
+
+      end subroutine gauss_newton_2d
+
+  subroutine inverse_finder_2d(C, invC)
+        implicit none
+        real :: det
+        real, dimension(1:2, 1:2), intent(in) :: C
+        real, dimension(1:2, 1:2), intent(out) :: invC
+
+        det = C(1, 1) * C(2, 2) - C(1, 2) * C(2, 1)
+
+        invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),shape(invC))
+        invC = (1./det)*invC
+
+  end subroutine inverse_finder_2d
+  subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        implicit none
+        integer :: n
+
+        real, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
+        real, intent(out), dimension(1:2, 1:2) :: J
+        real :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
+
+        diff = 1E-5
+
+        ynext(1) = rnext
+        ynext(2) = tnext
+
+      !write(*,'(a10,2e15.6)') 'DHR5.01:',rnext,tnext
+
+        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+
+      !write(*,'(a10,2e15.6)') 'DHR5.02:',rt_output(1),rt_output(2)
+
+        xper = ynext
+        xper2 = ynext
+
+        do n=1, 2
+                xper(n) = xper(n) + diff
+                xper2(n) = xper2(n) - diff
+                call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+
+      !write(*,'(a10,4e15.6)') 'DHR5.03:',xper(1),xper(2),fxper(1),fxper(2)
+                call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      !write(*,'(a10,4e15.6)') 'DHR5.04:',xper2(1),xper2(2),fxper2(1),fxper2(2)
+
+                J(:, n) = (fxper-rt_output)/diff
+      !write(*,'(a10,2e15.6)') 'DHR5.05:',fxper(1)-rt_output(1),fxper(2)-rt_output(2)
+                xper(n) = ynext(n)
+                xper2(n) = ynext(n)
+      !write(*,'(a10,4e15.6)') 'DHR5.06:',xper(1),xper(2),xper2(1),xper2(2)
+        end do
+
+      !write(*,'(a8,4e15.6)') 'DHR5.1:',J(1,1),J(1,2),J(2,1),J(2,2)
+
+  end subroutine jacob_approx_2d
+  subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      use constants
+      use input
+      use cm1libs , only : rslf
+      implicit none
+
+      real, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
+      real, intent(out) :: rT_output(2)
+
+      real :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
+      real :: Tnext,rnext
+
+
+        ! quantities come in already non-dimensionalized, so must be converted back;
+        rnext = tempr*radius
+        Tnext = tempt*Tp
+        dnext = rnext*2.0
+
+        esa = rslf(prsval,tval)
+        VolP = (4.0/3.0)*pi*rnext**3
+        rhop = (m_s + VolP*rhow)/VolP
+
+        Rep = dnext*diffnorm/viscosity
+        taup = (rhop*dnext**2)/(18.0*rhoval*viscosity)
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        lhv=lv1-lv2*tval
+
+
+        !!! Humidity !!!
+        qstr = (mw/(ru*Tnext*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tnext))) + ((2.0*mw*surften)/(ru*rhow*rnext*Tnext)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
+        !!!!!!!!!!!!!!!!!!
+
+        !!! Radius !!!
+        Shp = 2.0 + 0.6*Rep**(1.0/2.0)*sc_num**(1.0/3.0)
+        rprime = (1.0/9.0)*(Shp/sc_num)*(rhop/rhow)*(rnext/taup)*(qval - qstr)
+        rprime = rprime*(taup_scale/radius)
+        !!!!!!!!!!!!!!!!!
+
+        !!! Temperature !!!
+        Nup = 2.0 + 0.6*Rep**(1.0/2.0)*pr_num**(1.0/3.0);
+
+        Tprime = -(1.0/3.0)*(Nup/pr_num)*(cp/cpl)*(rhop/rhow)/taup*(Tnext-tval) + 3.0*lhv/(rnext*cpl)*rprime*(radius/taup_scale)
+        Tprime = Tprime*(taup_scale/Tp)
+        !!!!!!!!!!!!!!!!!
+
+        rT_output(1) = rnext/radius - 1.0  - dt_nondim*rprime
+        rT_output(2) = Tnext/Tp - 1.0  - dt_nondim*Tprime
+
+  end subroutine ie_vrt_nd
 
 
 
