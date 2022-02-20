@@ -36,7 +36,7 @@
       use comm_module
       use misclibs
       use parcel_module
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
 #ifdef MPI
       use mpi
 #endif
@@ -265,7 +265,7 @@
     !$acc private(i,j,k,rx,ry,rz,rxu,ryv,rxs,rys,rzs,rzw,x3d,y3d,z3d, &
     !$acc     w1,w2,w3,w4,w5,w6,w7,w8,sig3d,iflag,jflag,kflag,nrkp, &
     !$acc     uval,vval,wval,qval,tval,rhoval,prsval,sigdot,zsp,rznt,var, &
-    !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,rhop0,taup,taup0,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3,qinf, &
+    !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,rhop0,taup,taup0,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3, &
     !$acc     lhv,qstar,rprhs,tprhs,vtmp1,vtmp2,vtmp3,k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3, &
     !$acc     dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt,dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt, &
     !$acc     sig1,k1tp,esl,tptmp,k1rp,rptmp,part_grav1,part_grav2,part_grav3,rp0,tp0,volp0)
@@ -361,8 +361,8 @@
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
 
-      idropmethod = 0 !RK2 for droplet time integration
-      !idropmethod = 1 !Implicit backward Euler for droplet time integration
+      !idropmethod = 0 !RK2 for droplet time integration
+      idropmethod = 1 !Implicit backward Euler for droplet time integration
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
@@ -709,7 +709,7 @@
       use comm_module
       use misclibs
       use parcel_module
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
       implicit none
 
       integer, intent(inout) :: iflag,jflag,kflag
@@ -746,7 +746,7 @@
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
-      real :: rprhs,rptmp,qstar,einf,lhv,qinf
+      real :: rprhs,rptmp,qstar,einf,lhv,estar
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
       real :: qval,tval,prsval
@@ -766,19 +766,19 @@
 
        call interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
 
-
-      if(np==TROUBLE) then 
-        print *,'before rslf: tval: ',tval 
-      endif
-      qinf = rslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
-      lhv=lv1-lv2*tval
-
        qval = 0.008807098199749
        tval = 282.3
        uval = 0.0
        vval = 0.0
        wval = 0.0
-      write(*,*) 'DHR1:',qinf,pdata(np,prms)
+
+      if(np==TROUBLE) then 
+        print *,'before eslf: tval: ',tval 
+      endif
+      estar = eslf(prsval,tval)  !Saturation vapor pressure based on interpolated temp,pressure
+      lhv=lv1-lv2*tval
+
+      write(*,*) 'DHR1:',qval,tval,estar
 
 
 !-----------------------------------------------------
@@ -788,7 +788,7 @@
         !print *,'before: pdata(np,prrp): ',pdata(np,prrp)
         !print *,'before: pdata(np,prms): ',pdata(np,prms)
         !print *,'before: pdata(np,prtp): ',pdata(np,prtp)
-        print *,'after rslf: tval: ',tval 
+        print *,'after eslf: tval: ',tval 
         !print *,'prsval: ',prsval
         !print *,'lv1: ',lv1
         !print *,'lv2: ',lv2
@@ -835,9 +835,8 @@
         vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
         vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
 
-        ! einf = qinf*rhoval/mw*ru*tval
 
-        qstar = qinf*exp(                                                   &
+        qstar = estar*mw/ru/pdata(np,prtp)/rhoval*exp(                        &
                      mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
                     +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
                     -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
@@ -899,7 +898,6 @@
 
         if(np==TROUBLE) then 
           print *,'dd: qstar: ',qstar
-          print *,'dd: qinf: ',qinf
           print *,'dd: cp: ',cp
           print *,'dd: cpl: ',cpl
           print *,'dd: Nup: ',Nup
@@ -944,7 +942,7 @@
         vrhs2 = 1.0/taup*(vval - vtmp2) + part_grav2
         vrhs3 = 1.0/taup*(wval - vtmp3) + part_grav3
 
-        qstar = qinf*exp(                                                   &
+        qstar = estar*mw/ru/tptmp*exp(                             &
                      mw*lhv/ru*(1.0/tval - 1.0/tptmp)                       &
                     +2.0*ms*surften/(ru*rhow*rptmp*tptmp)                   &
                     -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
@@ -1028,7 +1026,7 @@
       use comm_module
       use misclibs
       use parcel_module
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
       implicit none
 
       integer, intent(inout) :: iflag,jflag,kflag
@@ -1066,7 +1064,7 @@
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
-      real :: rprhs,rptmp,qstar,einf,qinf
+      real :: rprhs,rptmp,qstar,einf,estar
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
       real :: qval,tval,prsval
@@ -1081,10 +1079,18 @@
 
        call interpolate_to_parcel(np,1,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
 
+       qval = 0.008807098199749
+       tval = 282.3
+       uval = 0.0
+       vval = 0.0
+       wval = 0.0
+
       if(np==TROUBLE) then 
-        print *,'before rslf: tval: ',tval 
+        print *,'before eslf: tval: ',tval 
       endif
-      qinf = rslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
+      estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
+
+      !write(*,*) 'DHR2:',pdata(np,prms),estar
 
 
 !-----------------------------------------------------
@@ -1114,6 +1120,10 @@
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
+        diffnorm = 0.0 !DHR
+        Nup = 2.0 !DHR
+        Shp = 2.0 !DHR
+
         vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
         vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
         vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
@@ -1139,8 +1149,8 @@
       !write(*,'(a6,5e15.6)') 'DHR1:',x3d,y3d,z3d,pdata(np,prtp),pdata(np,prrp)
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
-      call rad_solver2(guess,mflag,prsval,rhoval,tval,qinf,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
-      !write(*,'(a6,5e15.6)') 'DHR2:',guess,prsval,rhoval,tval,qinf
+      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+      !write(*,'(a6,5e15.6)') 'DHR2:',guess,prsval,rhoval,tval,qval
 
       if (mflag.eq.0) then
          rt_start(1) = guess/pdata(np,prrp)
@@ -1165,7 +1175,7 @@
       use input
       use constants
       use parcel_module
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
       implicit none
 
       real, intent(in), dimension(ib:ie+1) :: xf
@@ -1783,21 +1793,21 @@
 
       end subroutine find_vertical_location_index
 
-      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qinf,Tp,m_s,radius)
+      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius)
       use constants
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
       implicit none
 
       real, intent(out) :: guess
       integer, intent(out) :: mflag
-      real, intent(in) :: prsval,rhoval,tval,qinf,Tp,m_s,radius
+      real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
       real :: a, c, esa, Q, R, M, val, theta, S, T
 
       mflag = 0
-      esa = rslf(prsval,Tp)  !Saturation humidity at droplet temperature
+      esa = eslf(prsval,tval)  !Saturation vapor pressure at droplet temperature
 
-      a = -(2*mw*surften)/(ru*rhow*tval)/LOG((ru*tval*rhoval*qinf)/(mw*esa))
-      c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG((ru*tval*rhoval*qinf)/(mw*esa))
+      a = -(2*mw*surften)/(ru*rhow*tval)/LOG((ru*tval*rhoval*qval)/(mw*esa))
+      c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG((ru*tval*rhoval*qval)/(mw*esa))
 
       Q = (a**2.0)/9.0
       R = (2.0*a**3.0+27.0*c)/54.0
@@ -1906,6 +1916,15 @@
       if (isnan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. isnan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
+      subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        implicit none
+
+        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        real, intent(out) :: rt_zeros(2)
+        integer, intent(out) :: flag
+
+  end subroutine LV_solver
 
   subroutine inverse_finder_2d(C, invC)
         implicit none
@@ -1963,7 +1982,7 @@
   subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
       use constants
       use input
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
       implicit none
 
       real, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
@@ -1978,7 +1997,7 @@
         Tnext = tempt*Tp
         dnext = rnext*2.0
 
-        esa = rslf(prsval,tval)
+        esa = eslf(prsval,tval)
         VolP = (4.0/3.0)*pi*rnext**3
         rhop = (m_s + VolP*rhow)/VolP
 
@@ -1986,6 +2005,9 @@
         taup = (rhop*dnext**2)/(18.0*rhoval*viscosity)
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
         Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        Nup = 2.0 !DHR
+        Shp = 2.0 !DHR
 
         lhv=lv1-lv2*tval
 
@@ -1995,17 +2017,12 @@
         !!!!!!!!!!!!!!!!!!
 
         !!! Radius !!!
-        Shp = 2.0 + 0.6*Rep**(1.0/2.0)*sc_num**(1.0/3.0)
         rprime = (1.0/9.0)*(Shp/sc_num)*(rhop/rhow)*(rnext/taup)*(qval - qstr)
         rprime = rprime*(taup_scale/radius)
-        !!!!!!!!!!!!!!!!!
 
         !!! Temperature !!!
-        Nup = 2.0 + 0.6*Rep**(1.0/2.0)*pr_num**(1.0/3.0);
-
         Tprime = -(1.0/3.0)*(Nup/pr_num)*(cp/cpl)*(rhop/rhow)/taup*(Tnext-tval) + 3.0*lhv/(rnext*cpl)*rprime*(radius/taup_scale)
         Tprime = Tprime*(taup_scale/Tp)
-        !!!!!!!!!!!!!!!!!
 
         rT_output(1) = rnext/radius - 1.0  - dt_nondim*rprime
         rT_output(2) = Tnext/Tp - 1.0  - dt_nondim*Tprime

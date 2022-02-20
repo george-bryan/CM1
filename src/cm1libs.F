@@ -62,6 +62,24 @@
     endif
 
       END FUNCTION RSLF
+!
+! ---------------------------------------------------------------------
+! THIS FUNCTION CALCULATES THE LIQUID SATURATION VAPOR PRESSURE AS
+! A FUNCTION OF TEMPERATURE AND PRESSURE
+!
+      REAL FUNCTION ESLF(P,T)
+      !$acc routine seq
+
+      use constants
+      IMPLICIT NONE
+      REAL ESL,X,T,P
+
+      esl=611.2 * EXP( 17.67 * ( T  - 273.15 ) / ( T  - 29.65 ) )
+      ! 171023 (fix for very cold temps):
+      eslf = min( esl , p*0.5 )
+
+
+      END FUNCTION ESLF
 
 !
 ! ---------------------------------------------------------------------
