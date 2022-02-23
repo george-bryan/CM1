@@ -2156,6 +2156,11 @@
          desc_prcl(prcl_out) = 'droplet multiplicity'
          unit_prcl(prcl_out) = ' '
 
+         prcl_out = prcl_out+1
+         name_prcl(prcl_out) = 'alive'
+         desc_prcl(prcl_out) = '<0 = dead, >0 = alive'
+         unit_prcl(prcl_out) = ' '
+
       endif
 
       prcl_out = prcl_out+1
