@@ -174,8 +174,9 @@
  bc_temp   = 1,
  ptc_top   = 250.0,
  ptc_bot   = 300.0,
- viscosity = 25.0,
+ viscosity = 1.57e-5,
  pr_num    = 0.72,
+ sc_num    = 0.61,
  /
 
  &param8
