@@ -37,7 +37,7 @@
  advwenos  =  2,
  advwenov  =  0,
  weno_order = 5,
- apmasscon =  1,
+ apmasscon =  0,
  idiff     =  0,
  mdiff     =  0,
  difforder =  6,
