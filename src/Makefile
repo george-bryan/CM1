@@ -138,7 +138,7 @@ endif
 #  Intel compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},ifort)
-    OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz 
+    OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays 
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -qopenmp
