@@ -5778,6 +5778,9 @@
 #ifndef _B4B10R
         !$acc loop vector collapse(2) reduction(+:cavg1,cavg2)
 #endif
+        ! GHB, 220302: need to initialize cavg1,cavg2
+        cavg1 = 0.0
+        cavg2 = 0.0
         do j=1,nj
         do i=1,ni
           cavg1 = cavg1 + ugr(i,j,k)
