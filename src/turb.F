@@ -5737,7 +5737,7 @@
       double precision :: temd,teme,savgt,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg,z13avg,z23avg,  &
                           ustbar,zntbar,kavgt,rustbar,ubar,vbar,ufrc,vfrc,ravg,rfavg,rflast,shravg,spavgt
 
-      double precision :: spavg(kb:ke) 
+      double precision :: spavg(2:ntwk) 
 
       real, dimension(kb:ke) :: wspa
 
@@ -5874,7 +5874,7 @@
 
 #ifdef MPI
       !$acc update host(spavg)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(spavg)
 #endif
 
