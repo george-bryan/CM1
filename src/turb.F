@@ -5429,7 +5429,7 @@
       double precision :: temd,teme,savgt,z13avg,z23avg,  &
                           ustbar,zntbar,kavgt,rustbar,ubar,vbar,ufrc,vfrc,ravg,rflast,shravg,spavg
       double precision :: rfavgt,t13avgt,t23avgt,d13avgt,d23avgt,s13avgt,s23avgt
-      double precision, dimension(kb:ke) :: rfavg,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg
+      double precision, dimension(ntwk-1) :: rfavg,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg
 
       
 

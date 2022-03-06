@@ -90,7 +90,7 @@
       real, dimension(:), allocatable :: yh,vh,rvh
       real, dimension(:), allocatable :: yf,vf,rvf
       real, dimension(:), allocatable :: xfref,xhref,yfref,yhref
-      double precision, dimension(:), allocatable :: dumk1,dumk2,dumk3,dumk4
+      double precision, dimension(:), allocatable :: dumk1,dumk2
       double precision, dimension(:,:), allocatable :: dum2d1,dum2d2,dum2d3,dum2d4,dum2d5
       real, dimension(:), allocatable :: rds,sigma,rdsf,sigmaf
       real, dimension(:), allocatable :: wprof,ufrc,vfrc,thfrc,qvfrc,ug,vg,dvdr,  &
@@ -839,10 +839,6 @@
       dumk1 = 0.0
       allocate( dumk2(kb:ke) )
       dumk2 = 0.0
-      allocate( dumk3(kb:ke) )
-      dumk3 = 0.0
-      allocate( dumk4(kb:ke) )
-      dumk4 = 0.0
       allocate( dum2d1(ib:ie,jb:je) )
       dum2d1 = 0.0
       allocate( dum2d2(ib:ie,jb:je) )
@@ -3108,7 +3104,7 @@
                    dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
-                   xfref,xhref,yfref,yhref,dumk1,dumk2,dumk3,dumk4,rds,sigma,rdsf,sigmaf, &
+                   xfref,xhref,yfref,yhref,dumk1,dumk2,rds,sigma,rdsf,sigmaf, &
                    tauh,taus,zh,mh,rmh,c1,c2,tauf,zf,mf,rmf,          &
                    rho0s,pi0s,prs0s,rth0s,                            &
                    wprof,ufrc,vfrc,thfrc,qvfrc,ug,vg,dvdr,            &

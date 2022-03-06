@@ -90,7 +90,7 @@
                    dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
-                   xfref,xhref,yfref,yhref,dumk1,dumk2,dumk3,dumk4,rds,sigma,rdsf,sigmaf, &
+                   xfref,xhref,yfref,yhref,dumk1,dumk2,rds,sigma,rdsf,sigmaf, &
                    tauh,taus,zh,mh,rmh,c1,c2,tauf,zf,mf,rmf,         &
                    rho0s,pi0s,prs0s,rth0s,                           &
                    wprof,ufrc,vfrc,thfrc,qvfrc,ug,vg,dvdr,           &
@@ -198,7 +198,7 @@
       real, intent(in), dimension(jb:je+1) :: yf,vf,rvf
       real, intent(in), dimension(1-ngxy:nx+ngxy+1) :: xfref,xhref
       real, intent(in), dimension(1-ngxy:ny+ngxy+1) :: yfref,yhref
-      double precision, intent(inout), dimension(kb:ke) :: dumk1,dumk2,dumk3,dumk4
+      double precision, intent(inout), dimension(kb:ke) :: dumk1,dumk2
       real, intent(in), dimension(kb:ke) :: rds,sigma
       real, intent(in), dimension(kb:ke+1) :: rdsf,sigmaf
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: tauh,taus,zh,mh,rmh,c1,c2
@@ -347,6 +347,8 @@
       real(kind=qp) :: temq1,temq2
 
       logical :: get_time_avg,dopf
+
+      double precision, dimension(nk) :: dumk3,dumk4
 
 #ifdef MPI
       integer :: reqp1,reqp2
@@ -1815,8 +1817,8 @@
         !print *,'solve2: point #17'
 #ifdef MPI
         !$acc update host(dumk3,dumk4)
-        call MPI_IALLREDUCE(mpi_in_place,dumk3,ke-kb+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
-        call MPI_IALLREDUCE(mpi_in_place,dumk4,ke-kb+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
+        call MPI_IALLREDUCE(mpi_in_place,dumk3,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
+        call MPI_IALLREDUCE(mpi_in_place,dumk4,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
 #endif
         !print *,'solve2: point #18'
 
