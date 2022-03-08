@@ -1014,6 +1014,8 @@
       use misclibs
       use parcel_module
       use cm1libs , only : eslf
+      use ieee_arithmetic
+
       implicit none
 
       integer, intent(inout) :: iflag,jflag,kflag
@@ -1152,7 +1154,7 @@
       if (flag==1) num1000 = num1000+1
 
       !In rare cases the nonlinear solvers fail to converge
-      if (isnan(rt_zeros(1)) .OR.  isnan(rt_zeros(2)) .OR. rt_zeros(2)<0) then
+      if (ieee_is_nan(rt_zeros(1)) .OR.  ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) then
 
          !If this happens keep radius unchanged and temp equal to surrounding
          rt_zeros(1) = 1.0
@@ -1877,6 +1879,8 @@
       end subroutine rad_solver2
 
       subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        use ieee_arithmetic
+
         implicit none
 
         real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
@@ -1927,7 +1931,7 @@
                 relax = 1.0
                 counts = 0
 
-               do while ((diff<0).OR.(rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. isnan(rt_zeros(1)))
+               do while ((diff<0).OR.(rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. ieee_is_nan(rt_zeros(1)))
                         counts = counts + 1
                         coeff = 0.5
                         relax = relax * coeff
@@ -1943,7 +1947,7 @@
                 call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
         end do
       if (iterations == 100) flag = 1
-      if (isnan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. isnan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
+      if (ieee_is_nan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
       subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
