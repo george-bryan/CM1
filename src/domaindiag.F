@@ -268,9 +268,6 @@
       stke(k)     = 0.0
       rtke(k)     = 0.0
       wvar(k)     = 0.0
-      sfr(k)      = 0.0
-      sfs(k)      = 0.0
-      sfd(k)      = 0.0
       u_hadv(k)   = 0.0
       v_hadv(k)   = 0.0
       w_hadv(k)   = 0.0
@@ -288,6 +285,9 @@
       ptfr(k) = 0.0
       ptfs(k) = 0.0
       ptfd(k) = 0.0
+      sfr(k)      = 0.0
+      sfs(k)      = 0.0
+      sfd(k)      = 0.0
     enddo
 
     ! by default, assume 3d and scalar levels:

@@ -348,6 +348,8 @@
 
       logical :: get_time_avg,dopf
 
+      double precision, dimension(nk) :: dumk3,dumk4
+
 #ifdef MPI
       integer :: reqp1,reqp2
 #endif
@@ -361,7 +363,7 @@
        !$acc present(f2d) &
        !$acc present(gxu,gyv,dzdx,dzdy) &
        !$acc present(pi0,rho0,prs0,th0,rth0,qv0,qc0,qi0,rr0,rf0,rrf0) &
-       !$acc present(dumk1,dumk2) &
+       !$acc present(dumk1,dumk2,dumk3,dumk4) &
        !$acc present(radbcw,radbce,radbcs,radbcn,dtu,dtv,dtu0,dtv0) &
        !$acc present(t11,t12,t13,t22,t23) &
        !$acc present(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
@@ -1781,8 +1783,8 @@
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
-            dumk1(k) = tmp1
-            dumk2(k) = tmp2
+            dumk3(k) = tmp1
+            dumk4(k) = tmp2
           enddo
         ELSEIF( axisymm.eq.1 )THEN
 #ifndef _B4B06R
@@ -1801,12 +1803,12 @@
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
-            dumk1(k) = tmp1
-            dumk2(k) = tmp2
+            dumk3(k) = tmp1
+            dumk4(k) = tmp2
           enddo
         ENDIF
 #ifdef _B4B06R
-        !$acc update device(dumk1,dumk2)
+        !$acc update device(dumk3,dumk4)
 #else
         !$acc end parallel
 #endif
@@ -1814,9 +1816,9 @@
 
         !print *,'solve2: point #17'
 #ifdef MPI
-        !$acc update host(dumk1,dumk2)
-        call MPI_IALLREDUCE(mpi_in_place,dumk1,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
-        call MPI_IALLREDUCE(mpi_in_place,dumk2,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
+        !$acc update host(dumk3,dumk4)
+        call MPI_IALLREDUCE(mpi_in_place,dumk3,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
+        call MPI_IALLREDUCE(mpi_in_place,dumk4,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
 #endif
         !print *,'solve2: point #18'
 
@@ -2143,10 +2145,10 @@
 #ifdef MPI
         call mpi_wait(reqp1,mpi_status_ignore,ierr)
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
-        !$acc update device(dumk1,dumk2)
+        !$acc update device(dumk3,dumk4)
 #endif
 #ifdef _B4B05RF
-        !$acc update host(dumk1,dumk2)
+        !$acc update host(dumk3,dumk4)
 #else
         !$acc parallel reduction(+:temq1,temq2)
 #endif
@@ -2157,12 +2159,14 @@
         !$acc loop vector reduction(+:temq1,temq2)
 #endif 
         do k=1,nk
-          temq1 = temq1 + dumk1(k)
-          temq2 = temq2 + dumk2(k)
+          temq1 = temq1 + dumk3(k)
+          temq2 = temq2 + dumk4(k)
         enddo
 
         mass2 = temq1
         p2 = temq2
+
+        print *,'  mass1,mass2 = ',mass1,mass2
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
 #ifndef _B4B05RF

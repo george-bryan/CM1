@@ -575,24 +575,43 @@
 
         nmax = 1000000  !should be enough!
 
+        ! GHB, 220302: initialize all arrays
+
         allocate(   zsnd(nmax) )
+        zsnd = 0.0
         allocate(  thsnd(nmax) )
+        thsnd = 0.0
         allocate(  qvsnd(nmax) )
+        qvsnd = 0.0
         allocate(   usnd(nmax) )
+        usnd = 0.0
         allocate(   vsnd(nmax) )
+        vsnd = 0.0
         allocate( thvsnd(nmax) )
+        thvsnd = 0.0
         allocate(  pisnd(nmax) )
+        pisnd = 0.0
         allocate(   psnd(nmax) )
+        psnd = 0.0
         allocate(   tsnd(nmax) )
+        tsnd = 0.0
         allocate(  rhsnd(nmax) )
+        rhsnd = 0.0
 
         allocate( thinterp(nk) )
+        thinterp = 0.0
         allocate( qvinterp(nk) )
+        qvinterp = 0.0
         allocate(  uinterp(nk) )
+        uinterp = 0.0
         allocate(  vinterp(nk) )
+        vinterp = 0.0
         allocate(  pinterp(nk) )
+        pinterp = 0.0
         allocate(  tinterp(nk) )
+        tinterp = 0.0
         allocate( rhinterp(nk) )
+        rhinterp = 0.0
 
       prc0:  &
       IF( myid.eq.0 )THEN
@@ -666,6 +685,8 @@
 
         if(imoist.eq.0) qvsnd = 0.0
 
+      IF( isnd.eq.7 )THEN
+
         ! dont remember where this formulation comes from:
 !!!        usnd(1) = 1.75*usnd(2)-usnd(3)+0.25*usnd(4)
 !!!        vsnd(1) = 1.75*vsnd(2)-vsnd(3)+0.25*vsnd(4)
@@ -673,6 +694,8 @@
         ! 190324:  use simple extrapolation
         usnd(1) = usnd(2) - (zsnd(2)-zsnd(1))*(usnd(3)-usnd(2))/(zsnd(3)-zsnd(2))
         vsnd(1) = vsnd(2) - (zsnd(2)-zsnd(1))*(vsnd(3)-vsnd(2))/(zsnd(3)-zsnd(2))
+
+      ENDIF
 
 !--------------------------------------------------------------------
 !  Added by GHB, 061021:
@@ -747,6 +770,7 @@
             kdn = kk-1
             kup = kk
 
+          IF( isnd.eq.7 )THEN
             zu=0.5*(zh(max(ib,i-1),j,k)+zh(i,j,k))
             interp_frac = (   zu        - zsnd(kdn) )   &
                         / ( zsnd( kup ) - zsnd(kdn) )
@@ -756,6 +780,7 @@
             interp_frac = (   zv        - zsnd(kdn) )   &
                         / ( zsnd( kup ) - zsnd(kdn) )
             vinterp(k) =  vsnd(kdn) + ( vsnd(kup)- vsnd(kdn))*interp_frac
+          ENDIF
 
 !!!            ! if this is first grid point, utilize surface values of th,qv:
 !!!            if( k.eq.1 ) kdn = 1
@@ -848,8 +873,6 @@
         pi_sfc   =    1.0     ! Exner function at surface
         lapse    = -0.0030581 ! potential temperature lapse rate (K/m)
 
-        rhval = 0.0
-
         IF( testcase.eq.6 .or. testcase.eq.10 )THEN
           !  hurricane boundary layer (Bryan et al, 2017, BLM)
           lapse  =  0.005
@@ -857,6 +880,22 @@
         IF( testcase.eq.10 )THEN
           rhval = 0.90
         ENDIF
+
+        ! GHB, 220302: settings for ASD project
+        ! (based on "zrall/cavg80.dat" dropsonde composite)
+        th_sfc     =     302.0
+        prs_sfc    =    94500.0
+        lapse      =    0.006
+
+        pi_sfc = ( prs_sfc * rp00 )**rovcp
+        t_sfc = th_sfc * pi_sfc
+
+        ! NOTE: sea-surface temperature (tsk) is over-written here.
+        ! thus, value in namelist.input does not matter
+
+        tsk0  =  t_sfc + 2.0    ! sst is 2 K warmer than t_sfc
+
+        rhval = 0.95
 
 
         do k=kb,ke

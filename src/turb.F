@@ -5429,7 +5429,7 @@
       double precision :: temd,teme,savgt,z13avg,z23avg,  &
                           ustbar,zntbar,kavgt,rustbar,ubar,vbar,ufrc,vfrc,ravg,rflast,shravg,spavg
       double precision :: rfavgt,t13avgt,t23avgt,d13avgt,d23avgt,s13avgt,s23avgt
-      double precision, dimension(kb:ke) :: rfavg,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg
+      double precision, dimension(ntwk-1) :: rfavg,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg
 
       
 
@@ -5737,7 +5737,7 @@
       double precision :: temd,teme,savgt,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg,z13avg,z23avg,  &
                           ustbar,zntbar,kavgt,rustbar,ubar,vbar,ufrc,vfrc,ravg,rfavg,rflast,shravg,spavgt
 
-      double precision :: spavg(kb:ke) 
+      double precision :: spavg(2:ntwk) 
 
       real, dimension(kb:ke) :: wspa
 
@@ -5778,6 +5778,9 @@
 #ifndef _B4B10R
         !$acc loop vector collapse(2) reduction(+:cavg1,cavg2)
 #endif
+        ! GHB, 220302: need to initialize cavg1,cavg2
+        cavg1 = 0.0
+        cavg2 = 0.0
         do j=1,nj
         do i=1,ni
           cavg1 = cavg1 + ugr(i,j,k)
@@ -5871,7 +5874,7 @@
 
 #ifdef MPI
       !$acc update host(spavg)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(spavg)
 #endif
 
