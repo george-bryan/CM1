@@ -233,11 +233,11 @@
     !$acc   create(wavg,prsavg,piavg,wvar,thvavg,rhoavg,rfavg, &
     !$acc     ufr,ufs,ufd,vfr,vfs,vfd,ptfr,ptfs, &
     !$acc     ptfd,qvfr,qvfs,qvfd,temavg, &
-    !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,savg2d,qcrit, &
+    !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,qcrit, &
     !$acc     u_hturb,u_vturb,u_hadv,u_vadv,u_pgrad,u_cor,u_hidiff,u_vidiff,u_rdamp, &
     !$acc     v_hturb,v_vturb,v_hadv,v_vadv,v_pgrad,v_cor,v_hidiff,v_vidiff,v_rdamp, &
     !$acc     w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,w_buoy,w_hidiff,w_vidiff,w_rdamp, &
-    !$acc     qcfrac,qrfrac,qlfrac,qifrac,qtfrac,qcb,qrb,qlb,ncb,nrb,nlb, &
+    !$acc     qcb,qrb,qlb,ncb,nrb,nlb, &
     !$acc     qct,qrt,qlt,nct,nrt,nlt,ubar)
 
 
@@ -1327,7 +1327,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d(prate(ib,jb),savg2d)
-      !$acc update host(savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       if( myid.eq.0 ) print *,'  Metric: preciptation rate (mm/day) = ',86400.0*savg2d
 
@@ -1473,7 +1472,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d(dum1(ib,jb,3),savg2d)
-      !$acc update host(savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       lwp = savg2d
       if( myid.eq.0 ) print *,'  Metric: LWP (g/m2) = ',1000.0*lwp
@@ -1731,7 +1729,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       savg2d = qlfrac
-      !$acc update host(qlfrac)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       if( myid.eq.0 ) print *,'  Metric: cloud fraction (%) = ',100.0*qlfrac
 
@@ -9825,7 +9822,6 @@
         do k=2,nk
           savg2d = max( savg2d , dble(wvar(k)) )
         enddo
-        !$acc update host(savg2d)
 
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         if( myid.eq.0 ) print *,'  Metric: max w variance (m2/s2) = ',savg2d
@@ -10823,11 +10819,7 @@
 #endif
 
 #ifdef MPI
-#ifndef _B4B28R
-    !$acc update host(savg2d)
-#endif
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg2d,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc update device(savg2d)
 #endif
 
     savg2d = savg2d/dble(nx*ny)
