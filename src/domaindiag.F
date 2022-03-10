@@ -615,7 +615,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( ustt  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -627,7 +626,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( ut  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -639,7 +637,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( vt  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -651,7 +648,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( st  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF
@@ -1168,8 +1164,8 @@
           zimin = min( zimin , zi )
         enddo
         enddo
-        print *,'zimin: ',zimin
-        print *,'zimax: ',zimax
+!!!        print *,'zimin: ',zimin
+!!!        print *,'zimax: ',zimax
         !$acc end parallel
         !!$acc update host(zimin)
 

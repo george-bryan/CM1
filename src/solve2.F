@@ -2276,7 +2276,7 @@
 #ifdef MPI
       ! finish comms for cflquick:
       call mpi_wait(reqc,mpi_status_ignore,ierr)
-      print *,'solve2: cflmax is: ',cflmax
+      if(myid.eq.0) print *,'solve2: cflmax is: ',cflmax
       if(cflmax.ge.1.50) stopit=.true.
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif

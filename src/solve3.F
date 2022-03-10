@@ -930,7 +930,7 @@
         endif  prltrn
 
         ifdroplet:  &
-        if (prcl_droplet) then
+        if (prcl_droplet.ge.1) then
 
           !$acc parallel default(present) private(i,j,k)
           !$acc loop gang vector collapse(3)

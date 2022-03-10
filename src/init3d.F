@@ -416,7 +416,7 @@
           if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
           !endif
 
-          if (prcl_droplet) then
+          if (prcl_droplet.ge.1) then
 
             pdata(n,prvpx) = 0.0
             pdata(n,prvpy) = 0.0
