@@ -893,7 +893,8 @@
         ! NOTE: sea-surface temperature (tsk) is over-written here.
         ! thus, value in namelist.input does not matter
 
-        tsk0  =  t_sfc + 2.0    ! sst is 2 K warmer than t_sfc
+        tsk0  =  t_sfc + 3.0    ! sst is 3 K warmer than t_sfc
+                                ! (after spin-up, results in ~2 K sea-air temp difference)
 
         rhval = 0.95
 
