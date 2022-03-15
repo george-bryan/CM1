@@ -399,7 +399,7 @@
 !    No other changes are necessary:  output file will contain the 
 !    variables "out1", "out2", "out3", ... etc.
 
-      nout3d =   2
+      nout3d =   0
 
 !----------------------------------------------------------------------
 !  For arbitrary 2d output array:  
@@ -2660,12 +2660,12 @@
       if( adapt_dt.eq.1 )then
         dt = dbldt
         if( .not. restarted )then
-          print *,'cm1: before call to calccflquick: ',dbldt
+          if(myid.eq.0) print *,'cm1: before call to calccflquick: ',dbldt
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
           !$acc update device(cflmax)
-          print *,'cm1: cflmax: ',cflmax
+          if(myid.eq.0) print *,'cm1: cflmax: ',cflmax
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif
@@ -2676,7 +2676,7 @@
             if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif
           endif
-          print *,'cm1: ksmax: ',ksmax
+          if(myid.eq.0) print *,'cm1: ksmax: ',ksmax
           !stop 'cm1: after call to calcflquick'
           stopit = .false.
           ndt  = 0
@@ -2697,7 +2697,7 @@
 
       ! cm1r19:  nsound is always determined diagnostically
       call dtsmall(dt,dbldt)
-      print *,'cm1: dt:= ',dt
+      if(myid.eq.0) print *,'cm1: dt:= ',dt
 
 
       if(dowr) write(outfile,*)
