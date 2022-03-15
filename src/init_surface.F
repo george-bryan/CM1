@@ -215,9 +215,13 @@
 !  Initialize land-surface parameters:
 
       if( sfcmodel.ge.1 .or. bbc.eq.3 )then
+      IF( sfcmodel.eq.1 .and. cecd.ge.1 )THEN
+        ! do not look for, or attempt to read, the LANDUSE.TBL file !
+      ELSE
         ! initialize MM5/WRF landuse categories:
         call getlanduse(season,myid,ib,ie,jb,je,ibl,iel,jbl,jel,   &
                         lu_index,xland,emiss,thc,albd,znt,mavail)
+      ENDIF
       endif
 
 !-----------------------------------------------------------------------

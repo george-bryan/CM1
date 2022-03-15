@@ -17,14 +17,15 @@ In order to run CM1 on a single GPU, uncomment the correspoding flags and config
 
 ```
     module purge
-    module load ncarenv/1.3 nvhpc/21.7 cuda/11.4 ncarcompilers/0.5.0
+    module load ncarenv/1.3 nvhpc/21.11 cuda/11.4 ncarcompilers/0.5.0
 ```
 
 In the 'src' directory, You can then build the executable using make:
 
 ```
-    make -j 3
+    make -j 3 [arg1,arg2...]
 ```
+where the details about the optional argument list could be found in the header of `Makefile`.
 
 Once the 'cm1.exe' command has been built, you will need to request a single GPU from the scheduler:
 
@@ -42,14 +43,15 @@ In order to run CM1 on multiple GPUs, uncomment the correspoding flags and confi
 
 ```
     module purge
-    module load ncarenv/1.3 nvhpc/21.7 cuda/11.4 ncarcompilers/0.5.0 openmpi
+    module load ncarenv/1.3 nvhpc/21.11 cuda/11.4 ncarcompilers/0.5.0 openmpi
 ```
 
 You can then build the executable using make in the 'src' directory:
 
 ```
-    make -j 3
+    make -j 3 [arg1,arg2...]
 ```
+where the details about the optional argument list could be found in the header of `Makefile`.
 
 Once the 'cm1.exe' command has been built, you will need to request a multiple GPUs from the scheduler:
 

@@ -1316,17 +1316,17 @@
 
     if( stat_cfl.eq.1 )then
 
-      IF( adapt_dt.eq.1 )THEN
-        stat_out = stat_out+1
-        name_stat(stat_out) = 'cflmax'
-        desc_stat(stat_out) = 'max Courant number (average)'
-        unit_stat(stat_out) = 'nondimensional'
-      ELSE
-        stat_out = stat_out+1
-        name_stat(stat_out) = 'cflmax'
-        desc_stat(stat_out) = 'max Courant number'
-        unit_stat(stat_out) = 'nondimensional'
-      ENDIF
+!      IF( adapt_dt.eq.1 )THEN
+!        stat_out = stat_out+1
+!        name_stat(stat_out) = 'cflmax'
+!        desc_stat(stat_out) = 'max Courant number (average)'
+!        unit_stat(stat_out) = 'nondimensional'
+!      ELSE
+!        stat_out = stat_out+1
+!        name_stat(stat_out) = 'cflmax'
+!        desc_stat(stat_out) = 'max Courant number'
+!        unit_stat(stat_out) = 'nondimensional'
+!      ENDIF
 
       IF( sgsmodel.ge.1 .or. ipbl.eq.2 .or. horizturb.eq.1 )THEN
         stat_out = stat_out+1
@@ -1374,12 +1374,12 @@
       unit_stat(stat_out) = '1/s'
     endif
 
-    if( stat_tmass.eq.1 )then
-      stat_out = stat_out+1
-      name_stat(stat_out) = 'tmass'
-      desc_stat(stat_out) = 'total mass of dry air'
-      unit_stat(stat_out) = 'kg'
-    endif
+!    if( stat_tmass.eq.1 )then
+!      stat_out = stat_out+1
+!      name_stat(stat_out) = 'tmass'
+!      desc_stat(stat_out) = 'total mass of dry air'
+!      unit_stat(stat_out) = 'kg'
+!    endif
 
     if( stat_tmois.eq.1 )then
       stat_out = stat_out+1
@@ -1450,17 +1450,17 @@
       unit_stat(stat_out) = 'kg m/s'
     endif
 
-    if( stat_tmf.eq.1 )then
-      stat_out = stat_out+1
-      name_stat(stat_out) = 'tmfu'
-      desc_stat(stat_out) = 'total upward dry-air mass flux'
-      unit_stat(stat_out) = 'kg m/s'
-
-      stat_out = stat_out+1
-      name_stat(stat_out) = 'tmfd'
-      desc_stat(stat_out) = 'total downward dry-air mass flux'
-      unit_stat(stat_out) = 'kg m/s'
-    endif
+!    if( stat_tmf.eq.1 )then
+!      stat_out = stat_out+1
+!      name_stat(stat_out) = 'tmfu'
+!      desc_stat(stat_out) = 'total upward dry-air mass flux'
+!      unit_stat(stat_out) = 'kg m/s'
+!
+!      stat_out = stat_out+1
+!      name_stat(stat_out) = 'tmfd'
+!      desc_stat(stat_out) = 'total downward dry-air mass flux'
+!      unit_stat(stat_out) = 'kg m/s'
+!    endif
 
     if(stat_pcn    .eq.1)then
       do n=1,nbudget

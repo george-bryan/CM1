@@ -2120,7 +2120,7 @@
       desc_prcl(prcl_out) = 'z position (above sea level)'
       unit_prcl(prcl_out) = 'm'
 
-      if (prcl_droplet) then
+      if (prcl_droplet.ge.1) then
          prcl_out = prcl_out+1
          name_prcl(prcl_out) = 'vpx'
          desc_prcl(prcl_out) = 'u velocity of droplet'

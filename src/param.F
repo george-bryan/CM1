@@ -2342,7 +2342,8 @@
           print *,'  both ni and nj must be >= 3 '
           print *
           endif
-          call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+          ! bug fix: do not wait for all processors
+!!!          call MPI_BARRIER (MPI_COMM_WORLD,ierr)
           call stopcm1
         ENDIF
 
@@ -6012,7 +6013,7 @@
         prz = 3
 
         !Droplet properties
-        if (prcl_droplet) then
+        if (prcl_droplet.ge.1) then
           npvals = npvals+1
           npvars = npvars+1
           prvpx = npvals  !Droplet x-velocity

@@ -4757,7 +4757,9 @@
 #ifdef _B4B04F
       !$acc update device(nm)
 #endif
-      stop 'calcnm: after first loop'
+
+! GHB, 220308 ... comment out this stop 
+!!!      stop 'calcnm: after first loop'
 
       !$omp parallel do default(shared) private(i,j)
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -5426,15 +5428,15 @@
       integer :: i,j,k,n
       real :: tmp11,tmp22,tmp33,tmp12,tmp13,tmp23,wbar,rratio,fstar,tem,temx,temy
       real :: d2pm1,d2pm2,d2pm3,d2pm4,d2pm5,ueo,veo,dsdz,dsdzu,dsdzv,dudz,dvdz,up,vp,s13b,s23b
+      real :: ufw,vfw
       double precision :: temd,teme,savgt,z13avg,z23avg,  &
                           ustbar,zntbar,kavgt,rustbar,ubar,vbar,ufrc,vfrc,ravg,rflast,shravg,spavg
-      double precision :: rfavgt,t13avgt,t23avgt,d13avgt,d23avgt,s13avgt,s23avgt
-      double precision, dimension(kb:ke) :: rfavg,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg
-
-      
+      double precision :: rfavgt,t13avgt,t23avgt
+      double precision, dimension(ntwk-1) :: rfavg,t13avg,t23avg
 
       real, dimension(kb:ke) :: wspa
-      !$acc data create(rfavg,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg,wspa)
+
+      !$acc data create(rfavg,t13avg,t23avg,wspa)
     !-------------------------------------------
 
     !$acc parallel loop default(present) private(k)
@@ -5459,14 +5461,6 @@
         call     sfcstress(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,rf,mf,dum1,dum2,  &
                         kmh,kmv,s13,s23,ua,ugr,va,vgr,avgsfcu,avgsfcv,avgsfcs)
         !!$acc end data
-
-        !$acc parallel loop collapse(2) default(present) private(i,j)
-        do j=1,nj+1
-        do i=1,ni+1
-          fsu(i,j,1) = s13(i,j,1)
-          fsv(i,j,1) = s23(i,j,1)
-        enddo
-        enddo
 
     !-------------------------------------------
     !  surface vars:
@@ -5530,128 +5524,107 @@
 
     !-------------------------------------------
 
-      ! new formulation (accounts for all forcing terms in u,v equations)
+      ! 220308: new formulation (accounts for all forcing terms in u,v equations)
+
+  !
+  ! GHB, 220308:  NOTE: open-acc is probably broken now (sorry)
+  !
 
         !print *,'t2pcode: point #4'
 #ifdef _B4B09R
-      !$acc update host(mf,wa,ua,va,rf,kmw,rho,fsu,fsv,u2pt,v2pt,rr)
+      !$acc update host(rf,u2pt,v2pt,rr)
 #else
-      !$acc parallel default(present) private(i,j,temx,temy,s13b,s23b) &
-      !$acc reduction(+:s13avgt,s23avgt,t13avgt,t23avgt,d13avgt,d23avgt,rfavgt)
+      !$acc parallel default(present) private(i,j) &
+      !$acc reduction(+:t13avgt,t23avgt,rfavgt)
 
       !$acc loop gang
 #endif
       kloop1:  &
       DO k=1,(ntwk-1)
 
-        s13avgt = 0.0
-        s23avgt = 0.0
         t13avgt = 0.0
         t23avgt = 0.0
-        d13avgt = 0.0
-        d23avgt = 0.0
         rfavgt = 0.0
-
-!!!        tem = 0.25*gamk(k+1)
-        tem = 0.25
-
-        s13b = 0.5*(uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
-        s23b = 0.5*(vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
 
 #ifndef _B4B09R
         !$acc loop vector collapse(2) &
-        !$acc     reduction(+:s13avgt,s23avgt,t13avgt,t23avgt,d13avgt,d23avgt,rfavgt)
+        !$acc     reduction(+:t13avgt,t23avgt,rfavgt)
 #endif
         do j=1,nj
         do i=1,ni
-
-          fsu(i,j,k+1) = ( (wa(i,j,k+1)-wa(i-1,j,k+1))*rdx*uf(i)        &
-                          +(ua(i,j,k+1)-ua(i,j,k))*rdz*mf(1,1,k+1) )  &
-                        *( kmv(i-1,j,k+1)+kmv(i,j,k+1) )*( rf(i-1,j,k+1)+rf(i,j,k+1) )*tem
-          fsv(i,j,k+1) = ( (wa(i,j,k+1)-wa(i,j-1,k+1))*rdy*vf(j)        &
-                          +(va(i,j,k+1)-va(i,j,k))*rdz*mf(1,1,k+1) )  &
-                        *( kmv(i,j-1,k+1)+kmv(i,j,k+1) )*( rf(i,j-1,k+1)+rf(i,j,k+1) )*tem
-
-          temx = rdz*mh(1,1,k)/(0.5*(rho(i-1,j,k)+rho(i,j,k)))
-          temy = rdz*mh(1,1,k)/(0.5*(rho(i,j-1,k)+rho(i,j,k)))
-
-          ! standard part of subgrid model:
-          s13avgt = s13avgt + (fsu(i,j,k+1)-fsu(i,j,k))*temx
-          s23avgt = s23avgt + (fsv(i,j,k+1)-fsv(i,j,k))*temy
-
-          ! everything else in governing equations (other than subgrid turbulence):
+          ! 220308: simplified the two-part code
           t13avgt = t13avgt + u2pt(i,j,k)
           t23avgt = t23avgt + v2pt(i,j,k)
-
-          ! known part of 2p term:
-          d13avgt = d13avgt + (0.0-s13b*kmw(k))*( rf(i-1,j,k)+rf(i,j,k) )*temx
-          d23avgt = d23avgt + (0.0-s23b*kmw(k))*( rf(i,j-1,k)+rf(i,j,k) )*temy
-
           rfavgt = rfavgt + rf(i,j,k+1)*rr(i,j,k)
+        enddo
+        enddo
 
-        enddo
-        enddo
-        s13avg(k) = s13avgt
-        s23avg(k) = s23avgt
         t13avg(k) = t13avgt
         t23avg(k) = t23avgt
-        d13avg(k) = d13avgt
-        d23avg(k) = d23avgt
         rfavg(k)  = rfavgt
+
       ENDDO  kloop1
+
 #ifdef _B4B09R
-      !$acc update device(s13avg,s23avg,t13avg,t23avg,d13avg,d23avg,rfavg,fsu,fsv)
+      !$acc update device(t13avg,t23avg,rfavg)
 #else
       !$acc end parallel
 #endif
 
         !print *,'t2pcode: point #5'
 #ifdef MPI
-        !$acc update host(s13avg,s23avg,t13avg,t23avg,d13avg,d23avg,rfavg)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,s13avg,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,s23avg,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,t13avg,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,t23avg,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,d13avg,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,d23avg,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,rfavg ,(ntwk-1),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !$acc update device(s13avg,s23avg,t13avg,t23avg,d13avg,d23avg,rfavg)
+        !$acc update host(t13avg,t23avg,rfavg)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,t13avg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,t23avg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,rfavg ,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+        !$acc update device(t13avg,t23avg,rfavg)
 #endif
 
+  !
+  ! GHB, 220308:  NOTE: open-acc is probably broken now (sorry)
+  !
+
+
+  !
+  ! IMPORTANT NOTE: This code "marches upward" from the surface to the top 
+  !                 of the "two-part" layer (usually about 5-10% of the model
+  !                 domain.  The results from the previous level (k-1) are
+  !                 needed to determine kmw,ufw,vfw on the current level (k)
+  !
+
+      ! Initial condition: two-part wall fluxes are zero at the surface
+      ufw = 0.0
+      vfw = 0.0
+
         !print *,'t2pcode: point #6'
-      !$acc parallel default(present) private(k,d2pm1,d2pm2,d2pm3,dsdz,tem)
-      !$acc loop gang vector
+!!!  GHB, 220309: commented out open-acc commands. This will be difficult to
+!!!               parallelize, because of the "marching" mentioned above.  But
+!!!               it's a small calculation, so probably not a big deal...?
+!!!      !$acc parallel default(present) private(k,d2pm1,d2pm2,d2pm3,dsdz,tem)
+!!!      !$acc loop gang vector
       kloop2:  &
       DO k=1,(ntwk-1)
 
-        s13avg(k) = s13avg(k)*teme
-        s23avg(k) = s23avg(k)*teme
         t13avg(k) = t13avg(k)*teme
         t23avg(k) = t23avg(k)*teme
-        d13avg(k) = d13avg(k)*teme
-        d23avg(k) = d23avg(k)*teme
         rfavg(k)  = rfavg(k)*teme
 
     !-------------------------------------------
     !  Get kmw:
 
         d2pm1 =  ( uavg(k)*t13avg(k) + vavg(k)*t23avg(k) )/savg(k)
-        d2pm2 =  ( uavg(k)*s13avg(k) + vavg(k)*s23avg(k) )/savg(k)
-
-      if( k.eq.1 )then
-        d2pm3 = 0.0
-      else
-        d2pm3 =  ( uavg(k)*d13avg(k) + vavg(k)*d23avg(k) )/savg(k)
-      endif
+        d2pm3 =  ( uavg(k)*ufw + vavg(k)*vfw )*rfavg(k)*rdz*mh(1,1,k)/savg(k)
 
         dsdz = (wspa(k+1)-wspa(k))*rdz*mf(1,1,k+1)
         tem = t2pfac*gamwall(k+1)/( rdz*mh(1,1,k)*max(1.0e-12,dsdz)*rfavg(k) )
 
         ! 180903:
-        kmw(k+1) = max( 0.0 , ( 0.0 - d2pm1 - d2pm2 - d2pm3 )*tem )
+        kmw(k+1) = max( 0.0 , ( 0.0 - d2pm1 + d2pm3 )*tem )
+
+        ufw = kmw(k+1)*(uavg(k+1)-uavg(k))*rdz*mf(1,1,k+1)
+        vfw = kmw(k+1)*(vavg(k+1)-vavg(k))*rdz*mf(1,1,k+1)
 
         t2pm1(k+1) = -d2pm1*tem
-        t2pm2(k+1) = -d2pm2*tem
         t2pm3(k+1) = -d2pm3*tem
 
       ENDDO  kloop2
@@ -5662,7 +5635,8 @@
       do k=2,ntwk
         l2p(k) = sqrt( kmw(k)*karman*(zf(1,1,k)-zntbar)/max(0.0001,ustbar) )
       enddo
-      !$acc end parallel
+
+!!!      !$acc end parallel
 
     !-------------------------------------------
         !print *,'t2pcode: point #7'
@@ -5737,7 +5711,7 @@
       double precision :: temd,teme,savgt,t13avg,t23avg,d13avg,d23avg,s13avg,s23avg,z13avg,z23avg,  &
                           ustbar,zntbar,kavgt,rustbar,ubar,vbar,ufrc,vfrc,ravg,rfavg,rflast,shravg,spavgt
 
-      double precision :: spavg(kb:ke) 
+      double precision :: spavg(2:ntwk) 
 
       real, dimension(kb:ke) :: wspa
 
@@ -5775,6 +5749,9 @@
         cavg(k,1) = 0.0
         cavg(k,2) = 0.0
         !----
+        ! GHB, 220302: need to initialize cavg1,cavg2
+        cavg1 = 0.0
+        cavg2 = 0.0
 #ifndef _B4B10R
         !$acc loop vector collapse(2) reduction(+:cavg1,cavg2)
 #endif
@@ -5871,7 +5848,7 @@
 
 #ifdef MPI
       !$acc update host(spavg)
-      call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(spavg)
 #endif
 
