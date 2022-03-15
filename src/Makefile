@@ -110,6 +110,7 @@ endif
 #-----------------------------------------------------------------------------
 ifeq (${FC},ifort)
     OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback
+    #OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -traceback
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -qopenmp
