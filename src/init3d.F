@@ -419,7 +419,7 @@
           if (prcl_droplet) then
 
             pdata(n,prvpx) = 0.0
-            pdata(n,prvpy) = 0.0
+            pdata(n,prvpy) = 14.0
             pdata(n,prvpz) = 0.0
 
             !Droplet size (radius)

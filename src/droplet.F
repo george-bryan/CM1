@@ -227,7 +227,6 @@
 
   !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
   !stop 'droplet_driver: after first compare'
-  !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
   ! GHB 210714:
     call prepcorners3_GPU( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
@@ -366,8 +365,8 @@
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
 
-      idropmethod = 0 !RK2 for droplet time integration
-      !idropmethod = 1 !Implicit backward Euler for droplet time integration
+      !idropmethod = 0 !RK2 for droplet time integration
+      idropmethod = 1 !Implicit backward Euler for droplet time integration
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
@@ -592,10 +591,6 @@
 
       ENDIF  myparcel
 
-     if (myid.eq.50 .or. myid.eq.51) then
-     if (np.eq.4) write(*,'(a8,i,6e15.6)') 'DHR5:',myid,x3d,y3d,z3d,pdata(np,prx),pdata(np,pry),pdata(np,prz)
-     endif
-
     ENDDO  nploop
     !print *,'droplet_driver: after the nploop'
 #ifdef _B4B01F
@@ -628,9 +623,6 @@
      
 #endif
 
-     if (myid.eq.50 .or. myid.eq.51) then
-     write(*,'(a8,i,6e15.6)') 'DHR6:',myid,x3d,y3d,z3d,pdata(4,prx),pdata(4,pry),pdata(4,prz)
-     endif
 
 !----------------------------------------------------------------------
 !  get height ASL:
@@ -796,7 +788,6 @@
         tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
                 3.0*lhv/cpl/pdata(np,prrp)*rprhs
 
-
         IF(nx.eq.1)THEN
           x3d=0.0
           vtmp1 = 0.0
@@ -857,8 +848,6 @@
 
         k1rp = dt*rprhs
         rptmp = pdata(np,prrp) + k1rp
-
-      if (np.eq.4) write(*,'(a8,7e15.6)') 'DHR3.1:',tptmp,rptmp,rprhs,tprhs,qval,tval,qstar
 
       ELSE
 
@@ -960,9 +949,6 @@
         pdata(np,prtp) = pdata(np,prtp) + 0.5*(k1tp+dt*tprhs)
         pdata(np,prrp) = pdata(np,prrp) + 0.5*(k1rp+dt*rprhs)
 
-      if (np.eq.4) write(*,'(a8,7e15.6)') 'DHR3.2:',pdata(np,prtp),pdata(np,prrp),rprhs,tprhs,qval,tval,qstar
-      if (np.eq.4) write(*,'(a8,2e15.6)') 'DHR3.3:',taup,dt
-
       ENDIF
 
       ENDDO  rkloop
@@ -1002,7 +988,6 @@
         pdata_locind(np,3) = undefined_index
       endif
 
-      if (np.eq.4) write(*,'(a8,8e15.6)') 'DHR4:',x3d,y3d,z3d,pdata(np,prx),pdata(np,pry),pdata(np,prz),pdata(np,prtp),pdata(np,prrp)
 
       end subroutine rk2_integration
 
@@ -1252,7 +1237,6 @@
       real :: zsp,rznt,z0,var
       integer :: i,j,k
 
-      if (np.eq.4) write(*,'(a8,9i)') 'DHR0:',np,nrkp,myid,i,j,k,iflag,jflag,kflag
       IF( nrkp.eq.1 )THEN
         i=iflag
         j=jflag
@@ -1275,8 +1259,6 @@
         i=iflag
         j=jflag
       ENDIF
-      if (np.eq.4) write(*,'(a8,7e15.6)') 'DHR1.5:',x3d,y3d,z3d,xh(ib),xh(ie),yh(ib),yh(ie)
-      if (np.eq.4) write(*,'(a8,6i)') 'DHR1:',np,nrkp,i,j,iflag,jflag
 
         kflag = 1
 ! JS - jflag could be negative somehow, which will break
@@ -1525,7 +1507,6 @@
         i=iflag
         j=jflag
         k=kflag
-      if (np.eq.4) write(*,'(a8,9i)') 'DHR2:',np,nrkp,myid,i,j,k,iflag,jflag,kflag
 
         if( x3d.lt.xh(i) )then
           i=i-1
@@ -1581,7 +1562,6 @@
       !  print *,'parcel: ngxy,ngz: ',ngxy,ngz
       !  print *,'parcel: before tval: ',i,j,k
       !endif
-      if (np.eq.4) write(*,'(a8,15i)') 'DHR3:',np,nrkp,myid,ni,nj,nk,i,j,k,ib,ie,jb,je,kb,ke
       tval   = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ta)
       ! tval   = ta(i  ,j  ,k  )*w1 &
       !        + ta(i+1,j  ,k  )*w2 &
@@ -1609,12 +1589,6 @@
       !        + prs(i  ,j+1,k+1)*w6 &
       !        + prs(i+1,j+1,k  )*w7 &
       !        + prs(i+1,j+1,k+1)*w8
-
-      if (isnan(qval)) then
-      write(*,'(a8,8e15.6)') 'DHR1.5:',x3d,y3d,z3d,xh(i),yh(j),zh(iflag,jflag,k),xh(ib),xh(ie)
-      write(*,'(a8,9e15.6)') 'DHR1.6:',qa(i,j,k,nqv),qa(i+1,j,k,nqv),qa(i,j+1,k,nqv),qa(i,j,k+1,nqv),qa(i+1,j+1,k,nqv),qa(i+1,j,k+1,nqv),qa(i+1,j+1,k+1,nqv),qa(i,j+1,k+1,nqv),qa(i-1,j-1,k-1,nqv)
-      write(*,'(a8,12i)') 'DHR1.7:',i,j,k,iflag,jflag,kflag,ib,ie,jb,je,kb,ke
-      endif
 
 
 !----------------------------------------------------------------------

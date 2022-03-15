@@ -2166,8 +2166,6 @@
         mass2 = temq1
         p2 = temq2
 
-        print *,'  mass1,mass2 = ',mass1,mass2
-
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
 #ifndef _B4B05RF
         !$acc end parallel
