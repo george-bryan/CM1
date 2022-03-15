@@ -174,8 +174,9 @@
  bc_temp   = 1,
  ptc_top   = 250.0,
  ptc_bot   = 300.0,
- viscosity = 25.0,
+ viscosity = 1.57e-5,
  pr_num    = 0.72,
+ sc_num    = 0.61,
  /
 
  &param8
@@ -323,19 +324,20 @@
  prcl_th       = 1,
  prcl_t        = 1,
  prcl_prs      = 1,
- prcl_ptra     = 1,
+ prcl_ptra     = 0,
  prcl_q        = 1,
- prcl_nc       = 1,
- prcl_km       = 1,
- prcl_kh       = 1,
- prcl_tke      = 1,
- prcl_dbz      = 1,
- prcl_b        = 1,
- prcl_vpg      = 1,
- prcl_vort     = 1,
- prcl_rho      = 1,
- prcl_qsat     = 1,
- prcl_sfc      = 1,
+ prcl_nc       = 0,
+ prcl_km       = 0,
+ prcl_kh       = 0,
+ prcl_tke      = 0,
+ prcl_dbz      = 0,
+ prcl_b        = 0,
+ prcl_vpg      = 0,
+ prcl_vort     = 0,
+ prcl_rho      = 0,
+ prcl_qsat     = 0,
+ prcl_sfc      = 0,
+ pfcl_droplet  = 1,
  /
 
  &param14
