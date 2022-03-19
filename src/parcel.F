@@ -124,7 +124,7 @@
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
-      !$acc data create(ta) copyin(ngz,ngxy)
+      !$acc data create(ta)
       !print *,'droplet_driver: {ngxy,ngxy}: ',ngxy,ngz
 !$omp parallel do default(shared) private(i,j)
 !$acc parallel loop gang vector default(present) private(i,j)

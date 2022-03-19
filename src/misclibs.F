@@ -2644,14 +2644,14 @@
       integer i,j,k
       real qcbot(nk),qctop(nk),bot,top,vart,varb
 
-      !$acc data create(bot,top,qcbot,qctop)
-      !$acc parallel default(present) private(i,j,k) reduction(max:top,vart) reduction(min:bot,varb)
+      !$acc data create(qcbot,qctop)
+      !$acc parallel default(present) private(i,j,k) reduction(max:vart) reduction(min:varb)
       !$omp parallel do default(shared) private(i,j,k)
       !$acc loop gang
       do k=1,nk
         varb=maxz
         vart=0.0
-        !$acc loop vector reduction(max:vart) reduction(min:varb)
+        !$acc loop vector collapse(2) reduction(max:vart) reduction(min:varb)
         do j=1,nj
         do i=1,ni
           if(qci(i,j,k).ge.clwsat)then
@@ -2663,20 +2663,17 @@
         qctop(k) = vart
         qcbot(k) = varb
       enddo
+      !$acc end parallel
 
       top=0.0
-      !$acc loop vector reduction(max:top)
+      bot=maxz
+      !$acc parallel default(present) reduction(max:top) reduction(min:bot)
+      !$acc loop gang vector reduction(max:top) reduction(min:bot)
       do k=1,nk
         top=max(top,qctop(k))
-      enddo
-
-      bot=maxz
-      !$acc loop vector reduction(min:bot)
-      do k=1,nk
         bot=min(bot,qcbot(k))
       enddo
       !$acc end parallel
-      !$acc update host(bot,top)
 
 #ifdef MPI
       call MPI_REDUCE(bot,varb,1,MPI_REAL,MPI_MIN,0,MPI_COMM_WORLD,ierr)
@@ -2917,7 +2914,7 @@
       integer :: loc
       real, dimension(2) :: mmax,nmax
 
-!$acc data create(imaxt,jmaxt,kmaxt,cfl,fmax,mmax,nmax)
+!$acc data create(imaxt,jmaxt,kmaxt,cfl,mmax,nmax)
 
       dtdx=0.5*dt*rdx
       dtdy=0.5*dt*rdy
@@ -3689,9 +3686,9 @@
 #ifdef _B4B07R
       !$acc update host(rho,qv,ql,qi,ruh,rvh,rmh)
 #else
-      !$acc data create(tmass,foo)
+      !$acc data create(foo)
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
+      !$acc parallel default(present) private(i,j,k) reduction(+:foot)
       !$acc loop gang
 #endif
       do k=1,nk
@@ -3706,10 +3703,14 @@
         enddo
         foo(k) = foot
       enddo
+#ifndef _B4B07R
+      !$acc end parallel
+#endif
  
       tmass=0.0d0
 #ifndef _B4B07R
-      !$acc loop vector reduction(+:tmass)
+      !$acc parallel default(present) reduction(+:tmass)
+      !$acc loop gang vector reduction(+:tmass)
 #endif
       do k=1,nk
         tmass=tmass+foo(k)
@@ -3719,9 +3720,6 @@
 #endif
 
 #ifdef MPI
-#ifndef _B4B07R
-!!$acc update host(tmass)
-#endif
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
@@ -3780,9 +3778,9 @@
 #ifdef _B4B08R
       !$acc update host(rho,q,ruh,rvh,rmh)
 #else
-      !$acc data create(tmass,foo)
+      !$acc data create(foo)
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel default(present) private(i,j,k) reduction(+:tmass,foot)
+      !$acc parallel default(present) private(i,j,k) reduction(+:foot)
       !$acc loop gang
 #endif
       do k=1,nk
@@ -4124,7 +4122,7 @@
       double precision, dimension(nk) :: foo1,foo2
       double precision :: foo1t,foo2t
 
-     !$acc data create(foo1,foo2,tmfu,tmfd)
+     !$acc data create(foo1,foo2)
 
      !$omp parallel do default(shared) private(i,j,k,mf)
 #ifdef _B4B10R

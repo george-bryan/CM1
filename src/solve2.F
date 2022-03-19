@@ -1788,7 +1788,7 @@
           do k=1,nk
             tmp1=0;
             tmp2=0;
-            !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2
+            !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
 #ifndef _B4B06R
             !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
 #endif
