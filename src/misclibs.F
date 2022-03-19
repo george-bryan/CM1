@@ -3587,10 +3587,7 @@
       double precision :: foot
 
       !$acc data create(foo)
-      !!$acc parallel loop gang vector default(present) private(k)
-      !do k=1,nk
-      !  foo(k)=0.0d0
-      !enddo
+
       !$omp parallel do default(shared) private(i,j,k)
 #ifdef _B4B06R
       !$acc update host(rho,ruh,rvh,rmh)
@@ -3612,11 +3609,11 @@
       enddo
 #ifndef _B4B06R
       !$acc end parallel
-      !$acc parallel default(present) private(k) reduction(+:tmass)
 #endif
 
       tmass=0.0d0 
 #ifndef _B4B06R
+      !$acc parallel default(present) private(k) reduction(+:tmass)
       !$acc loop gang vector reduction(+:tmass)
 #endif
       do k=1,nk
@@ -3629,9 +3626,6 @@
       !$acc end data
 
 #ifdef MPI
-#ifndef _B4B06R
-!$acc update host(tmass)
-#endif
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
@@ -3687,6 +3681,7 @@
       !$acc update host(rho,qv,ql,qi,ruh,rvh,rmh)
 #else
       !$acc data create(foo)
+
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:foot)
       !$acc loop gang
@@ -3779,6 +3774,7 @@
       !$acc update host(rho,q,ruh,rvh,rmh)
 #else
       !$acc data create(foo)
+
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:foot)
       !$acc loop gang
@@ -3795,9 +3791,13 @@
         enddo
         foo(k)=foot
       enddo
+#ifndef _B4B08R
+      !$acc end parallel
+#endif
 
       tmass=0.0d0
 #ifndef _B4B08R
+      !$acc parallel default(present) reduction(+:tmass)
       !$acc loop vector reduction(+:tmass)
 #endif
       do k=1,nk
@@ -3808,14 +3808,10 @@
 #endif
 
 #ifdef MPI
-#ifndef _B4B08R
-!$acc update host(tmass)
-#endif
       var=0.0d0
       call MPI_REDUCE(tmass,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,   &
                       MPI_COMM_WORLD,ierr)
       tmass=var
-!!$acc update device(tmass)
       if(myid.eq.0)then
 #endif
 
