@@ -1153,7 +1153,6 @@
         do i=1,ni
           zi = 0.0
           tmax = 0.0
-          !!$acc loop seq
           do k=nk,2,-1
             dtdz = (thv(i,j,k)-thv(i,j,k-1))*rdz*mf(i,j,k)
             if( dtdz .ge. tmax )then
@@ -1169,7 +1168,6 @@
         print *,'zimin: ',zimin
         print *,'zimax: ',zimax
         !$acc end parallel
-        !!$acc update host(zimin)
 
 #ifdef MPI
       call MPI_ALLREDUCE(mpi_in_place,zimin,1,MPI_REAL,MPI_MIN,MPI_COMM_WORLD,ierr)
@@ -1685,13 +1683,11 @@
       !$acc end parallel
 
 #ifdef MPI
-      !!$acc update host(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qifrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qtfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !!$acc update device(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
 #endif
 
       temd = 1.0d0/dble(nx*ny)
@@ -1777,8 +1773,7 @@
         endif
       enddo
       enddo
-
-!$acc end parallel
+      !$acc end parallel
 
 #ifdef MPI
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -1949,7 +1944,6 @@
       enddo
       enddo
       !$acc end parallel
-      !stop 'after calculation of qct,nct, etc...'
 
 #ifdef MPI
       call MPI_ALLREDUCE(MPI_IN_PLACE,qct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -3190,10 +3184,8 @@
 #if 1
         !$acc loop seq
         DO n=nql1,nql2
-          !$acc loop gang
           DO k=1,nk
             tmpw=0.0d0
-            !$acc loop vector collapse(2) reduction(+:tmpw)
             do j=1,nj
             do i=1,ni
               tmpw = tmpw+rho(i,j,k)*q3d(i,j,k,n)
@@ -3208,10 +3200,8 @@
         ENDDO
         !$acc loop seq
         DO n=nqs1,nqs2
-          !$acc loop gang
           DO k=1,nk
             tmpi=0.0d0
-            !$acc loop vector collapse(2) reduction(+:tmpi)
             do j=1,nj
             do i=1,ni
               tmpi = tmpi+rho(i,j,k)*q3d(i,j,k,n)

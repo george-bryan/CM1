@@ -1210,16 +1210,10 @@
 #endif
   
 #ifdef MPI
-#ifndef _B4B09R
-      !$acc update host(avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcu,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-#ifndef _B4B09R
-      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
 #endif
 
 #ifndef _B4B10

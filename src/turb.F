@@ -5472,12 +5472,9 @@
         !print *,'t2pcode: point #2'
 #ifdef MPI
         !Reductions are on the host anyway  
-        !!$acc update host(ustbar,zntbar)
         call MPI_ALLREDUCE(MPI_IN_PLACE,ustbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,zntbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !!$acc update device(ustbar,zntbar)
 #endif
-        !!$acc end data
 
 #ifndef _B4B08F
         !$acc parallel default(present) private(k)
