@@ -4727,7 +4727,6 @@
       real :: pavg,tavg,qtavg,qvs,lh,cpml,gamma,drdt
       real :: nml,nmi,ff,qvsl,qvsi,qvciavg,qv,ql,qi
       real :: rtt1,rtt2
-      !real, dimension(ib:ie,jb:je,kb:ke) :: qvslArray,qvsiArray
 
       real, parameter :: nmsat = 1.0e-10
       !$acc declare &
@@ -4738,7 +4737,6 @@
       !$acc present(t,qt,thv,qvci) &
       !$acc present(iamsat)
 
-      !!$acc data create(qvslArray,qvsiArray)
 !----------------------------------------------------------------------
 !  Dry nm
 
@@ -5471,7 +5469,6 @@
     !  surface vars:
 
         !print *,'t2pcode: point #1'
-        !!$acc data create(ustbar,zntbar)
 #ifdef _B4B07R
         !$acc update host(s13,s23,rf,zntmp)
 #else
@@ -5498,12 +5495,9 @@
         !print *,'t2pcode: point #2'
 #ifdef MPI
         !Reductions are on the host anyway  
-        !!$acc update host(ustbar,zntbar)
         call MPI_ALLREDUCE(MPI_IN_PLACE,ustbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,zntbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !!$acc update device(ustbar,zntbar)
 #endif
-        !!$acc end data
 
 #ifndef _B4B08F
         !$acc parallel default(present) private(k)
