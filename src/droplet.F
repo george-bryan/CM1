@@ -10,7 +10,7 @@
   implicit none
 
   private
-  public :: droplet_driver
+  public :: droplet_driver,rk2_integration
 
   ! If we already know that a parcel stays on the same process 
   !    in the previous time step and it is still here, we start 
@@ -262,13 +262,10 @@
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel &
     !$acc default(present) &
-    !$acc private(i,j,k,rx,ry,rz,rxu,ryv,rxs,rys,rzs,rzw,x3d,y3d,z3d, &
-    !$acc     w1,w2,w3,w4,w5,w6,w7,w8,sig3d,iflag,jflag,kflag,nrkp, &
-    !$acc     uval,vval,wval,qval,tval,rhoval,prsval,sigdot,zsp,rznt,var, &
-    !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,rhop0,taup,taup0,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3,qinf, &
-    !$acc     lhv,qstar,rprhs,tprhs,vtmp1,vtmp2,vtmp3,k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3, &
+    !$acc private(i,j,k,x3d,y3d,z3d,sig3d,iflag,jflag,kflag,nrkp,rhoval, &
+    !$acc     rhop0,taup0,Nup,&
     !$acc     dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt,dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt, &
-    !$acc     sig1,k1tp,esl,tptmp,k1rp,rptmp,part_grav1,part_grav2,part_grav3,rp0,tp0,volp0)
+    !$acc     esl,part_grav1,part_grav2,part_grav3,rp0)
     !$acc compare(ngxy,ngz)
     !$acc loop gang vector 
 #endif

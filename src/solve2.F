@@ -353,6 +353,7 @@
 #ifdef MPI
       integer :: reqp1,reqp2
 #endif
+       !$acc declare create(dumk3,dumk4)
        !$acc declare &
        !$acc present(xh,rxh,arh1,arh2,uh,ruh,arf1,arf2) &
        !$acc present(xf,yh,vh,rvh,uf,vf,mf) &
@@ -363,7 +364,7 @@
        !$acc present(f2d) &
        !$acc present(gxu,gyv,dzdx,dzdy) &
        !$acc present(pi0,rho0,prs0,th0,rth0,qv0,qc0,qi0,rr0,rf0,rrf0) &
-       !$acc present(dumk1,dumk2,dumk3,dumk4) &
+       !$acc present(dumk1,dumk2) &
        !$acc present(radbcw,radbce,radbcs,radbcn,dtu,dtv,dtu0,dtv0) &
        !$acc present(t11,t12,t13,t22,t23) &
        !$acc present(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
@@ -1825,6 +1826,10 @@
         dopf = .true.
 
       ENDIF  pmod1
+      print *,'HOST: solve2: before pmod1: dumk3: ',apmasscon, nrk,nrkmax
+      !$acc parallel
+      print *,'DEVICE: solve2: before pmod1: dumk3: ',apmasscon, nrk,nrkmax
+      !$acc end parallel
 
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
 

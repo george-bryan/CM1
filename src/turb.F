@@ -545,7 +545,7 @@
       endif
 
 !-----------------------------------------------------------------------
-
+    !$acc compare(ugr,vgr)
     if(timestats.ge.1) time_turb=time_turb+mytime()
 
     dosfc:  IF( getsfc )THEN
@@ -561,6 +561,11 @@
         !                in calculation of wind speed
 
         kval = 1
+        print *,'HOST: sfc_and_turb: kval: ',kval
+        !$acc parallel
+        print *,'DEVICE: sfc_and_turb: kval: ',kval
+        !$acc end parallel
+
 
           !$omp parallel do default(shared) private(i,j)
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)

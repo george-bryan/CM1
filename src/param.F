@@ -220,7 +220,6 @@
          read(20,nml=nssl2mom_params)
       ENDIF
       close(unit=20)
-      !$acc enter data copyin(dx,dy,dz,wbc,ebc,sbc,nbc)
       
 
 #ifdef MPI
@@ -563,7 +562,10 @@
       call MPI_BCAST(ioldlimiter,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       ENDIF
 #endif
-!$acc update device(alph,kdiv)
+      !$acc update device(dx,dy,dz,dtl,timax,run_time,tapfrq,rstfrq,statfrq,prclfrq)
+      !$acc update device(imoist,psolver,ptype,wbc,ebc,sbc,nbc,bbc,tbc,axisymm,imove)
+      !$acc update device(nparcels,kdiff2,kdiff6,fcor,kdiv,alph,umove,vmove)
+      !$acc update device(viscosity,pr_num,sc_num)
 
 !-----------------------------------------------------------------------
 !  Set constants:
@@ -4234,7 +4236,7 @@
         ENDIF    ! endif for ptype
 
       ENDIF    ! endif for imoist=1
-      !$acc enter data copyin(nqs1,nqs2)
+      !$acc update device(numq,nqs1,nqs2)
 
 !-----------------------------------------------------------------------
 !-------   END:  modify stuff above here -------------------------------
@@ -4274,7 +4276,7 @@
         if( qname(n).eq.'nci' ) nnci = n
         if( qname(n).eq.'ncc' ) nncc = n
       enddo
-      !$acc enter data copyin(nqr,nqi,nqs,nqg,nnci,nncc)
+      !$acc update device(nqr,nqi,nqs,nqg,nnci,nncc)
 
       if( ptype.eq.55 ) nqi = 4
 
@@ -5942,7 +5944,7 @@
       rdx=1.0/dx
       rdy=1.0/dy
       rdz=1.0/dz
-      !!$acc enter data copyin(rdx,rdy,rdz)
+      !$acc update device(rdx,rdy,rdz)
       rdx2=1.0/(2.0*dx)
       rdy2=1.0/(2.0*dy)
       rdz2=1.0/(2.0*dz)
@@ -6176,7 +6178,6 @@
         nparcels = 1
 
       endif
-
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  nparcels = ',nparcels
       if(dowr) write(outfile,*) '  npvals   = ',npvals
@@ -6221,6 +6222,12 @@
       if(dowr) write(outfile,*) '    prmult   = ',prmult
       if(dowr) write(outfile,*) '    pract    = ',pract
       if(dowr) write(outfile,*)
+      !$acc update device(nparcels,npvals,npvars,prx,pry,prz,pru,prv,prw) &
+      !$acc device(prtime,prth,prt,prprs,prpt1,prpt2,prqv,prq1,prq2,prnc1) &
+      !$acc device(prnc2,prkm,prkh,prtke,prdbz,prb,prvpg,przv,prrho,prqsl) &
+      !$acc device(prqsi,prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp,prms) &
+      !$acc device(prtp,prmult,pract)
+      
 
 !--------------------------------------------------------------
 !  Get identity
@@ -7059,7 +7066,7 @@
 
       minx = xfref(1)
       maxx = xfref(nx+1)
-      !$acc enter data copyin(minx,maxx)
+      !$acc update device(minx,maxx)
       centerx  =  minx + 0.5*(maxx-minx)
 
       do i = 1-ngxy , nx+ngxy
@@ -7391,7 +7398,7 @@
 
       miny = yfref(1)
       maxy = yfref(ny+1)
-      !$acc enter data copyin(miny,maxy)
+      !$acc update device(miny,maxy)
       centery  =  miny + 0.5*(maxy-miny)
 
       do j = 1-ngxy , ny+ngxy
@@ -7836,6 +7843,7 @@
       enddo
 
       maxz = sigmaf(nk+1)
+!$acc update device(maxz)
 
       do k=kb,ke
       do j=jb,je
@@ -9150,6 +9158,8 @@
 !--------------------------------------------------------------
 
       if(dowr) write(outfile,*) 'Leaving PARAM'
+      !--------------------------------------------------------------
+      !$acc update device(ptype,nqv)
 
       return
 
@@ -9281,11 +9291,8 @@
       print *
       call stopcm1
 
-    !$acc enter data copyin(nqv)
     ! param2
-    !$acc enter data copyin(ptype)
-    !--------------------------------------------------------------
-    !$acc enter data copyin(vd_vadv)
+
 
       end subroutine param
 
