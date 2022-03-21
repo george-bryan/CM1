@@ -275,7 +275,7 @@
       !$acc declare present(bndy,kbdy,u3d,v3d) 
 
           ! set u to zero on east/west faces of immersed gridpoints:
-          !$acc parallel loop gang vector private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,kmaxib
           do j=0,nj+1
           do i=0,ni+1
@@ -290,7 +290,7 @@
           enddo
 
           ! set u to zero on east/west faces of immersed gridpoints:
-          !$acc parallel loop gang vector private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,kmaxib
           do j=1,nj
           do i=1,ni+1
@@ -300,7 +300,7 @@
           enddo
 
           ! set v to zero on south/north faces of immersed gridpoints:
-          !$acc parallel loop gang vector private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           do k=1,kmaxib
           do j=1,nj+1
           do i=1,ni
@@ -529,7 +529,7 @@
 
       !dir$ attributes forceinline :: flx3
       real function flx3(s1,s2,s3)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3
@@ -565,7 +565,7 @@
 
       !dir$ attributes forceinline :: flx5
       real function flx5(s1,s2,s3,s4,s5)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5
@@ -642,7 +642,7 @@
 
       !dir$ attributes forceinline :: weno5
       real function weno5(s1,s2,s3,s4,s5,weps)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5
@@ -685,7 +685,7 @@
 
       !dir$ attributes forceinline :: upstrpd
       real function upstrpd(s1,s2,s3,weps)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3

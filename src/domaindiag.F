@@ -266,9 +266,6 @@
       stke(k)     = 0.0
       rtke(k)     = 0.0
       wvar(k)     = 0.0
-      sfr(k)      = 0.0
-      sfs(k)      = 0.0
-      sfd(k)      = 0.0
       u_hadv(k)   = 0.0
       v_hadv(k)   = 0.0
       w_hadv(k)   = 0.0
@@ -286,6 +283,9 @@
       ptfr(k) = 0.0
       ptfs(k) = 0.0
       ptfd(k) = 0.0
+      sfr(k)      = 0.0
+      sfs(k)      = 0.0
+      sfd(k)      = 0.0
     enddo
 
     ! by default, assume 3d and scalar levels:
@@ -613,7 +613,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( ustt  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -625,7 +624,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( ut  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -637,7 +635,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( vt  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -649,7 +646,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( st  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF
@@ -1165,8 +1161,8 @@
           zimin = min( zimin , zi )
         enddo
         enddo
-        print *,'zimin: ',zimin
-        print *,'zimax: ',zimax
+!!!        print *,'zimin: ',zimin
+!!!        print *,'zimax: ',zimax
         !$acc end parallel
 
 #ifdef MPI
@@ -9669,7 +9665,7 @@
         vardesc(nvar) = 'maximum (grnd-rel) horiz wind speed'
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
-        print *,'domaindiag: wspmax'
+        !print *,'domaindiag: wspmax'
         call getmax(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -9681,11 +9677,11 @@
         varunit(nvar) = 'm/s'
         vargrid(nvar) = 's'
 
-        print *,'domaindiag: wspmin'
+        !print *,'domaindiag: wspmin'
         call getmin(dum1,savg)
-        print *,'domaindiag: wspmin: after getmin'
+        !print *,'domaindiag: wspmin: after getmin'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
-        print *,'domaindiag: wspmin: after write3d'
+        !print *,'domaindiag: wspmin: after write3d'
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -9708,9 +9704,9 @@
         vargrid(nvar) = 's'
 
         
-        print *,'domaindiag: zetamax before getmax'
+        !print *,'domaindiag: zetamax before getmax'
         call getmax(dum1,savg)
-        print *,'domaindiag: zetamax after getmax'
+        !print *,'domaindiag: zetamax after getmax'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -9721,9 +9717,9 @@
         varunit(nvar) = '1/s'
         vargrid(nvar) = 's'
 
-        print *,'domaindiag: zetamin before getmin'
+        !print *,'domaindiag: zetamin before getmin'
         call getmin(dum1,savg)
-        print *,'domaindiag: zetamin after getmin'
+        !print *,'domaindiag: zetamin after getmin'
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       ENDIF
@@ -9735,7 +9731,7 @@
     !  more 2d vars
 
       !c-c-c-c-c-c-c-c-c-c
-      print *,'domaindiag: before int_tkes'
+      !print *,'domaindiag: before int_tkes'
 
     IF( cm1setup.eq.1 .and. iusetke )THEN
 

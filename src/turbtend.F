@@ -1782,6 +1782,9 @@
           do j=1,nj
           do i=i1,i2
             turbz(i,j,k) = turbz(i,j,k)+rdz*mh(1,1,k)*(dum2(i,j,k+1)-dum2(i,j,k))
+            ! 220308: save the 2-pt tendency
+            rru0 = rdz*mh(1,1,k)/(0.5*(rho(i-1,j,k)+rho(i,j,k)))
+            u2pt(i,j,k)=(dum2(i,j,k+1)-dum2(i,j,k))*rru0
           enddo
           enddo
         enddo
@@ -1819,18 +1822,19 @@
       enddo
       enddo
 
-      if( dot2p )then
-        ! store vertical tendency:
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,rru0)
-        do k=1,ntwk
-        do j=1,nj
-        do i=1,ni+1
-          rru0 = 1.0/(0.5*(rho(i-1,j,k)+rho(i,j,k)))
-          u2pt(i,j,k)=turbz(i,j,k)*rru0
-        enddo
-        enddo
-        enddo
-      endif
+! 220308: GHB, move this code; see t2p section above
+!      if( dot2p )then
+!        ! store vertical tendency:
+!        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,rru0)
+!        do k=1,ntwk
+!        do j=1,nj
+!        do i=1,ni+1
+!          rru0 = 1.0/(0.5*(rho(i-1,j,k)+rho(i,j,k)))
+!          u2pt(i,j,k)=turbz(i,j,k)*rru0
+!        enddo
+!        enddo
+!        enddo
+!      endif
 
     ELSE
 
@@ -2493,6 +2497,9 @@
           do j=j1,j2
           do i=1,ni
             turbz(i,j,k) = turbz(i,j,k)+rdz*mh(1,1,k)*(dum2(i,j,k+1)-dum2(i,j,k))
+            ! 220308: save the 2-pt tendency
+            rrv0 = rdz*mh(1,1,k)/(0.5*(rho(i,j-1,k)+rho(i,j,k)))
+            v2pt(i,j,k)=(dum2(i,j,k+1)-dum2(i,j,k))*rrv0
           enddo
           enddo
         enddo
@@ -2530,18 +2537,19 @@
       enddo
       enddo
 
-      if( dot2p )then
-        ! store vertical tendency:
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,rrv0)
-        do k=1,ntwk
-        do j=1,nj+1
-        do i=1,ni
-          rrv0 = 1.0/(0.5*(rho(i,j-1,k)+rho(i,j,k)))
-          v2pt(i,j,k)=turbz(i,j,k)*rrv0
-        enddo
-        enddo
-        enddo
-      endif
+! 220308: GHB, move this code; see t2p section above
+!      if( dot2p )then
+!        ! store vertical tendency:
+!        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,rrv0)
+!        do k=1,ntwk
+!        do j=1,nj+1
+!        do i=1,ni
+!          rrv0 = 1.0/(0.5*(rho(i,j-1,k)+rho(i,j,k)))
+!          v2pt(i,j,k)=turbz(i,j,k)*rrv0
+!        enddo
+!        enddo
+!        enddo
+!      endif
 
     ELSE
 

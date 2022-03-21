@@ -148,7 +148,8 @@
       use comm_module
       use adv_routines, only : movesfc
       use misclibs
-      use parcel_module, only : parcel_driver,droplet_driver
+      use parcel_module, only : parcel_driver
+      use droplet_module, only : droplet_driver
       use pdcomp_module, only : pidcomp
       use lsnudge_module
       use ib_module
@@ -929,7 +930,7 @@
         endif  prltrn
 
         ifdroplet:  &
-        if (prcl_droplet) then
+        if (prcl_droplet.ge.1) then
 
           !$acc parallel default(present) private(i,j,k)
           !$acc loop gang vector collapse(3)

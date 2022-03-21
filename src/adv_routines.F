@@ -6271,7 +6271,7 @@
 
       !dir$ attributes forceinline :: flx3
       real function flx3(s1,s2,s3)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3
@@ -6290,7 +6290,7 @@
 
       !dir$ attributes forceinline :: flx4
       real function flx4(s1,s2,s3,s4)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4
@@ -6308,7 +6308,7 @@
 
       !dir$ attributes forceinline :: flx5
       real function flx5(s1,s2,s3,s4,s5)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5
@@ -6334,7 +6334,7 @@
 
       !dir$ attributes forceinline :: flx6
       real function flx6(s1,s2,s3,s4,s5,s6)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6
@@ -6353,7 +6353,7 @@
 
       !dir$ attributes forceinline :: flx7
       real function flx7(s1,s2,s3,s4,s5,s6,s7)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6,s7
@@ -6376,7 +6376,7 @@
 
       !dir$ attributes forceinline :: flx8
       real function flx8(s1,s2,s3,s4,s5,s6,s7,s8)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6,s7,s8
@@ -6396,7 +6396,7 @@
 
       !dir$ attributes forceinline :: flx9
       real function flx9(s1,s2,s3,s4,s5,s6,s7,s8,s9)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6,s7,s8,s9
@@ -6422,7 +6422,7 @@
 
       !dir$ attributes forceinline :: flx10
       real function flx10(s1,s2,s3,s4,s5,s6,s7,s8,s9,s10)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6,s7,s8,s9,s10
@@ -6443,7 +6443,7 @@
 
       !dir$ attributes forceinline :: weno3
       real function weno3(s1,s2,s3,weps)
-      !$acc routine vector
+      !$acc routine seq 
       implicit none
 
       real, intent(in) :: s1,s2,s3
@@ -6480,7 +6480,7 @@
 
       !dir$ attributes forceinline :: weno5
       real function weno5(s1,s2,s3,s4,s5,weps)
-      !$acc routine vector
+      !$acc routine seq 
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5
@@ -6523,7 +6523,7 @@
 
       !dir$ attributes forceinline :: weno7
       real function weno7(s1,s2,s3,s4,s5,s6,s7,weps)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6,s7
@@ -6580,7 +6580,7 @@
 
       !dir$ attributes forceinline :: weno9
       real function weno9(s1,s2,s3,s4,s5,s6,s7,s8,s9,weps)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3,s4,s5,s6,s7,s8,s9
@@ -6649,7 +6649,7 @@
 
       !dir$ attributes forceinline :: upstrpd
       real function upstrpd(s1,s2,s3,weps)
-      !$acc routine vector
+      !$acc routine seq
       implicit none
 
       real, intent(in) :: s1,s2,s3

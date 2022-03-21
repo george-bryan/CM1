@@ -1,5 +1,31 @@
 #-----------------------------------------------------------------------------
 #
+#  To compile the CM1 codes with this Makefile, use the following command:
+#
+#        make [argu_list]
+#
+#  where the optional argument list includes:
+#  - USE_OPENMP: turn on OpenMP (default=false)
+#  - USE_MPI: turn on MPI (default=false)
+#  - USE_DOUBLE: turn on double precision calculation (for PGI/NVHPC only, default=false)
+#  - USE_OPENACC: turn on OpenACC (for PGI/NVHPC only, default=false)
+#  - USE_NETCDF: turn on netCDF output (default=false)
+#  - DEBUG: turn on DEBUG mode (default=false)
+#
+#  Some example usages are:
+#    make USE_OPENMP=true                 # shared memory only
+#    make USE_OPENMP=true USE_MPI=true    # shared + distributed memory
+#    make USE_OPENACC=true USE_MPI=true   # distributed memory + GPU offloading
+#
+#  Note that the logical values set to the argument variables are case insensitive.
+#
+#  If the "FC" env variable is not set on your system, you could also specify it through:
+#    make FC=ifort                        # use Intel compiler
+#
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+#
 #  Change all boolean variables to lowercase
 #
 #-----------------------------------------------------------------------------
@@ -7,6 +33,7 @@ USE_OPENMP_L  = $(shell echo $(USE_OPENMP) | tr A-Z a-z)
 USE_MPI_L     = $(shell echo $(USE_MPI) | tr A-Z a-z)
 USE_DOUBLE_L  = $(shell echo $(USE_DOUBLE) | tr A-Z a-z)
 USE_OPENACC_L = $(shell echo $(USE_OPENACC) | tr A-Z a-z)
+USE_NETCDF_L  = $(shell echo $(USE_NETCDF) | tr A-Z a-z)
 DEBUG_L       = $(shell echo $(DEBUG) | tr A-Z a-z)
 
 #-----------------------------------------------------------------------------
@@ -29,10 +56,12 @@ LINKOPTS      =
 #              (NOTE: Don't change lines 3 and 4!)
 #  Note:  you may need to remove -DNCFPLUS if you use an old version of netcdf
 #-----------------------------------------------------------------------------
-OUTPUTINC     += -I$(NETCDFBASE)/include
-OUTPUTLIB     += -L$(NETCDFBASE)/lib
-OUTPUTOPT     += -DNETCDF -DNCFPLUS
-LINKOPTS      += -lnetcdf -lnetcdff
+ifeq (${USE_NETCDF_L},true)
+    OUTPUTINC    += -I$(NETCDFBASE)/include
+    OUTPUTLIB    += -L$(NETCDFBASE)/lib
+    OUTPUTOPT    += -DNETCDF -DNCFPLUS
+    LINKOPTS     += -lnetcdf -lnetcdff
+endif
 
 #-----------------------------------------------------------------------------
 #                    HARDWARE SECTION
@@ -110,6 +139,7 @@ endif
 #-----------------------------------------------------------------------------
 ifeq (${FC},ifort)
     OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback
+    #OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -traceback
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -qopenmp
@@ -198,6 +228,7 @@ SRC   = constants.F \
 	mp_driver.F \
 	param.F \
 	parcel.F \
+	droplet.F \
 	pdef.F \
 	pdcomp.F \
 	poiss.F \
@@ -321,6 +352,7 @@ module_mp_jensen_ishmael.o: input.o module_ra_etc.o
 mp_driver.o: constants.o input.o misclibs.o kessler.o goddard.o thompson.o lfoice.o morrison.o module_mp_nssl_2mom.o module_mp_p3.o module_mp_jensen_ishmael.o
 param.o: constants.o input.o init_terrain.o bc.o comm.o thompson.o morrison.o module_mp_nssl_2mom.o goddard.o lfoice.o module_mp_p3.o module_mp_jensen_ishmael.o ib_module.o eddy_recycle.o lsnudge.o
 parcel.o: constants.o input.o cm1libs.o misclibs.o bc.o comm.o writeout_nc.o
+droplet.o: constants.o input.o cm1libs.o bc.o comm.o parcel.o
 pdef.o: input.o bc.o comm.o
 pdcomp.o: constants.o input.o adv.o poiss.o ib_module.o
 poiss.o: input.o singleton.o
@@ -330,7 +362,7 @@ restart.o: constants.o input.o writeout_nc.o lsnudge.o goddard.o lfoice.o
 sfcphys.o: constants.o input.o cm1libs.o
 solve1.o: constants.o input.o bc.o comm.o diff2.o turbtend.o misclibs.o testcase_simple_phys.o ib_module.o eddy_recycle.o lsnudge.o
 solve2.o: constants.o input.o bc.o comm.o adv.o adv_routines.o sound.o sounde.o soundns.o soundcb.o anelp.o misclibs.o module_mp_nssl_2mom.o ib_module.o eddy_recycle.o
-solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o pdcomp.o lsnudge.o ib_module.o
+solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o pdcomp.o lsnudge.o ib_module.o droplet.o
 sorad3d.o: radlib3d.o
 sound.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
 sounde.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o

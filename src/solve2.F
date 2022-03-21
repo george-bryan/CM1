@@ -348,9 +348,12 @@
 
       logical :: get_time_avg,dopf
 
+      double precision, dimension(nk) :: dumk3,dumk4
+
 #ifdef MPI
       integer :: reqp1,reqp2
 #endif
+       !$acc declare create(dumk3,dumk4)
        !$acc declare &
        !$acc present(xh,rxh,arh1,arh2,uh,ruh,arf1,arf2) &
        !$acc present(xf,yh,vh,rvh,uf,vf,mf) &
@@ -1260,6 +1263,7 @@
 
         ELSEIF( psolver.eq.2 .or. psolver.eq.7 )THEN
           get_time_avg = .true.
+          !print *,'solve2: before call to sounde'
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
                         pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs,           &
@@ -1275,6 +1279,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+          !print *,'solve2: after call to sounde'
         ELSEIF(psolver.eq.3)THEN
 
           
@@ -1295,7 +1300,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-          !stop 'solve2: after call to sound'
+          print *,'solve2: after call to sound'
 
         ELSEIF(psolver.eq.4.or.psolver.eq.5)THEN
           ! anelastic/incompressible solver:
@@ -1418,6 +1423,7 @@
 !  on final RK step, get max CFL
 
         IF( nrk.eq.nrkmax )THEN
+          !print *,'solve2: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
         ENDIF
 
@@ -1778,8 +1784,8 @@
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
-            dumk1(k) = tmp1
-            dumk2(k) = tmp2
+            dumk3(k) = tmp1
+            dumk4(k) = tmp2
           enddo
         ELSEIF( axisymm.eq.1 )THEN
 #ifndef _B4B06R
@@ -1798,12 +1804,12 @@
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
-            dumk1(k) = tmp1
-            dumk2(k) = tmp2
+            dumk3(k) = tmp1
+            dumk4(k) = tmp2
           enddo
         ENDIF
 #ifdef _B4B06R
-        !$acc update device(dumk1,dumk2)
+        !$acc update device(dumk3,dumk4)
 #else
         !$acc end parallel
 #endif
@@ -1811,15 +1817,19 @@
 
         !print *,'solve2: point #17'
 #ifdef MPI
-        !$acc update host(dumk1,dumk2)
-        call MPI_IALLREDUCE(mpi_in_place,dumk1,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
-        call MPI_IALLREDUCE(mpi_in_place,dumk2,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
+        !$acc update host(dumk3,dumk4)
+        call MPI_IALLREDUCE(mpi_in_place,dumk3,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
+        call MPI_IALLREDUCE(mpi_in_place,dumk4,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
 #endif
         !print *,'solve2: point #18'
 
         dopf = .true.
 
       ENDIF  pmod1
+      print *,'HOST: solve2: before pmod1: dumk3: ',apmasscon, nrk,nrkmax
+      !$acc parallel
+      print *,'DEVICE: solve2: before pmod1: dumk3: ',apmasscon, nrk,nrkmax
+      !$acc end parallel
 
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
 
@@ -2140,10 +2150,10 @@
 #ifdef MPI
         call mpi_wait(reqp1,mpi_status_ignore,ierr)
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
-        !$acc update device(dumk1,dumk2)
+        !$acc update device(dumk3,dumk4)
 #endif
 #ifdef _B4B05RF
-        !$acc update host(dumk1,dumk2)
+        !$acc update host(dumk3,dumk4)
 #else
         !$acc parallel reduction(+:temq1,temq2)
 #endif
@@ -2154,12 +2164,14 @@
         !$acc loop vector reduction(+:temq1,temq2)
 #endif 
         do k=1,nk
-          temq1 = temq1 + dumk1(k)
-          temq2 = temq2 + dumk2(k)
+          temq1 = temq1 + dumk3(k)
+          temq2 = temq2 + dumk4(k)
         enddo
 
         mass2 = temq1
         p2 = temq2
+
+        print *,'  mass1,mass2 = ',mass1,mass2
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
 #ifndef _B4B05RF
@@ -2269,6 +2281,7 @@
 #ifdef MPI
       ! finish comms for cflquick:
       call mpi_wait(reqc,mpi_status_ignore,ierr)
+      if(myid.eq.0) print *,'solve2: cflmax is: ',cflmax
       if(cflmax.ge.1.50) stopit=.true.
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif
