@@ -28,6 +28,7 @@
       use init_terrain_module
       use bc_module
       use comm_module
+      use bcast_module
       use ib_module
       use eddy_recycle
       use lsnudge_module
@@ -272,7 +273,7 @@
       call MPI_BCAST(idiss    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(efall    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(rterm    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(wbc      ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+      !KLUDGE call MPI_BCAST(wbc      ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(ebc      ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(sbc      ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(nbc      ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
@@ -562,8 +563,12 @@
       call MPI_BCAST(ioldlimiter,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
       ENDIF
 #endif
+
+      call bcast_int(wbc,1)
+
+
       !$acc update device(dx,dy,dz,dtl,timax,run_time,tapfrq,rstfrq,statfrq,prclfrq)
-      !$acc update device(imoist,psolver,ptype,wbc,ebc,sbc,nbc,bbc,tbc,axisymm,imove)
+      !$acc update device(imoist,psolver,ptype,ebc,sbc,nbc,bbc,tbc,axisymm,imove)
       !$acc update device(nparcels,kdiff2,kdiff6,fcor,kdiv,alph,umove,vmove)
       !$acc update device(viscosity,pr_num,sc_num)
 

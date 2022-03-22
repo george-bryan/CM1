@@ -1826,10 +1826,6 @@
         dopf = .true.
 
       ENDIF  pmod1
-      print *,'HOST: solve2: before pmod1: dumk3: ',apmasscon, nrk,nrkmax
-      !$acc parallel
-      print *,'DEVICE: solve2: before pmod1: dumk3: ',apmasscon, nrk,nrkmax
-      !$acc end parallel
 
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
 

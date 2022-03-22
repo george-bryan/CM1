@@ -561,11 +561,6 @@
         !                in calculation of wind speed
 
         kval = 1
-        print *,'HOST: sfc_and_turb: kval: ',kval
-        !$acc parallel
-        print *,'DEVICE: sfc_and_turb: kval: ',kval
-        !$acc end parallel
-
 
           !$omp parallel do default(shared) private(i,j)
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
