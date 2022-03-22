@@ -8,7 +8,9 @@ MODULE bcast_module
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine bcast_int(val,len)
 
+#ifdef MPI
       use mpi
+#endif
       integer :: ierr
       integer,intent(in) :: len
       integer,intent(inout) :: val(*)
@@ -22,7 +24,9 @@ MODULE bcast_module
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine bcast_real(val,len)
 
+#ifdef MPI
       use mpi
+#endif
       integer :: ierr
       integer,intent(in) :: len
       real,intent(inout) :: val(*)

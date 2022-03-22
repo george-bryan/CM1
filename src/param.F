@@ -225,7 +225,9 @@
 
 #ifdef MPI
       endif  myid0
+#endif
 
+#ifdef MPI
       call MPI_BCAST(dx    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(dy    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(dz    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
@@ -537,32 +539,32 @@
       call MPI_BCAST(rlen          ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(do_adapt_move ,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(adapt_move_frq,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
+#endif
 
       IF ( ptype.eq.26 .or. ptype.eq.27 .or. ptype.eq.28 ) THEN
-      call MPI_BCAST(ccn       ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(rho_qr    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(cnor      ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(rho_qs    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(cnos      ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(rho_qh    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(cnoh      ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(alphah    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(alphahl   ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(dfrz      ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(hldnmn    ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(infall    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(icdx      ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(icdxhl    ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(imurain   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(iferwisventr,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(iehw      ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(iehlw     ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(ehw0      ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(ehlw0     ,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(dmrauto   ,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(ioldlimiter,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+        call bcast_real(ccn,1)
+        call bcast_real(rho_qr,1)
+        call bcast_real(cnor,1)
+        call bcast_real(rho_qs,1)
+        call bcast_real(cnos,1)
+        call bcast_real(rho_qh,1)
+        call bcast_real(cnoh,1)
+        call bcast_real(alphah,1)
+        call bcast_real(alphahl,1)
+        call bcast_real(dfrz,1)
+        call bcast_real(hldnmn,1)
+        call bcast_int(infall,1)
+        call bcast_int(icdx,1)
+        call bcast_int(icdxhl,1)
+        call bcast_int(imurain,1)
+        call bcast_int(iferwisventr,1)
+        call bcast_int(iehw,1)
+        call bcast_int(iehlw,1)
+        call bcast_real(ehw0,1)
+        call bcast_real(ehlw0,1)
+        call bcast_int(dmrauto,1)
+        call bcast_int(ioldlimiter,1)
       ENDIF
-#endif
 
       call bcast_int(wbc,1)
 
