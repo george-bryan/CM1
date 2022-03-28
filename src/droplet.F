@@ -1113,10 +1113,11 @@
 
       dt_nondim = dt/taup_scale
       
+      guess = 0.0
 
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
-      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
       if (mflag.eq.0) then
          rt_start(1) = guess/pdata(np,prrp)
@@ -1127,12 +1128,14 @@
       end if
 
 
-      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+
 
       if (flag==1) then
          num100 = num100+1
 
-         call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+
+         call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
       end if
 
@@ -1810,7 +1813,7 @@
 
       end subroutine find_vertical_location_index
 
-      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
       use constants
       use cm1libs , only : eslf
       implicit none
@@ -1818,41 +1821,47 @@
       real, intent(out) :: guess
       integer, intent(out) :: mflag
       real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
-      real :: a, c, esa, Q, R, M, val, theta, S, T
+      integer, intent(in) :: np
+      real :: a, c, esa, Q, R, M, theta, S, T, rhval
 
       mflag = 0
       esa = eslf(prsval,tval)  !Saturation vapor pressure at droplet temperature
 
-      a = -(2*mw*surften)/(ru*rhow*tval)/LOG((ru*tval*rhoval*qval)/(mw*esa))
-      c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG((ru*tval*rhoval*qval)/(mw*esa))
+      rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
-      Q = (a**2.0)/9.0
-      R = (2.0*a**3.0+27.0*c)/54.0
-      M = R**2.0-Q**3.0
-      val = (R**2.0)/(Q**3.0)
+      if (rhval .lt. 0.999) then
+         a = -(2*mw*surften)/(ru*rhow*tval)/LOG(rhval)
+         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval)
 
-      if (M<0) then
-        theta = acos(R/sqrt(Q**3.0))
-        guess = -(2*sqrt(Q)*cos((theta-pi*2.0)/3.0))-a/3.0
 
-        if (guess < 0) then
-        guess = -(2*sqrt(Q)*cos((theta+pi*2.0)/3.0))-a/3.0
-        end if
+         Q = (a**2.0)/9.0
+         R = (2.0*a**3.0+27.0*c)/54.0
+         M = R**2.0-Q**3.0
 
-      else
-        S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0/3.0)
-        T = Q/S
-        guess = S + T - a/3.0
+         if (M<0) then
+           theta = acos(R/sqrt(Q**3.0))
+           guess = -(2*sqrt(Q)*cos((theta-pi*2.0)/3.0))-a/3.0
 
-        if (guess < 0) then
-                guess = radius
-                mflag = 1
-        end if
+           if (guess < 0) then
+           guess = -(2*sqrt(Q)*cos((theta+pi*2.0)/3.0))-a/3.0
+           end if
+
+         else
+           S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0/3.0)
+           T = Q/S
+           guess = S + T - a/3.0
+
+         end if
+
+      else 
+
+        guess = radius
+        mflag = 1
       end if
 
       end subroutine rad_solver2
 
-      subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         use ieee_arithmetic
 
         implicit none
@@ -1861,6 +1870,7 @@
         real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
         real, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
+        integer, intent(in) :: np
 
         real :: error,fv1(2),fv2(2),v1(2),rel
         real :: diff, temp1(2), temp2(2), relax, coeff, correct(2)
@@ -1879,8 +1889,8 @@
 
                 iterations = iterations + 1
 
-                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
-                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
                 fancy = matmul(transpose(J),J)
 
@@ -1891,9 +1901,9 @@
                 correct = matmul(finalJ,fv1)
                 rt_zeros = v1 - correct
 
-                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
 
                 diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
@@ -1910,7 +1920,7 @@
                         coeff = 0.5
                         relax = relax * coeff
                         rt_zeros = v1-matmul(finalJ,fv1)*relax
-                        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
                         diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
 
                         if (counts>10) EXIT
@@ -1918,19 +1928,20 @@
 
                 v1 = rt_zeros
 
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         end do
       if (iterations == 100) flag = 1
       if (ieee_is_nan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
-      subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         implicit none
 
         real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
         real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
         real, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
+        integer, intent(in) :: np
 
         real :: error,fv1(2),fv2(2),v1(2),rel
         real :: diff,lambda,lup,ldown
@@ -1953,9 +1964,9 @@
         do while ((sqrt(dot_product(fv2, fv2)) > error) .AND. (iterations<1000))
 
         iterations = iterations + 1
-        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-        call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
         g = matmul(transpose(J),J)+lambda*I
         gradC = matmul(transpose(J),fv1)
@@ -1968,7 +1979,7 @@
         end if
 
         rt_zeros = v1 - correct
-        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         newC = 0.5*fv2*fv2
          
         if (sqrt(dot_product(newC,newC))<sqrt(dot_product(C,C))) then
@@ -2002,20 +2013,21 @@
         invC = (1./det)*invC
 
       end subroutine inverse_finder_2d
-      subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         implicit none
         integer :: n
 
         real, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
         real, intent(out), dimension(1:2, 1:2) :: J
         real :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
+        integer, intent(in) :: np
 
         diff = 1E-5
 
         ynext(1) = rnext
         ynext(2) = tnext
 
-        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
         xper = ynext
         xper2 = ynext
@@ -2023,9 +2035,9 @@
         do n=1, 2
                 xper(n) = xper(n) + diff
                 xper2(n) = xper2(n) - diff
-                call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-                call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
                 J(:, n) = (fxper-rt_output)/diff
                 xper(n) = ynext(n)
@@ -2034,7 +2046,7 @@
 
 
       end subroutine jacob_approx_2d
-      subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
       use constants
       use input
       use cm1libs , only : eslf
@@ -2042,6 +2054,7 @@
 
       real, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
       real, intent(out) :: rT_output(2)
+      integer, intent(in) :: np
 
       real :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
       real :: Tnext,rnext
@@ -2051,6 +2064,7 @@
         rnext = tempr*radius
         Tnext = tempt*Tp
         dnext = rnext*2.0
+
 
         esa = eslf(prsval,tval)
         VolP = (4.0/3.0)*pi*rnext**3
