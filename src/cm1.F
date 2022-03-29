@@ -308,7 +308,7 @@
       np3o = 1
       cflmax = 0.0
       ksmax = 0.0
-!$acc enter data copyin(cflmax,ksmax)
+      !$acc update device(cflmax,ksmax)
       ndt = 0
       adt = 0.0
       acfl = 0.0
@@ -486,7 +486,7 @@
       read(20,nml=param8)
       close(unit=20)
       !OpenACC data movement directives
-      !$acc enter data copyin(nx,ny)
+      !$acc update device(nx,ny,nz)
 
       ! note:  read remainder of namelist sections in param.F !
 
@@ -579,7 +579,13 @@
       njp1 = nj+1
       nkp1 = nk+1
       nkm1 = nk-1
-      !$acc enter data copyin(nip1,njp1,nkp1,nkm1)
+      !$acc update device(nip1,njp1,nkp1,nkm1)
+      !$acc update device(ni,nj,nk)
+      !$acc update device(nparcels,npvals)
+      !$acc update device(terrain_flag,numq)
+      !$acc update device(zt,rzt,bbc,tbc)
+      !$acc update device(viscosity,pr_num,sc_num)
+      !$acc update device(prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pract)
 
       nimax = ni
       njmax = nj
