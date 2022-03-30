@@ -176,6 +176,7 @@
 !$acc         create(prpt1,prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh,prtke)  &
 !$acc         create(prdbz,prb,prvpg,przv,prrho,prqsl,prqsi,prznt,prust,przs) &
 !$acc         create(prsig,prvpx,prvpy,prvpz,prrp,prms,prtp,prmult,pract)
+!$acc declare create(ntwk)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &

@@ -5494,9 +5494,6 @@
         call MPI_ALLREDUCE(MPI_IN_PLACE,zntbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
-#ifndef _B4B08F
-        !$acc parallel default(present) private(k)
-#endif
         teme = 1.0/dble(nx*ny)
 
         ustbar = ustbar*teme
@@ -5505,7 +5502,7 @@
 
         !print *,'t2pcode: point #3'
 #ifndef _B4B08F
-        !$acc loop gang vector
+        !$acc parallel loop gang vector default(present) private(k)
 #endif
         do k=1,(ntwk+1)
           wspa(k) = (ustbar/karman)*alog( sngl(zh(1,1,k)/zntbar) )
@@ -5586,6 +5583,7 @@
   !                 needed to determine kmw,ufw,vfw on the current level (k)
   !
 
+      !$acc parallel default(present) private(k,d2pm1,d2pm2,d2pm3,dsdz,tem)
       ! Initial condition: two-part wall fluxes are zero at the surface
       ufw = 0.0
       vfw = 0.0
@@ -5594,8 +5592,7 @@
 !!!  GHB, 220309: commented out open-acc commands. This will be difficult to
 !!!               parallelize, because of the "marching" mentioned above.  But
 !!!               it's a small calculation, so probably not a big deal...?
-!!!      !$acc parallel default(present) private(k,d2pm1,d2pm2,d2pm3,dsdz,tem)
-!!!      !$acc loop gang vector
+      !$acc loop seq
       kloop2:  &
       DO k=1,(ntwk-1)
 
@@ -5622,15 +5619,17 @@
         t2pm3(k+1) = -d2pm3*tem
 
       ENDDO  kloop2
+      !$acc end parallel
 
+      !$acc parallel default(present)`
       ! diagnostic only:
       l2p(1) = zntbar
       !$acc loop gang vector
       do k=2,ntwk
         l2p(k) = sqrt( kmw(k)*karman*(zf(1,1,k)-zntbar)/max(0.0001,ustbar) )
       enddo
+      !$acc end parallel
 
-!!!      !$acc end parallel
 
     !-------------------------------------------
         !print *,'t2pcode: point #7'
