@@ -3013,12 +3013,14 @@
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
                          MPI_COMM_WORLD,ierr)
+      !!$acc update device(mmax)
       loc=nint(nmax(2))
       imax=imax+(myi1-1)
       jmax=jmax+(myj1-1)
       call MPI_BCAST(imax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(jmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      !!$acc update device(imax,jmax,kmax)
       fmax=nmax(1)
       if(myid.eq.0)then
 #endif
@@ -3136,7 +3138,6 @@
 !!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
 !     call mpi_wait(reqc,mpi_status_ignore,ierr)
-!!$acc update device(cflmax)
 ! interesting cflmax is never used.
 #endif
 
