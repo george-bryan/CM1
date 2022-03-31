@@ -337,7 +337,7 @@
  prcl_rho      = 0,
  prcl_qsat     = 0,
  prcl_sfc      = 0,
- pfcl_droplet  = 1,
+ prcl_droplet  = 1,  !Makes them "droplets" instead of "parcels"
  /
 
  &param14
