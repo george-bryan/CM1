@@ -205,9 +205,11 @@ MODULE module_mp_nssl_2mom
 
   real, public :: hdnmn  = 170.0  ! minimum graupel density (for variable density graupel)
   real, public :: hldnmn = 500.0  ! minimum hail density (for variable density hail)
+  !$acc declare create(hldnmn)
 
   real :: cnohmn  = 1.e-2 ! minimum intercept for 2-moment graupel (alphah < 0.5)
   real :: cnohlmn = 1.e-2 ! minimum intercept for 2-moment hail (alphahl < 0.5)
+  !$acc declare create(rho_qr,cnor,rho_qs,cnos,rho_qh,cnoh)
   
 ! Autoconversion parameters
 
@@ -219,6 +221,8 @@ MODULE module_mp_nssl_2mom
   integer, private :: iauttim        = 1         ! 10-ice rain delay flag
   real   , private :: auttim         = 300.      ! 10-ice rain delay time
   real   , private :: qcwmntim       = 1.0e-5    ! 10-ice rain delay min qc for time accrual
+  !$acc declare create(ccn)
+  
 
 #if (NMM_CORE == 1)
 ! NMM WRF core does not have special boundary conditions for CCN, therefore set invertccn to true
@@ -241,6 +245,7 @@ MODULE module_mp_nssl_2mom
                                                          ! if false, reuse fall speeds on multiple steps (can have a noticeable speedup)
                                                          ! Mainly is an issue for small dz near the surface. 
   integer, public :: infall = 4   ! 0 -> uses number-wgt for N; NO correction applied (results in excessive size sorting)
+  !$acc declare create(infall)
                           ! 1 -> uses mass-weighted fallspeed for N ALWAYS
                           ! 2 -> uses number-wgt for N and mass-weighted correction for N (Method II in Mansell, 2010 JAS)
                           ! 3 -> uses number-wgt for N and Z-weighted correction for N (Method I in Mansell, 2010 JAS)
@@ -254,6 +259,7 @@ MODULE module_mp_nssl_2mom
   integer, public :: icefallopt = 3 ! 1= default, 2 = Ferrier ice fall speed; 3 = adjusted Ferrier (slightly high Vt)
   integer, public :: icdx = 3 ! (graupel) 0=Ferrier; 1=leave drag coef. cd fixed; 2=vary by density, 4=set by user with cdxmin,cdxmax,etc.
   integer, public :: icdxhl = 3 ! (hail) 0=Ferrier; 1=leave drag coef. cd fixed; 2=vary by density, 4=set by user with cdxmin,cdxmax,etc.
+  !$acc declare create(icdx,icdxhl)
   real   , private :: cdhmin = 0.45, cdhmax = 0.8        ! defaults for graupel (icdx=4)
   real   , private :: cdhdnmin = 500., cdhdnmax = 800.0  ! defaults for graupel (icdx=4)
   real   , private :: cdhlmin = 0.45, cdhlmax = 0.6      ! defaults for hail (icdx=4)
@@ -352,6 +358,7 @@ MODULE module_mp_nssl_2mom
   real   , private :: dmincw = 15.0e-6    ! minimum droplet diameter for collection for iehw=3
   integer, public :: iehw = 1            ! 0 -> ehw=ehw0; 1 -> old ehw; 2 -> test ehw with Mason table data
   integer, public :: iehlw = 1           ! 0 -> ehlw=ehlw0; 1 -> old ehlw; 2 -> test ehlw with Mason table data
+  !$acc declare create(iehw,iehlw)
                                  ! For ehw/ehlw = 1, ehw0/ehlw0 act as maximum limit on collection efficiency (defaults are 1.0)
   integer, private :: ierw = 1            ! for single-moment rain (LFO/Z)
   integer, public :: iehr0c = 0          ! 0 -> no collection for T > 0C;  1 -> turn on collection/shedding for T > 0C
@@ -363,6 +370,7 @@ MODULE module_mp_nssl_2mom
   real    :: ehlr0 = 1.0         ! constant or max assumed hail-rain collection efficiency
   real   , public :: exwmindiam = 0.0    ! minimum diameter of droplets for riming. If set > 0, will exclude that fraction of mass/number from accretion (idea from Furtado and Field 2017 JAS but also Fierro and Mansell 2017)
   
+  !$acc declare create(ehw0,ehlw0)
 
   real   , private :: esilfo0 = 1.0       ! factor for LFO collection efficiency of snow for cloud ice.
   real   , private :: ehslfo0 = 1.0       ! factor for LFO collection efficiency of hail/graupel for snow.
@@ -433,6 +441,7 @@ MODULE module_mp_nssl_2mom
                             ! mean diameter of rain is set to 3 mm
                             ! Only valid for ihmlt = 2 for ZVD(H) but also applies to ZVD(H)M
                             ! 2 = method that sets the resulting rain size ( vshdgs ) according to the mass-weighted diameter of the ice
+   !$acc declare create(dfrz)
 
    real  :: mltdiam1 = 9.0e-3, mltdiam2 = 16.0e-3, mltdiam3 = 19.0e-3, mltdiam4 = 200.0e-3, mltdiam05 = 4.5e-3
 
@@ -510,6 +519,7 @@ MODULE module_mp_nssl_2mom
   real, parameter :: alpharaut = 0.0 ! MY2005 for autoconversion
   real    :: cxmin = 1.e-8  ! threshold cutoff for number concentration
   real    :: zxmin = 1.e-28 ! threshold cutoff for reflectivity moment
+  !$acc declare create(imurain,dmrauto)
   
   integer :: ithompsoncnoh = 0 ! For single moment graupel only
                            ! 0 = fixed intercept
@@ -518,6 +528,7 @@ MODULE module_mp_nssl_2mom
   integer :: ivhmltsoak = 1   ! 0=off, 1=on : flag to simulate soaking (graupel/hail) during melting 
                          ! when liquid fraction is not predicted
   integer, public :: ioldlimiter = 0 ! test switch for new(=0) or old(=1) size limiter at the end of GS for 3-moment categories
+  !$acc declare create(ioldlimiter)
   integer, public :: isnowfall = 2   ! Option for choosing between snow fall speed parameters
                          ! 1 = original Zrnic et al. (Mansell et al. 2010)
                          ! 2 = Ferrier 1994 (results in slower fall speeds)
@@ -651,6 +662,7 @@ MODULE module_mp_nssl_2mom
   real    :: alphar  = 0.0 ! shape parameter for rain (imurain=1 only)
   real, public    :: alphah  = 0.0 ! set in namelist!! shape parameter for ZIEG graupel
   real, public    :: alphahl = 1.0 ! set in namelist!! shape parameter for ZIEG hail
+  !$acc declare create(alphah,alphahl)
 
   real    :: dmuh    = 1.0  ! power in exponential part (graupel)
   real    :: dmuhl   = 1.0  ! power in exponential part (hail)

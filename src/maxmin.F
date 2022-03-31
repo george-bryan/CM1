@@ -37,7 +37,7 @@
       kmax = 1
       fmax = -1.e30
       fmin =  1.e30
-      !$acc data copy(imax,imin,jmax,jmin,kmax,kmin)
+
       !$acc parallel default(present) private(i,j,k) &
       !$acc   reduction(min:fmin) reduction(max:fmax)
 
@@ -47,35 +47,20 @@
       do i=1,izz
         fmax = max(f(i,j,k),fmax)
         fmin = min(f(i,j,k),fmin)
-      enddo
-      enddo
-      enddo
-
-      !$acc loop collapse(3)
-      do k=1,kzz
-      do j=1,jzz
-      do i=1,izz
         if(f(i,j,k).eq.fmax)then
-          !$acc atomic write
           imax=i
-          !$acc atomic write
           jmax=j
-          !$acc atomic write
           kmax=k
         endif
         if(f(i,j,k).eq.fmin)then
-          !$acc atomic write
           imin=i
-          !$acc atomic write
           jmin=j
-          !$acc atomic write
           kmin=k
         endif
       enddo
       enddo
       enddo
       !$acc end parallel
-      !$acc end data
 
 #ifdef MPI
       mmax(1)=fmax
@@ -159,7 +144,7 @@
       jmax=1
       fmax = -1.e30
       fmin =  1.e30
-      !$acc data copy(imax,imin,jmax,jmin)
+
       !$acc parallel default(present) private(i,j) &
       !$acc    reduction(min:fmin) reduction(max:fmax)
       !$acc loop gang vector collapse(2)
@@ -167,28 +152,17 @@
       do i=1,izz
         fmax = max(f(i,j),fmax)
         fmin = min(f(i,j),fmin)
-      enddo
-      enddo
-
-      !$acc loop collapse(2)
-      do j=1,jzz
-      do i=1,izz
         if(f(i,j).eq.fmax)then
-          !$acc atomic write
           imax=i
-          !$acc atomic write
           jmax=j
         endif
         if(f(i,j).eq.fmin)then
-          !$acc atomic write
           imin=i
-          !$acc atomic write
           jmin=j
         endif
       enddo
       enddo
       !$acc end parallel
-      !$acc end data
 
 #ifdef MPI
       mmax(1)=fmax
