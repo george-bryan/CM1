@@ -410,7 +410,8 @@
           call random_number(rand)
           pdata(n,pry) = rand*maxy
           call random_number(rand)
-          pdata(n,prz) = rand*maxz
+          !pdata(n,prz) = rand*maxz
+          pdata(n,prz) = 40.0
 
           !if(MODULO(n,100)==0) then 
           if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
@@ -419,7 +420,7 @@
           if (prcl_droplet.ge.1) then
 
             pdata(n,prvpx) = 0.0
-            pdata(n,prvpy) = 14.0
+            pdata(n,prvpy) = 0.0
             pdata(n,prvpz) = 0.0
 
             !Droplet size (radius)
@@ -433,7 +434,7 @@
             pdata(n,prtp) = 302.0
 
             !Droplet multiplicity
-            pdata(n,prmult) = 1.0
+            pdata(n,prmult) = 1.0e10
    
             !Is droplet alive?
             pdata(n,pract) = 1.0

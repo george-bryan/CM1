@@ -513,15 +513,15 @@
         wtt = wtx*wty*wtz
 
         !!$acc atomic write
-        !qten(ix,iy,iz) = qten(ix,iy,iz) - &
-        !    dmvdt/rhoval/dV*wtt*pdata(np,prmult)
+        qten(ix,iy,iz) = qten(ix,iy,iz) - &
+            dmvdt/rhoval/dV*wtt*pdata(np,prmult)
 
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
         !!$acc atomic write
-        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
-        !    dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
-        !    rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*wtt/dV*pdata(np,prmult)                   !Latent
+        thten(ix,iy,iz) = thten(ix,iy,iz) - &
+            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
+            rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*wtt/dV*pdata(np,prmult)                   !Latent
        
 
       enddo
