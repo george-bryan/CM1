@@ -163,20 +163,23 @@
 
   ELSEIF( cecd.eq.1 )THEN  sfc_options
     ! specify Cd (drag coefficient):
-    stop 'getcecd: cecd.eq.1'
+
+ !  GHB, 220308 ... commented out this stop command
+ !       Does this section of code need to be GPUized? 
+!!!    stop 'getcecd: cecd.eq.1'
 
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
     !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
       cd(i,j) = max(1.0e-10,cnstcd)
-      znt(i,j) = 10.0/(exp(karman/sqrt(cd(i,j)))-1.0)
+      znt(i,j) = 10.0/exp(karman/sqrt(cd(i,j)))
       rznt = 1.0/znt(i,j)
-      var = alog((10.0+znt(i,j))*rznt)/alog((za(i,j)+znt(i,j))*rznt)
+      var = alog(10.0*rznt)/alog(za(i,j)*rznt)
       u10(i,j) = u1(i,j)*var
       v10(i,j) = v1(i,j)*var
       s10(i,j) = s1(i,j)*var
-      ust(i,j) = max( s1(i,j)*karman/alog((za(i,j)+znt(i,j))*rznt) , 1.0e-6 )
+      ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
     enddo
     enddo
 
@@ -1210,16 +1213,10 @@
 #endif
   
 #ifdef MPI
-#ifndef _B4B09R
-      !$acc update host(avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcu,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-#ifndef _B4B09R
-      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
 #endif
 
 #ifndef _B4B10

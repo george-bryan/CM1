@@ -138,7 +138,7 @@ endif
 #  Intel compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},ifort)
-    OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays 
+    OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -qopenmp
@@ -204,6 +204,7 @@ SRC   = constants.F \
 	cm1.F \
 	cm1libs.F \
 	comm.F \
+        bcast.F \
 	testcase_simple_phys.F \
 	diff2.F \
 	eddy_recycle.F \
@@ -315,6 +316,7 @@ anelp.o: constants.o input.o misclibs.o bc.o poiss.o
 azimavg.o: input.o constants.o cm1libs.o writeout_nc.o comm.o bc.o
 base.o: constants.o input.o bc.o comm.o goddard.o cm1libs.o getcape.o turb.o
 bc.o: constants.o input.o
+bcast.o:
 cm1.o: constants.o input.o param.o base.o init3d.o misclibs.o solve1.o solve2.o solve3.o diff2.o turb.o statpack.o writeout.o restart.o radiation_driver.o radtrns3d.o domaindiag.o azimavg.o hifrq.o parcel.o init_physics.o init_surface.o mp_driver.o ib_module.o eddy_recycle.o lsnudge.o nvtx_mod.o
 cm1libs.o: input.o constants.o
 comm.o: input.o bc.o
@@ -349,7 +351,7 @@ module_sf_myjsfc.o: module_ra_etc.o
 morrison.o: input.o constants.o
 module_mp_jensen_ishmael.o: input.o module_ra_etc.o
 mp_driver.o: constants.o input.o misclibs.o kessler.o goddard.o thompson.o lfoice.o morrison.o module_mp_nssl_2mom.o module_mp_p3.o module_mp_jensen_ishmael.o
-param.o: constants.o input.o init_terrain.o bc.o comm.o thompson.o morrison.o module_mp_nssl_2mom.o goddard.o lfoice.o module_mp_p3.o module_mp_jensen_ishmael.o ib_module.o eddy_recycle.o lsnudge.o
+param.o: constants.o input.o init_terrain.o bc.o comm.o bcast.o thompson.o morrison.o module_mp_nssl_2mom.o goddard.o lfoice.o module_mp_p3.o module_mp_jensen_ishmael.o ib_module.o eddy_recycle.o lsnudge.o
 parcel.o: constants.o input.o cm1libs.o misclibs.o bc.o comm.o writeout_nc.o
 droplet.o: constants.o input.o cm1libs.o bc.o comm.o parcel.o
 pdef.o: input.o bc.o comm.o

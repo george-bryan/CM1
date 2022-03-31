@@ -2761,9 +2761,6 @@
       integer :: i,j
       real :: ppmin,ppmax,pcent,pminx,pmaxx,pminy,pmaxy
 
-#ifdef MPI
-#endif
-
       ppmin =  1.0e30
       ppmax = -1.0e30
 

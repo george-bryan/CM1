@@ -2531,8 +2531,7 @@
       double precision :: fluxout,fluxin,tem,u1,t3
       double precision :: temp1,temp2
       double precision, dimension(nk) :: temout,temin
-      !$acc declare present(rvh,rmh,rho0,u3d) &
-      !$acc present(fluxout,fluxin)
+      !$acc declare present(rvh,rmh,rho0,u3d)
 
       !$acc data create(temout,temin)
       !$omp parallel do default(shared) private(k)

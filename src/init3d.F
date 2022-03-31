@@ -410,13 +410,14 @@
           call random_number(rand)
           pdata(n,pry) = rand*maxy
           call random_number(rand)
-          pdata(n,prz) = rand*maxz
+          !pdata(n,prz) = rand*maxz
+          pdata(n,prz) = 40.0
 
           !if(MODULO(n,100)==0) then 
           if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
           !endif
 
-          if (prcl_droplet) then
+          if (prcl_droplet.ge.1) then
 
             pdata(n,prvpx) = 0.0
             pdata(n,prvpy) = 0.0
@@ -433,7 +434,7 @@
             pdata(n,prtp) = 302.0
 
             !Droplet multiplicity
-            pdata(n,prmult) = 1.0
+            pdata(n,prmult) = 1.0e10
    
             !Is droplet alive?
             pdata(n,pract) = 1.0
@@ -2127,6 +2128,7 @@
  
       integer :: i,j,k,n
       real(kind=qp) :: temq
+      real(kind=qp) :: tmp1
 
       if(dowr) write(outfile,*) 'Inside GETSET'
       if(dowr) write(outfile,*)
@@ -2482,19 +2484,25 @@
 
         IF( axisymm.eq.0 )THEN
           do k=1,nk
-          do j=1,nj
-          do i=1,ni
-            dumk1(k) = dumk1(k) + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
-          enddo
-          enddo
+            ! GHB, 220303: use same code as solve2.F
+            tmp1 = 0.0
+            do j=1,nj
+            do i=1,ni
+              tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+            enddo
+            enddo
+            dumk1(k) = tmp1
           enddo
         ELSEIF( axisymm.eq.1 )THEN
           do k=1,nk
-          do j=1,nj
-          do i=1,ni
-            dumk1(k) = dumk1(k) + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*pi*(xf(i+1)**2-xf(i)**2)
-          enddo
-          enddo
+            ! GHB, 220303: use same code as solve2.F
+            tmp1 = 0.0
+            do j=1,nj
+            do i=1,ni
+              tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*pi*(xf(i+1)**2-xf(i)**2)
+            enddo
+            enddo
+            dumk1(k) = tmp1
           enddo
         ELSE
           stop 2223

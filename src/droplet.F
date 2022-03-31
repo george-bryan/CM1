@@ -10,7 +10,7 @@
   implicit none
 
   private
-  public :: droplet_driver
+  public :: droplet_driver,rk2_integration
 
   ! If we already know that a parcel stays on the same process 
   !    in the previous time step and it is still here, we start 
@@ -90,7 +90,7 @@
       real :: dt2,uu1,vv1,ww1
       real :: sig3d,th_tmp,rand
       real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt
-      real :: Nup,rhop0,taup0,rp0,salinity,part_grav1,part_grav2,part_grav3,rhoval
+      real :: Nup,rhop0,taup0,rp0,salinity,part_grav1,part_grav2,part_grav3,rhoval,tval
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
 
@@ -227,7 +227,6 @@
 
   !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
   !stop 'droplet_driver: after first compare'
-  !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
   ! GHB 210714:
     call prepcorners3_GPU( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
@@ -250,7 +249,8 @@
     dt2 = dt/2.0
     part_grav1 = 0.0
     part_grav2 = 0.0
-    part_grav3 = -0.84
+    !part_grav3 = -0.84
+    part_grav3 = 0.0
 
     num100 = 0
     num1000 = 0
@@ -266,13 +266,10 @@
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel &
     !$acc default(present) &
-    !$acc private(i,j,k,rx,ry,rz,rxu,ryv,rxs,rys,rzs,rzw,x3d,y3d,z3d, &
-    !$acc     w1,w2,w3,w4,w5,w6,w7,w8,sig3d,iflag,jflag,kflag,nrkp, &
-    !$acc     uval,vval,wval,qval,tval,rhoval,prsval,sigdot,zsp,rznt,var, &
-    !$acc     xrhs1,xrhs2,xrhs3,volp,rhop,rhop0,taup,taup0,diffnorm,Rep,Nup,Shp,vrhs1,vrhs2,vrhs3, &
-    !$acc     lhv,qstar,rprhs,tprhs,vtmp1,vtmp2,vtmp3,k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3, &
+    !$acc private(i,j,k,x3d,y3d,z3d,sig3d,iflag,jflag,kflag,nrkp,rhoval, &
+    !$acc     rhop0,taup0,Nup,&
     !$acc     dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt,dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt, &
-    !$acc     sig1,k1tp,esl,tptmp,k1rp,rptmp,part_grav1,part_grav2,part_grav3,rp0,tp0,volp0)
+    !$acc     esl,part_grav1,part_grav2,part_grav3,rp0)
     !$acc compare(ngxy,ngz)
     !$acc loop gang vector 
 #endif
@@ -370,11 +367,11 @@
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
-      call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+      call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
 
       ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
 
-      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
+      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
 
 
       ENDIF dropmethod
@@ -392,84 +389,83 @@
 !  temp, and size
 !-----------------------------------------------------
 
-      ! GHB, 210714:
-      ! get i,j,k for final parcel location:
+!      ! GHB, 210714:
+!      ! get i,j,k for final parcel location:
+!
+!        iflag = undefined_index
+!        jflag = undefined_index
+!        IF(nx.eq.1)THEN
+!          iflag = 1
+!        ELSE
+!          ! cm1r19:
+!          call find_horizontal_location_index (pdata_locind(np,1), pdata(np,prx), ib, ie+1, xf, ni+2, iflag)
+!        ENDIF
+!        IF(axisymm.eq.1.or.ny.eq.1)THEN
+!          jflag = 1
+!        ELSE
+!          ! cm1r19:
+!          call find_horizontal_location_index (pdata_locind(np,2), pdata(np,pry), jb, je+1, yf, nj+2, jflag)
+!          if(mod(np,PITER)==0) then
+!             print *,'after dowhile loop: ',jflag
+!          endif
+!          i=iflag
+!          j=jflag
+!        ENDIF
+!
+!        !HERE print *,'droplet_driver: point #3'
+!#if 0
+!        IF(debug)THEN
+!        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
+!          print *,'  myid,i,j = ',myid,i,j
+!          print *,'  x,x1     = ',x3d,pdata(np,prx)
+!          print *,'  y,y1     = ',y3d,pdata(np,pry)
+!          do i=0,ni+1
+!            print *,i,abs(xh(i)-pdata(np,prx)),0.5*dx*ruh(i)
+!          enddo
+!          do j=0,nj+1
+!            print *,j,abs(yh(j)-pdata(np,pry)),0.5*dy*rvh(j)
+!          enddo
+!          print *,'  16665 '
+!          call stopcm1
+!        endif
+!        ENDIF
+!#endif
+!
+!
+!        !print *,'droplet_driver: point #4'
+!        kflag = 1
+!! JS - jflag could be negative somehow, which will break
+!!        the find_vertical_location_index subroutine and 
+!!        lead to invalid access to zf(iflag,jflag,kflag);
+!!        revert to the old implementation
+!        if( .not. terrain_flag )then
+!          do while( pdata(np,prz).gt.zf(iflag,jflag,kflag+1) )
+!            kflag = kflag+1
+!          enddo
+!        else
+!          do while( pdata(np,prsig).gt.sigmaf(kflag+1) )
+!            kflag = kflag+1
+!          enddo
+!        endif
+!        pdata_locind(np,3) = kflag
+!#if 0
+!        IF(debug)THEN
+!        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
+!          print *,myid,nrkp
+!          print *,iflag,jflag,kflag
+!          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
+!          print *,x3d,y3d,z3d
+!          print *,uval,vval,wval
+!          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
+!          print *,'  16667 '
+!          call stopcm1
+!        endif
+!        ENDIF
+!#endif
 
-        iflag = undefined_index
-        jflag = undefined_index
-        IF(nx.eq.1)THEN
-          iflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,1), pdata(np,prx), ib, ie+1, xf, ni+2, iflag)
-        ENDIF
-        IF(axisymm.eq.1.or.ny.eq.1)THEN
-          jflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,2), pdata(np,pry), jb, je+1, yf, nj+2, jflag)
-          if(mod(np,PITER)==0) then
-             print *,'after dowhile loop: ',jflag
-          endif
-          i=iflag
-          j=jflag
-        ENDIF
-
-        !HERE print *,'droplet_driver: point #3'
-#if 0
-        IF(debug)THEN
-        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
-          print *,'  myid,i,j = ',myid,i,j
-          print *,'  x,x1     = ',x3d,pdata(np,prx)
-          print *,'  y,y1     = ',y3d,pdata(np,pry)
-          do i=0,ni+1
-            print *,i,abs(xh(i)-pdata(np,prx)),0.5*dx*ruh(i)
-          enddo
-          do j=0,nj+1
-            print *,j,abs(yh(j)-pdata(np,pry)),0.5*dy*rvh(j)
-          enddo
-          print *,'  16665 '
-          call stopcm1
-        endif
-        ENDIF
-#endif
-
-
-        !print *,'droplet_driver: point #4'
-        kflag = 1
-! JS - jflag could be negative somehow, which will break
-!        the find_vertical_location_index subroutine and 
-!        lead to invalid access to zf(iflag,jflag,kflag);
-!        revert to the old implementation
-        if( .not. terrain_flag )then
-          do while( pdata(np,prz).gt.zf(iflag,jflag,kflag+1) )
-            kflag = kflag+1
-          enddo
-        else
-          do while( pdata(np,prsig).gt.sigmaf(kflag+1) )
-            kflag = kflag+1
-          enddo
-        endif
-        pdata_locind(np,3) = kflag
-#if 0
-        IF(debug)THEN
-        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
-          print *,myid,nrkp
-          print *,iflag,jflag,kflag
-          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
-          print *,x3d,y3d,z3d
-          print *,uval,vval,wval
-          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
-          print *,'  16667 '
-          call stopcm1
-        endif
-        ENDIF
-#endif
-
-        !print *,'droplet_driver: point #5'
       !--------
       !PORTME
-      !Recall that the "old" value is stored here
+      !Recall that the "old" values are stored in the "d/dt" variables
       dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
       dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
       dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
@@ -478,25 +474,19 @@
 
       !Only the sensible component of energy 
       !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
-      dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(dtpdt-pdata(np,prtp))
-      if(np==TROUBLE) then  
-        print *,'dd: rhow: ',rhow
-        print *,'dd: before dmvdt: ',dmvdt
-        print *,'dd: pdata(np,prrp): ',pdata(np,prrp)
-      endif
+
+      !dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(dtpdt-pdata(np,prtp))
+
+      dtpdt = (pdata(np,prtp)-dtpdt)/dt
+
       dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt)/dt
 
-      !At this point, iflag,jflag,kflag is the node beneath droplet
 
       !Volume where the droplet finds itself
       dV = (xh(iflag+1)-xh(iflag))*   &
            (yh(jflag+1)-yh(jflag))*   &
            (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-       ! print *,'droplet_driver: point #6'
 
-      if(mod(np,PITER)==0) then 
-          print *,'{i,j,k}flag: ',iflag,jflag,kflag 
-      endif
       !Loop over all nodes surrounding droplet
       !!$acc loop seq
       do i=0,1
@@ -520,45 +510,22 @@
         wtt = wtx*wty*wtz
 
         !!$acc atomic write
-        !qten(ix,iy,iz) = qten(ix,iy,iz) - &
-        !    dmvdt/rhoval/dV*wtt*pdata(np,prmult)
+        qten(ix,iy,iz) = qten(ix,iy,iz) - &
+            dmvdt/rhoval/dV*wtt*pdata(np,prmult)
 
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
         !!$acc atomic write
-        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
-        !    (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
-
-        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
-        !    dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
-
-#if 0
-        if((np==TROUBLE)) then 
-          print *,'dd2: {ix,iy,iz}: ',ix,iy,iz
-          print *,'dd2: 2-way ',ix,iy,iz,rhow,rhoval,dtpdt,dv,wtt,pdata(np,prmult)
-          print *,'dd2: 2-way wtx: ',ix,iy,iz,wtx
-          print *,'dd2: 2-way wty: ',ix,iy,iz,wty
-          print *,'dd2: 2-way wtz: ',ix,iy,iz,wtz
-          print *,'dd2: thten: ',np, thten(ix,iy,iz)
-        endif
-        if((np==TROUBLE) .and. (i==0) .and. (j==0) .and. (k==0)) then 
-            print *,'dd: wtt: ',wtt
-            print *,'dd: dmvdt: ',dmvdt
-        endif
-#endif
-!        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
-!        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
-!        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
-!        if(np.eq.1) print *,'    rhow,cpl,cp  = ',rhow,cpl,cp
-!        if(np.eq.1) print *,'    dtpdt        = ',dtpdt
+        thten(ix,iy,iz) = thten(ix,iy,iz) - &
+            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
+            rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*wtt/dV*pdata(np,prmult)                   !Latent
+       
 
       enddo
       enddo
       enddo
-      !HERE print *,'after interpolation loops ',np
 
     ENDIF dropalive2
-    !HERE print *,'after dropalive2' 
 
 
 !-----------------------------------------------------
@@ -653,6 +620,7 @@
      
 #endif
 
+
 !----------------------------------------------------------------------
 !  get height ASL:
 
@@ -677,7 +645,7 @@
 
       end subroutine droplet_driver
 
-      subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+      subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
       use input
       use constants
       use bc_module
@@ -706,7 +674,7 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(in), dimension(ib:ie,jb:je) :: znt
-      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval,tval
       real, intent(inout), dimension(nparcels,npvals) :: pdata
       integer, intent(inout), dimension(nparcels,3) :: pdata_locind
 
@@ -724,8 +692,9 @@
       real :: rprhs,rptmp,qstar,einf,lhv,estar
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
-      real :: qval,tval,prsval
+      real :: qval,prsval
       real :: sig1,sigdot
+      real :: top,bot
       integer :: i,j,k
 
       !Unique to rk2_integration
@@ -816,7 +785,6 @@
         tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
                 3.0*lhv/cpl/pdata(np,prrp)*rprhs
 
-
         IF(nx.eq.1)THEN
           x3d=0.0
           vtmp1 = 0.0
@@ -848,12 +816,25 @@
 
           ! GHB, 210713: check for top/bot bc on 1st RK step:
           !Wall BCs:
-          if ( z3d .gt. maxz ) then
-             z3d = maxz - (z3d - maxz)
-          elseif ( z3d .lt. 0.0 ) then
-             z3d = 1.0e-6  !Just temporary 
-             pdata(np,pract) = -1.0  !Signal this as no longer alive
+          top = maxz-1.0e-4
+          bot = 1.0e-4
+          if ( z3d .gt. top ) then
+             z3d = top - (z3d - top)
+             pdata(np,prvpz) = -pdata(np,prvpz)
+          elseif ( z3d .lt. bot ) then
+             !z3d = 1.0e-6  !Just temporary 
+             !pdata(np,pract) = -1.0  !Signal this as no longer alive
+             z3d = bot + (bot-z3d)
+             pdata(np,prvpz) = -pdata(np,prvpz)
           endif
+
+          !Wall BCs:
+          !if ( z3d .gt. maxz ) then
+          !   z3d = maxz - (z3d - maxz)
+          !elseif ( z3d .lt. 0.0 ) then
+          !   z3d = 1.0e-6  !Just temporary 
+          !   pdata(np,pract) = -1.0  !Signal this as no longer alive
+          !endif
 
           k1vp3 = dt*vrhs3
           vtmp3 = pdata(np,prvpz) + k1vp3
@@ -864,26 +845,6 @@
 
         k1rp = dt*rprhs
         rptmp = pdata(np,prrp) + k1rp
-
-        if(np==TROUBLE) then 
-          print *,'dd: qstar: ',qstar
-          print *,'dd: cp: ',cp
-          print *,'dd: cpl: ',cpl
-          print *,'dd: Nup: ',Nup
-          print *,'dd: pr_num: ',pr_num
-          print *,'dd: sc_num: ',sc_num
-          !print *,'qval: ',qstar
-          print *,'dd: rhop: ',rhop
-          print *,'dd: rhow: ',rhow
-          print *,'dd: taup: ',taup
-          !print *,'tval: ',tval
-          print *,'dd: tptmp: ',tptmp
-          print *,'dd: lhv: ',lhv
-          print *,'dd: rptmp: ',rptmp
-          print *,'dd: rprhs: ',rprhs
-          print *,'dd: tprhs: ',tprhs
-        endif
-
 
       ELSE
 
@@ -957,22 +918,30 @@
           pdata(np,prvpz) = pdata(np,prvpz) + 0.5*(k1vp3+dt*vrhs3)
 
           !Wall BCs:
-          if ( z3d .gt. maxz ) then
-             !Elastic collisions
-             z3d = maxz - (z3d - maxz)
+          top = maxz-1.0e-4
+          bot = 1.0e-4
+          if ( z3d .gt. top ) then
+             z3d = top - (z3d - top)
              pdata(np,prvpz) = -pdata(np,prvpz)
-          elseif ( z3d .lt. 0.0 ) then
-             !Elastic collisions:
-             ! z3d = -z3d
-             ! pdata(np,prvpz) = -pdata(np,prvpz)
-             !Remove it
-             z3d = 1.0e-6  !Temporary
-             pdata(np,pract) = -1.0  !Signal this as no longer alive
+          elseif ( z3d .lt. bot ) then
+             !z3d = 1.0e-6  !Just temporary 
+             !pdata(np,pract) = -1.0  !Signal this as no longer alive
+             z3d = bot + (bot-z3d)
+             pdata(np,prvpz) = -pdata(np,prvpz)
           endif
-        endif
-        if(np==TROUBLE) then 
-          print *,'dd: k1tp: ',k1tp
-          print *,'dd: tprhs: ',tprhs
+          !Wall BCs:
+          !if ( z3d .gt. maxz ) then
+          !   !Elastic collisions
+          !   z3d = maxz - (z3d - maxz)
+          !   pdata(np,prvpz) = -pdata(np,prvpz)
+          !elseif ( z3d .lt. 0.0 ) then
+          !   !Elastic collisions:
+          !   ! z3d = -z3d
+          !   ! pdata(np,prvpz) = -pdata(np,prvpz)
+          !   !Remove it
+          !   z3d = 1.0e-6  !Temporary
+          !   pdata(np,pract) = -1.0  !Signal this as no longer alive
+          !endif
         endif
         pdata(np,prtp) = pdata(np,prtp) + 0.5*(k1tp+dt*tprhs)
         pdata(np,prrp) = pdata(np,prrp) + 0.5*(k1rp+dt*rprhs)
@@ -1016,9 +985,10 @@
         pdata_locind(np,3) = undefined_index
       endif
 
+
       end subroutine rk2_integration
 
-      subroutine BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
+      subroutine BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
       use input
       use constants
       use bc_module
@@ -1050,7 +1020,7 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(in), dimension(ib:ie,jb:je) :: znt
-      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval,tval
       real, intent(inout), dimension(nparcels,npvals) :: pdata
       integer, intent(inout), dimension(nparcels,3) :: pdata_locind
       real, intent(out) :: Nup,rhop0,taup0,rp0
@@ -1069,8 +1039,9 @@
       real :: rprhs,rptmp,qstar,einf,estar
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
-      real :: qval,tval,prsval
+      real :: qval,prsval
       real :: sig1,sigdot
+      real :: top,bot
       integer :: i,j,k
 
       !Unique to BE_integration:
@@ -1087,9 +1058,6 @@
        !vval = 0.0
        !wval = 0.0
 
-      if(np==TROUBLE) then 
-        print *,'before eslf: tval: ',tval 
-      endif
       estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
 
 
@@ -1142,10 +1110,11 @@
 
       dt_nondim = dt/taup_scale
       
+      guess = 0.0
 
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
-      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
       if (mflag.eq.0) then
          rt_start(1) = guess/pdata(np,prrp)
@@ -1156,12 +1125,14 @@
       end if
 
 
-      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+
 
       if (flag==1) then
          num100 = num100+1
 
-         call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+
+         call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
       end if
 
@@ -1185,11 +1156,16 @@
       !Finally, take care of particle BCs
 
       !Wall BCs:
-      if ( z3d .gt. maxz ) then
-         z3d = maxz - (z3d - maxz)
-      elseif ( z3d .lt. 0.0 ) then
-         z3d = 1.0e-6  !Just temporary 
-         pdata(np,pract) = -1.0  !Signal this as no longer alive
+      top = maxz-1.0e-4
+      bot = 1.0e-4
+      if ( z3d .gt. top ) then
+         z3d = top - (z3d - top)
+         pdata(np,prvpz) = -pdata(np,prvpz)
+      elseif ( z3d .lt. bot ) then
+         !z3d = 1.0e-6  !Just temporary 
+         !pdata(np,pract) = -1.0  !Signal this as no longer alive
+         z3d = bot + (bot-z3d)
+         pdata(np,prvpz) = -pdata(np,prvpz)
       endif
 
       ! New for cm1r17:  if parcel exits domain,
@@ -1224,7 +1200,6 @@
         pdata(np,prsig)=sig3d
         pdata_locind(np,3) = undefined_index
       endif
-
 
 
       end subroutine BE_integration
@@ -1596,19 +1571,6 @@
       !        + ta(i  ,j+1,k+1)*w6 &
       !        + ta(i+1,j+1,k  )*w7 &
       !        + ta(i+1,j+1,k+1)*w8
-      if(np==TROUBLE) then 
-        print *,'point #2: i,j,k: ',i,j,k
-        print *,'point #2: ni,nj,nk: ',ni,nj,nk
-        print *,'point #2: ib,jb,kb: ',ib,jb,kb
-        print *,'point #2: ie,je,ke: ',ie,je,ke
-        print *,'point #2: nqv: ',nqv
-        print *,'point #2: rx,ry,rz: ',rx,ry,rz
-        print *,'point #2: after tval: ',tval
-        print *,'point #2: after qval: ',tval
-      endif
-      !if(np==100) then 
-      !  print *,'parcel: before rhoval: ',i,j,k
-      !endif
       rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
       ! rhoval = rho(i  ,j  ,k  )*w1 &
       !        + rho(i+1,j  ,k  )*w2 &
@@ -1618,9 +1580,6 @@
       !        + rho(i  ,j+1,k+1)*w6 &
       !        + rho(i+1,j+1,k  )*w7 &
       !        + rho(i+1,j+1,k+1)*w8
-      !if(np==100) then 
-      !  print *,'parcel: before prsval: ',i,j,k
-      !endif
       prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
       ! prsval = prs(i  ,j  ,k  )*w1 &
       !        + prs(i+1,j  ,k  )*w2 &
@@ -1851,7 +1810,7 @@
 
       end subroutine find_vertical_location_index
 
-      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
       use constants
       use cm1libs , only : eslf
       implicit none
@@ -1859,41 +1818,47 @@
       real, intent(out) :: guess
       integer, intent(out) :: mflag
       real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
-      real :: a, c, esa, Q, R, M, val, theta, S, T
+      integer, intent(in) :: np
+      real :: a, c, esa, Q, R, M, theta, S, T, rhval
 
       mflag = 0
       esa = eslf(prsval,tval)  !Saturation vapor pressure at droplet temperature
 
-      a = -(2*mw*surften)/(ru*rhow*tval)/LOG((ru*tval*rhoval*qval)/(mw*esa))
-      c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG((ru*tval*rhoval*qval)/(mw*esa))
+      rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
-      Q = (a**2.0)/9.0
-      R = (2.0*a**3.0+27.0*c)/54.0
-      M = R**2.0-Q**3.0
-      val = (R**2.0)/(Q**3.0)
+      if (rhval .lt. 0.999) then
+         a = -(2*mw*surften)/(ru*rhow*tval)/LOG(rhval)
+         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval)
 
-      if (M<0) then
-        theta = acos(R/sqrt(Q**3.0))
-        guess = -(2*sqrt(Q)*cos((theta-pi*2.0)/3.0))-a/3.0
 
-        if (guess < 0) then
-        guess = -(2*sqrt(Q)*cos((theta+pi*2.0)/3.0))-a/3.0
-        end if
+         Q = (a**2.0)/9.0
+         R = (2.0*a**3.0+27.0*c)/54.0
+         M = R**2.0-Q**3.0
 
-      else
-        S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0/3.0)
-        T = Q/S
-        guess = S + T - a/3.0
+         if (M<0) then
+           theta = acos(R/sqrt(Q**3.0))
+           guess = -(2*sqrt(Q)*cos((theta-pi*2.0)/3.0))-a/3.0
 
-        if (guess < 0) then
-                guess = radius
-                mflag = 1
-        end if
+           if (guess < 0) then
+           guess = -(2*sqrt(Q)*cos((theta+pi*2.0)/3.0))-a/3.0
+           end if
+
+         else
+           S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0/3.0)
+           T = Q/S
+           guess = S + T - a/3.0
+
+         end if
+
+      else 
+
+        guess = radius
+        mflag = 1
       end if
 
       end subroutine rad_solver2
 
-      subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         use ieee_arithmetic
 
         implicit none
@@ -1902,6 +1867,7 @@
         real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
         real, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
+        integer, intent(in) :: np
 
         real :: error,fv1(2),fv2(2),v1(2),rel
         real :: diff, temp1(2), temp2(2), relax, coeff, correct(2)
@@ -1920,8 +1886,8 @@
 
                 iterations = iterations + 1
 
-                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
-                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
                 fancy = matmul(transpose(J),J)
 
@@ -1932,9 +1898,9 @@
                 correct = matmul(finalJ,fv1)
                 rt_zeros = v1 - correct
 
-                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
 
                 diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
@@ -1951,7 +1917,7 @@
                         coeff = 0.5
                         relax = relax * coeff
                         rt_zeros = v1-matmul(finalJ,fv1)*relax
-                        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
                         diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
 
                         if (counts>10) EXIT
@@ -1959,19 +1925,20 @@
 
                 v1 = rt_zeros
 
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         end do
       if (iterations == 100) flag = 1
       if (ieee_is_nan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
-      subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         implicit none
 
         real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
         real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
         real, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
+        integer, intent(in) :: np
 
         real :: error,fv1(2),fv2(2),v1(2),rel
         real :: diff,lambda,lup,ldown
@@ -1994,9 +1961,9 @@
         do while ((sqrt(dot_product(fv2, fv2)) > error) .AND. (iterations<1000))
 
         iterations = iterations + 1
-        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-        call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
         g = matmul(transpose(J),J)+lambda*I
         gradC = matmul(transpose(J),fv1)
@@ -2009,7 +1976,7 @@
         end if
 
         rt_zeros = v1 - correct
-        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         newC = 0.5*fv2*fv2
          
         if (sqrt(dot_product(newC,newC))<sqrt(dot_product(C,C))) then
@@ -2043,20 +2010,21 @@
         invC = (1./det)*invC
 
       end subroutine inverse_finder_2d
-      subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         implicit none
         integer :: n
 
         real, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
         real, intent(out), dimension(1:2, 1:2) :: J
         real :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
+        integer, intent(in) :: np
 
         diff = 1E-5
 
         ynext(1) = rnext
         ynext(2) = tnext
 
-        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
         xper = ynext
         xper2 = ynext
@@ -2064,9 +2032,9 @@
         do n=1, 2
                 xper(n) = xper(n) + diff
                 xper2(n) = xper2(n) - diff
-                call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-                call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+                call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
                 J(:, n) = (fxper-rt_output)/diff
                 xper(n) = ynext(n)
@@ -2075,7 +2043,7 @@
 
 
       end subroutine jacob_approx_2d
-      subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
       use constants
       use input
       use cm1libs , only : eslf
@@ -2083,6 +2051,7 @@
 
       real, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
       real, intent(out) :: rT_output(2)
+      integer, intent(in) :: np
 
       real :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
       real :: Tnext,rnext
@@ -2092,6 +2061,7 @@
         rnext = tempr*radius
         Tnext = tempt*Tp
         dnext = rnext*2.0
+
 
         esa = eslf(prsval,tval)
         VolP = (4.0/3.0)*pi*rnext**3

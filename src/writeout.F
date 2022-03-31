@@ -2168,7 +2168,6 @@
       unit_output(n_out) = 'm'
       grid_output(n_out) = '2'     ! s=scalar pts (3d) ; u=u pts (3d) ; v=v pts (3d) ; w=w pts (3d) ; 2=2d scalar pts
 
-      !$acc data create(tmax,zibar)
       !--------
       !  Get zi from avg theta:
       !$acc parallel default(present) 
@@ -2243,7 +2242,6 @@
         enddo
       enddo
       enddo
-      !$acc end data
 
       call   write2d(dum2d,fnum,srec,nwrite,nloop,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,ncid,time_index,name_output(n_out))
 

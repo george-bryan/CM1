@@ -1,4 +1,4 @@
-#define _GPUDIRECT
+#undef _GPUDIRECT
 
 #ifdef _GPUDIRECT
 

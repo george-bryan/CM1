@@ -19,6 +19,7 @@
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
   integer, parameter :: location_offset = 3 
+
   
 
   CONTAINS
@@ -1884,7 +1885,7 @@
 
 
       real function tri_interp(iz,jz,kz,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,s)
-      !$acc routine vector
+      !$acc routine seq
       use input
       implicit none
 
@@ -1913,7 +1914,7 @@
 
 
     real function get2d(i,j,x3d,y3d,xh,xf,yh,yf,xs,ys,is,js,s)
-    !$acc routine vector
+    !$acc routine seq
     use input
     implicit none
 
@@ -2120,7 +2121,7 @@
       desc_prcl(prcl_out) = 'z position (above sea level)'
       unit_prcl(prcl_out) = 'm'
 
-      if (prcl_droplet) then
+      if (prcl_droplet.ge.1) then
          prcl_out = prcl_out+1
          name_prcl(prcl_out) = 'vpx'
          desc_prcl(prcl_out) = 'u velocity of droplet'

@@ -348,9 +348,12 @@
 
       logical :: get_time_avg,dopf
 
+      double precision, dimension(nk) :: dumk3,dumk4
+
 #ifdef MPI
       integer :: reqp1,reqp2
 #endif
+       !$acc declare create(dumk3,dumk4)
        !$acc declare &
        !$acc present(xh,rxh,arh1,arh2,uh,ruh,arf1,arf2) &
        !$acc present(xf,yh,vh,rvh,uf,vf,mf) &
@@ -1781,8 +1784,8 @@
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
-            dumk1(k) = tmp1
-            dumk2(k) = tmp2
+            dumk3(k) = tmp1
+            dumk4(k) = tmp2
           enddo
         ELSEIF( axisymm.eq.1 )THEN
 #ifndef _B4B06R
@@ -1791,7 +1794,7 @@
           do k=1,nk
             tmp1=0;
             tmp2=0;
-            !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2
+            !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
 #ifndef _B4B06R
             !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
 #endif
@@ -1801,12 +1804,12 @@
               tmp2 = tmp2 + (pi0(i,j,k)+pp3d(i,j,k))
             enddo
             enddo
-            dumk1(k) = tmp1
-            dumk2(k) = tmp2
+            dumk3(k) = tmp1
+            dumk4(k) = tmp2
           enddo
         ENDIF
 #ifdef _B4B06R
-        !$acc update device(dumk1,dumk2)
+        !$acc update device(dumk3,dumk4)
 #else
         !$acc end parallel
 #endif
@@ -1814,9 +1817,9 @@
 
         !print *,'solve2: point #17'
 #ifdef MPI
-        !$acc update host(dumk1,dumk2)
-        call MPI_IALLREDUCE(mpi_in_place,dumk1,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
-        call MPI_IALLREDUCE(mpi_in_place,dumk2,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
+        !$acc update host(dumk3,dumk4)
+        call MPI_IALLREDUCE(mpi_in_place,dumk3,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
+        call MPI_IALLREDUCE(mpi_in_place,dumk4,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
 #endif
         !print *,'solve2: point #18'
 
@@ -2143,10 +2146,10 @@
 #ifdef MPI
         call mpi_wait(reqp1,mpi_status_ignore,ierr)
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
-        !$acc update device(dumk1,dumk2)
+        !$acc update device(dumk3,dumk4)
 #endif
 #ifdef _B4B05RF
-        !$acc update host(dumk1,dumk2)
+        !$acc update host(dumk3,dumk4)
 #else
         !$acc parallel reduction(+:temq1,temq2)
 #endif
@@ -2157,8 +2160,8 @@
         !$acc loop vector reduction(+:temq1,temq2)
 #endif 
         do k=1,nk
-          temq1 = temq1 + dumk1(k)
-          temq2 = temq2 + dumk2(k)
+          temq1 = temq1 + dumk3(k)
+          temq2 = temq2 + dumk4(k)
         enddo
 
         mass2 = temq1
@@ -2272,6 +2275,7 @@
 #ifdef MPI
       ! finish comms for cflquick:
       call mpi_wait(reqc,mpi_status_ignore,ierr)
+      if(myid.eq.0) print *,'solve2: cflmax is: ',cflmax
       if(cflmax.ge.1.50) stopit=.true.
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
 #endif

@@ -227,19 +227,17 @@
     real, dimension(ib:ie,jb:je) :: tmpqsfc,govthv,thvsfc,thv1
     double precision :: tmasst,clwt,clit,plwt,plit,tmpw,tmpi
 
-    !$acc data &
-    !$acc   create(wstar,fbmin,zfbmin) &
-    !$acc   create(ravg,savg,tavg,uub,vvb,wwb,sfr,sfs,sfd,tmass,clw,cli,plw,pli) &
-    !$acc   create(wavg,prsavg,piavg,wvar,thvavg,rhoavg,rfavg, &
-    !$acc     ufr,ufs,ufd,vfr,vfs,vfd,ptfr,ptfs, &
-    !$acc     ptfd,qvfr,qvfs,qvfd,temavg, &
-    !$acc     qvavg,qlavg,qtavg,thlavg,wsp,wspa,stke,rtke,savg2d,qcrit, &
-    !$acc     u_hturb,u_vturb,u_hadv,u_vadv,u_pgrad,u_cor,u_hidiff,u_vidiff,u_rdamp, &
-    !$acc     v_hturb,v_vturb,v_hadv,v_vadv,v_pgrad,v_cor,v_hidiff,v_vidiff,v_rdamp, &
-    !$acc     w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,w_buoy,w_hidiff,w_vidiff,w_rdamp, &
-    !$acc     qcfrac,qrfrac,qlfrac,qifrac,qtfrac,qcb,qrb,qlb,ncb,nrb,nlb, &
-    !$acc     qct,qrt,qlt,nct,nrt,nlt,ubar)
-
+    !$acc data create (ravg,savg,tavg,uub,vvb,wwb,sfr,sfs,sfd,   &
+    !$acc              tmass,clw,cli,plw,pli,wavg,prsavg,piavg,  &
+    !$acc              wvar,thvavg,rhoavg,rfavg,ufr,ufs,ufd,vfr, &
+    !$acc              vfs,vfd,ptfr,ptfs,ptfd,qvfr,qvfs,qvfd,    &
+    !$acc              temavg,qvavg,qlavg,qtavg,thlavg,wsp,wspa, &
+    !$acc              stke,rtke,qcrit,u_hturb,u_vturb,u_hadv,   &
+    !$acc              u_vadv,u_pgrad,u_cor,u_hidiff,u_vidiff,   &
+    !$acc              u_rdamp,v_hturb,v_vturb,v_hadv,v_vadv,    &
+    !$acc              v_pgrad,v_cor,v_hidiff,v_vidiff,v_rdamp,  &
+    !$acc              w_hturb,w_vturb,w_hadv,w_vadv,w_pgrad,    &
+    !$acc              w_buoy,w_hidiff,w_vidiff,w_rdamp)
 
     if( myid.eq.0 ) print *
     if( myid.eq.0 ) print *,' ..... begin domaindiag code ..... '
@@ -268,9 +266,6 @@
       stke(k)     = 0.0
       rtke(k)     = 0.0
       wvar(k)     = 0.0
-      sfr(k)      = 0.0
-      sfs(k)      = 0.0
-      sfd(k)      = 0.0
       u_hadv(k)   = 0.0
       v_hadv(k)   = 0.0
       w_hadv(k)   = 0.0
@@ -288,6 +283,9 @@
       ptfr(k) = 0.0
       ptfs(k) = 0.0
       ptfd(k) = 0.0
+      sfr(k)      = 0.0
+      sfs(k)      = 0.0
+      sfd(k)      = 0.0
     enddo
 
     ! by default, assume 3d and scalar levels:
@@ -615,7 +613,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( ustt  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -627,7 +624,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( ut  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -639,7 +635,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( vt  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
@@ -651,7 +646,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d( st  ,savg2d)
-      ustbar = savg2d
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
     ENDIF
@@ -1155,7 +1149,6 @@
         do i=1,ni
           zi = 0.0
           tmax = 0.0
-          !!$acc loop seq
           do k=nk,2,-1
             dtdz = (thv(i,j,k)-thv(i,j,k-1))*rdz*mf(i,j,k)
             if( dtdz .ge. tmax )then
@@ -1168,10 +1161,9 @@
           zimin = min( zimin , zi )
         enddo
         enddo
-        print *,'zimin: ',zimin
-        print *,'zimax: ',zimax
+!!!        print *,'zimin: ',zimin
+!!!        print *,'zimax: ',zimax
         !$acc end parallel
-        !!$acc update host(zimin)
 
 #ifdef MPI
       call MPI_ALLREDUCE(mpi_in_place,zimin,1,MPI_REAL,MPI_MIN,MPI_COMM_WORLD,ierr)
@@ -1327,7 +1319,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d(prate(ib,jb),savg2d)
-      !$acc update host(savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       if( myid.eq.0 ) print *,'  Metric: preciptation rate (mm/day) = ',86400.0*savg2d
 
@@ -1473,7 +1464,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       call getavg2d(dum1(ib,jb,3),savg2d)
-      !$acc update host(savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       lwp = savg2d
       if( myid.eq.0 ) print *,'  Metric: LWP (g/m2) = ',1000.0*lwp
@@ -1689,13 +1679,11 @@
       !$acc end parallel
 
 #ifdef MPI
-      !!$acc update host(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qifrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qtfrac,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !!$acc update device(qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
 #endif
 
       temd = 1.0d0/dble(nx*ny)
@@ -1731,7 +1719,6 @@
       varlvls(nvar) = 0
       vargrid(nvar) = '2'
       savg2d = qlfrac
-      !$acc update host(qlfrac)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       if( myid.eq.0 ) print *,'  Metric: cloud fraction (%) = ',100.0*qlfrac
 
@@ -1782,20 +1769,15 @@
         endif
       enddo
       enddo
-
-!$acc end parallel
+      !$acc end parallel
 
 #ifdef MPI
-      !!$acc host_data use_device(qcb,qrb,qlb,ncb,nrb,nlb)
-      !!$acc update host(qcb,qrb,qlb,ncb,nrb,nlb)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qcb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlb,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,ncb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlb,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !!$acc update device(qcb,qrb,qlb,ncb,nrb,nlb)
-      !!$acc end host_data
 #endif
 
       qcb = qcb/dble(max(1,ncb))
@@ -1958,19 +1940,14 @@
       enddo
       enddo
       !$acc end parallel
-      !stop 'after calculation of qct,nct, etc...'
 
 #ifdef MPI
-      !!$acc host_data use_device(qct,qrt,qlt,nct,nrt,nlt)
-      !!$acc update host(qct,qrt,qlt,nct,nrt,nlt)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qrt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,qlt,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nct,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nrt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,nlt,1,MPI_INTEGER         ,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !!$acc update device(qct,qrt,qlt,nct,nrt,nlt)
-      !!$acc end host_data
 #endif
       qct = qct/dble(max(1,nct))
       qrt = qrt/dble(max(1,nrt))
@@ -3203,10 +3180,8 @@
 #if 1
         !$acc loop seq
         DO n=nql1,nql2
-          !$acc loop gang
           DO k=1,nk
             tmpw=0.0d0
-            !$acc loop vector collapse(2) reduction(+:tmpw)
             do j=1,nj
             do i=1,ni
               tmpw = tmpw+rho(i,j,k)*q3d(i,j,k,n)
@@ -3221,10 +3196,8 @@
         ENDDO
         !$acc loop seq
         DO n=nqs1,nqs2
-          !$acc loop gang
           DO k=1,nk
             tmpi=0.0d0
-            !$acc loop vector collapse(2) reduction(+:tmpi)
             do j=1,nj
             do i=1,ni
               tmpi = tmpi+rho(i,j,k)*q3d(i,j,k,n)
@@ -9825,7 +9798,6 @@
         do k=2,nk
           savg2d = max( savg2d , dble(wvar(k)) )
         enddo
-        !$acc update host(savg2d)
 
         call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
         if( myid.eq.0 ) print *,'  Metric: max w variance (m2/s2) = ',savg2d
@@ -10823,11 +10795,7 @@
 #endif
 
 #ifdef MPI
-#ifndef _B4B28R
-    !$acc update host(savg2d)
-#endif
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg2d,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-    !$acc update device(savg2d)
 #endif
 
     savg2d = savg2d/dble(nx*ny)
