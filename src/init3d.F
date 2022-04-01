@@ -434,7 +434,7 @@
             pdata(n,prtp) = 302.0
 
             !Droplet multiplicity
-            pdata(n,prmult) = 1.0e10
+            pdata(n,prmult) = 1.0e6
    
             !Is droplet alive?
             pdata(n,pract) = 1.0
