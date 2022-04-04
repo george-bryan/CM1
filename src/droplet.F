@@ -36,7 +36,7 @@
       use comm_module
       use misclibs
       use parcel_module
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
 #ifdef MPI
       use mpi
 #endif
@@ -84,12 +84,13 @@
       integer :: n,np,i,j,k,iflag,jflag,kflag
       integer :: ix,iy,iz
       integer :: iflag_s,jflag_s,kflag_s
+      integer :: num100,num1000
       real :: x3d,y3d,z3d
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
       real :: sig3d,th_tmp,rand
       real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt
-      real :: Nup,rhop0,taup0,rp0,salinity,part_grav1,part_grav2,part_grav3,rhoval
+      real :: Nup,rhop0,taup0,rp0,salinity,part_grav1,part_grav2,part_grav3,rhoval,tval
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
 
@@ -226,7 +227,6 @@
 
   !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
   !stop 'droplet_driver: after first compare'
-  !DHR NEED TO CHECK IF THIS IS APPROPRIATE!
   ! GHB 210714:
     call prepcorners3_GPU( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
@@ -249,7 +249,11 @@
     dt2 = dt/2.0
     part_grav1 = 0.0
     part_grav2 = 0.0
-    part_grav3 = -0.84
+    !part_grav3 = -0.84
+    part_grav3 = 0.0
+
+    num100 = 0
+    num1000 = 0
 
 #ifdef _B4B01F
     !$acc update &
@@ -357,18 +361,21 @@
       drpdt    = pdata(np,prrp)
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
-      idropmethod = 0 !RK2 for droplet time integration
-      !idropmethod = 1 !Implicit backward Euler for droplet time integration
+
+      !idropmethod = 0 !RK2 for droplet time integration
+      idropmethod = 1 !Implicit backward Euler for droplet time integration
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
-      call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+      call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
 
       ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
 
-      call BE_integration
+      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
+
 
       ENDIF dropmethod
+
 
       ENDIF dropalive1
       
@@ -382,109 +389,104 @@
 !  temp, and size
 !-----------------------------------------------------
 
-      ! GHB, 210714:
-      ! get i,j,k for final parcel location:
+!      ! GHB, 210714:
+!      ! get i,j,k for final parcel location:
+!
+!        iflag = undefined_index
+!        jflag = undefined_index
+!        IF(nx.eq.1)THEN
+!          iflag = 1
+!        ELSE
+!          ! cm1r19:
+!          call find_horizontal_location_index (pdata_locind(np,1), pdata(np,prx), ib, ie+1, xf, ni+2, iflag)
+!        ENDIF
+!        IF(axisymm.eq.1.or.ny.eq.1)THEN
+!          jflag = 1
+!        ELSE
+!          ! cm1r19:
+!          call find_horizontal_location_index (pdata_locind(np,2), pdata(np,pry), jb, je+1, yf, nj+2, jflag)
+!          if(mod(np,PITER)==0) then
+!             print *,'after dowhile loop: ',jflag
+!          endif
+!          i=iflag
+!          j=jflag
+!        ENDIF
+!
+!        !HERE print *,'droplet_driver: point #3'
+!#if 0
+!        IF(debug)THEN
+!        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
+!          print *,'  myid,i,j = ',myid,i,j
+!          print *,'  x,x1     = ',x3d,pdata(np,prx)
+!          print *,'  y,y1     = ',y3d,pdata(np,pry)
+!          do i=0,ni+1
+!            print *,i,abs(xh(i)-pdata(np,prx)),0.5*dx*ruh(i)
+!          enddo
+!          do j=0,nj+1
+!            print *,j,abs(yh(j)-pdata(np,pry)),0.5*dy*rvh(j)
+!          enddo
+!          print *,'  16665 '
+!          call stopcm1
+!        endif
+!        ENDIF
+!#endif
+!
+!
+!        !print *,'droplet_driver: point #4'
+!        kflag = 1
+!! JS - jflag could be negative somehow, which will break
+!!        the find_vertical_location_index subroutine and 
+!!        lead to invalid access to zf(iflag,jflag,kflag);
+!!        revert to the old implementation
+!        if( .not. terrain_flag )then
+!          do while( pdata(np,prz).gt.zf(iflag,jflag,kflag+1) )
+!            kflag = kflag+1
+!          enddo
+!        else
+!          do while( pdata(np,prsig).gt.sigmaf(kflag+1) )
+!            kflag = kflag+1
+!          enddo
+!        endif
+!        pdata_locind(np,3) = kflag
+!#if 0
+!        IF(debug)THEN
+!        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
+!          print *,myid,nrkp
+!          print *,iflag,jflag,kflag
+!          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
+!          print *,x3d,y3d,z3d
+!          print *,uval,vval,wval
+!          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
+!          print *,'  16667 '
+!          call stopcm1
+!        endif
+!        ENDIF
+!#endif
 
-        iflag = undefined_index
-        jflag = undefined_index
-        IF(nx.eq.1)THEN
-          iflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+2, iflag)
-        ENDIF
-        IF(axisymm.eq.1.or.ny.eq.1)THEN
-          jflag = 1
-        ELSE
-          ! cm1r19:
-          call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+2, jflag)
-          if(mod(np,PITER)==0) then
-             print *,'after dowhile loop: ',jflag
-          endif
-          i=iflag
-          j=jflag
-        ENDIF
-
-        !HERE print *,'droplet_driver: point #3'
-#if 0
-        IF(debug)THEN
-        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
-          print *,'  myid,i,j = ',myid,i,j
-          print *,'  x,x1     = ',x3d,pdata(np,prx)
-          print *,'  y,y1     = ',y3d,pdata(np,pry)
-          do i=0,ni+1
-            print *,i,abs(xh(i)-x3d),0.5*dx*ruh(i)
-          enddo
-          do j=0,nj+1
-            print *,j,abs(yh(j)-y3d),0.5*dy*rvh(j)
-          enddo
-          print *,'  16665 '
-          call stopcm1
-        endif
-        ENDIF
-#endif
-
-        !print *,'droplet_driver: point #4'
-        kflag = 1
-! JS - jflag could be negative somehow, which will break
-!        the find_vertical_location_index subroutine and 
-!        lead to invalid access to zf(iflag,jflag,kflag);
-!        revert to the old implementation
-        if( .not. terrain_flag )then
-          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
-            kflag = kflag+1
-          enddo
-        else
-          do while( sig3d.gt.sigmaf(kflag+1) )
-            kflag = kflag+1
-          enddo
-        endif
-        pdata_locind(np,3) = kflag
-#if 0
-        IF(debug)THEN
-        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
-          print *,myid,nrkp
-          print *,iflag,jflag,kflag
-          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
-          print *,x3d,y3d,z3d
-          print *,uval,vval,wval
-          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
-          print *,'  16667 '
-          call stopcm1
-        endif
-        ENDIF
-#endif
-
-        !print *,'droplet_driver: point #5'
       !--------
       !PORTME
-      !Recall that the "old" value is stored here
+      !Recall that the "old" values are stored in the "d/dt" variables
       dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
       dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
       dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
 
       drpdt = (pdata(np,prrp)-drpdt)/dt
+
       !Only the sensible component of energy 
       !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
-      dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(dtpdt-pdata(np,prtp))
-      if(np==TROUBLE) then  
-        print *,'dd: rhow: ',rhow
-        print *,'dd: before dmvdt: ',dmvdt
-        print *,'dd: pdata(np,prrp): ',pdata(np,prrp)
-      endif
+
+      !dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(dtpdt-pdata(np,prtp))
+
+      dtpdt = (pdata(np,prtp)-dtpdt)/dt
+
       dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt)/dt
 
-      !At this point, iflag,jflag,kflag is the node beneath droplet
 
       !Volume where the droplet finds itself
       dV = (xh(iflag+1)-xh(iflag))*   &
            (yh(jflag+1)-yh(jflag))*   &
            (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-       ! print *,'droplet_driver: point #6'
 
-      if(mod(np,PITER)==0) then 
-          print *,'{i,j,k}flag: ',iflag,jflag,kflag 
-      endif
       !Loop over all nodes surrounding droplet
       !!$acc loop seq
       do i=0,1
@@ -502,9 +504,9 @@
         yv = yh(iy)
         zv = zh(iflag,jflag,iz)
 
-        wtx = 1.0 - abs(x3d-xv)/(xh(iflag+1)-xh(iflag))
-        wty = 1.0 - abs(y3d-yv)/(yh(jflag+1)-yh(jflag))
-        wtz = 1.0 - abs(z3d-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+        wtx = 1.0 - abs(pdata(np,prx)-xv)/(xh(iflag+1)-xh(iflag))
+        wty = 1.0 - abs(pdata(np,pry)-yv)/(yh(jflag+1)-yh(jflag))
+        wtz = 1.0 - abs(pdata(np,prz)-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
         wtt = wtx*wty*wtz
 
         !!$acc atomic write
@@ -514,38 +516,16 @@
         !Ignoring the enthalpy contained in the vapor -- this has been shown to
         !be negligible
         !!$acc atomic write
-        !thten(ix,iy,iz) = thten(ix,iy,iz) - &
-        !    (rhow/rhoval)*(cpl/cp)*dtpdt/dV*wtt*pdata(np,prmult)
         thten(ix,iy,iz) = thten(ix,iy,iz) - &
-            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV
-
-#if 0
-        if((np==TROUBLE)) then 
-          print *,'dd2: {ix,iy,iz}: ',ix,iy,iz
-          print *,'dd2: 2-way ',ix,iy,iz,rhow,rhoval,dtpdt,dv,wtt,pdata(np,prmult)
-          print *,'dd2: 2-way wtx: ',ix,iy,iz,wtx
-          print *,'dd2: 2-way wty: ',ix,iy,iz,wty
-          print *,'dd2: 2-way wtz: ',ix,iy,iz,wtz
-          print *,'dd2: thten: ',np, thten(ix,iy,iz)
-        endif
-        if((np==TROUBLE) .and. (i==0) .and. (j==0) .and. (k==0)) then 
-            print *,'dd: wtt: ',wtt
-            print *,'dd: dmvdt: ',dmvdt
-        endif
-#endif
-!        if(np.eq.1) print *,'  thten,qvten    = ',thten(ix,iy,iz),qten(ix,iy,iz)
-!        if(np.eq.1) print *,'    dmvdt,rhoval = ',dmvdt,rhoval
-!        if(np.eq.1) print *,'    dv,wtt       = ',dv,wtt
-!        if(np.eq.1) print *,'    rhow,cpl,cp  = ',rhow,cpl,cp
-!        if(np.eq.1) print *,'    dtpdt        = ',dtpdt
+            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
+            rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*wtt/dV*pdata(np,prmult)                   !Latent
+       
 
       enddo
       enddo
       enddo
-      !HERE print *,'after interpolation loops ',np
 
     ENDIF dropalive2
-    !HERE print *,'after dropalive2' 
 
 
 !-----------------------------------------------------
@@ -556,15 +536,15 @@
       !have fallen out the bottom:
       if (pdata(np,pract).lt.0.0) then
             !Replace with a new droplet at random location
-#if 0
+!#if 0
               !JMD-KLUDGE 
               call random_number(rand)
-              x3d = rand*maxx
+              pdata(np,prx) = rand*maxx
               call random_number(rand)
-              y3d = rand*maxy
+              pdata(np,pry) = rand*maxy
               call random_number(rand)
-              z3d = rand*maxz
-#endif
+              pdata(np,prz) = rand*maxz
+!#endif
               pdata(np,prvpx) = 0.0
               pdata(np,prvpy) = 0.0
               pdata(np,prvpz) = 0.0
@@ -583,37 +563,6 @@
               
       end if
 
-        ! New for cm1r17:  if parcel exits domain,
-        ! just assume periodic lateral boundary conditions
-        ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
-
-        if(x3d.lt.minx)then
-          x3d=x3d+(maxx-minx)
-          pdata_locind(np,1) = undefined_index
-        endif
-        if(x3d.gt.maxx)then
-          x3d=x3d-(maxx-minx)
-          pdata_locind(np,1) = undefined_index
-        endif
-
-        if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
-          y3d=y3d-(maxy-miny)
-          pdata_locind(np,2) = undefined_index
-        endif
-        if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
-          y3d=y3d+(maxy-miny)
-          pdata_locind(np,2) = undefined_index
-        endif
-
-        pdata(np,prx)=x3d
-        pdata(np,pry)=y3d
-        if( .not. terrain_flag )then
-          pdata(np,prz)=z3d
-          pdata_locind(np,3) = undefined_index
-        else
-          pdata(np,prsig)=sig3d
-          pdata_locind(np,3) = undefined_index
-        endif
 
 #ifdef MPI
 
@@ -662,7 +611,7 @@
         !JMD not clear why two MPI_ALLREDUCE are being performed here
         ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         ! call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
       !$acc update device(pdata)
       !$acc compare(pdata)
@@ -670,6 +619,7 @@
       if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
      
 #endif
+
 
 !----------------------------------------------------------------------
 !  get height ASL:
@@ -695,14 +645,14 @@
 
       end subroutine droplet_driver
 
-      subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+      subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
       use input
       use constants
       use bc_module
       use comm_module
       use misclibs
       use parcel_module
-      use cm1libs , only : rslf
+      use cm1libs , only : eslf
       implicit none
 
       integer, intent(inout) :: iflag,jflag,kflag
@@ -724,28 +674,31 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(in), dimension(ib:ie,jb:je) :: znt
-      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval,tval
       real, intent(inout), dimension(nparcels,npvals) :: pdata
       integer, intent(inout), dimension(nparcels,3) :: pdata_locind
 
       real, intent(out) :: Nup,rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
 
+      !Common with BE_integration
       real :: dt2
-      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
+      real :: uval,vval,wval
       real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
       real :: vtmp1,vtmp2,vtmp3
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
-      real :: rprhs,rptmp,qstar,einf,lhv,qinf
-      real :: taup,Rep,Shp,diff(3),diffnorm
+      real :: rprhs,rptmp,qstar,einf,lhv,estar
+      real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
-      real :: qval,tval,prsval
-      real :: rxu,ryv,rzw,rxs,rys,rzs
-      real :: zsp,z0,rznt,sigdot,var,sig1
-      integer :: nrkp
+      real :: qval,prsval
+      real :: sig1,sigdot
+      real :: top,bot
       integer :: i,j,k
+
+      !Unique to rk2_integration
+      integer :: nrkp
 
 
       dt2 = dt/2.0      
@@ -753,6 +706,536 @@
       !HERE print *,'before rkloop np: ',np
       !$acc loop seq
       rkloop:  DO nrkp = 1,2
+
+
+       call interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+
+       !qval = 0.008807098199749
+       !tval = 282.3
+       !uval = 0.0
+       !vval = 0.0
+       !wval = 0.0
+
+      if(np==TROUBLE) then 
+        print *,'before eslf: tval: ',tval 
+      endif
+      estar = eslf(prsval,tval)  !Saturation vapor pressure based on interpolated temp,pressure
+      lhv=lv1-lv2*tval
+
+
+!-----------------------------------------------------
+!  Update droplet position, velocity, etc.
+!-----------------------------------------------------
+      if(np==TROUBLE) then 
+        !print *,'before: pdata(np,prrp): ',pdata(np,prrp)
+        !print *,'before: pdata(np,prms): ',pdata(np,prms)
+        !print *,'before: pdata(np,prtp): ',pdata(np,prtp)
+        print *,'after eslf: tval: ',tval 
+        !print *,'prsval: ',prsval
+        !print *,'lv1: ',lv1
+        !print *,'lv2: ',lv2
+        !print *,'ru: ',ru
+        !print *,'ms: ',ms
+        !print *,'mw: ',mw
+        !print *,'ion: ',ion
+        !print *,'os: ',os
+        !print *,'surften: ',surften
+      endif
+
+
+      ! RK2 scheme:
+      IF(nrkp.eq.1)THEN
+
+        xrhs1 = pdata(np,prvpx)
+        xrhs2 = pdata(np,prvpy)
+        xrhs3 = pdata(np,prvpz)
+        volp = 4.0/3.0*pi*pdata(np,prrp)**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+
+        !Original, for calculating changes in momentum, mass, and energy
+        rhop0 = rhop
+        taup0 = taup
+        rp0 = pdata(np,prrp)
+        tp0 = pdata(np,prtp)
+        volp0 = 4.0/3.0*pi*rp0**3
+
+        diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
+                         (vval-pdata(np,prvpy))**2+ &
+                         (wval-pdata(np,prvpz))**2)
+
+
+        Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
+        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
+        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
+
+
+        qstar = estar*mw/ru/pdata(np,prtp)/rhoval*exp(                        &
+                     mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
+                    +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
+                    -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
+                        )
+
+        rprhs = Shp/9.0/sc_num*rhop/rhow*pdata(np,prrp)/taup*(qval-qstar)
+
+        tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
+                3.0*lhv/cpl/pdata(np,prrp)*rprhs
+
+        IF(nx.eq.1)THEN
+          x3d=0.0
+          vtmp1 = 0.0
+        ELSE
+          k1xp1 = dt*xrhs1
+          x3d=pdata(np,prx)+k1xp1
+
+          k1vp1 = dt*vrhs1
+          vtmp1 = pdata(np,prvpx) + k1vp1
+
+        ENDIF
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          y3d=0.0
+          vtmp2 = 0.0
+        ELSE
+          k1xp2 = dt*xrhs2
+          y3d=pdata(np,pry)+k1xp2
+
+          k1vp2 = dt*vrhs2
+          vtmp2 = pdata(np,prvpy) + k1vp2
+        ENDIF
+        if( terrain_flag )then
+          sig3d = pdata(np,prsig) + dt*sigdot
+          sig1 = sigdot
+        else
+        
+          k1xp3 = dt*xrhs3
+          z3d = pdata(np,prz)+k1xp3
+
+          ! GHB, 210713: check for top/bot bc on 1st RK step:
+          !Wall BCs:
+          top = maxz-1.0e-4
+          bot = 1.0e-4
+          if ( z3d .gt. top ) then
+             z3d = top - (z3d - top)
+             pdata(np,prvpz) = -pdata(np,prvpz)
+          elseif ( z3d .lt. bot ) then
+             !z3d = 1.0e-6  !Just temporary 
+             !pdata(np,pract) = -1.0  !Signal this as no longer alive
+             z3d = bot + (bot-z3d)
+             pdata(np,prvpz) = -pdata(np,prvpz)
+          endif
+
+          !Wall BCs:
+          !if ( z3d .gt. maxz ) then
+          !   z3d = maxz - (z3d - maxz)
+          !elseif ( z3d .lt. 0.0 ) then
+          !   z3d = 1.0e-6  !Just temporary 
+          !   pdata(np,pract) = -1.0  !Signal this as no longer alive
+          !endif
+
+          k1vp3 = dt*vrhs3
+          vtmp3 = pdata(np,prvpz) + k1vp3
+        endif
+
+        k1tp = dt*tprhs
+        tptmp = pdata(np,prtp) + k1tp
+
+        k1rp = dt*rprhs
+        rptmp = pdata(np,prrp) + k1rp
+
+      ELSE
+
+        xrhs1 = vtmp1
+        xrhs2 = vtmp2
+        xrhs3 = vtmp3
+
+        volp = 4.0/3.0*pi*rptmp**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*rptmp)**2/18.0/rhoval/viscosity
+
+        diffnorm = sqrt((uval-vtmp1)**2+ &
+                        (vval-vtmp2)**2+ &
+                        (wval-vtmp3)**2)
+
+        Rep = 2.0*rptmp*diffnorm/viscosity
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        vrhs1 = 1.0/taup*(uval - vtmp1) + part_grav1
+        vrhs2 = 1.0/taup*(vval - vtmp2) + part_grav2
+        vrhs3 = 1.0/taup*(wval - vtmp3) + part_grav3
+
+        qstar = estar*mw/ru/tptmp*exp(                             &
+                     mw*lhv/ru*(1.0/tval - 1.0/tptmp)                       &
+                    +2.0*ms*surften/(ru*rhow*rptmp*tptmp)                   &
+                    -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
+                        )
+
+        rprhs = Shp/9.0/sc_num*rhop/rhow*rptmp/taup*(qval-qstar)
+
+        tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-tptmp) + &
+                3.0*lhv/cpl/rptmp*rprhs
+
+
+        IF(nx.eq.1)THEN
+          x3d=0.0
+          pdata(np,prvpx) = 0.0
+        ELSE
+          !k2xp(1) = dt*xrhs(1)
+          x3d=pdata(np,prx)+0.5*(k1xp1+dt*xrhs1)
+
+          !k2vp(1) = dt*vrhs1
+          pdata(np,prvpx) = pdata(np,prvpx) + 0.5*(k1vp1+dt*vrhs1)
+
+        ENDIF
+        IF(axisymm.eq.1.or.ny.eq.1)THEN
+          y3d=0.0
+          pdata(np,prvpy) = 0.0
+        ELSE
+          !k2xp(2) = dt*xrhs(2)
+          y3d=pdata(np,pry)+0.5*(k1xp2+dt*xrhs2)
+
+          !k2vp(2) = dt*vrhs2
+          pdata(np,prvpy) = pdata(np,prvpy) + 0.5*(k1vp2+dt*vrhs2)
+        ENDIF
+
+        if( terrain_flag )then
+          sig3d = pdata(np,prsig) + dt2*(sig1+sigdot)
+          IF( sig3d.lt.0.0 )THEN
+            print *,'  parcel is below surface:  np,x3d,y3d,sig3d = ',np,x3d,y3d,sig3d
+            sig3d=1.0e-6
+          ENDIF
+          sig3d=min(sig3d,maxz)
+        else
+          !k2xp(3) = dt*xrhs(3)
+          !JMD-BUG z3d = pdata(np,prz)+0.5*(k1xp(3)+k1xp(3))
+          z3d = pdata(np,prz)+0.5*(k1xp3+dt*xrhs3)
+
+          !k2vp(3) = dt*vrhs3
+          pdata(np,prvpz) = pdata(np,prvpz) + 0.5*(k1vp3+dt*vrhs3)
+
+          !Wall BCs:
+          top = maxz-1.0e-4
+          bot = 1.0e-4
+          if ( z3d .gt. top ) then
+             z3d = top - (z3d - top)
+             pdata(np,prvpz) = -pdata(np,prvpz)
+          elseif ( z3d .lt. bot ) then
+             !z3d = 1.0e-6  !Just temporary 
+             !pdata(np,pract) = -1.0  !Signal this as no longer alive
+             z3d = bot + (bot-z3d)
+             pdata(np,prvpz) = -pdata(np,prvpz)
+          endif
+          !Wall BCs:
+          !if ( z3d .gt. maxz ) then
+          !   !Elastic collisions
+          !   z3d = maxz - (z3d - maxz)
+          !   pdata(np,prvpz) = -pdata(np,prvpz)
+          !elseif ( z3d .lt. 0.0 ) then
+          !   !Elastic collisions:
+          !   ! z3d = -z3d
+          !   ! pdata(np,prvpz) = -pdata(np,prvpz)
+          !   !Remove it
+          !   z3d = 1.0e-6  !Temporary
+          !   pdata(np,pract) = -1.0  !Signal this as no longer alive
+          !endif
+        endif
+        pdata(np,prtp) = pdata(np,prtp) + 0.5*(k1tp+dt*tprhs)
+        pdata(np,prrp) = pdata(np,prrp) + 0.5*(k1rp+dt*rprhs)
+
+      ENDIF
+
+      ENDDO  rkloop
+      !HERE print *,'after rkloop np: ',np
+
+      !Finally, account for lateral BCs
+
+      ! New for cm1r17:  if parcel exits domain,
+      ! just assume periodic lateral boundary conditions
+      ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
+
+      if(x3d.lt.minx)then
+        x3d=x3d+(maxx-minx)
+        pdata_locind(np,1) = undefined_index
+      endif
+      if(x3d.gt.maxx)then
+        x3d=x3d-(maxx-minx)
+        pdata_locind(np,1) = undefined_index
+      endif
+
+      if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
+        y3d=y3d-(maxy-miny)
+        pdata_locind(np,2) = undefined_index
+      endif
+      if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
+        y3d=y3d+(maxy-miny)
+        pdata_locind(np,2) = undefined_index
+      endif
+
+      pdata(np,prx)=x3d
+      pdata(np,pry)=y3d
+      if( .not. terrain_flag )then
+        pdata(np,prz)=z3d
+        pdata_locind(np,3) = undefined_index
+      else
+        pdata(np,prsig)=sig3d
+        pdata_locind(np,3) = undefined_index
+      endif
+
+
+      end subroutine rk2_integration
+
+      subroutine BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
+      use input
+      use constants
+      use bc_module
+      use comm_module
+      use misclibs
+      use parcel_module
+      use cm1libs , only : eslf
+      use ieee_arithmetic
+
+      implicit none
+
+      integer, intent(inout) :: iflag,jflag,kflag
+      integer, intent(inout) :: num100,num1000
+      integer, intent(in) :: np
+      logical, intent(in) :: debug
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
+      real, intent(in), dimension(ib:ie) :: xh,uh,ruh
+      real, intent(in), dimension(jb:je) :: yh,vh,rvh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(kb:ke) :: sigma
+      real, intent(in), dimension(kb:ke+1) :: sigmaf
+      real, intent(in), dimension(ib:ie,jb:je) :: zs
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
+      real, intent(in), dimension(ib:ie,jb:je) :: znt
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval,tval
+      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind
+      real, intent(out) :: Nup,rhop0,taup0,rp0
+      real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
+
+      integer :: nrkp
+
+      !Common with rk2_integration
+      real :: dt2
+      real :: uval,vval,wval
+      real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
+      real :: vtmp1,vtmp2,vtmp3
+      real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
+      real :: tprhs,tptmp
+      real :: k1tp,k2tp,k1rp,k2rp
+      real :: rprhs,rptmp,qstar,einf,estar
+      real :: taup,Rep,Shp,diffnorm
+      real :: rhop,volp,tp0,volp0
+      real :: qval,prsval
+      real :: sig1,sigdot
+      real :: top,bot
+      integer :: i,j,k
+
+      !Unique to BE_integration:
+      real :: taup_scale,dt_nondim
+      real :: guess,rt_zeros(2),rt_start(2)
+      integer :: mflag,flag
+
+
+       call interpolate_to_parcel(np,1,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+
+       !qval = 0.008807098199749
+       !tval = 282.3
+       !uval = 0.0
+       !vval = 0.0
+       !wval = 0.0
+
+      estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
+
+
+
+!-----------------------------------------------------
+!  Update droplet position, velocity, etc.
+!-----------------------------------------------------
+
+        xrhs1 = pdata(np,prvpx)
+        xrhs2 = pdata(np,prvpy)
+        xrhs3 = pdata(np,prvpz)
+        volp = 4.0/3.0*pi*pdata(np,prrp)**3
+        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+
+        !Original, for calculating changes in momentum, mass, and energy
+        rhop0 = rhop
+        taup0 = taup
+        rp0 = pdata(np,prrp)
+        tp0 = pdata(np,prtp)
+        volp0 = 4.0/3.0*pi*rp0**3
+
+
+        diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
+                         (vval-pdata(np,prvpy))**2+ &
+                         (wval-pdata(np,prvpz))**2)
+
+        Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
+        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
+        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
+
+      !Position and velocity are straightforward:
+
+      x3d = pdata(np,prx) + dt*pdata(np,prvpx)
+      y3d = pdata(np,pry) + dt*pdata(np,prvpy)
+      z3d = pdata(np,prz) + dt*pdata(np,prvpz)
+
+      pdata(np,prvpx) = (pdata(np,prvpx) + dt*uval/taup + dt*part_grav1)/(1 + dt/taup)
+      pdata(np,prvpy) = (pdata(np,prvpy) + dt*vval/taup + dt*part_grav2)/(1 + dt/taup)
+      pdata(np,prvpz) = (pdata(np,prvpz) + dt*wval/taup + dt*part_grav3)/(1 + dt/taup)
+
+      !Nonlinear solver for the radius and temperature:
+
+      !Nondimensionalize parameters before the solver using 1-micron water droplet as ref
+      taup_scale = rhow*(1.0e-6)**2/(18*rhoval*viscosity)
+
+      dt_nondim = dt/taup_scale
+      
+      guess = 0.0
+
+      !Gives initial guess into nonlinear solver
+      !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
+      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+
+      if (mflag.eq.0) then
+         rt_start(1) = guess/pdata(np,prrp)
+         rt_start(2) = tval/pdata(np,prtp)
+      else
+         rt_start(1) = 1.0
+         rt_start(2) = 1.0
+      end if
+
+
+      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+
+
+      if (flag==1) then
+         num100 = num100+1
+
+
+         call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+
+      end if
+
+      if (flag==1) num1000 = num1000+1
+
+      !In rare cases the nonlinear solvers fail to converge
+      if (ieee_is_nan(rt_zeros(1)) .OR.  ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) then
+
+         !If this happens keep radius unchanged and temp equal to surrounding
+         rt_zeros(1) = 1.0
+         rt_zeros(2) = tval/pdata(np,prtp)
+
+      end if
+
+      !Now redimsionalize
+      pdata(np,prrp) = rt_zeros(1)*pdata(np,prrp)
+      pdata(np,prtp) = rt_zeros(2)*pdata(np,prtp)
+
+
+
+      !Finally, take care of particle BCs
+
+      !Wall BCs:
+      top = maxz-1.0e-4
+      bot = 1.0e-4
+      if ( z3d .gt. top ) then
+         z3d = top - (z3d - top)
+         pdata(np,prvpz) = -pdata(np,prvpz)
+      elseif ( z3d .lt. bot ) then
+         !z3d = 1.0e-6  !Just temporary 
+         !pdata(np,pract) = -1.0  !Signal this as no longer alive
+         z3d = bot + (bot-z3d)
+         pdata(np,prvpz) = -pdata(np,prvpz)
+      endif
+
+      ! New for cm1r17:  if parcel exits domain,
+      ! just assume periodic lateral boundary conditions
+      ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
+
+      if(x3d.lt.minx)then
+        x3d=x3d+(maxx-minx)
+        pdata_locind(np,1) = undefined_index
+      endif
+      if(x3d.gt.maxx)then
+        x3d=x3d-(maxx-minx)
+        pdata_locind(np,1) = undefined_index
+      endif
+
+      if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
+        y3d=y3d-(maxy-miny)
+        pdata_locind(np,2) = undefined_index
+      endif
+      if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
+        y3d=y3d+(maxy-miny)
+        pdata_locind(np,2) = undefined_index
+      endif
+
+
+      pdata(np,prx)=x3d
+      pdata(np,pry)=y3d
+      if( .not. terrain_flag )then
+        pdata(np,prz)=z3d
+        pdata_locind(np,3) = undefined_index
+      else
+        pdata(np,prsig)=sig3d
+        pdata_locind(np,3) = undefined_index
+      endif
+
+
+      end subroutine BE_integration
+
+      subroutine interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+      use input
+      use constants
+      use parcel_module
+      use cm1libs , only : eslf
+      implicit none
+
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
+      real, intent(in), dimension(ib:ie) :: xh
+      real, intent(in), dimension(jb:je) :: yh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(ib:ie,jb:je) :: zs
+      real, intent(in), dimension(kb:ke) :: sigma
+      real, intent(in), dimension(kb:ke+1) :: sigmaf
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
+      real, intent(in), dimension(ib:ie,jb:je) :: znt
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind    ! x/y/z location index of each parcel
+
+      integer, intent(in) :: np,nrkp
+      integer, intent(inout) :: iflag,jflag,kflag
+      real, intent(inout) :: x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,sigdot
+      real :: rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
+      real :: rxu,ryv,rzw,rxs,rys,rzs
+      real :: zsp,rznt,z0,var
+      integer :: i,j,k
 
       IF( nrkp.eq.1 )THEN
         i=iflag
@@ -829,6 +1312,7 @@
           end if
 #endif
         endif
+
 
 !JMD-debug
 !----------------------------------------------------------------------
@@ -1087,19 +1571,6 @@
       !        + ta(i  ,j+1,k+1)*w6 &
       !        + ta(i+1,j+1,k  )*w7 &
       !        + ta(i+1,j+1,k+1)*w8
-      if(nrkp==1 .and. np==TROUBLE) then 
-        print *,'point #2: i,j,k: ',i,j,k
-        print *,'point #2: ni,nj,nk: ',ni,nj,nk
-        print *,'point #2: ib,jb,kb: ',ib,jb,kb
-        print *,'point #2: ie,je,ke: ',ie,je,ke
-        print *,'point #2: nqv: ',nqv
-        print *,'point #2: rx,ry,rz: ',rx,ry,rz
-        print *,'point #2: after tval: ',tval
-        print *,'point #2: after qval: ',tval
-      endif
-      !if(np==100) then 
-      !  print *,'parcel: before rhoval: ',i,j,k
-      !endif
       rhoval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,rho)
       ! rhoval = rho(i  ,j  ,k  )*w1 &
       !        + rho(i+1,j  ,k  )*w2 &
@@ -1109,9 +1580,6 @@
       !        + rho(i  ,j+1,k+1)*w6 &
       !        + rho(i+1,j+1,k  )*w7 &
       !        + rho(i+1,j+1,k+1)*w8
-      !if(np==100) then 
-      !  print *,'parcel: before prsval: ',i,j,k
-      !endif
       prsval = tri_interp(ni,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,prs)
       ! prsval = prs(i  ,j  ,k  )*w1 &
       !        + prs(i+1,j  ,k  )*w2 &
@@ -1171,328 +1639,8 @@
         endif
       ENDIF
 
-      if(np==TROUBLE) then 
-        print *,'before rslf: tval: ',tval 
-      endif
-      qinf = rslf(prsval,tval)
-      lhv=lv1-lv2*tval
 
-!-----------------------------------------------------
-!  Update droplet position, velocity, etc.
-!-----------------------------------------------------
-      if(np==TROUBLE) then 
-        !print *,'before: pdata(np,prrp): ',pdata(np,prrp)
-        !print *,'before: pdata(np,prms): ',pdata(np,prms)
-        !print *,'before: pdata(np,prtp): ',pdata(np,prtp)
-        print *,'after rslf: tval: ',tval 
-        !print *,'prsval: ',prsval
-        !print *,'lv1: ',lv1
-        !print *,'lv2: ',lv2
-        !print *,'ru: ',ru
-        !print *,'ms: ',ms
-        !print *,'mw: ',mw
-        !print *,'ion: ',ion
-        !print *,'os: ',os
-        !print *,'surften: ',surften
-      endif
-
-
-      ! RK2 scheme:
-      IF(nrkp.eq.1)THEN
-
-        xrhs1 = pdata(np,prvpx)
-        xrhs2 = pdata(np,prvpy)
-        xrhs3 = pdata(np,prvpz)
-        volp = 4.0/3.0*pi*pdata(np,prrp)**3
-        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
-        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
-
-!PREVIOUS
-
-        rhop0 = rhop
-        taup0 = taup
-        rp0 = pdata(np,prrp)
-        tp0 = pdata(np,prtp)
-        volp0 = 4.0/3.0*pi*rp0**3
-
-        volp = 4.0/3.0*pi*pdata(np,prrp)**3
-        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
-        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
-
-        diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
-                         (vval-pdata(np,prvpy))**2+ &
-                         (wval-pdata(np,prvpz))**2)
-
-        Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
-        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
-        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
-
-        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
-        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
-        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
-
-        ! einf = qinf*rhoval/mw*ru*tval
-
-        qstar = qinf*exp(                                                   &
-                     mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
-                    +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
-                    -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
-                        )
-
-        rprhs = Shp/9.0/sc_num*rhop/rhow*pdata(np,prrp)/taup*(qval-qstar)
-
-        tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
-                3.0*lhv/cpl/pdata(np,prrp)*rprhs
-
-
-        IF(nx.eq.1)THEN
-          x3d=0.0
-          vtmp1 = 0.0
-        ELSE
-          k1xp1 = dt*xrhs1
-          x3d=pdata(np,prx)+k1xp1
-
-          k1vp1 = dt*vrhs1
-          vtmp1 = pdata(np,prvpx) + k1vp1
-
-        ENDIF
-        IF(axisymm.eq.1.or.ny.eq.1)THEN
-          y3d=0.0
-          vtmp2 = 0.0
-        ELSE
-          k1xp2 = dt*xrhs2
-          y3d=pdata(np,pry)+k1xp2
-
-          k1vp2 = dt*vrhs2
-          vtmp2 = pdata(np,prvpy) + k1vp2
-        ENDIF
-        if( terrain_flag )then
-          sig3d = pdata(np,prsig) + dt*sigdot
-          sig1 = sigdot
-        else
-        
-          k1xp3 = dt*xrhs3
-          z3d = pdata(np,prz)+k1xp3
-
-          ! GHB, 210713: check for top/bot bc on 1st RK step:
-          !Wall BCs:
-          if ( z3d .gt. maxz ) then
-             z3d = maxz - (z3d - maxz)
-          elseif ( z3d .lt. 0.0 ) then
-             z3d = 1.0e-6  !Just temporary 
-             pdata(np,pract) = -1.0  !Signal this as no longer alive
-          endif
-
-          k1vp3 = dt*vrhs3
-          vtmp3 = pdata(np,prvpz) + k1vp3
-        endif
-
-        k1tp = dt*tprhs
-        tptmp = pdata(np,prtp) + k1tp
-
-        k1rp = dt*rprhs
-        rptmp = pdata(np,prrp) + k1rp
-
-        if(np==TROUBLE) then 
-          print *,'dd: qstar: ',qstar
-          print *,'dd: qinf: ',qinf
-          print *,'dd: cp: ',cp
-          print *,'dd: cpl: ',cpl
-          print *,'dd: Nup: ',Nup
-          print *,'dd: pr_num: ',pr_num
-          print *,'dd: sc_num: ',sc_num
-          !print *,'qval: ',qstar
-          print *,'dd: rhop: ',rhop
-          print *,'dd: rhow: ',rhow
-          print *,'dd: taup: ',taup
-          !print *,'tval: ',tval
-          print *,'dd: tptmp: ',tptmp
-          print *,'dd: lhv: ',lhv
-          print *,'dd: rptmp: ',rptmp
-          print *,'dd: rprhs: ',rprhs
-          print *,'dd: tprhs: ',tprhs
-        endif
-
-
-      ELSE
-
-        xrhs1 = vtmp1
-        xrhs2 = vtmp2
-        xrhs3 = vtmp3
-
-        volp = 4.0/3.0*pi*rptmp**3
-        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
-        taup = rhop*(2.0*rptmp)**2/18.0/rhoval/viscosity
-
-        diffnorm = sqrt((uval-vtmp1)**2+ &
-                        (vval-vtmp2)**2+ &
-                        (wval-vtmp3)**2)
-
-        Rep = 2.0*rptmp*diffnorm/viscosity
-        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
-        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
-
-        vrhs1 = 1.0/taup*(uval - vtmp1) + part_grav1
-        vrhs2 = 1.0/taup*(vval - vtmp2) + part_grav2
-        vrhs3 = 1.0/taup*(wval - vtmp3) + part_grav3
-
-        qstar = qinf*exp(                                                   &
-                     mw*lhv/ru*(1.0/tval - 1.0/tptmp)                       &
-                    +2.0*ms*surften/(ru*rhow*rptmp*tptmp)                   &
-                    -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
-                        )
-
-        rprhs = Shp/9.0/sc_num*rhop/rhow*rptmp/taup*(qval-qstar)
-
-        tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-tptmp) + &
-                3.0*lhv/cpl/rptmp*rprhs
-
-
-        IF(nx.eq.1)THEN
-          x3d=0.0
-          pdata(np,prvpx) = 0.0
-        ELSE
-          !k2xp(1) = dt*xrhs(1)
-          x3d=pdata(np,prx)+0.5*(k1xp1+dt*xrhs1)
-
-          !k2vp(1) = dt*vrhs1
-          pdata(np,prvpx) = pdata(np,prvpx) + 0.5*(k1vp1+dt*vrhs1)
-
-        ENDIF
-        IF(axisymm.eq.1.or.ny.eq.1)THEN
-          y3d=0.0
-          pdata(np,prvpy) = 0.0
-        ELSE
-          !k2xp(2) = dt*xrhs(2)
-          y3d=pdata(np,pry)+0.5*(k1xp2+dt*xrhs2)
-
-          !k2vp(2) = dt*vrhs2
-          pdata(np,prvpy) = pdata(np,prvpy) + 0.5*(k1vp2+dt*vrhs2)
-        ENDIF
-
-        if( terrain_flag )then
-          sig3d = pdata(np,prsig) + dt2*(sig1+sigdot)
-          IF( sig3d.lt.0.0 )THEN
-            print *,'  parcel is below surface:  np,x3d,y3d,sig3d = ',np,x3d,y3d,sig3d
-            sig3d=1.0e-6
-          ENDIF
-          sig3d=min(sig3d,maxz)
-        else
-          !k2xp(3) = dt*xrhs(3)
-          !JMD-BUG z3d = pdata(np,prz)+0.5*(k1xp(3)+k1xp(3))
-          z3d = pdata(np,prz)+0.5*(k1xp3+dt*xrhs3)
-
-          !k2vp(3) = dt*vrhs3
-          pdata(np,prvpz) = pdata(np,prvpz) + 0.5*(k1vp3+dt*vrhs3)
-
-          !Wall BCs:
-          if ( z3d .gt. maxz ) then
-             !Elastic collisions
-             z3d = maxz - (z3d - maxz)
-             pdata(np,prvpz) = -pdata(np,prvpz)
-          elseif ( z3d .lt. 0.0 ) then
-             !Elastic collisions:
-             ! z3d = -z3d
-             ! pdata(np,prvpz) = -pdata(np,prvpz)
-             !Remove it
-             z3d = 1.0e-6  !Temporary
-             pdata(np,pract) = -1.0  !Signal this as no longer alive
-          endif
-        endif
-        if(np==TROUBLE) then 
-          print *,'dd: k1tp: ',k1tp
-          print *,'dd: tprhs: ',tprhs
-        endif
-        pdata(np,prtp) = pdata(np,prtp) + 0.5*(k1tp+dt*tprhs)
-        pdata(np,prrp) = pdata(np,prrp) + 0.5*(k1rp+dt*rprhs)
-
-      ENDIF
-
-      ENDDO  rkloop
-      !HERE print *,'after rkloop np: ',np
-
-      end subroutine rk2_integration
-
-      subroutine BE_integration
-      use input
-      use constants
-      use bc_module
-      use comm_module
-      use misclibs
-      use parcel_module
-      use cm1libs , only : rslf
-      implicit none
-
-      !integer, intent(inout) :: iflag,jflag,kflag
-      !real, intent(in), dimension(ib:ie+1) :: xf
-      !real, intent(inout) :: x3d,y3d,z3d
-      !real, intent(inout), dimension(nparcels,npvals) :: pdata
-
-      real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
-      real :: qval,tval,rhoval,prsval
-      real :: rxu,ryv,rzw,rxs,rys,rzs
-      integer :: i,j
-
-
-!-----------------------------------------------------
-!  Update droplet position, velocity, etc.
-!-----------------------------------------------------
-
-!      uf = (/ uval,vval,wval /)
-!
-!      xrhs = (/ pdata(np,prvpx),pdata(np,prvpy),pdata(np,prvpz) /)
-!
-!      volp = 4.0/3.0*pi*pdata(np,prrp)**3
-!      rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute
-!      mass
-!      taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
-!
-!      rhop0 = rhop
-!      taup0 = taup
-!      rp0 = pdata(np,prrp)
-!      tp0 = pdata(np,prtp)
-!      volp0 = 4.0/3.0*pi*rp0**3
-!
-!      diff(1) = uf(1)-pdata(np,prvpx)
-!      diff(2) = uf(2)-pdata(np,prvpy)
-!      diff(3) = uf(3)-pdata(np,prvpz)
-!      diffnorm = sqrt(diff(1)**2+diff(2)**2+diff(3)**2)
-!
-!      Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
-!      Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
-!      Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
-!
-!      vrhs(1) = 1.0/taup*(uf(1) - pdata(np,prvpx)) + part_grav(1)
-!      vrhs(2) = 1.0/taup*(uf(2) - pdata(np,prvpy)) + part_grav(2)
-!      vrhs(3) = 1.0/taup*(uf(3) - pdata(np,prvpz)) + part_grav(3)
-!
-!      qinf = rslf(prsval,tval)
-!      einf = qinf*rhoval/mw*ru*tval
-!      lhv=lv1-lv2*tval
-!
-!      qstar = qinf*exp(                                                   &
-!                   mw*lhv/ru*(1.0/tval - 1.0/pdata(np,prtp))              &
-!                  +2.0*ms*surften/(ru*rhow*pdata(np,prrp)*pdata(np,prtp)) &
-!                  -ion*os*pdata(np,prms)*mw/ms/(volp*rhop-pdata(np,prms)) &
-!                      )
-!
-!      rprhs = Shp/9.0/sc_num*rhop/rhow*pdata(np,prrp)/taup*(qval-qstar)
-!
-!      tprhs = Nup/3.0/pr_num*(cp/cpl)*(rhop/rhow)/taup*(tval-pdata(np,prtp))+ &
-!              3.0*lhv/cpl/pdata(np,prrp)*rprhs
-!
-!      x3d = pdata(np,prx) + dt*pdata(np,prvpx)
-!      y3d = pdata(np,pry) + dt*pdata(np,prvpy)
-!      z3d = pdata(np,prz) + dt*pdata(np,prvpz)
-!
-!      pdata(np,prvpx) = (pdata(np,prvpx) + dt*uf(1)/taup + dt*part_grav(1))/(1
-!      + dt/taup)
-!      pdata(np,prvpy) = (pdata(np,prvpy) + dt*uf(2)/taup + dt*part_grav(2))/(1
-!      + dt/taup)
-!      pdata(np,prvpz) = (pdata(np,prvpz) + dt*uf(3)/taup + dt*part_grav(3))/(1
-!      + dt/taup)
-
-      end subroutine BE_integration
+      end subroutine interpolate_to_parcel
 
 
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
@@ -1662,6 +1810,290 @@
 
       end subroutine find_vertical_location_index
 
+      subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+      use constants
+      use cm1libs , only : eslf
+      implicit none
+
+      real, intent(out) :: guess
+      integer, intent(out) :: mflag
+      real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+      integer, intent(in) :: np
+      real :: a, c, esa, Q, R, M, theta, S, T, rhval
+
+      mflag = 0
+      esa = eslf(prsval,tval)  !Saturation vapor pressure at droplet temperature
+
+      rhval = (ru*tval*rhoval*qval)/(mw*esa)
+
+      if (rhval .lt. 0.999) then
+         a = -(2*mw*surften)/(ru*rhow*tval)/LOG(rhval)
+         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval)
+
+
+         Q = (a**2.0)/9.0
+         R = (2.0*a**3.0+27.0*c)/54.0
+         M = R**2.0-Q**3.0
+
+         if (M<0) then
+           theta = acos(R/sqrt(Q**3.0))
+           guess = -(2*sqrt(Q)*cos((theta-pi*2.0)/3.0))-a/3.0
+
+           if (guess < 0) then
+           guess = -(2*sqrt(Q)*cos((theta+pi*2.0)/3.0))-a/3.0
+           end if
+
+         else
+           S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0/3.0)
+           T = Q/S
+           guess = S + T - a/3.0
+
+         end if
+
+      else 
+
+        guess = radius
+        mflag = 1
+      end if
+
+      end subroutine rad_solver2
+
+      subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        use ieee_arithmetic
+
+        implicit none
+
+        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        real, intent(out) :: rt_zeros(2)
+        integer, intent(out) :: flag
+        integer, intent(in) :: np
+
+        real :: error,fv1(2),fv2(2),v1(2),rel
+        real :: diff, temp1(2), temp2(2), relax, coeff, correct(2)
+        real, dimension(1:2, 1:2) :: J,fancy,inv,finalJ
+        integer :: iterations,neg,counts
+
+        iterations = 0
+        flag = 0
+        error = 1.e-8
+
+        v1 = rt_start
+        fv2 = (/1., 1./)
+        coeff = 0.1
+        do while ((sqrt(dot_product(fv2, fv2)) > error) .AND. (iterations<1000))
+
+
+                iterations = iterations + 1
+
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+                fancy = matmul(transpose(J),J)
+
+                call inverse_finder_2d(fancy, inv)
+
+                finalJ = matmul(inv, transpose(J))
+
+                correct = matmul(finalJ,fv1)
+                rt_zeros = v1 - correct
+
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+
+                diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
+
+                if (sqrt(dot_product(correct,correct))<error) then
+                        EXIT
+                end if
+
+                relax = 1.0
+                counts = 0
+
+               do while ((diff<0).OR.(rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. ieee_is_nan(rt_zeros(1)))
+                        counts = counts + 1
+                        coeff = 0.5
+                        relax = relax * coeff
+                        rt_zeros = v1-matmul(finalJ,fv1)*relax
+                        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                        diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
+
+                        if (counts>10) EXIT
+                end do
+
+                v1 = rt_zeros
+
+                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        end do
+      if (iterations == 100) flag = 1
+      if (ieee_is_nan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
+
+      end subroutine gauss_newton_2d
+      subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        implicit none
+
+        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        real, intent(out) :: rt_zeros(2)
+        integer, intent(out) :: flag
+        integer, intent(in) :: np
+
+        real :: error,fv1(2),fv2(2),v1(2),rel
+        real :: diff,lambda,lup,ldown
+        real :: C(2),newC(2),gradC(2),correct(2)
+        real, dimension(1:2, 1:2) :: J,I,g,invg
+        integer :: iterations,neg
+
+        error = 1.0e-8
+
+        I = reshape((/1, 0, 0, 1/),shape(I))
+        iterations = 0
+        flag = 0
+        v1 = rt_start
+        fv2 = (/1., 1./)
+
+        lambda = 0.001
+        lup = 2.0
+        ldown = 2.0
+
+        do while ((sqrt(dot_product(fv2, fv2)) > error) .AND. (iterations<1000))
+
+        iterations = iterations + 1
+        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+        call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+        g = matmul(transpose(J),J)+lambda*I
+        gradC = matmul(transpose(J),fv1)
+        C = 0.5*fv1*fv1
+
+        call inverse_finder_2d(g, invg)
+        correct = matmul(invg, gradC)
+        if (sqrt(dot_product(correct,correct)) < error) then
+                EXIT
+        end if
+
+        rt_zeros = v1 - correct
+        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        newC = 0.5*fv2*fv2
+         
+        if (sqrt(dot_product(newC,newC))<sqrt(dot_product(C,C))) then
+                v1 = rt_zeros
+                lambda = lambda/ldown
+        else
+                lambda = lambda*lup
+        end if
+
+        end do
+
+        if (iterations==1000) then
+                flag = 1
+        end if
+
+        if (rt_zeros(1) < 0 .OR. rt_zeros(2) < 0) then
+                flag = 1
+        end if
+
+      end subroutine LV_solver
+
+      subroutine inverse_finder_2d(C, invC)
+        implicit none
+        real :: det
+        real, dimension(1:2, 1:2), intent(in) :: C
+        real, dimension(1:2, 1:2), intent(out) :: invC
+
+        det = C(1, 1) * C(2, 2) - C(1, 2) * C(2, 1)
+
+        invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),shape(invC))
+        invC = (1./det)*invC
+
+      end subroutine inverse_finder_2d
+      subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        implicit none
+        integer :: n
+
+        real, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
+        real, intent(out), dimension(1:2, 1:2) :: J
+        real :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
+        integer, intent(in) :: np
+
+        diff = 1E-5
+
+        ynext(1) = rnext
+        ynext(2) = tnext
+
+        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+        xper = ynext
+        xper2 = ynext
+
+        do n=1, 2
+                xper(n) = xper(n) + diff
+                xper2(n) = xper2(n) - diff
+                call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+                call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
+                J(:, n) = (fxper-rt_output)/diff
+                xper(n) = ynext(n)
+                xper2(n) = ynext(n)
+        end do
+
+
+      end subroutine jacob_approx_2d
+      subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+      use constants
+      use input
+      use cm1libs , only : eslf
+      implicit none
+
+      real, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
+      real, intent(out) :: rT_output(2)
+      integer, intent(in) :: np
+
+      real :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
+      real :: Tnext,rnext
+
+
+        ! quantities come in already non-dimensionalized, so must be converted back;
+        rnext = tempr*radius
+        Tnext = tempt*Tp
+        dnext = rnext*2.0
+
+
+        esa = eslf(prsval,tval)
+        VolP = (4.0/3.0)*pi*rnext**3
+        rhop = (m_s + VolP*rhow)/VolP
+
+        Rep = dnext*diffnorm/viscosity
+        taup = (rhop*dnext**2)/(18.0*rhoval*viscosity)
+        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+
+        lhv=lv1-lv2*tval
+
+
+        !!! Humidity !!!
+        qstr = (mw/(ru*Tnext*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tnext))) + ((2.0*mw*surften)/(ru*rhow*rnext*Tnext)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
+        !!!!!!!!!!!!!!!!!!
+
+
+        !!! Radius !!!
+        rprime = (1.0/9.0)*(Shp/sc_num)*(rhop/rhow)*(rnext/taup)*(qval - qstr)
+        rprime = rprime*(taup_scale/radius)
+
+
+        !!! Temperature !!!
+        Tprime = -(1.0/3.0)*(Nup/pr_num)*(cp/cpl)*(rhop/rhow)/taup*(Tnext-tval) + 3.0*lhv/(rnext*cpl)*rprime*(radius/taup_scale)
+        Tprime = Tprime*(taup_scale/Tp)
+
+        rT_output(1) = rnext/radius - 1.0  - dt_nondim*rprime
+        rT_output(2) = Tnext/Tp - 1.0  - dt_nondim*Tprime
+
+
+      end subroutine ie_vrt_nd
 
 
 
