@@ -536,7 +536,7 @@
       !have fallen out the bottom:
       if (pdata(np,pract).lt.0.0) then
             !Replace with a new droplet at random location
-!#if 0
+#if 0
               !JMD-KLUDGE 
               call random_number(rand)
               pdata(np,prx) = rand*maxx
@@ -544,7 +544,7 @@
               pdata(np,pry) = rand*maxy
               call random_number(rand)
               pdata(np,prz) = rand*maxz
-!#endif
+#endif
               pdata(np,prvpx) = 0.0
               pdata(np,prvpy) = 0.0
               pdata(np,prvpz) = 0.0
@@ -1859,6 +1859,7 @@
       end subroutine rad_solver2
 
       subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        !$acc routine seq
         use ieee_arithmetic
 
         implicit none
@@ -1932,6 +1933,7 @@
 
       end subroutine gauss_newton_2d
       subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        !$acc routine seq
         implicit none
 
         real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
@@ -1948,7 +1950,8 @@
 
         error = 1.0e-8
 
-        I = reshape((/1, 0, 0, 1/),shape(I))
+        ! I = reshape((/1, 0, 0, 1/),shape(I))
+        I = reshape((/1, 0, 0, 1/),(/2,2/))
         iterations = 0
         flag = 0
         v1 = rt_start
@@ -1999,6 +2002,7 @@
       end subroutine LV_solver
 
       subroutine inverse_finder_2d(C, invC)
+        !$acc routine seq
         implicit none
         real :: det
         real, dimension(1:2, 1:2), intent(in) :: C
@@ -2006,7 +2010,8 @@
 
         det = C(1, 1) * C(2, 2) - C(1, 2) * C(2, 1)
 
-        invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),shape(invC))
+        ! invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),shape(invC))
+        invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),(/2,2/))
         invC = (1./det)*invC
 
       end subroutine inverse_finder_2d
