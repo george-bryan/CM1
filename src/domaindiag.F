@@ -1,12 +1,5 @@
 #ifdef _B4B
 
-#define _B4B07F
-#define _B4B08F
-#define _B4B09F
-#define _B4B10F
-#define _B4B11F
-#define _B4B12F
-
 #define _B4B16R
 #define _B4B19R
 #define _B4B21R
@@ -3463,11 +3456,7 @@
         varunit(nvar) = 'K'
 
       if( ptype.eq.0 )then
-#ifdef _B4B07F
-        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3482,11 +3471,7 @@
         enddo
         enddo
       else
-#ifdef _B4B07F
-        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3505,9 +3490,6 @@
         enddo
         enddo
       endif
-#ifdef _B4B07F
-      !$acc update device(dum1)
-#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -3523,11 +3505,7 @@
         vardesc(nvar) = 'relative humidity (wrt liquid)'
         varunit(nvar) = 'nondimensional'
      
-#ifdef _B4B08F
-        !$acc update host(q3d,prs,th,pi0,pp3d)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3535,9 +3513,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B08F
-        !$acc update device(dum1)
-#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -3551,11 +3526,7 @@
         varname(nvar) = 'rhi'
         vardesc(nvar) = 'relative humidity (wrt ice)'
         varunit(nvar) = 'nondimensional'
-#ifdef _B4B09F
-        !$acc update host(q3d,prs,th,pi0,pp3d)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3563,9 +3534,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B09F
-        !$acc update device(dum1)
-#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4408,11 +4376,7 @@
         varunit(nvar) = 'm'
         vargrid(nvar) = 'w'
 
-#ifdef _B4B10F
-        !$acc update host(ruh,rvh,rmf,zf,znt)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4424,9 +4388,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B10F
-        !$acc update device(dum1)
-#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -4726,17 +4687,10 @@
         vardesc(nvar) = 'analytic wind speed (neutral)'
         varunit(nvar) = 'm/s'
 
-#ifdef _B4B11F
-        !$acc update host(zh)
-#else
         !$acc parallel loop gang vector default(present) private(k)
-#endif
         do k=1,nk
           savg(k) = (ustbar/karman)*alog( (zh(1,1,k)+zntbar)/zntbar )
         enddo
-#ifdef _B4B11F
-        !$acc update device(savg)
-#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4747,11 +4701,7 @@
         vardesc(nvar) = 'analytic wind speed'
         varunit(nvar) = 'm/s'
 
-#ifdef _B4B12F
-        !$acc update host(zh)
-#else
         !$acc parallel loop gang vector default(present) private(k,zeta,tpsim)
-#endif
         do k=1,nk
           if( abs(molbar).gt.1.0e-6 )then
             zeta = zh(1,1,k)/molbar
@@ -4762,9 +4712,6 @@
           savg(k) = (ustbar/karman)*( alog(zh(1,1,k)/zntbar) - tpsim )
           wspa(k) = savg(k)
         enddo
-#ifdef _B4B12F
-        !$acc update device(savg,wspa)
-#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
