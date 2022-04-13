@@ -1,14 +1,6 @@
 #ifdef _B4B
 
-#define _B4B01F
-#define _B4B02F
-#define _B4B03F
-#define _B4B04F
-#define _B4B05F
-#define _B4B08F
-
 !JMD-changes answers
-#define _B4B06F
 #define _B4B07R
 #define _B4B09R
 #define _B4B10R
@@ -658,11 +650,7 @@
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
 
           if( tbc.eq.3 )then
-#ifdef _B4B01F
-            !$acc update host(ugr,vgr,zf,zh) 
-#else
             !$acc parallel loop gang vector collapse(2) default(present) 
-#endif
             do j=1,nj
             do i=1,ni
               ut(i,j) = 0.5*( ugr(i,j,nk) + ugr(i+1,j,nk) )
@@ -671,10 +659,7 @@
               ustt(i,j) = max( st(i,j)*karman/alog((zf(i,j,nk+1)-zh(i,j,nk))/cnst_znt) , 1.0e-6 )
             enddo
             enddo
-#ifdef _B4B01F
-            !$acc update device(ut,vt,st,ustt)
-#endif
-            stop 'sfc_and_turb: after setting of ut,vt,st,ustt'
+            !stop 'sfc_and_turb: after setting of ut,vt,st,ustt'
           endif
 
 
@@ -919,19 +904,12 @@
                      ids=1  ,ide=ni+1 , jds= 1 ,jde= 1   , kds=1  ,kde=nk+1 ,                                   &
                      ims=ib ,ime=ie   , jms= 1 ,jme= 1   , kms=kb ,kme=ke ,                                     &
                      its=1  ,ite=ni   , jts= 1 ,jte= 1   , kts=1  ,kte=nk  )
-#ifdef _B4B02F
-          !$acc update host(br,ppten,znt)
-#else
           !$acc parallel loop gang vector default(present) private(i)
-#endif
           do i=1,ni
             br(i,j) = max( -10.0 , br(i,j) )
             br(i,j) = min(  10.0 , br(i,j) )
             gz1oz0(I,J)=ALOG(ppten(i,j,1)/znt(i,j))
           enddo
-#ifdef _B4B02F
-          !$acc update device(br,gz1oz0)
-#endif
 
         enddo
         endif
@@ -2440,12 +2418,7 @@
 
       ! single length scale:  appropriate if dx,dy are nearly the same as dz
 
-#ifdef _B4B03F
-      !$acc update host(csz,ruh,rvh,rmf,tkea,nm,dissten,ce1z,ce2z,cmz,kmh,khh)
-#else
-      !non-B4B: due to use of PWR function 
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
-#endif
       !$omp parallel do default(shared) private(i,j,k,prinv,rcs)
       do k=2,nk
       do j=1,nj
@@ -2495,20 +2468,13 @@
       enddo
       enddo
       enddo
-#ifdef _B4B03F
-      !$acc update device(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
-#endif
 
     ELSEIF(tconfig.eq.2)THEN
 
       ! two length scales:  one for horizontal, one for vertical
 
       !$omp parallel do default(shared) private(i,j,k,prinv,rcs)
-#ifdef _B4B03F
-      !$acc update host(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
-#else
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,prinv,rcs)
-#endif
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -2558,9 +2524,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B03F
-      !$acc update device(grdscl,rgrdscl,lenscl,tk,dissten,kmh,kmv,khh,khv)
-#endif
 
     ENDIF
      
@@ -4737,12 +4700,7 @@
 
     IF(imoist.eq.0)then
 
-#ifdef _B4B04F
-      !$acc update host(th0,th,mf)
-#else
-      !non-B4B
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
       !$omp parallel do default(shared) private(i,j,k)
       do k=2,nk
       do j=1,nj
@@ -4752,9 +4710,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B04F
-      !$acc update device(nm)
-#endif
 
 ! GHB, 220308 ... comment out this stop 
 !!!      stop 'calcnm: after first loop'
@@ -4854,16 +4809,11 @@
       enddo
       enddo
 
-#ifdef _B4B05F
-      !$acc update host(thv,mf,c1,c2,prs,t,qt,qvci,qt)
-#else
-      !non-B4B
       !$acc parallel loop gang vector collapse(3) default(present) &
       !$acc private(i,j,k,pavg,tavg,qtavg,qvciavg) &
       !$acc private(qvs,ql,qi,qv,qvsl,qvsi)  &
       !$acc private(cpml,lh,drdt,gamma) &
       !$acc private(rtt1,rtt2,ff,nmi,nml)
-#endif
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -4941,9 +4891,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B05F
-      !$acc update device(nm,iamsat)
-#endif
       stop 'calcnm: point #2'
 
     ELSE  icecheck
@@ -4959,12 +4906,8 @@
       enddo
       enddo
       enddo
-#ifdef _B4B06F
-      !$acc update host(qt,mf,c1,c2,prs,t,qt,qvci)
-#else
       !$acc parallel loop gang vector collapse(3) default(present) &
       !$acc private(i,j,k,pavg,tavg,qtavg,qvciavg,qvs,ql,qv,cpml,lh,drdt,gamma)
-#endif
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -4993,12 +4936,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B06F
-    !$acc update device(t,thv,nm,iamsat)
-#else
-    !$acc end parallel
-#endif
-      !stop 'calcnm: point #3'
 
     ENDIF  icecheck
 
@@ -5501,17 +5438,10 @@
 
 
         !print *,'t2pcode: point #3'
-#ifndef _B4B08F
         !$acc parallel loop gang vector default(present) private(k)
-#endif
         do k=1,(ntwk+1)
           wspa(k) = (ustbar/karman)*alog( sngl(zh(1,1,k)/zntbar) )
         enddo
-#ifdef _B4B08F
-        !$acc update device(wspa)
-#else
-        !$acc end parallel
-#endif
 
     !-------------------------------------------
 
