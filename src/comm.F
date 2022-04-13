@@ -13936,8 +13936,9 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       integer, intent(in) :: comm
       logical, parameter :: Debug = .FALSE.
       integer :: i,j
-      !$acc declare present(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-      !$acc         present(n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
+      !$acc data present (s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32, &
+      !$acc               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
+      !$acc               reqs_s)
 
 if(Debug) print *, "prepcorners3_GPU: Im called"
 
@@ -13972,7 +13973,9 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         enddo
       ENDIF
-      !!$acc update device(s)
+
+      !$acc end data
+
       end subroutine prepcorners3_GPU
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

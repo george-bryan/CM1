@@ -3409,16 +3409,16 @@
       real, dimension(ib:ie,jb:je,kb:ke) :: s
 
       integer i,j,k
-      !$acc declare present(s)
 
-    !$acc parallel default(present) private(i,j,k)
+      !$acc data present(s)
+
 !-----------------------------------------------------------------------
 !  west boundary condition
-
 
 #ifndef MPI
       if(wbc.eq.1)then
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=jb,je
@@ -3427,11 +3427,13 @@
         enddo
         enddo
     ENDDO
+    !$acc end parallel
       elseif(wbc.eq.2)then
 #else
       if(ibw.eq.1.and.wbc.eq.2)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=0,nj+1
@@ -3440,12 +3442,14 @@
         enddo
         enddo
     ENDDO
+    !$acc end parallel
 #ifdef MPI
       elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
 #else
       elseif(wbc.eq.3.or.wbc.eq.4)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=0,nj+1
@@ -3454,17 +3458,16 @@
         enddo
         enddo
     ENDDO
-      endif
     !$acc end parallel
+      endif
 
-    !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
 !  east boundary condition
-
 
 #ifndef MPI
       if(ebc.eq.1)then
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=jb,je
@@ -3473,11 +3476,13 @@
         enddo
         enddo
     ENDDO
+    !$acc end parallel
       elseif(ebc.eq.2)then
 #else
       if(ibe.eq.1.and.ebc.eq.2)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=0,nj+1
@@ -3486,12 +3491,14 @@
         enddo
         enddo
     ENDDO
+    !$acc end parallel
 #ifdef MPI
       elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
 #else
       elseif(ebc.eq.3.or.ebc.eq.4)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=0,nj+1
@@ -3500,17 +3507,16 @@
         enddo
         enddo
     ENDDO
-      endif
     !$acc end parallel
+      endif
 
-    !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
 !  south boundary condition
-
 
 #ifndef MPI
       if(sbc.eq.1)then
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=1,ngxy
@@ -3519,11 +3525,13 @@
         enddo
         enddo
     ENDDO
+    !$acc end parallel
       elseif(sbc.eq.2)then
 #else
       if(ibs.eq.1.and.sbc.eq.2)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=1-ngxy,0
@@ -3532,12 +3540,14 @@
         enddo
         enddo
     ENDDO
+    !$acc end parallel
 #ifdef MPI
       elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
 #else
       elseif(sbc.eq.3.or.sbc.eq.4)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=1,ngxy
@@ -3546,17 +3556,16 @@
         enddo
         enddo
     ENDDO
-      endif
    !$acc end parallel
+      endif
 
-    !$acc parallel private(i,j,k)
 !-----------------------------------------------------------------------
 !  north boundary condition
-
 
 #ifndef MPI
       if(nbc.eq.1)then
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=1,ngxy
@@ -3565,11 +3574,13 @@
         enddo
         enddo
     ENDDO
+   !$acc end parallel
       elseif(nbc.eq.2)then
 #else
       if(ibn.eq.1.and.nbc.eq.2)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=nj+1,nj+ngxy
@@ -3578,12 +3589,14 @@
         enddo
         enddo
     ENDDO
+   !$acc end parallel
 #ifdef MPI
       elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
 #else
       elseif(nbc.eq.3.or.nbc.eq.4)then
 #endif
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) private(i,j,k)
     !$acc loop gang vector collapse(3)
     DO k=1,nk
         do j=1,ngxy
@@ -3592,9 +3605,12 @@
         enddo
         enddo
     ENDDO
-      endif
    !$acc end parallel
+      endif
+
 !-----------------------------------------------------------------------
+
+      !$acc end data
 
       if(timestats.ge.1) time_bcs=time_bcs+mytime()
 
@@ -4350,7 +4366,8 @@
       real s(ib:ie,jb:je,kb:ke)
 
       integer i,j,k
-      !$acc declare present(s)
+
+      !$acc data present(s)
 
 !---------------------------------------------------------
 !  This subroutine sets the corner points
@@ -4467,6 +4484,8 @@
         endif
 
       endif
+      
+      !$acc end data
 
       if(timestats.ge.1) time_bcs2=time_bcs2+mytime()
 

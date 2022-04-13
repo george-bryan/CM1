@@ -5334,6 +5334,7 @@
 
         nvdiag = nvdiag+1
         vd_vadv = nvdiag
+        !$acc update device (vd_vadv)
 
         if( cm1setup.ge.1 .or. ipbl.ge.1 )then
           nvdiag = nvdiag+1
@@ -6408,6 +6409,8 @@
         ibn=1
       endif
 #endif
+
+      !$acc update device (ibw,ibe,ibs,ibn)
 
 !--------------------------------------------------------------
 
@@ -8697,6 +8700,8 @@
       if(dowr) write(outfile,*) '  ---------------------------------- '
 
   ENDDO
+
+  !$acc update device (cgs1,cgs2,cgs3,cgt1,cgt2,cgt3)
 
 !--------------------------------------------------------------
 !  cm1r18:  Set ghost points for zh

@@ -160,23 +160,17 @@
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk
 
-!$acc declare create(nqs1,nqs2)
-!$acc declare create(nqr,nqi,nqs,nqg,nnci,nncc)
-!$acc declare create(ptype,psolver)
-!$acc declare create(ngxy,ngz)
-!$acc declare create(nx,ny,nz)
-!$acc declare create(axisymm)
-!$acc declare create(nparcels,npvals,npvars)
-!$acc declare create(ni,nj,nk)
-!$acc declare create(nip1,njp1,nkm1,nkp1)
-!$acc declare create(ib,ie,jb,je,kb,ke)
-!$acc declare create(terrain_flag,numq)
-!$acc declare create(imoist,imove,nqv,bbc,tbc)
-!$acc declare create(prx,pry,prz,pru,prv,prw,prth,prt,prprs,prtime)           &
-!$acc         create(prpt1,prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh,prtke)  &
-!$acc         create(prdbz,prb,prvpg,przv,prrho,prqsl,prqsi,prznt,prust,przs) &
-!$acc         create(prsig,prvpx,prvpy,prvpz,prrp,prms,prtp,prmult,pract)
-!$acc declare create(ntwk)
+!$acc declare create(nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
+!$acc                ptype,psolver,ngxy,ngz,nx,ny,nz,axisymm, &
+!$acc                nparcels,npvals,npvars,ni,nj,nk,nip1,njp1, &
+!$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke,terrain_flag, &
+!$acc                numq,imoist,imove,nqv,bbc,tbc,prx,pry,prz, &
+!$acc                pru,prv,prw,prth,prt,prprs,prtime,prpt1, &
+!$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh, &
+!$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
+!$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
+!$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
+!$acc                rmp,cmp,vd_vadv,ibw,ibe,ibs,ibn)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -212,18 +206,12 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
-!$acc declare create(dx,dy,dz,dtl,timax,run_time)
-!$acc declare create(tapfrq,rstfrq,statfrq,prclfrq,diagfrq)
-!$acc declare create(kdiff2,kdiff6,fcor,alph,kdiv)
-!$acc declare create(wbc,ebc,sbc,nbc)
-!$acc declare create(rdx,rdy,rdz)
-!$acc declare create(minx,maxx)
-!$acc declare create(miny,maxy)
-!$acc declare create(cflmax,ksmax)
-!$acc declare create(zt,rzt)
-!$acc declare create(umove,vmove)
-!$acc declare create(viscosity,pr_num,sc_num)
-!$acc declare create(maxz)
+!$acc declare create(dx,dy,dz,dtl,timax,run_time,tapfrq,rstfrq,    &
+!$acc                statfrq,prclfrq,diagfrq,kdiff2,kdiff6,fcor,   &
+!$acc                alph,kdiv,wbc,ebc,sbc,nbc,rdx,rdy,rdz,minx,   &
+!$acc                maxx,miny,maxy,cflmax,ksmax,zt,rzt,umove,     &
+!$acc                vmove,viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
+!$acc                cgs3,cgt1,cgt2,cgt3)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

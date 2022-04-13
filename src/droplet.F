@@ -106,18 +106,15 @@
 
       !integer :: nip1
 
-      !JMD no idea why these values hae not already been set previously
-      !$acc update device(ib,jb,kb,ie,je,ke)
-      !!$acc compare(wten,thten)
-      !KLUDGE-JMD
       call reinit_random_seed
       !print *,'droplet_driver: point #1'
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
-      !$acc data create(ta) copyin(ngz,ngxy)
-      !print *,'droplet_driver: {ngxy,ngxy}: ',ngxy,ngz
+
+      !$acc data create(ta)
+
 !$omp parallel do default(shared) private(i,j)
 !$acc parallel loop gang vector default(present) private(i,j)
   DO j=jb,je+1
@@ -189,28 +186,13 @@
       enddo
       ENDIF
 
-
     !NEED SCALARS
-    
 
   ENDDO
 
-
-  !!$acc compare(pi0,th_in,th0,ppa)
   !Compute temperature for interpolation
+
   !$acc parallel default(present) private(i,j,k)
-
-   
-  !JMD zero out the prevent PCAST errors
-  !!$acc loop gang vector collapse(3)
-  !do k=kb,ke
-  !do j=jb,je
-  !do i=ib,ie
-  !   ta(i,j,k)=0.0
-  !enddo
-  !enddo
-  !enddo
-
   !$acc loop gang vector collapse(3)
   do k=kb,ke
     do j=jb,je
@@ -261,16 +243,13 @@
     !$acc      ua,va,wa,qa,ta,rho,prs,znt,qten,thten,zs)
 #else
     !$acc compare(pdata)
-    !JMD no idea why these values hae not already been set previously
-    !$acc update device(ngxy,ngz)
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel &
     !$acc default(present) &
     !$acc private(i,j,k,x3d,y3d,z3d,sig3d,iflag,jflag,kflag,nrkp,rhoval, &
-    !$acc     rhop0,taup0,Nup,&
-    !$acc     dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt,dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt, &
-    !$acc     esl,part_grav1,part_grav2,part_grav3,rp0)
-    !$acc compare(ngxy,ngz)
+    !$acc         rhop0,taup0,Nup,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
+    !$acc         dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt,esl,part_grav1, &
+    !$acc         part_grav2,part_grav3,rp0)
     !$acc loop gang vector 
 #endif
     nploop:  &
@@ -646,6 +625,7 @@
       end subroutine droplet_driver
 
       subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+      !$acc routine seq
       use input
       use constants
       use bc_module
@@ -989,6 +969,7 @@
       end subroutine rk2_integration
 
       subroutine BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
+      !$acc routine seq
       use input
       use constants
       use bc_module
@@ -1205,6 +1186,7 @@
       end subroutine BE_integration
 
       subroutine interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+      !$acc routine seq
       use input
       use constants
       use parcel_module
@@ -1811,6 +1793,7 @@
       end subroutine find_vertical_location_index
 
       subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+      !$acc routine seq
       use constants
       use cm1libs , only : eslf
       implicit none
@@ -1879,52 +1862,63 @@
         flag = 0
         error = 1.e-8
 
-        v1 = rt_start
+        v1(1) = rt_start(1)
+        v1(2) = rt_start(2)
         fv2 = (/1., 1./)
         coeff = 0.1
-        do while ((sqrt(dot_product(fv2, fv2)) > error) .AND. (iterations<1000))
 
+        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<1000))
 
                 iterations = iterations + 1
 
                 call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
                 call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-                fancy = matmul(transpose(J),J)
+                fancy(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)
+                fancy(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)
+                fancy(2,1) = J(1,2)*J(1,1)+J(2,2)*J(2,1)
+                fancy(2,2) = J(1,2)*J(1,2)+J(2,2)*J(2,2)
 
                 call inverse_finder_2d(fancy, inv)
 
-                finalJ = matmul(inv, transpose(J))
+                fancy(1,1) = inv(1,1)*J(1,1)+inv(1,2)*J(1,2)
+                fancy(1,2) = inv(1,1)*J(2,1)+inv(1,2)*J(2,2)
+                fancy(2,1) = inv(2,1)*J(1,1)+inv(2,2)*J(1,2)
+                fancy(2,2) = inv(2,1)*J(2,1)+inv(2,2)*J(2,2)
 
-                correct = matmul(finalJ,fv1)
-                rt_zeros = v1 - correct
+                correct(1) = finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2)
+                correct(2) = finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2)
+
+                rt_zeros(1) = v1(1) - correct(1)
+                rt_zeros(2) = v1(2) - correct(2)
 
                 call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
                 call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+                diff = sqrt(temp1(1)*temp1(1)+temp1(2)*temp1(2))-sqrt(temp2(1)*temp2(1)+temp2(2)*temp2(2))
 
-                diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
-
-                if (sqrt(dot_product(correct,correct))<error) then
+                if (sqrt(correct(1)*correct(1)+correct(2)*correct(2))<error) then
                         EXIT
                 end if
 
                 relax = 1.0
                 counts = 0
 
-               do while ((diff<0).OR.(rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. ieee_is_nan(rt_zeros(1)))
-                        counts = counts + 1
-                        coeff = 0.5
-                        relax = relax * coeff
-                        rt_zeros = v1-matmul(finalJ,fv1)*relax
-                        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-                        diff = sqrt(dot_product(temp1,temp1))-sqrt(dot_product(temp2,temp2))
+                do while ((diff<0).OR.(rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. ieee_is_nan(rt_zeros(1)))
+                   counts = counts + 1
+                   coeff = 0.5
+                   relax = relax * coeff
+                   rt_zeros(1) = v1(1)-(finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2))*relax
+                   rt_zeros(2) = v1(2)-(finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2))*relax
+                   call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                   diff = sqrt(temp1(1)*temp1(1)+temp1(2)*temp1(2))-sqrt(temp2(1)*temp2(1)+temp2(2)*temp2(2))
 
-                        if (counts>10) EXIT
+                   if (counts>10) EXIT
                 end do
 
-                v1 = rt_zeros
+                v1(1) = rt_zeros(1)
+                v1(2) = rt_zeros(2)
 
                 call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         end do
@@ -1932,6 +1926,7 @@
       if (ieee_is_nan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
+
       subroutine LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         !$acc routine seq
         implicit none
@@ -1950,53 +1945,64 @@
 
         error = 1.0e-8
 
-        ! I = reshape((/1, 0, 0, 1/),shape(I))
         I = reshape((/1, 0, 0, 1/),(/2,2/))
         iterations = 0
         flag = 0
-        v1 = rt_start
+        v1(1) = rt_start(1)
+        v1(2) = rt_start(2)
         fv2 = (/1., 1./)
 
         lambda = 0.001
         lup = 2.0
         ldown = 2.0
 
-        do while ((sqrt(dot_product(fv2, fv2)) > error) .AND. (iterations<1000))
+        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<1000))
 
         iterations = iterations + 1
-        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-        g = matmul(transpose(J),J)+lambda*I
-        gradC = matmul(transpose(J),fv1)
-        C = 0.5*fv1*fv1
+        g(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)+lambda*I(1,1)
+        g(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)+lambda*I(1,2)
+        g(2,1) = J(1,2)*J(1,1)+J(2,2)*J(2,1)+lambda*I(2,1)
+        g(2,2) = J(1,2)*J(1,2)+J(2,2)*J(2,2)+lambda*I(2,2)
+
+        gradC(1) = J(1,1)*fv1(1)+J(2,1)*fv1(2)
+        gradC(2) = J(1,2)*fv1(1)+J(2,2)*fv1(2)
+
+        C(1) = 0.5*fv1(1)*fv1(1)
+        C(2) = 0.5*fv1(2)*fv1(2)
 
         call inverse_finder_2d(g, invg)
-        correct = matmul(invg, gradC)
-        if (sqrt(dot_product(correct,correct)) < error) then
-                EXIT
+        correct(1) = invg(1,1)*gradC(1)+invg(1,2)*gradC(2)
+        correct(2) = invg(2,1)*gradC(1)+invg(2,2)*gradC(2)
+        if (sqrt(correct(1)*correct(1)+correct(2)*correct(2)) < error) then
+           EXIT
         end if
 
-        rt_zeros = v1 - correct
+        rt_zeros(1) = v1(1) - correct(1)
+        rt_zeros(2) = v1(2) - correct(2)
         call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-        newC = 0.5*fv2*fv2
-         
-        if (sqrt(dot_product(newC,newC))<sqrt(dot_product(C,C))) then
-                v1 = rt_zeros
-                lambda = lambda/ldown
+        newC(1) = 0.5*fv2(1)*fv2(1)
+        newC(2) = 0.5*fv2(2)*fv2(2)
+
+        if (sqrt(newC(1)*newC(1)+newC(2)*newC(2))<sqrt(C(1)*C(1)+C(2)*C(2))) then
+           v1(1) = rt_zeros(1)
+           v1(2) = rt_zeros(2)
+           lambda = lambda/ldown
         else
-                lambda = lambda*lup
+           lambda = lambda*lup
         end if
 
         end do
 
         if (iterations==1000) then
-                flag = 1
+           flag = 1
         end if
 
         if (rt_zeros(1) < 0 .OR. rt_zeros(2) < 0) then
-                flag = 1
+           flag = 1
         end if
 
       end subroutine LV_solver
@@ -2010,12 +2016,13 @@
 
         det = C(1, 1) * C(2, 2) - C(1, 2) * C(2, 1)
 
-        ! invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),shape(invC))
         invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),(/2,2/))
         invC = (1./det)*invC
 
       end subroutine inverse_finder_2d
+
       subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        !$acc routine seq
         implicit none
         integer :: n
 
@@ -2031,24 +2038,28 @@
 
         call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-        xper = ynext
-        xper2 = ynext
+        xper(1) = ynext(1)
+        xper(2) = ynext(2)
+        xper2(1) = ynext(1)
+        xper2(2) = ynext(2)
 
         do n=1, 2
-                xper(n) = xper(n) + diff
-                xper2(n) = xper2(n) - diff
-                call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+           xper(n) = xper(n) + diff
+           xper2(n) = xper2(n) - diff
+           call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-                call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+           call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
-                J(:, n) = (fxper-rt_output)/diff
-                xper(n) = ynext(n)
-                xper2(n) = ynext(n)
+           J(1,n) = (fxper(1)-rt_output(1))/diff
+           J(2,n) = (fxper(2)-rt_output(2))/diff
+           xper(n) = ynext(n)
+           xper2(n) = ynext(n)
         end do
 
-
       end subroutine jacob_approx_2d
+
       subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+      !$acc routine seq
       use constants
       use input
       use cm1libs , only : eslf
@@ -2061,12 +2072,10 @@
       real :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
       real :: Tnext,rnext
 
-
         ! quantities come in already non-dimensionalized, so must be converted back;
         rnext = tempr*radius
         Tnext = tempt*Tp
         dnext = rnext*2.0
-
 
         esa = eslf(prsval,tval)
         VolP = (4.0/3.0)*pi*rnext**3
@@ -2079,16 +2088,13 @@
 
         lhv=lv1-lv2*tval
 
-
         !!! Humidity !!!
         qstr = (mw/(ru*Tnext*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tnext))) + ((2.0*mw*surften)/(ru*rhow*rnext*Tnext)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
         !!!!!!!!!!!!!!!!!!
 
-
         !!! Radius !!!
         rprime = (1.0/9.0)*(Shp/sc_num)*(rhop/rhow)*(rnext/taup)*(qval - qstr)
         rprime = rprime*(taup_scale/radius)
-
 
         !!! Temperature !!!
         Tprime = -(1.0/3.0)*(Nup/pr_num)*(cp/cpl)*(rhop/rhow)/taup*(Tnext-tval) + 3.0*lhv/(rnext*cpl)*rprime*(radius/taup_scale)
@@ -2097,10 +2103,7 @@
         rT_output(1) = rnext/radius - 1.0  - dt_nondim*rprime
         rT_output(2) = Tnext/Tp - 1.0  - dt_nondim*Tprime
 
-
       end subroutine ie_vrt_nd
-
-
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
