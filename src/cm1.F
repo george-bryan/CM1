@@ -3779,10 +3779,7 @@
       if(iprcl.eq.1)then
       IF( doprclout )THEN
       
-#ifdef _OPENACC
-!        stop 'ERROR: parcel_interp not supported in OpenACC'
-#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+        !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
                                zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
                                zs,sigma,sigmaf,rds,gz,                 &
@@ -3796,13 +3793,7 @@
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
 
-#if 0
-#endif
-       !stop 'cm1: after call to parcel_interp'
-!#ifdef _OPENACC
-!        stop 'ERROR: parcel_write not supported in OpenACC'
-!#endif
-!$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
+        !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 
         call     parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
         prec = prec+1

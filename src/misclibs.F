@@ -3690,9 +3690,11 @@
       !$acc end parallel
 #endif
  
+#ifdef _B4B07R
       tmass=0.0d0
-#ifndef _B4B07R
+#else
       !$acc parallel default(present) reduction(+:tmass)
+      tmass=0.0d0
       !$acc loop gang vector reduction(+:tmass)
 #endif
       do k=1,nk
