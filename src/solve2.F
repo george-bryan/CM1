@@ -1,10 +1,5 @@
 #ifdef _B4B
 
-#define _B4B01F
-#define _B4B02F
-#define _B4B03F
-#define _B4B04F
-
 #define _B4B05RF
 #define _B4B06R
 
@@ -1706,12 +1701,7 @@
         ENDIF
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
-#ifdef _B4B01F
-          !$acc update host(pi0,pp3d,th0,th3d,pp3d,q3d)    
-#else
-          !non-B4B01
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
-#endif
           !$omp parallel do default(shared) private(i,j,k)
           do k=1,nk
           do j=1,nj
@@ -1723,20 +1713,12 @@
           enddo
           enddo
           enddo
-#ifdef _B4B01F
-          !$acc update device(prs,rho)
-#endif
         ENDIF
 
       ELSE
 
         IF( nrk.eq.nrkmax .or. (idiff.ge.1 .and. difforder.eq.6) )THEN
-#ifdef _B4B02F
-          !$acc update host(pi0,pp3d,th0,th3d,pp3d)    
-#else
-          !non-B4B02
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
-#endif
           !$omp parallel do default(shared) private(i,j,k)
           do k=1,nk
           do j=1,nj
@@ -1747,9 +1729,6 @@
           enddo
           enddo
           enddo
-#ifdef _B4B02F
-          !$acc update device(prs,rho)
-#endif
         ENDIF
 
       ENDIF
@@ -2175,12 +2154,7 @@
 !!!        if( myid.eq.0 ) print *,'  temd,tem = ',temd,tem
 
         IF( imoist.eq.1 )THEN
-#ifdef _B4B03F
-          !$acc update host(pi0,pp3d,th0,th3d,pp3d,prs,q3d)    
-#else
-          !non-B4B03
           !$acc parallel loop gang vector collapse(3) private(i,j,k)
-#endif
           !$omp parallel do default(shared) private(i,j,k)
           do k=1,nk
           do j=1,nj
@@ -2193,16 +2167,8 @@
           enddo
           enddo
           enddo
-#ifdef _B4B03F
-          !$acc update device(rho,prs,pp3d)
-#endif
         ELSE
-#ifdef _B4B04F
-          !$acc update host(pi0,pp3d,th0,th3d,pp3d,prs)    
-#else
-          !non-B4B04
           !$acc parallel loop gang vector collapse(3)  private(i,j,k)
-#endif
           !$omp parallel do default(shared) private(i,j,k)
           do k=1,nk
           do j=1,nj
@@ -2214,9 +2180,6 @@
           enddo
           enddo
           enddo
-#ifdef _B4B04F
-          !$acc update device(rho,prs,pp3d)
-#endif
         ENDIF
 
       ENDIF  pscheck2
