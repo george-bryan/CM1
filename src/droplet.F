@@ -983,12 +983,13 @@
       pdata(np,pry)=y3d
       if( .not. terrain_flag )then
         pdata(np,prz)=z3d
-        pdata_locind(np,3) = undefined_index
       else
         pdata(np,prsig)=sig3d
-        pdata_locind(np,3) = undefined_index
       endif
-
+      if (pdata_locind(np,1) .eq. undefined_index .or. &
+          pdata_locind(np,2) .eq. undefined_index) then
+          pdata_locind(np,3) = undefined_index
+      end if
 
       end subroutine rk2_integration
 
@@ -1195,17 +1196,18 @@
         pdata_locind(np,2) = undefined_index
       endif
 
-
       pdata(np,prx)=x3d
       pdata(np,pry)=y3d
       if( .not. terrain_flag )then
         pdata(np,prz)=z3d
-        pdata_locind(np,3) = undefined_index
       else
         pdata(np,prsig)=sig3d
-        pdata_locind(np,3) = undefined_index
       endif
 
+      if (pdata_locind(np,1) .eq. undefined_index .or. &
+          pdata_locind(np,2) .eq. undefined_index) then
+          pdata_locind(np,3) = undefined_index
+      end if
 
       end subroutine BE_integration
 
@@ -1268,57 +1270,22 @@
 
         kflag = 1
 ! JS - jflag could be negative somehow, which will break
-!        the find_vertical_location_index subroutine;
-!        use the original interface but with the 
-!        pdata_locind(:,3) here
-!    - z3d could be NaN somehow, reset kflag = 1 to be 
-!        consistent with the original implementation
-#ifdef _VERIFY_FIND_LOC
-        tmp_flag = kflag
-#endif
-        kflag = max (kflag, pdata_locind(np,3) - location_offset - 1)
-        if ( z3d .ne. z3d ) kflag = 1
+!        the find_vertical_location_index subroutine and 
+!        lead to invalid access to zf(iflag,jflag,kflag);
+!        revert to the old implementation
         if( .not. terrain_flag )then
-          if ( z3d.lt.zf(iflag,jflag,kflag) ) then
-            kflag = 1
-          end if
+           if (jflag .lt. 0) then
+              print *, 'z3d = ', z3d, ', zf(iflag,jflag,2) = ', zf(iflag,jflag,2), ', zf(iflag,jflag,ke+1) = ', zf(iflag,jflag,ke+1)
+           end if
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
-          pdata_locind(np,3) = kflag
-#ifdef _VERIFY_FIND_LOC
-          do while( z3d.gt.zf(iflag,jflag,tmp_flag+1) )
-            tmp_flag = tmp_flag+1
-          enddo
-          if ( kflag .ne. tmp_flag ) then
-            print *, "z3d = ", z3d, ", old scheme finds ", zf(iflag,jflag,tmp_flag+1), ", new scheme finds ", zf(iflag,jflag,kflag+1)
-            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
-            stop "Failed verification test: z index is not the same..."
-          else
-            print *, "Pass the verification test for z index..."
-          end if
-#endif
         else
-          if ( sig3d.lt.sigmaf(kflag) ) then
-            kflag = 1
-          end if
           do while( sig3d.gt.sigmaf(kflag+1) )
             kflag = kflag+1
           enddo
-          pdata_locind(np,3) = kflag
-#ifdef _VERIFY_FIND_LOC
-          do while( sig3d.gt.sigmaf(tmp_flag+1) )
-            tmp_flag = tmp_flag+1
-          enddo
-          if ( kflag .ne. tmp_flag ) then
-            print *, "original search scheme finds z index = ", tmp_flag, ", new search scheme finds z index = ", kflag
-            stop "Failed verification test: z index is not the same..."
-          else
-            print *, "Pass the verification test for z index..."
-          end if
-#endif
         endif
-
+        pdata_locind(np,3) = kflag
 
 !JMD-debug
 !----------------------------------------------------------------------
@@ -1758,7 +1725,8 @@
 #endif
 
       ! Sanity check:
-      ! - If input x/y location is outside the x/y range, return directly
+      ! - If input z location is outside the z range, return directly
+
       if ( loc .lt. dsize(lb) .or. loc .gt. dsize(ub) ) return
 
       if ( loc_ind .ne. undefined_index ) then 
