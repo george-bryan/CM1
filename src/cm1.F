@@ -267,7 +267,6 @@
 #endif
 
       integer, dimension(:,:), allocatable :: pdata_locind  ! 2-D array to store parcel x/y/z location index
-      integer :: ios
 
 !----------------------------------------------------------------------
 
@@ -511,7 +510,7 @@
   ! determine values for nodex and nodey:
     if(myid.eq.0)then
       minval = 1.0e30
-      open(unit=10,file='proc.info')
+      open(unit=10,file='proc.info',status='unknown')
       write(10,*)
     IF( nx.eq.1 .and. ny.eq.1 )THEN
       print *
@@ -584,7 +583,7 @@
       !$acc update device(ni,nj,nk)
       !$acc update device(nparcels,npvals)
       !$acc update device(terrain_flag,numq)
-      !$acc update device(zt,rzt,bbc,tbc)
+      !$acc update device(bbc,tbc)
       !$acc update device(viscosity,pr_num,sc_num)
       !$acc update device(prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pract)
 

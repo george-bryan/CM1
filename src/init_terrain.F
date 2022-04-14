@@ -178,6 +178,7 @@
 
         zt = maxz
         rzt = 1.0/maxz
+        !$acc update device (zt,rzt)
 
         if(dowr) write(outfile,*)
         do k=1,nk+1
