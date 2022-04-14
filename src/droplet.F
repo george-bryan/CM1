@@ -102,7 +102,7 @@
       integer :: tmp_flag
 #endif
 
-      !$acc declare present(rho,prs,qa,wa,sigma)
+!!!!      !$acc declare present(rho,prs,qa,wa,sigma)
 
       !integer :: nip1
 
@@ -115,40 +115,54 @@
 
       !$acc data create(ta)
 
-!$omp parallel do default(shared) private(i,j)
-!$acc parallel loop gang vector default(present) private(i,j)
-  DO j=jb,je+1
-
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
-      IF(j.le.je)THEN
-      do i=ib,ie+1
-        ua(i,j,0) = cgs1*ua(i,j,1)+cgs2*ua(i,j,2)+cgs3*ua(i,j,3)
-      enddo
-      ENDIF
-      do i=ib,ie
-        va(i,j,0) = cgs1*va(i,j,1)+cgs2*va(i,j,2)+cgs3*va(i,j,3)
-      enddo
+      !$acc parallel loop gang vector collapse(2) default(present)
+      do j=jb,je
+         do i=ib,ie+1
+            ua(i,j,0) = cgs1*ua(i,j,1)+cgs2*ua(i,j,2)+cgs3*ua(i,j,3)
+         end do
+      end do
+      !$acc end parallel
+      !$acc parallel loop gang vector collapse(2) default(present)
+      do j=jb,je+1
+         do i=ib,ie
+            va(i,j,0) = cgs1*va(i,j,1)+cgs2*va(i,j,2)+cgs3*va(i,j,3)
+         end do
+      end do
+      !$acc end parallel
     ELSEIF(bbc.eq.2)THEN
       ! no slip:
       if( imove.eq.1 )then
-        IF(j.le.je)THEN
-        do i=ib,ie+1
-          ua(i,j,0) = 0.0 - umove
-        enddo
-        ENDIF
-        do i=ib,ie
-          va(i,j,0) = 0.0 - vmove
-        enddo
+        !$acc parallel loop gang vector collapse(2) default(present)
+        do j=jb,je
+           do i=ib,ie+1
+              ua(i,j,0) = 0.0 - umove
+           end do
+        end do
+        !$acc end parallel
+        !$acc parallel loop gang vector collapse(2) default(present)
+        do j=jb,je+1
+           do i=ib,ie
+              va(i,j,0) = 0.0 - vmove
+           end do
+        end do
+        !$acc end parallel
       else
-        IF(j.le.je)THEN
-        do i=ib,ie+1
-          ua(i,j,0) = 0.0
-        enddo
-        ENDIF
-        do i=ib,ie
-          va(i,j,0) = 0.0
-        enddo
+        !$acc parallel loop gang vector collapse(2) default(present)
+        do j=jb,je
+           do i=ib,ie+1
+              ua(i,j,0) = 0.0
+           end do
+        end do
+        !$acc end parallel
+        !$acc parallel loop gang vector collapse(2) default(present)
+        do j=jb,je+1
+           do i=ib,ie
+              va(i,j,0) = 0.0
+           end do
+        end do
+        !$acc end parallel
       endif
     ELSEIF(bbc.eq.3)THEN
       ! u,v near sfc are determined below using log-layer equations
@@ -158,37 +172,47 @@
 
     IF(tbc.eq.1)THEN
       ! free slip ... extrapolate:
-      IF(j.le.je)THEN
-      do i=ib,ie+1
-        ua(i,j,nk+1) = cgt1*ua(i,j,nk)+cgt2*ua(i,j,nk-1)+cgt3*ua(i,j,nk-2)
-      enddo
-      ENDIF
-      do i=ib,ie
-        va(i,j,nk+1) = cgt1*va(i,j,nk)+cgt2*va(i,j,nk-1)+cgt3*va(i,j,nk-2)
-      enddo
+      !$acc parallel loop gang vector collapse(2) default(present)
+      do j=jb,je
+         do i=ib,ie+1
+            ua(i,j,nk+1) = cgt1*ua(i,j,nk)+cgt2*ua(i,j,nk-1)+cgt3*ua(i,j,nk-2)
+         end do
+      end do
+      !$acc end parallel
+      !$acc parallel loop gang vector collapse(2) default(present)
+      do j=jb,je+1
+         do i=ib,ie
+            va(i,j,nk+1) = cgt1*va(i,j,nk)+cgt2*va(i,j,nk-1)+cgt3*va(i,j,nk-2)
+         end do
+      end do
+      !$acc end parallel
     ELSEIF(tbc.eq.2)THEN
       ! no slip:
-      IF(j.le.je)THEN
-      do i=ib,ie+1
-        ua(i,j,nk+1) = 0.0
-      enddo
-      ENDIF
-      do i=ib,ie
-        va(i,j,nk+1) = 0.0
-      enddo
+      !$acc parallel loop gang vector collapse(2) default(present)
+      do j=jb,je
+         do i=ib,ie+1
+            ua(i,j,nk+1) = 0.0
+         end do
+      end do
+      !$acc end parallel
+      !$acc parallel loop gang vector collapse(2) default(present)
+      do j=jb,je+1
+         do i=ib,ie
+            va(i,j,nk+1) = 0.0
+         end do
+      end do
+      !$acc end parallel
     ENDIF
 
 !----------
 
-      IF(j.le.je)THEN
-      do i=ib,ie
-        wa(i,j,nk+1) = 0.0
-      enddo
-      ENDIF
-
-    !NEED SCALARS
-
-  ENDDO
+    !$acc parallel loop gang vector collapse(2) default(present)
+    do j=jb,je
+       do i=ib,ie
+          wa(i,j,nk+1) = 0.0
+       end do
+    end do
+    !$acc end parallel
 
   !Compute temperature for interpolation
 
@@ -341,8 +365,8 @@
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
 
-      !idropmethod = 0 !RK2 for droplet time integration
-      idropmethod = 1 !Implicit backward Euler for droplet time integration
+      idropmethod = 0 !RK2 for droplet time integration
+      !idropmethod = 1 !Implicit backward Euler for droplet time integration
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
