@@ -3258,15 +3258,11 @@
       do k=2,nk
         fmax = max( fmax , ks(k) )
       enddo
-
-      ksmax = fmax
       !$acc end parallel
+      ksmax = fmax
       !$acc end data
 
 #ifdef MPI
-#ifndef _B4B04R
-      !$acc update host(ksmax)
-#endif
       call MPI_IALLREDUCE(MPI_IN_PLACE,ksmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqk,ierr)
       !$acc update device(ksmax)
 #endif
