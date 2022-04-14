@@ -1274,9 +1274,6 @@
 !        lead to invalid access to zf(iflag,jflag,kflag);
 !        revert to the old implementation
         if( .not. terrain_flag )then
-           if (jflag .lt. 0) then
-              print *, 'z3d = ', z3d, ', zf(iflag,jflag,2) = ', zf(iflag,jflag,2), ', zf(iflag,jflag,ke+1) = ', zf(iflag,jflag,ke+1)
-           end if
           do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
           enddo
