@@ -1139,16 +1139,15 @@
     ziflag:  &
     IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 )THEN
 
-        !$acc parallel private(i,j,k,zi,tmax,dtdz) &
-        !$acc   reduction(min:zimin) &
-        !$acc   reduction(max:zimax)
         zimin =  1.0e30
         zimax = -1.0e30
-        !$acc loop vector collapse(2)
+        !$acc parallel default(present) reduction(min:zimin) reduction(max:zimax)
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           zi = 0.0
           tmax = 0.0
+          !$acc loop seq
           do k=nk,2,-1
             dtdz = (thv(i,j,k)-thv(i,j,k-1))*rdz*mf(i,j,k)
             if( dtdz .ge. tmax )then
@@ -1161,8 +1160,6 @@
           zimin = min( zimin , zi )
         enddo
         enddo
-!!!        print *,'zimin: ',zimin
-!!!        print *,'zimax: ',zimax
         !$acc end parallel
 
 #ifdef MPI
