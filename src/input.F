@@ -170,7 +170,8 @@
 !$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
-!$acc                rmp,cmp,vd_vadv,ibw,ibe,ibs,ibn)
+!$acc                rmp,cmp,vd_vadv,ibw,ibe,ibs,ibn,nodex,nodey, &
+!$acc                myi,myj)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &

@@ -579,13 +579,11 @@
       njp1 = nj+1
       nkp1 = nk+1
       nkm1 = nk-1
-      !$acc update device(nip1,njp1,nkp1,nkm1)
-      !$acc update device(ni,nj,nk)
-      !$acc update device(nparcels,npvals)
-      !$acc update device(terrain_flag,numq)
-      !$acc update device(bbc,tbc)
-      !$acc update device(viscosity,pr_num,sc_num)
-      !$acc update device(prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pract)
+      !$acc update device(nip1,njp1,nkp1,nkm1,ni,nj,nk,nparcels, &
+      !$acc               npvals,terrain_flag,numq,bbc,tbc, &
+      !$acc               viscosity,pr_num,sc_num,prvpx,prvpy, &
+      !$acc               prvpz,prrp,prms,prtp,prx,pry,prsig,prz, &
+      !$acc               pract,nodex,nodey)
 
       nimax = ni
       njmax = nj
@@ -756,6 +754,7 @@
 !-----------------------------------------------
 #endif
 
+      !$acc update device (myi,myj)
 
       call wenocheck
 
@@ -775,6 +774,7 @@
 
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
+
       !$acc update device (ngxy,ngz)
 
 !---------------------------------------------------------------------
