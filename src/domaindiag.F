@@ -1609,68 +1609,81 @@
       !$acc update device(qcrit)
 #endif
 
-      !$acc parallel default(present) private(i,j,k)
-      do k=nk,1,-1
         ! use minimum of 1.0e-5 and 1% of saturation wrt liquid (using last known t,p)
         !qcrit(k) = min( 1.0e-5 , 0.01*rslf(pavg(k),thavg(k)*((pavg(k)*rp00)**rovcp)) )
         if( nqc.ge.1 )then
-          !$acc loop gang vector collapse(2)
-          do j=1,nj
-          do i=1,ni
-            if( q3d(i,j,k,nqc).ge.qcrit(k) ) dum1(i,j,1) = zh(i,j,k)
-          enddo
-          enddo
+          !$acc parallel default(present)
+          !$acc loop gang vector collapse(3)
+          do k=nk,1,-1
+             do j=1,nj
+                do i=1,ni
+                   if( q3d(i,j,k,nqc).ge.qcrit(k) ) dum1(i,j,1) = zh(i,j,k)
+                end do
+             end do
+          end do
+          !$acc end parallel
         endif
         if( nqr.ge.1 )then
-          !$acc loop gang vector collapse(2)
-          do j=1,nj
-          do i=1,ni
-            if( q3d(i,j,k,nqr).ge.qcrit(k) ) dum1(i,j,2) = zh(i,j,k)
-          enddo
-          enddo
+          !$acc parallel default(present)
+          !$acc loop gang vector collapse(3)
+          do k=nk,1,-1
+             do j=1,nj
+                do i=1,ni
+                   if( q3d(i,j,k,nqr).ge.qcrit(k) ) dum1(i,j,2) = zh(i,j,k)
+                end do
+             end do
+          end do
+          !$acc end parallel
         endif
-        !$acc loop gang vector collapse(2)
-        do j=1,nj
-        do i=1,ni
-          if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
-        enddo
-        enddo
+        !$acc parallel default(present)
+        !$acc loop gang vector collapse(3)
+        do k=nk,1,-1
+           do j=1,nj
+              do i=1,ni
+                 if( ql(i,j,k).ge.qcrit(k) ) dum1(i,j,3) = zh(i,j,k)
+              end do
+           end do
+        end do
+        !$acc end parallel
         if( iice.eq.1 )then
-        !$acc loop gang vector collapse(2)
-        do j=1,nj
-        do i=1,ni
-          if( qice(i,j,k).ge.qcrit(k) ) dum1(i,j,4) = zh(i,j,k)
-        enddo
-        enddo
+        !$acc parallel default(present)
+        !$acc loop gang vector collapse(3)
+        do k=nk,1,-1
+           do j=1,nj
+              do i=1,ni
+                 if( qice(i,j,k).ge.qcrit(k) ) dum1(i,j,4) = zh(i,j,k)
+              end do
+           end do
+        end do
+        !$acc end parallel
         endif
-        !$acc loop gang vector collapse(2)
-        do j=1,nj
-        do i=1,ni
-          if( (ql(i,j,k)+qice(i,j,k)).ge.qcrit(k) ) dum1(i,j,5) = zh(i,j,k)
-        enddo
-        enddo
-      enddo
-      !$acc end parallel
+        !$acc parallel default(present)
+        !$acc loop gang vector collapse(3)
+        do k=nk,1,-1
+           do j=1,nj
+              do i=1,ni
+                 if( (ql(i,j,k)+qice(i,j,k)).ge.qcrit(k) ) dum1(i,j,5) = zh(i,j,k)
+              end do
+           end do
+        end do
+        !$acc end parallel
 
-      !$acc parallel default(present) private(i,j) &
-      !$acc   reduction(+:qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
       qcfrac = 0.0
       qrfrac = 0.0
       qlfrac = 0.0
       qifrac = 0.0
       qtfrac = 0.0
-
-      !$acc loop gang vector collapse(2) &
-      !$acc   reduction(+:qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
+      !$acc parallel default(present) reduction(+:qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
+      !$acc loop gang vector collapse(2) reduction(+:qcfrac,qrfrac,qlfrac,qifrac,qtfrac)
       do j=1,nj
-      do i=1,ni
-        if( dum1(i,j,1).gt.0.01*zh(1,1,1) ) qcfrac = qcfrac+1.0
-        if( dum1(i,j,2).gt.0.01*zh(1,1,1) ) qrfrac = qrfrac+1.0
-        if( dum1(i,j,3).gt.0.01*zh(1,1,1) ) qlfrac = qlfrac+1.0
-        if( dum1(i,j,4).gt.0.01*zh(1,1,1) ) qifrac = qifrac+1.0
-        if( dum1(i,j,5).gt.0.01*zh(1,1,1) ) qtfrac = qtfrac+1.0
-      enddo
-      enddo
+         do i=1,ni
+            if( dum1(i,j,1).gt.0.01*zh(1,1,1) ) qcfrac = qcfrac+1.0
+            if( dum1(i,j,2).gt.0.01*zh(1,1,1) ) qrfrac = qrfrac+1.0
+            if( dum1(i,j,3).gt.0.01*zh(1,1,1) ) qlfrac = qlfrac+1.0
+            if( dum1(i,j,4).gt.0.01*zh(1,1,1) ) qifrac = qifrac+1.0
+            if( dum1(i,j,5).gt.0.01*zh(1,1,1) ) qtfrac = qtfrac+1.0
+         end do
+      end do
       !$acc end parallel
 
 #ifdef MPI

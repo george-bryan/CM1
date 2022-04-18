@@ -3254,7 +3254,7 @@
 
       fmax=-99999999.
       !$acc parallel default(present) reduction(max:fmax)
-      !$acc loop gang verctor reduction(max:fmax)
+      !$acc loop gang vector reduction(max:fmax)
       do k=2,nk
          fmax = max( fmax , ks(k) )
       end do
