@@ -1801,10 +1801,10 @@
 
                 call inverse_finder_2d(fancy, inv)
 
-                fancy(1,1) = inv(1,1)*J(1,1)+inv(1,2)*J(1,2)
-                fancy(1,2) = inv(1,1)*J(2,1)+inv(1,2)*J(2,2)
-                fancy(2,1) = inv(2,1)*J(1,1)+inv(2,2)*J(1,2)
-                fancy(2,2) = inv(2,1)*J(2,1)+inv(2,2)*J(2,2)
+                finalJ(1,1) = inv(1,1)*J(1,1)+inv(1,2)*J(1,2)
+                finalJ(1,2) = inv(1,1)*J(2,1)+inv(1,2)*J(2,2)
+                finalJ(2,1) = inv(2,1)*J(1,1)+inv(2,2)*J(1,2)
+                finalJ(2,2) = inv(2,1)*J(2,1)+inv(2,2)*J(2,2)
 
                 correct(1) = finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2)
                 correct(2) = finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2)

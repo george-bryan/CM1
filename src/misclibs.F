@@ -3252,20 +3252,21 @@
         stop 1112
       endif
 
-      !$acc parallel default(present) private(k) reduction(max:fmax)
       fmax=-99999999.
-      !$acc loop private(k) reduction(max:fmax)
+      !$acc parallel default(present) reduction(max:fmax)
+      !$acc loop gang verctor reduction(max:fmax)
       do k=2,nk
-        fmax = max( fmax , ks(k) )
-      enddo
+         fmax = max( fmax , ks(k) )
+      end do
       !$acc end parallel
       ksmax = fmax
+
       !$acc end data
 
 #ifdef MPI
       call MPI_IALLREDUCE(MPI_IN_PLACE,ksmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqk,ierr)
-      !$acc update device(ksmax)
 #endif
+      !$acc update device(ksmax)
 
       if(ksmax.ge.0.50) then 
          stopit=.true.
@@ -3311,75 +3312,66 @@
 !JMD-FIXME
 !!$acc update host(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
 
-!$acc data create(imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv,ksh,ksv,mmax,nmax)
+!$acc data copyout (ksh,ksv,imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv) &
+!$acc      copyin (khh,vh,uh,mf)
 
       dtdx=dt*rdx*rdx
       dtdy=dt*rdy*rdy
       dtdz=dt*rdz*rdz
 
-!$acc parallel loop gang vector default(present) private(k)
-      do k=2,nk
-        ksh(k)=-99999.0
-        ksv(k)=-99999.0
-      enddo
-
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,tem)
-!$acc parallel default(present) private(i,j,k,tem) reduction(max:maxksh) reduction(max:maxksv)
+
+!$acc parallel default(present) reduction(max:maxksh,maxksv)
+!$acc loop gang reduction(max:maxksh,maxksv)
       do k=2,nk
-        maxksh = -99999.0
-        maxksv = -99999.0
-!$acc loop collapse(2) private(i,j,k,tem) reduction(max:maxksh) reduction(max:maxksv)
-        do j=1,nj
-        do i=1,ni
-          tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
-          maxksh=max(tem,maxksh)
+         maxksh = -99999.0
+         maxksv = -99999.0
+!$acc loop vector collapse(2) reduction(max:maxksh,maxksv)
+         do j=1,nj
+            do i=1,ni
+               tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
+               maxksh=max(tem,maxksh)
 
-          tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
-          maxksh=max(tem,maxksh)
+               tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
+               maxksh=max(tem,maxksh)
 
-          tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
-          maxksv=max(tem,maxksv)
-        enddo
-        enddo
-        ksh(k)=maxksh
-        ksv(k)=maxksv
-      enddo
+               tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
+               maxksv=max(tem,maxksv)
+            end do
+         end do
+         ksh(k)=maxksh
+         ksv(k)=maxksv
+      end do
 !$acc end parallel
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,tem)
-!$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem)
+!$acc parallel loop gang vector collapse(3) default(present)
       do k=2,nk
-        do j=1,nj
-        do i=1,ni
-!!!          tem = max( abs(kmh(i,j,k))*dtdx*uh(i)*uh(i) ,   &
-!!!                     abs(khh(i,j,k))*dtdx*uh(i)*uh(i) )
-          tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
-          if( tem.eq.ksh(k) )then
-            imaxth(k)=i
-            jmaxth(k)=j
-            kmaxth(k)=k
-          endif
-!!!          tem = max( abs(kmh(i,j,k))*dtdy*vh(j)*vh(j) ,   &
-!!!                     abs(khh(i,j,k))*dtdy*vh(j)*vh(j) )
-          tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
-          if( tem.eq.ksh(k) )then
-            imaxth(k)=i
-            jmaxth(k)=j
-            kmaxth(k)=k
-          endif
-!!!          tem = max( abs(kmv(i,j,k))*dtdz*mf(i,j,k)*mf(i,j,k) ,   &
-!!!                     abs(khv(i,j,k))*dtdz*mf(i,j,k)*mf(i,j,k) )
-          tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
-          if( tem.eq.ksv(k) )then
-            imaxtv(k)=i
-            jmaxtv(k)=j
-            kmaxtv(k)=k
-          endif
-        enddo
-        enddo
-      enddo
+         do j=1,nj
+            do i=1,ni
+               tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
+               if( tem.eq.ksh(k) )then
+                 imaxth(k)=i
+                 jmaxth(k)=j
+                 kmaxth(k)=k
+               end if
+               tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
+               if( tem.eq.ksh(k) )then
+                 imaxth(k)=i
+                 jmaxth(k)=j
+                 kmaxth(k)=k
+               end if
+               tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
+               if( tem.eq.ksv(k) )then
+                 imaxtv(k)=i
+                 jmaxtv(k)=j
+                 kmaxtv(k)=k
+               endif
+            end do
+         end do
+      end do
 
       fhmax=-99999999.
       fvmax=-99999999.
@@ -3389,20 +3381,20 @@
       imaxv=1
       jmaxv=1
       kmaxv=1
-      !$acc parallel loop gang vector default(present) private(k)
+      !$acc parallel loop gang vector default(present)
       do k=2,nk
-        if(ksh(k).gt.fhmax)then
-          fhmax=ksh(k)
-          imaxh=imaxth(k)
-          jmaxh=jmaxth(k)
-          kmaxh=kmaxth(k)
-        endif
-        if(ksv(k).gt.fvmax)then
-          fvmax=ksv(k)
-          imaxv=imaxtv(k)
-          jmaxv=jmaxtv(k)
-          kmaxv=kmaxtv(k)
-        endif
+         if(ksh(k).gt.fhmax)then
+           fhmax=ksh(k)
+           imaxh=imaxth(k)
+           jmaxh=jmaxth(k)
+           kmaxh=kmaxth(k)
+         endif
+         if(ksv(k).gt.fvmax)then
+           fvmax=ksv(k)
+           imaxv=imaxtv(k)
+           jmaxv=jmaxtv(k)
+           kmaxv=kmaxtv(k)
+         endif
       enddo
 
       if( cm1setup.eq.2 .and. horizturb.eq.0 )then
