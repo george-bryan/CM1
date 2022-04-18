@@ -5334,6 +5334,7 @@
 
         nvdiag = nvdiag+1
         vd_vadv = nvdiag
+        !$acc update device (vd_vadv)
 
         if( cm1setup.ge.1 .or. ipbl.ge.1 )then
           nvdiag = nvdiag+1
@@ -6229,12 +6230,14 @@
       if(dowr) write(outfile,*) '    prmult   = ',prmult
       if(dowr) write(outfile,*) '    pract    = ',pract
       if(dowr) write(outfile,*)
-      !$acc update device(nparcels,npvals,npvars,prx,pry,prz,pru,prv,prw) &
-      !$acc device(prtime,prth,prt,prprs,prpt1,prpt2,prqv,prq1,prq2,prnc1) &
-      !$acc device(prnc2,prkm,prkh,prtke,prdbz,prb,prvpg,przv,prrho,prqsl) &
-      !$acc device(prqsi,prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp,prms) &
-      !$acc device(prtp,prmult,pract)
-      
+
+      !$acc update device (nparcels,npvals,npvars,prx,pry,prz,pru, &
+      !$acc                prv,prw,prtime,prth,prt,prprs,prpt1, &
+      !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm, &
+      !$acc                prkh,prtke,prdbz,prb,prvpg,przv,prrho, &
+      !$acc                prqsl,prqsi,prznt,prust,przs,prsig, &
+      !$acc                prvpx,prvpy,prvpz,prrp,prms,prtp, &
+      !$acc                prmult,pract)
 
 !--------------------------------------------------------------
 !  Get identity
@@ -6408,6 +6411,8 @@
         ibn=1
       endif
 #endif
+
+      !$acc update device (ibw,ibe,ibs,ibn)
 
 !--------------------------------------------------------------
 
@@ -8697,6 +8702,8 @@
       if(dowr) write(outfile,*) '  ---------------------------------- '
 
   ENDDO
+
+  !$acc update device (cgs1,cgs2,cgs3,cgt1,cgt2,cgt3)
 
 !--------------------------------------------------------------
 !  cm1r18:  Set ghost points for zh

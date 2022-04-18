@@ -74,7 +74,7 @@ endif
 #  NVHPC compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},nvfortran)
-    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape
+    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${DEBUG_L},true)
          OPTS    += -g -O0
@@ -104,7 +104,7 @@ endif
 #  PGI compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},pgf90)
-    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape
+    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${DEBUG_L},true)
          OPTS    += -g -O0

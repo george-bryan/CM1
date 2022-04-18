@@ -579,13 +579,11 @@
       njp1 = nj+1
       nkp1 = nk+1
       nkm1 = nk-1
-      !$acc update device(nip1,njp1,nkp1,nkm1)
-      !$acc update device(ni,nj,nk)
-      !$acc update device(nparcels,npvals)
-      !$acc update device(terrain_flag,numq)
-      !$acc update device(zt,rzt,bbc,tbc)
-      !$acc update device(viscosity,pr_num,sc_num)
-      !$acc update device(prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pract)
+      !$acc update device(nip1,njp1,nkp1,nkm1,ni,nj,nk,nparcels, &
+      !$acc               npvals,terrain_flag,numq,bbc,tbc, &
+      !$acc               viscosity,pr_num,sc_num,prvpx,prvpy, &
+      !$acc               prvpz,prrp,prms,prtp,prx,pry,prsig,prz, &
+      !$acc               pract,nodex,nodey)
 
       nimax = ni
       njmax = nj
@@ -756,6 +754,7 @@
 !-----------------------------------------------
 #endif
 
+      !$acc update device (myi,myj)
 
       call wenocheck
 
@@ -775,10 +774,8 @@
 
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
-      !print *,'cm1: copyin of (ngzy,ngz): ',ngxy,ngz 
+
       !$acc update device (ngxy,ngz)
-      !stop 'after call to data copyin()'
-      
 
 !---------------------------------------------------------------------
 !      For ZVD:
@@ -976,6 +973,7 @@
       rmp = 1
       cmp = 1
 #endif
+      !$acc update device (imp,jmp,kmp,kmt,rmp,cmp)
 
       allocate( reqs_u(rmp) )
       reqs_u = 0
@@ -1271,7 +1269,6 @@
                        uw31,uw32,ue31,ue32,us31,us32,un31,un32,         &
                        vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,         &
                        ww31,ww32,we31,we32,ws31,ws32,wn31,wn32)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
 !----------------------------------------------------------------------
 
@@ -1461,8 +1458,6 @@
                       uw31,uw32,ue31,ue32,us31,us32,un31,un32,              &
                       vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,              &
                       sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-
 
 !----------------------------------------------------------------------
 !  Now, allocate the mother lode, then call INIT3D
@@ -2191,7 +2186,6 @@
                        ws31(1,1,1),ws32(1,1,1),wn31(1,1,1),wn32(1,1,1),reqs_p)
 
       ENDIF
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 
       allocate( hflxw(ibib:ieib,jbib:jeib,kmaxib) )
       hflxw = 0
@@ -2297,8 +2291,6 @@
                   kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                   pta,pt3d,ptten,                                   &
                   pdata,cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-
 
 !----------------------------------------------------------------------
 
@@ -2471,7 +2463,6 @@
                         emiss,thc,albd,znt,rznt,mavail,dsxy,prs0s,prs0,   &
                         tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml,z0base)
 
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
       IF(irst.eq.1)THEN
 
         startup = .false.
@@ -2512,7 +2503,6 @@
                               icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
                               gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
                               dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
           ! end_read_restart
         !  In case user wants to change values on a restart:
         IF( restart_reset_frqtim )THEN 
@@ -2602,7 +2592,6 @@
         if(dowr) write(outfile,*)
       ENDIF
 
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
       call       getset(restarted,mass1,uh,ruh,vh,rvh,xh,yh,xf,yf,         &
                         zs,gz,sigma,sigmaf,rmh,mf,dzdx,dzdy,dumk1,dumk2,   &
                         pi0,th0,rho0,prs0,ust,u1,v1,s1,u0,v0,rth0,         &
@@ -2662,7 +2651,7 @@
 
       !$acc data &
       !$acc copyin(uh,vh,mh,u3d,v3d,w3d) &
-      !$acc copyin(kmh,kmv,khh,khv,ksmax)
+      !$acc copyin(kmh,kmv,khh,khv)
       if( adapt_dt.eq.1 )then
         dt = dbldt
         if( .not. restarted )then
@@ -2698,8 +2687,6 @@
         endif
       endif
       !$acc end data
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
-
 
       ! cm1r19:  nsound is always determined diagnostically
       call dtsmall(dt,dbldt)
@@ -2782,77 +2769,59 @@
       IF( imoist.eq.1 .and. dodomaindiag .and. ptype.eq.5 ) getvt = .true.
       IF( imoist.eq.1 .and. dodomaindiag .and. testcase.eq.5 ) getvt = .true.
 
-    !$acc data &
-    !$acc copyin(thten,sten,ksmax) &
-    !$acc copyin(rho0,thv0,th0,qv0) &
-    !$acc copyin(prs0,rth0,qc0) &
-    !$acc copyin(xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf, &
-    !$acc   yh,vh,rvh,yf,vf,rvf,rds,sigma,rdsf,sigmaf,zh,mh,rmh,zf,mf,rmf, &
-    !$acc   zs,gz,rgz,gzu,rgzu,gzv,rgzv,dzdx,dzdy,gx,gxu,gy,gyv) &
-    !$acc copyin(c1,c2,wprof,f2d,m11,m12,m13,m22,m23,m33,kmw,u1b,v1b, &
-    !$acc   tauh,tauf,taus,bndy,kbdy,phi1,pt3d,rdx,rdy,rzt,zt, &
-    !$acc   cgs1, cgs2, cgs3, cgt1, cgt2, cgt3, xland) &
-    !$acc copyin(avgsfcu,avgsfcv,avgsfcs,avgsfct) &
-    !$acc copyin(p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2) &
-    !$acc copyin(pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2) &
-    !$acc copyin(uw31,uw32,ue31,ue32,us31,us32,un31,un32) &
-    !$acc copyin(zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2) &
-    !$acc copyin(tw1,tw2,te1,te2,ts1,ts2,tn1,tn2) &
-    !$acc copyin(tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2) &
-    !$acc copyin(ww1,ww2,we1,we2,ws1,ws2,wn1,wn2) &
-    !$acc copyin(vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2) &
-    !$acc copyin(vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32) &
-    !$acc copyin(ww31,ww32,we31,we32,ws31,ws32,wn31,wn32) &
-    !$acc copyin(qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32) &
-    !$acc copyin(sw31,sw32,se31,se32,ss31,ss32,sn31,sn32) &
-    !$acc copyin(rw31,rw32,re31,re32,rs31,rs32,rn31,rn32) &
-    !$acc copyin(p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2) &
-    !$acc copyin( &
-    !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
-    !$acc   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                  &
-    !$acc   n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,          &
-    !$acc   kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2)                  &
-    !$acc copyin(taux,tauy,gamwall,l2p,t2pm1,t2pm2,t2pm3,t2pm4) &
-    !$acc copyin(udiag,vdiag,wdiag,kdiag,tdiag,qdiag) &
-    !$acc copyin(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9) &
-    !$acc copyin(dum2d1,dum2d2,dum2d3,dum2d4,dum2d5) & ! does not appear to be used
-    !$acc copyin(defv,defh,lenscl,dissten, &
-    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hpbl, &
-    !$acc      wspd,gz1oz0,br,brcr,phim,phih,swspd,cpmm,zol,mavail,mol,rmol,dsxy,cda,psim,psih, &
-    !$acc      psiq,fm,fh,th2,q2,t2,gamk,cmz,csz,ce1z,ce2z) &
-    !$acc copyin(stau,ustt,ut,vt,st,cd,ch,cq,tlh,u1,v1,s1,t1) &
-    !$acc copyin(znt,zntmp,ust,hfx,qfx,qsfc,tsk,tmn,tslb) &
-    !$acc copyin(sws,svs,sps,srs,sgs,sus,shs) &
-    !$acc copyin(bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12,t13,t22,t23,t33, &
-    !$acc      thflux,qvflux,radbcw,radbce,radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx, &
-    !$acc      nm,dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv,qke,qke3d) &
-    !$acc copyin(chklowq,flqc,ch_out,cd_out) &
-    !$acc copyin(pdata,dpten) &
-    !$acc copyin(zkmax,CHS,CHS2,CQS2,flhc,lh,QGH,smois,charn,msang,scurx,scury,s2p,s2b) &
-    !$acc copyin(lu_index) &
-    !$acc copyin(qi0,rr0,rf0,rrf0,dtu0,dtv0,u0,v0) &
-    !$acc copyin(rho,rr,rf,prs,o30,zir)  &
-    !$acc copyin(flag) &
-    !$acc copyin(pi0) &
-    !$acc copyin(ug,vg) &
-    !$acc copyin(tke_myj,xkzh,xkzq,xkzm) &
-    !$acc copyin(xfref,xhref,yfref,yhref,dvdr) &
-    !$acc copyin(qpten,qtten,qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen) &
-    !$acc copyin(effc,effi,effs,effr,effg,effis,out2d,out3d) &  ! physics only 
-    !$acc copyin(rain,prate,p3a,p3o) & ! physics only
-    !$acc copyin(qbudget,asq,bsq) &
-    !$acc copyin(qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s,tst,qst,z0t,z0q,mznt) &
-    !$acc copyin(ppi,pp3d,ppten,sadv,ppx,tha) &
-    !$acc copyin(thten1,thterm) &
-    !$acc copyin(glw,gsw) &
-    !$acc copyin(ulspg,vlspg) &
-    !$acc copyin(savg,pavg,uavg,vavg,thavg) &
-    !$acc copyin(lsnudge_u, lsnudge_v) &
-    !$acc copyin(dt) &
-    !$acc copyin(reqs_s,reqs_u,reqs_p3, &
-    !$acc   reqs_v,reqs_w,reqs_x,reqs_y,reqs_s,reqs_p2,reqs_z) &
-    !$acc copyin(rru,ua,u3d,uten,uten1,rrv,va,v3d,th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1) &
-    !$acc copy(pdata_locind)
+!$acc data copyin (thten,sten,rho0,thv0,th0,qv0,prs0,rth0,qc0, &
+!$acc              xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf, &
+!$acc              ruf,yh,vh,rvh,yf,vf,rvf,rds,sigma,rdsf,sigmaf, &
+!$acc              zh,mh,rmh,zf,mf,rmf,zs,gz,rgz,gzu,rgzu,gzv, &
+!$acc              rgzv,dzdx,dzdy,gx,gxu,gy,gyv,c1,c2,wprof,f2d, &
+!$acc              m11,m12,m13,m22,m23,m33,kmw,u1b,v1b,tauh,tauf, &
+!$acc              taus,bndy,kbdy,phi1,pt3d,xland,p2w1,p2w2,p2e1, &
+!$acc              p2e2,p2s1,p2s2,p2n1,p2n2,pw1,pw2,pe1,pe2,ps1, &
+!$acc              ps2,pn1,pn2,uw31,uw32,ue31,ue32,us31,us32,un31, &
+!$acc              un32,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,tw1,tw2, &
+!$acc              te1,te2,ts1,ts2,tn1,tn2,tkw1,tkw2,tke1,tke2, &
+!$acc              tks1,tks2,tkn1,tkn2,ww1,ww2,we1,we2,ws1,ws2, &
+!$acc              wn1,wn2,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2, &
+!$acc              vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32, &
+!$acc              ww31,ww32,we31,we32,ws31,ws32,wn31,wn32, &
+!$acc              qw31,qw32,qe31,qe32,qs31,qs32,qn31,qn32, &
+!$acc              sw31,sw32,se31,se32,ss31,ss32,sn31,sn32, &
+!$acc              rw31,rw32,re31,re32,rs31,rs32,rn31,rn32, &
+!$acc              p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2, &
+!$acc              n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
+!$acc              nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,kw1,kw2, &
+!$acc              ke1,ke2,ks1,ks2,kn1,kn2,taux,tauy,gamwall, &
+!$acc              l2p,t2pm1,t2pm2,t2pm3,t2pm4,udiag,vdiag, &
+!$acc              wdiag,kdiag,tdiag,qdiag,dum1,dum2,dum3,dum4, &
+!$acc              dum5,dum6,dum7,dum8,dum9,defv,defh,lenscl, &
+!$acc              dissten,epst,epsd1,epsd2,thpten,upten,vpten, &
+!$acc              psfc,u10,v10,s10,hpbl,wspd,gz1oz0,br,brcr, &
+!$acc              phim,phih,swspd,cpmm,zol,mavail,mol,rmol, &
+!$acc              dsxy,cda,psim,psih,psiq,fm,fh,th2,q2,t2, &
+!$acc              gamk,cmz,csz,ce1z,ce2z,stau,ustt,ut,vt,st, &
+!$acc              cd,ch,cq,tlh,u1,v1,s1,t1,znt,zntmp,ust,hfx, &
+!$acc              qfx,qsfc,tsk,tmn,tslb,sws,svs,sps,srs,sgs, &
+!$acc              sus,shs,bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12, &
+!$acc              t13,t22,t23,t33,thflux,qvflux,radbcw,radbce, &
+!$acc              radbcs,radbcn,dtu,dtv,dumk1,dumk2,divx,nm, &
+!$acc              dissten,epst,pta,pt3d,ptten,u2pt,v2pt,qke_adv, &
+!$acc              qke,qke3d,chklowq,flqc,ch_out,cd_out,pdata, &
+!$acc              dpten,zkmax,CHS,CHS2,CQS2,QGH,smois,charn, &
+!$acc              msang, scurx,scury,s2p,s2b,lu_index,qi0,rr0, &
+!$acc              rf0,rrf0,dtu0,dtv0,u0,v0,rho,rr,rf,prs,o30, &
+!$acc              zir,flag,pi0,ug,vg,tke_myj,xkzh,xkzq,xkzm, &
+!$acc              xfref,xhref,yfref,yhref,dvdr,qpten,qtten, &
+!$acc              qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea, &
+!$acc              tke3d,tketen,effc,effi,effs,effr,effg,effis, &
+!$acc              out2d,out3d,rain,prate,p3a,p3o,qbudget,asq, &
+!$acc              bsq,qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s, &
+!$acc              tst,qst,z0t,z0q,mznt,ppi,pp3d,ppten,sadv,ppx, &
+!$acc              tha,thten1,thterm,glw,gsw,ulspg,vlspg,savg,pavg, &
+!$acc              uavg,vavg,thavg,lsnudge_u,lsnudge_v,reqs_s, &
+!$acc              reqs_u,reqs_p3,reqs_v,reqs_w,reqs_x,reqs_y, &
+!$acc              reqs_p2,reqs_z,rru,ua,u3d,uten,uten1,rrv,va,v3d, &
+!$acc              th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1,pdata_locind, &
+!$acc              dum2d1,dum2d2,dum2d3,dum2d4,dum2d5)    ! JMD: does not appear to be used
 
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
@@ -3003,8 +2972,6 @@
 
         if(timestats.ge.1) time_misc=time_misc+mytime()
 
-
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 #ifdef _NVTX
         call nvtxStartRange("solve1 ",id=0)
 #endif
@@ -3182,7 +3149,6 @@
 #ifdef _NVTX
         call nvtxEndRange
 #endif
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
       !print *,'cm1: after call to solve2'
       !$acc compare(dum1)
 
@@ -3215,7 +3181,6 @@
 #endif
 
       ENDIF
-      !print *,'cm1: (ngzy,ngz): ',ngxy,ngz 
 !$acc compare(qbudget)
 
 

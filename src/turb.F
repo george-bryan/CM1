@@ -2527,8 +2527,7 @@
 
     ENDIF
      
-
-
+    !$acc update host (grdscl)
     if( nstep.eq.0 .and. myid.eq.0 )then
       print *
       print *,'  zf,grdscl:'
