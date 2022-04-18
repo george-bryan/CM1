@@ -78,7 +78,7 @@ ifeq (${FC},nvfortran)
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${DEBUG_L},true)
          OPTS    += -g -O0
-         # DM      += -D_B4B
+         DM      += -D_B4B
     else
          OPTS    += -g -O2
     endif
@@ -124,7 +124,7 @@ ifeq (${FC},pgf90)
         ifeq (${DEBUG_L},true)
             OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Mnofma
         else
-            OPTS += -acc -gpu=cc70,lineinfo,math_uniform -Mpcast -Minfo=accel -Mnofma
+            OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel -Mnofma
         endif
         DM       += -D_OPENACC
     endif
