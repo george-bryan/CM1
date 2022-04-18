@@ -9688,7 +9688,7 @@
         vargrid(nvar) = '2'
 
         savg2d = 0.0
-        !$acc parallel loop gang vector reduction(max:savg2d)
+        !$acc parallel loop gang vector default(present) reduction(max:savg2d) 
         do k=2,nk
           savg2d = max( savg2d , dble(wvar(k)) )
         enddo
@@ -10667,26 +10667,15 @@
 
     integer :: i,j
 
-    !JMD Need to double check following bit of code.  We should be able to move 
-    !JMD calculation to the GPU
-#ifdef _B4B28R
-    !$acc update host(s2d)
-    savg2d = 0.0
-#else
     savg2d = 0.0
     !$acc parallel default(present) private(i,j) reduction(+:savg2d)
     !$acc loop gang vector collapse(2) reduction(+:savg2d)
-#endif
     do j=1,nj
     do i=1,ni
       savg2d = savg2d+s2d(i,j)
     enddo
     enddo
-#ifdef _B4B28R
-    !$acc update device(savg2d)
-#else
     !$acc end parallel
-#endif
 
 #ifdef MPI
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg2d,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -10695,6 +10684,7 @@
     savg2d = savg2d/dble(nx*ny)
 
     end subroutine getavg2d
+
 
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
