@@ -1182,8 +1182,6 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      !JMD need to verify that zimin is still incorrect
-      !JMD-BUG:  for some reason zimin is still not set properly 
       nvar = nvar+1
       varname(nvar) = 'zimin'
       vardesc(nvar) = 'minimum value of zi'

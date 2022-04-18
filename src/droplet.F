@@ -102,12 +102,8 @@
       integer :: tmp_flag
 #endif
 
-!!!!      !$acc declare present(rho,prs,qa,wa,sigma)
-
-      !integer :: nip1
-
       call reinit_random_seed
-      !print *,'droplet_driver: point #1'
+
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
@@ -231,8 +227,6 @@
   enddo
   !$acc end parallel
 
-  !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
-  !stop 'droplet_driver: after first compare'
   ! GHB 210714:
     call prepcorners3_GPU( ta,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
@@ -242,12 +236,6 @@
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
     call prepcorners3_GPU(qa(ib,jb,kb,nqv),sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,1)
-    !$acc compare(rho)
-    !!$acc compare(qa,ta,pi0,th_in,th0,ppa)
-    !!$acc compare(sigma)
-!  print *, 'droplet_driver: after call to prepcorners'
-
-
 
 !----------------------------------------------------------------------
 !  Loop through all parcels:  if you have it, update it's properties
@@ -266,14 +254,8 @@
     !$acc host(pdata,xf,yf,zf,zh,sigma,sigmaf, &
     !$acc      ua,va,wa,qa,ta,rho,prs,znt,qten,thten,zs)
 #else
-    !$acc compare(pdata)
     !JMD WARNING: Loop does not yet match CPU version.
-    !$acc parallel &
-    !$acc default(present) &
-    !$acc private(i,j,k,x3d,y3d,z3d,sig3d,iflag,jflag,kflag,nrkp,rhoval, &
-    !$acc         rhop0,taup0,Nup,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
-    !$acc         dV,ix,iy,iz,xv,yv,zv,wtx,wty,wtz,wtt,esl,part_grav1, &
-    !$acc         part_grav2,part_grav3,rp0)
+    !$acc parallel default(present)
     !$acc loop gang vector 
 #endif
     nploop:  &
@@ -295,7 +277,6 @@
   haveit1:  &
   IF( x3d.ge.xf(1) .and. x3d.le.xf(ni+1) .and.  &
       y3d.ge.yf(1) .and. y3d.le.yf(nj+1) )THEN
-
     IF(nx.eq.1)THEN
       iflag = 1
     ELSE
@@ -309,7 +290,6 @@
       ! cm1r19:
       call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
     ENDIF
-
   ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
     pdata_locind(np,1) = undefined_index
     pdata_locind(np,2) = undefined_index
@@ -364,9 +344,8 @@
       drpdt    = pdata(np,prrp)
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
-
-      idropmethod = 0 !RK2 for droplet time integration
-      !idropmethod = 1 !Implicit backward Euler for droplet time integration
+      !idropmethod = 0 !RK2 for droplet time integration
+      idropmethod = 1 !Implicit backward Euler for droplet time integration
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
@@ -376,16 +355,13 @@
 
       call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
 
-
       ENDIF dropmethod
 
 
       ENDIF dropalive1
       
-
     dropalive2:  &
     IF (pdata(np,pract).gt.0.0) THEN
-
 
 !-----------------------------------------------------
 !  Now perform the two-way coupling based on the changes in droplet momentum,
@@ -484,18 +460,17 @@
 
       dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt)/dt
 
-
       !Volume where the droplet finds itself
       dV = (xh(iflag+1)-xh(iflag))*   &
            (yh(jflag+1)-yh(jflag))*   &
            (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
 
       !Loop over all nodes surrounding droplet
-      !!$acc loop seq
+      !$acc loop seq
       do i=0,1
-      !!$acc loop seq
+      !$acc loop seq
       do j=0,1
-      !!$acc loop seq
+      !$acc loop seq
       do k=0,1
 
         ix = iflag+i
@@ -529,7 +504,6 @@
       enddo
 
     ENDIF dropalive2
-
 
 !-----------------------------------------------------
 !  Account for boundary conditions (if necessary)
@@ -572,6 +546,7 @@
       ELSE
 
         ! set to really small number (so we can use the allreduce command below)
+
         pdata(np,prx) = -1.0e30
         pdata(np,pry) = -1.0e30
         if( .not. terrain_flag )then
@@ -587,12 +562,12 @@
         pdata(np,prms) = -1.0e30
         pdata(np,prmult) = -1.0e30
         pdata(np,pract) = -1.0e30
+
 #endif
 
       ENDIF  myparcel
 
     ENDDO  nploop
-    !print *,'droplet_driver: after the nploop'
 #ifdef _B4B01F
     !$acc update device(pdata,qten,thten)
 #else
@@ -602,9 +577,7 @@
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
-     !$acc compare(pdata)
 #ifdef MPI
-      !print *,'droplet_driver: before call to MPI_ALLREDUCE'
       !$acc update host(pdata)
       !!$acc host_data use_device(pdata)
       if( .not. terrain_flag )then
@@ -617,10 +590,7 @@
         call MPI_ALLREDUCE(MPI_IN_PLACE,pdata,npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
       !$acc update device(pdata)
-      !$acc compare(pdata)
-      !stop 'droplet_driver: after call to MPI_ALLREDUCE'
       if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
-     
 #endif
 
 
@@ -704,48 +674,20 @@
       !Unique to rk2_integration
       integer :: nrkp
 
-
       dt2 = dt/2.0      
 
       !HERE print *,'before rkloop np: ',np
       !$acc loop seq
       rkloop:  DO nrkp = 1,2
 
-
        call interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
 
-       !qval = 0.008807098199749
-       !tval = 282.3
-       !uval = 0.0
-       !vval = 0.0
-       !wval = 0.0
-
-      if(np==TROUBLE) then 
-        print *,'before eslf: tval: ',tval 
-      endif
       estar = eslf(prsval,tval)  !Saturation vapor pressure based on interpolated temp,pressure
       lhv=lv1-lv2*tval
-
 
 !-----------------------------------------------------
 !  Update droplet position, velocity, etc.
 !-----------------------------------------------------
-      if(np==TROUBLE) then 
-        !print *,'before: pdata(np,prrp): ',pdata(np,prrp)
-        !print *,'before: pdata(np,prms): ',pdata(np,prms)
-        !print *,'before: pdata(np,prtp): ',pdata(np,prtp)
-        print *,'after eslf: tval: ',tval 
-        !print *,'prsval: ',prsval
-        !print *,'lv1: ',lv1
-        !print *,'lv2: ',lv2
-        !print *,'ru: ',ru
-        !print *,'ms: ',ms
-        !print *,'mw: ',mw
-        !print *,'ion: ',ion
-        !print *,'os: ',os
-        !print *,'surften: ',surften
-      endif
-
 
       ! RK2 scheme:
       IF(nrkp.eq.1)THEN
@@ -1002,7 +944,6 @@
       use misclibs
       use parcel_module
       use cm1libs , only : eslf
-      use ieee_arithmetic
 
       implicit none
 
@@ -1064,9 +1005,7 @@
        !vval = 0.0
        !wval = 0.0
 
-      estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
-
-
+       estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
 
 !-----------------------------------------------------
 !  Update droplet position, velocity, etc.
@@ -1130,34 +1069,27 @@
          rt_start(2) = 1.0
       end if
 
-
       call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
-
 
       if (flag==1) then
          num100 = num100+1
-
-
          call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
-
       end if
 
       if (flag==1) num1000 = num1000+1
 
       !In rare cases the nonlinear solvers fail to converge
-      if (ieee_is_nan(rt_zeros(1)) .OR.  ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) then
-
+      if ( (rt_zeros(1) .ne. rt_zeros(1)) .OR. &
+           (rt_zeros(2) .ne. rt_zeros(2)) .OR. &
+           (rt_zeros(2) .lt. 0) ) then
          !If this happens keep radius unchanged and temp equal to surrounding
          rt_zeros(1) = 1.0
          rt_zeros(2) = tval/pdata(np,prtp)
-
       end if
 
       !Now redimsionalize
       pdata(np,prrp) = rt_zeros(1)*pdata(np,prrp)
       pdata(np,prtp) = rt_zeros(2)*pdata(np,prtp)
-
-
 
       !Finally, take care of particle BCs
 
@@ -1832,7 +1764,6 @@
 
       subroutine gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         !$acc routine seq
-        use ieee_arithmetic
 
         implicit none
 
@@ -1894,7 +1825,7 @@
                 relax = 1.0
                 counts = 0
 
-                do while ((diff<0).OR.(rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. ieee_is_nan(rt_zeros(1)))
+                do while ((diff<0) .OR. (rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
                    counts = counts + 1
                    coeff = 0.5
                    relax = relax * coeff
@@ -1912,7 +1843,7 @@
                 call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         end do
       if (iterations == 100) flag = 1
-      if (ieee_is_nan(rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. ieee_is_nan(rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
+      if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
 
