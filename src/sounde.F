@@ -75,16 +75,12 @@
 
 !---------------------------------------------------------------------
 
-    print *,'sounde: nsound: ',nsound
     IF( nrkmax.eq.3 )THEN
       if(nrk.eq.1)then
 !!!        nloop=1
 !!!        dts=dt/3.
         nloop=nint(float(nsound)/3.0)
-!        print *,'sounde: denominator: ', float(nloop)*3.0
-!        print *,'sounde: numerator: ', dt
         dts=dt/(float(nloop)*3.0)
-!        print *,'sounde: dts: ', dts
         if( dts.gt.(dt/nsound) )then
           nloop=nloop+1
           dts=dt/(float(nloop)*3.0)

@@ -659,7 +659,6 @@
               ustt(i,j) = max( st(i,j)*karman/alog((zf(i,j,nk+1)-zh(i,j,nk))/cnst_znt) , 1.0e-6 )
             enddo
             enddo
-            !stop 'sfc_and_turb: after setting of ut,vt,st,ustt'
           endif
 
 
