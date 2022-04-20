@@ -2,8 +2,6 @@
 #define PITER 1048576
 #ifdef _B4B
 #undef _B4B01F
-#undef _B4B02F
-#undef _B4B03F
 #endif
   MODULE droplet_module
 
