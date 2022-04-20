@@ -1,6 +1,4 @@
 #ifdef _B4B
-#undef _B4B01F
-#undef _B4B02F
 #define _B4B03R
 #endif
   MODULE solve1_module
@@ -1787,11 +1785,7 @@
         rdt = 1.0/dt
         tem = 0.0001*tsmall
         IF(imoist.eq.1)THEN
-#ifdef _B4B01F
-          !$acc update host(thten1,qten,tha,qa,rho,th0,pi0,ppi)
-#else
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew,qvnew)
-#endif
           !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           do k=1,nk
           do j=1,nj
@@ -1811,9 +1805,6 @@
           enddo
           enddo
           enddo
-#ifdef _B4B01F
-          !$acc update device(ppten)
-#endif
           if( ptype.ge.1 )then
             ! use diabatic tendencies from last timestep as a good estimate:
             !$omp parallel do default(shared)  &
@@ -1831,13 +1822,7 @@
             enddo
           endif
         ELSE
-#ifdef _B4B02F
-          !$acc update host(thten1,tha,rho,th0,pi0,ppi)
-#else
-          !$acc data copyin(tem,dt,rd,rp00,rddcv,rdt)
-          !non-B4B
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,pinew,thnew)
-#endif
           !$omp parallel do default(shared) private(i,j,k,pinew,thnew,qvnew)
           do k=1,nk
           do j=1,nj
@@ -1856,11 +1841,6 @@
           enddo
           enddo
           enddo
-#ifdef _B4B02F
-          !$acc update device(ppten)
-#else
-          !$acc end data
-#endif
         ENDIF  ! endif for moist/dry
       ENDIF    ! endif for eqtset 1/2
 

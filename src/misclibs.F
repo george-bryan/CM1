@@ -1,6 +1,5 @@
 #ifdef _B4B
 
-#undef _B4B03F
 #undef _B4B01R
 
 !JMD-expensive
@@ -2591,16 +2590,12 @@
 
 ! Reference:  Bryan, 2008, MWR, p. 5239
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,n,tx,cpm)
-#ifdef _B4B03F
-            !$acc update host(zh,th0,tha,pi0,ppi,qa,prs,rh,the) 
-#else
-            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n,tx,cpm)
-#endif
-      do k=1,nk
+      !$omp parallel do default(shared) private(i,j,k,n,tx,cpm)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,tx,cpm)
       do j=1,nj
       do i=1,ni
+      !$acc loop seq
+      do k=1,nk
         if(zh(i,j,k).le.10000.)then
           tx=(th0(i,j,k)+tha(i,j,k))*(pi0(i,j,k)+ppi(i,j,k))
           cpm=cp
@@ -2614,9 +2609,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B03F
-      !$acc update device(the)
-#endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
@@ -3678,9 +3670,11 @@
       !$acc end parallel
 #endif
  
+#ifdef _B4B07R
       tmass=0.0d0
-#ifndef _B4B07R
+#else
       !$acc parallel default(present) reduction(+:tmass)
+      tmass=0.0d0
       !$acc loop gang vector reduction(+:tmass)
 #endif
       do k=1,nk

@@ -1,6 +1,3 @@
-#ifdef _B4B
-#undef _B4B01F
-#endif
   MODULE mp_driver_module
 
              !------  Microphysics Driver ------!
@@ -543,11 +540,7 @@
           ! Get final values for th3d,pp3d,prs:
           ! Note:  dum1 stores temperature, thten stores old temperature:
           IF( eqtset.eq.2 )THEN
-#ifdef _B4B01F
-            !$acc update host(dum1,thten,q3d,qten,rho,pi0,th0)
-#else
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
             !$omp parallel do default(shared) private(i,j,k)
             do k=1,nk
             do j=1,nj
@@ -561,9 +554,6 @@
             enddo
             enddo
             enddo
-#ifdef _B4B01F
-            !$acc update device(prs,pp3d,th3d)
-#endif
           ELSE
             !$omp parallel do default(shared) private(i,j,k)
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)

@@ -1,20 +1,5 @@
 #ifdef _B4B
 
-#define _B4B01F
-#define _B4B02F
-#define _B4B03F
-#define _B4B04F
-#define _B4B05F
-
-#define _B4B06
-
-#define _B4B07F
-#define _B4B08F
-#define _B4B09F
-#define _B4B10F
-#define _B4B11F
-#define _B4B12F
-
 #define _B4B16R
 #define _B4B19R
 #define _B4B21R
@@ -1368,27 +1353,17 @@
           enddo
         endif
       enddo
-#ifdef _B4B01F
-      !$acc update host(dum1(1:ni,1:nj,5),rho,prs,th,pi0,pp3d,rmh)
-#else
       !$acc parallel default(present) private(i,j)
       !$acc loop seq
-#endif
       do k=1,nk
-#ifndef _B4B01F
         !$acc loop gang vector collapse(2)
-#endif
         do j=1,nj
         do i=1,ni
           dum1(i,j,5) = dum1(i,j,5) + rho(i,j,k)*rslf(prs(i,j,k),th(i,j,k)*(pi0(i,j,k)+pp3d(i,j,k)))*dz*rmh(i,j,k)
         enddo
         enddo
       enddo
-#ifdef _B4B01F
-      !$acc update device(dum1(1:ni,1:nj,5))
-#else
       !$acc end parallel
-#endif
 
       do k=1,nk
         IF( iice.eq.1 )THEN
@@ -1596,18 +1571,11 @@
       enddo
       enddo
 
-#ifdef _B4B02F
-      !$acc update host(pavg,thavg)
-#else
       !$acc parallel loop gang vector default(present) private(i,j,k)
-#endif
       do k=1,nk
         ! use minimum of 1.0e-5 and 1% of saturation wrt liquid (using last known t,p)
         qcrit(k) = min( 1.0e-5 , 0.01*rslf(pavg(k),thavg(k)*((pavg(k)*rp00)**rovcp)) )
       enddo
-#ifdef _B4B02F
-      !$acc update device(qcrit)
-#endif
 
         ! use minimum of 1.0e-5 and 1% of saturation wrt liquid (using last known t,p)
         !qcrit(k) = min( 1.0e-5 , 0.01*rslf(pavg(k),thavg(k)*((pavg(k)*rp00)**rovcp)) )
@@ -3359,19 +3327,12 @@
         varunit(nvar) = 'n.d.'
 
       if( imoist.eq.1 )then
-#ifdef _B4B03F
-        !$acc update host(psfc,tsk)
-#else
         !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-#endif
         do j=1,nj
         do i=1,ni
           tmpqsfc(i,j) = rslf(psfc(i,j),tsk(i,j))
         enddo
         enddo
-#ifdef _B4B03F
-        !$acc update device(tmpqsfc)    
-#endif
         !...
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         do k=1,nk
@@ -3413,11 +3374,7 @@
 
     !PORTME
     if( nloop.eq.1 )then
-#ifdef _B4B04F
-      !$acc update host(th0,th3d,dum2,tsk,psfc,tmpqsfc,thflux,qvflux,ust,govthv,hpbl)
-#else
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j,thvx)
-#endif
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3425,16 +3382,9 @@
         thv1(i,j) = thvx
       enddo
       enddo
-#ifdef _B4B04F
-      !$acc update device(thvx,thvsfc,thv1)
-#endif
     else
-#ifdef _B4B05F
-      !$acc update host(th0,th3d,dum2,tsk,psfc,tmpqsfc,thflux,qvflux,ust,govthv,hpbl)
-#else
       !$acc parallel loop gang vector collapse(2) default(present) &
       !$acc private(i,j,thvx,thf1,thf2,thvflux,ws,gamfac,tmpprt)
-#endif
       do j=1,nj
       do i=1,ni
         thvx = (th0(i,j,1)+th3d(i,j,1))*(1.0+repsm1*dum2(i,j,1))
@@ -3451,17 +3401,10 @@
         thv1(i,j) = thvx + tmpprt
       enddo
       enddo
-#ifdef _B4B05F
-      !$acc update device(thvx,thf1,thf2,thvflux,ws,gamfac,tmpprt,thv1)
-#endif
     endif
 
-#ifdef _B4B06
-      !$acc update host(u3d,v3d,zh,th0,th3d,dum2,tsk,psfc,tmpqsfc,thflux,qvflux,ust,govthv,hpbl)
-#else
       !$acc parallel loop gang vector collapse(3) default(present) &
       !$acc private(i,j,k,thvx,ubar,vbar)
-#endif
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -3472,9 +3415,6 @@
       enddo
       enddo
       enddo
-#ifdef _B4B06
-      !$acc update device(dum1)
-#endif
 
     ENDDO  hloop
 
@@ -3524,11 +3464,7 @@
         varunit(nvar) = 'K'
 
       if( ptype.eq.0 )then
-#ifdef _B4B07F
-        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3543,11 +3479,7 @@
         enddo
         enddo
       else
-#ifdef _B4B07F
-        !$acc update host(th0,th3d,pi0,pp3d,q3d,prs)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tx,qx,px,tlcl,ee)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3566,9 +3498,6 @@
         enddo
         enddo
       endif
-#ifdef _B4B07F
-      !$acc update device(dum1)
-#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -3584,11 +3513,7 @@
         vardesc(nvar) = 'relative humidity (wrt liquid)'
         varunit(nvar) = 'nondimensional'
      
-#ifdef _B4B08F
-        !$acc update host(q3d,prs,th,pi0,pp3d)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3596,9 +3521,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B08F
-        !$acc update device(dum1)
-#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -3612,11 +3534,7 @@
         varname(nvar) = 'rhi'
         vardesc(nvar) = 'relative humidity (wrt ice)'
         varunit(nvar) = 'nondimensional'
-#ifdef _B4B09F
-        !$acc update host(q3d,prs,th,pi0,pp3d)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -3624,9 +3542,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B09F
-        !$acc update device(dum1)
-#endif
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4469,11 +4384,7 @@
         varunit(nvar) = 'm'
         vargrid(nvar) = 'w'
 
-#ifdef _B4B10F
-        !$acc update host(ruh,rvh,rmf,zf,znt)
-#else
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
-#endif
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4485,9 +4396,6 @@
         enddo
         enddo
         enddo
-#ifdef _B4B10F
-        !$acc update device(dum1)
-#endif
 
         call getavg3d(dum1,savg)
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
@@ -4787,17 +4695,10 @@
         vardesc(nvar) = 'analytic wind speed (neutral)'
         varunit(nvar) = 'm/s'
 
-#ifdef _B4B11F
-        !$acc update host(zh)
-#else
         !$acc parallel loop gang vector default(present) private(k)
-#endif
         do k=1,nk
           savg(k) = (ustbar/karman)*alog( (zh(1,1,k)+zntbar)/zntbar )
         enddo
-#ifdef _B4B11F
-        !$acc update device(savg)
-#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -4808,11 +4709,7 @@
         vardesc(nvar) = 'analytic wind speed'
         varunit(nvar) = 'm/s'
 
-#ifdef _B4B12F
-        !$acc update host(zh)
-#else
         !$acc parallel loop gang vector default(present) private(k,zeta,tpsim)
-#endif
         do k=1,nk
           if( abs(molbar).gt.1.0e-6 )then
             zeta = zh(1,1,k)/molbar
@@ -4823,9 +4720,6 @@
           savg(k) = (ustbar/karman)*( alog(zh(1,1,k)/zntbar) - tpsim )
           wspa(k) = savg(k)
         enddo
-#ifdef _B4B12F
-        !$acc update device(savg,wspa)
-#endif
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
@@ -9802,7 +9696,7 @@
         vargrid(nvar) = '2'
 
         savg2d = 0.0
-        !$acc parallel loop gang vector reduction(max:savg2d)
+        !$acc parallel loop gang vector default(present) reduction(max:savg2d) 
         do k=2,nk
           savg2d = max( savg2d , dble(wvar(k)) )
         enddo
@@ -10781,26 +10675,15 @@
 
     integer :: i,j
 
-    !JMD Need to double check following bit of code.  We should be able to move 
-    !JMD calculation to the GPU
-#ifdef _B4B28R
-    !$acc update host(s2d)
-    savg2d = 0.0
-#else
     savg2d = 0.0
     !$acc parallel default(present) private(i,j) reduction(+:savg2d)
     !$acc loop gang vector collapse(2) reduction(+:savg2d)
-#endif
     do j=1,nj
     do i=1,ni
       savg2d = savg2d+s2d(i,j)
     enddo
     enddo
-#ifdef _B4B28R
-    !$acc update device(savg2d)
-#else
     !$acc end parallel
-#endif
 
 #ifdef MPI
     call MPI_ALLREDUCE(MPI_IN_PLACE,savg2d,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -10809,6 +10692,7 @@
     savg2d = savg2d/dble(nx*ny)
 
     end subroutine getavg2d
+
 
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

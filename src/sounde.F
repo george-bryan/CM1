@@ -80,10 +80,10 @@
 !!!        nloop=1
 !!!        dts=dt/3.
         nloop=nint(float(nsound)/3.0)
-        dts=dt/(nloop*3.0)
+        dts=dt/(float(nloop)*3.0)
         if( dts.gt.(dt/nsound) )then
           nloop=nloop+1
-          dts=dt/(nloop*3.0)
+          dts=dt/(float(nloop)*3.0)
         endif
       elseif(nrk.eq.2)then
         nloop=0.5*nsound

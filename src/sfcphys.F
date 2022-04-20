@@ -1,17 +1,9 @@
 #ifdef _B4B
 
-#undef _B4B01F
-#undef _B4B02F
-#undef _B4B03F
-#undef _B4B04F
-#undef _B4B05F
-#undef _B4B07F
-#undef _B4B11F
-
 #define _B4B06R
 #define _B4B08R
 #define _B4B09R
-#define _B4B10
+#define _B4B10R
 #endif
   MODULE sfcphys_module
 
@@ -113,11 +105,7 @@
     ! specify z0 (roughness length):
     ! note:  set znt array in "init_surface.F"
 
-#ifdef _B4B01F
-    !$acc update host(za,znt,u1,v1,s1)
-#else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
-#endif
     !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
@@ -130,17 +118,10 @@
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
     enddo
     enddo
-#ifdef _B4B01F
-    !$acc update device(cd,u10,v10,s10,ust)
-#endif
 
   ELSEIF( set_ust.eq.1 )THEN  sfc_options
       ! specify ustar (friction velocity):
-#ifdef _B4B01F
-    !$acc update host(za,u1,v1,s1)
-#else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
-#endif
     !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
@@ -154,9 +135,6 @@
       s10(i,j) = s1(i,j)*var
     enddo
     enddo
-#ifdef _B4B01F
-    !$acc update device(znt,cd,u10,v10,s10,ust)
-#endif
 
   ELSEIF( cecd.eq.1 )THEN  sfc_options
     ! specify Cd (drag coefficient):
@@ -186,11 +164,7 @@
     ! Cd,z0,ust are functions of 10-m windspeed over water ... need to iterate:
     convergeFail = .false.
     !$omp parallel do default(shared) private(i,j,wlast,n,var,rznt)
-#ifdef _B4B11F
-    !$acc update host(xland,znt,za,s1,u1,v1)
-#else
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wlast,n,var,rznt)
-#endif
     do j=j1,j2
     do i=i1,i2
       IF(xland(i,j).gt.1.5)THEN
@@ -246,9 +220,6 @@
       ust(i,j) = max( s1(i,j)*karman/alog((za(i,j)+znt(i,j))*rznt) , 1.0e-6 )
     enddo
     enddo
-#ifdef _B4B11F
-    !$acc update device(s10,cd,u10,v10,ust,znt)
-#endif
     !print *,'getcecd: before convergeFail check' 
     if(convergeFail) then 
       call stopcm1
@@ -414,29 +385,18 @@
 
     !  sensible heat flux:
     !$omp parallel do default(shared) private(i,j,pisfc)
-#ifdef _B4B02F
-    !$acc update host(psfc,ch,s10,tsk,th0,tha)
-#else
     !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
-#endif
     DO j=1,nj
       do i=1,ni
         pisfc = (psfc(i,j)*rp00)**rovcp
         thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
       enddo
     ENDDO
-#ifdef _B4B02F
-    !$acc update device(thflux)
-#endif
 
     !  latent heat flux:
     IF(imoist.eq.1)THEN
       !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
-#ifdef _B4B03F
-      !$acc update host(psfc,tsk,qva,s10,cq,mavail)
-#else
       !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
-#endif
       DO j=1,nj
         do i=1,ni
           qvsat=rslf(psfc(i,j),tsk(i,j))
@@ -445,9 +405,6 @@
         enddo
       ENDDO
     ENDIF
-#ifdef _B4B03F
-    !$acc update device(qsfc,qvflux)
-#endif
 
   ENDIF  setting_flux
 
@@ -489,11 +446,7 @@
       ! (VanZanten et al 2011, JAMES)
 
   
-#ifdef _B4B04F
-      !$acc update host(psfc,s1,tsk,th0,tha)
-#else
       !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
-#endif
       !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
       DO j=1,nj
         do i=1,ni
@@ -501,15 +454,8 @@
           thflux(i,j) = 0.001094*s1(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
         enddo
       ENDDO
-#ifdef _B4B04F
-      !$acc update device(thflux)
-#endif
       IF(imoist.eq.1)THEN
-#ifdef _B4B05F
-        !$acc update host(psfc,tsk,s1,qva,mavail)
-#else
         !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
-#endif
         !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
         DO j=1,nj
           do i=1,ni
@@ -518,9 +464,6 @@
             qvflux(i,j) = 0.001133*s1(i,j)*(qvsat-qva(i,j,1))*mavail(i,j)
           enddo
         ENDDO 
-#ifdef _B4B05F
-        !$acc update device(qvflux,qsfc)
-#endif
       ENDIF
 
     ELSEIF( testcase.eq.11 )THEN
@@ -635,13 +578,9 @@
       EP1 = rv/rd - 1.0
 
       ! surface layer diagnostics:
-#ifdef _B4B07F
-      !$acc update host(psfc,tsk,th0,tha,qa,qsfc,znt,za,qvflux,hpbl,dsxy,s1,wspd,thflux,rf,cd,th2)
-#else
       !$acc parallel loop gang vector collapse(2) default(present)   &
       !$acc private(i,j,pisfc,thgb,thx,thvx,tskv,govrth,dthvdz,vconv,vsgd,   &
       !$acc dthvm,val,fluxc,rznt)
-#endif      
       !$omp parallel do default(shared)   &
       !$omp private(i,j,pisfc,thgb,thx,thvx,tskv,govrth,dthvdz,vconv,vsgd,   &
       !$omp dthvm,val,fluxc,rznt)
@@ -693,9 +632,6 @@
         t2(i,j) = th2(i,j)*pisfc
       enddo
       enddo
-#ifdef _B4B07F
-      !$acc update device(gz1oz0,qsfc,wspd,br,hfx,qfx,cda,psim,psih,zol,mol,fm,fh,th2,q2,t2)
-#endif
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
       end subroutine sfcdiags
@@ -1216,7 +1152,7 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
-#ifndef _B4B10
+#ifndef _B4B10R
       !$acc parallel 
 #endif
       temd = 1.0/dble(nx*ny)
@@ -1224,7 +1160,7 @@
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
-#ifndef _B4B10
+#ifndef _B4B10R
       !$acc end parallel
 #else
       !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
