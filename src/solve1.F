@@ -984,6 +984,7 @@
       !  budget calculations:
       if(dosfcflx.and.imoist.eq.1)then
         !JMD-FIXME review the indexing in this loop 
+        qtmp =0.0
         !$acc data create(budarray)
         !$omp parallel do default(shared) private(i,j,delpi,delth,delqv,delt,n)
         !$acc parallel loop gang vector collapse(2) default(present) &
@@ -1028,7 +1029,6 @@
         !$acc parallel default(present) reduction(+:budtmp,qtmp)
 #endif
 
-        qtmp =0.0
 #ifndef _B4B03R
         !$acc loop gang reduction(+:budtmp) reduction(+:qtmp)
 #endif

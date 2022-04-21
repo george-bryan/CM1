@@ -5383,14 +5383,8 @@
 
     !-------------------------------------------
 
-        !!$acc data copyin(arf1,arf2) &
-        !!$acc copyin(ust,u1,v1,s1,rf,mf) &
-        !!$acc copyin(kmh,kmv) &
-        !!$acc copyin(ugr,vgr) &
-        !!$acc copy(stau,dum1,dum2,t13,t23)
         call     sfcstress(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,rf,mf,dum1,dum2,  &
                         kmh,kmv,s13,s23,ua,ugr,va,vgr,avgsfcu,avgsfcv,avgsfcs)
-        !!$acc end data
 
     !-------------------------------------------
     !  surface vars:
