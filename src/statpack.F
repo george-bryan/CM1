@@ -81,13 +81,6 @@
       double precision, dimension(numq) :: afoo,bfoo
 #endif
 
-!  !$acc update &
-!  !$acc   host(qbudget,asq,bsq,xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf, &
-!  !$acc     zh,mh,rmh,zf,mf,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf, &
-!  !$acc     pi0,rho0,thv0,th0,qv0,dum1,dum2,dum3,dum4,dum5,rho,prs, &
-!  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
-!  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)      
-           
 !-----------------------------------------------------------------------
 #ifdef MPI
       !$acc data create(afoo,bfoo,cfoo)
@@ -284,9 +277,6 @@
       if( sgsmodel.ge.1 .or. ipbl.eq.2 )then
         if(stat_km.eq.1) call maxmin(ni,nj,nk+1,kmv,nstat,rstat,kmin,kmax,'KMVMAX','KMVMIN')
       endif
-        !JMD Probably should remove this update host(khh) call
-        !!$acc update host(khh)
-        !print *,'maxval(khh): ',maxval(khh)
         if(stat_kh.eq.1) call maxmin(ni,nj,nkp1,khh,nstat,rstat,kmin,kmax,'KHHMAX','KHHMIN')
       if( sgsmodel.ge.1 .or. ipbl.eq.2 )then
         if(stat_kh.eq.1) call maxmin(ni,nj,nk+1,khv,nstat,rstat,kmin,kmax,'KHVMAX','KHVMIN')
@@ -670,10 +660,7 @@
 
 #ifdef NETCDF
     ELSEIF(output_format.eq.2)THEN
-
-!#ifdef _OPENACC
       call writestat_nc(nrec,rtime,nstat,rstat,qname,budname,name_stat,desc_stat,unit_stat)
-!#endif
 #endif
 
 !-----------------------------------------------------------------------
@@ -683,11 +670,6 @@
   ENDIF
 
   ENDIF  dostats
-!  !$acc update &
-!  !$acc   device(qbudget,asq,bsq, &
-!  !$acc     dum1,dum2,dum3,dum4,dum5) &
-!  !$acc     u0,ua,v0,va,wa,ppi,tha,qa,vq,kmh,kmv,khh,khv,tkea,qke, &
-!  !$acc     tke_myj,xkzh,xkzq,xkzm,pta,u10,v10,hpbl,prate)
 
       end subroutine statpack
 

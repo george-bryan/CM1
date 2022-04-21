@@ -4762,8 +4762,6 @@
       enddo
       ENDIF
 
-      !JMD
-      !JMD!$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
       DO n=1,numq
         IF( (n.eq.nqv) .or.                                 &
             (n.ge.nql1.and.n.le.nql2) .or.                  &
@@ -4779,7 +4777,6 @@
           enddo
         ENDIF
       ENDDO
-      !JMD!$acc end data
 
       k = 1
 
