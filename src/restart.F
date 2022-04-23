@@ -14,7 +14,7 @@
                                avgsfcu,avgsfcv,avgsfcs,avgsfct,                     &
                                dt,dtlast,mtime,ndt,adt,acfl,dbldt,mass1,            &
                                stattim,taptim,rsttim,radtim,prcltim,                &
-                               qbudget,qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10,asq,bsq,qname,                               &
+                               qbudget,asq,bsq,qname,                               &
                                xfref,yfref,zh,zf,sigma,sigmaf,zs,                   &
                                th0,prs0,pi0,rho0,qv0,u0,v0,                         &
                                rain,sws,svs,sps,srs,sgs,sus,shs,                    &
@@ -70,7 +70,6 @@
       double precision, intent(in) :: mass1
       double precision, intent(in) :: mtime,stattim,taptim,rsttim,radtim,prcltim
       double precision, intent(inout), dimension(nbudget) :: qbudget
-      double precision, intent(inout) :: qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10
       double precision, intent(inout), dimension(numq) :: asq,bsq
       character(len=3), intent(in), dimension(maxq) :: qname
       real, intent(in), dimension(1-ngxy:nx+ngxy+1) :: xfref
@@ -513,84 +512,6 @@
         enddo
       else
         qbudget = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget1,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(1)=qbudget1
-      else
-        qbudget(1) = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget2,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(2)=qbudget2
-      else
-        qbudget(2) = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget3,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(3)=qbudget3
-      else
-        qbudget(3) = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget4,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(4)=qbudget4
-      else
-        qbudget(4) = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget5,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(5)=qbudget5
-      else
-        qbudget(5) = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget6,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(6)=qbudget6
-      else
-        qbudget(6) = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget7,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(7)=qbudget7
-      else
-        qbudget(7) = 0.0
-      endif
-      call MPI_REDUCE(qbudget8,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(8)=qbudget8
-      else
-        qbudget(8) = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget9,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(9)=qbudget9
-      else
-        qbudget(9) = 0.0
-      endif
-      call MPI_REDUCE(qbudget10,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget(10)=qbudget10
-      else
-        qbudget(10) = 0.0
       endif
 
       if( imoist.eq.1 )then

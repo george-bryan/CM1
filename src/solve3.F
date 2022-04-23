@@ -76,7 +76,7 @@
 
       subroutine solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,qbudget8,qbudget9,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,yfref,dumk1,dumk2,rds,sigma,rdsf,sigmaf,    &
@@ -173,7 +173,6 @@
       double precision, intent(inout), dimension(nk) :: bud
       double precision, intent(inout), dimension(nj) :: bud2
       double precision, intent(inout), dimension(nbudget) :: qbudget
-      double precision, intent(inout) :: qbudget8,qbudget9
       double precision, intent(inout), dimension(numq) :: asq,bsq
       real, intent(in), dimension(ib:ie) :: xh,rxh,arh1,arh2,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf,rxf,arf1,arf2,uf,ruf

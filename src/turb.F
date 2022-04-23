@@ -19,7 +19,7 @@
 
   CONTAINS
 
-      subroutine sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,qbudget8,qbudget9,   &
+      subroutine sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,  &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
                    yh,vh,rvh,yf,vf,rvf,                              &
@@ -104,7 +104,6 @@
       logical, intent(in) :: dosfcflx
       logical, intent(in), dimension(maxq) :: cloudvar
       double precision, intent(inout), dimension(nbudget) :: qbudget
-      double precision, intent(inout) :: qbudget8, qbudget9
       double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
       real, intent(in), dimension(ib:ie) :: xh,rxh,arh1,arh2,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf,rxf,arf1,arf2,uf,ruf
@@ -665,7 +664,7 @@
           if(isfcflx.eq.1)then
             call sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail, &
                          rho,rf,u1,v1,s1,ppi,tha,divx, &
-                         qbudget8,psfc,u10,v10,s10,qsfc,znt,rtime)
+                         qbudget(8),psfc,u10,v10,s10,qsfc,znt,rtime)
           endif
 
           ! get sfc diagnostics needed by pbl scheme:

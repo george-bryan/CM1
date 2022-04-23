@@ -341,7 +341,7 @@
 
       !$acc declare &
       !$acc present(ruh,rvh,ch,th0,tsk,mavail,s1,rf,tha,qva,s10, &
-      !$acc         thflux,qvflux,qbsfc,qsfc)
+      !$acc         thflux,qvflux,qsfc)
 !-----------------------------------------------------------------------
 !
 !  This subroutine calculates surface fluxes of heat and moisture.

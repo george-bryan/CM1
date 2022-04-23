@@ -8,7 +8,7 @@
   CONTAINS
 
       subroutine statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
-                          qname,budname,qbudget,qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10,asq,bsq,                &
+                          qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
                           xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf,zh,mh,rmh,zf,mf,   &
                           zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf,                 &
@@ -40,7 +40,6 @@
       character(len=3), dimension(maxq) :: qname
       character(len=6), dimension(maxq) :: budname
       double precision, dimension(nbudget) :: qbudget
-      double precision :: qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10
       double precision, dimension(numq) :: asq,bsq
       character(len=40), intent(in), dimension(maxvars) :: name_stat,desc_stat,unit_stat
       real, intent(in), dimension(ib:ie) :: xh,rxh,uh,ruh
@@ -96,77 +95,6 @@
         enddo
       else
         qbudget = 0.0
-      endif
-      call MPI_REDUCE(qbudget1,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget1=tfoo
-      else
-        qbudget1 = 0.0
-      endif
-      call MPI_REDUCE(qbudget2,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget2=tfoo
-      else
-        qbudget2 = 0.0
-      endif
-      call MPI_REDUCE(qbudget3,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget3=tfoo
-      else
-        qbudget3 = 0.0
-      endif
-      call MPI_REDUCE(qbudget4,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget4=tfoo
-      else
-        qbudget4 = 0.0
-      endif
-      call MPI_REDUCE(qbudget5,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget5=tfoo
-      else
-        qbudget5 = 0.0
-      endif
-      call MPI_REDUCE(qbudget6,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget6=tfoo
-      else
-        qbudget6 = 0.0
-      endif
-      call MPI_REDUCE(qbudget7,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget7=tfoo
-      else
-        qbudget7 = 0.0
-      endif
-
-      call MPI_REDUCE(qbudget8,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget8=tfoo
-      else
-        qbudget8 = 0.0
-      endif
-      call MPI_REDUCE(qbudget9,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget9=tfoo
-      else
-        qbudget9 = 0.0
-      endif
-      call MPI_REDUCE(qbudget10,tfoo,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
-                      MPI_COMM_WORLD,ierr)
-      if( myid.eq.0 )then
-        qbudget10=tfoo
-      else
-        qbudget10 = 0.0
       endif
       if( imoist.eq.1 )then
         afoo = 0.0
@@ -585,8 +513,7 @@
         call getqli(qa,dum2,dum3)
 
         if(stat_tmois.eq.1)then
-          !JMD FIXME call totmois(nstat,rstat,qbudget(budrain),ruh,rvh,rmh,dum1,dum2,dum3,rho)
-          call totmois(nstat,rstat,qbudget6,ruh,rvh,rmh,dum1,dum2,dum3,rho)
+          call totmois(nstat,rstat,qbudget(budrain),ruh,rvh,rmh,dum1,dum2,dum3,rho)
         endif
 
         if(stat_qmass.eq.1)then
@@ -671,31 +598,9 @@
       if(myid.eq.0)then
 100     format(2x,'stat:: ',a6,':',1x,e13.6)
         do n=1,nbudget
-          if(n == 1) then 
-            write(6,100) budname(n),qbudget1
-          elseif(n == 2) then 
-            write(6,100) budname(n),qbudget2
-          elseif(n == 3) then 
-            write(6,100) budname(n),qbudget3
-          elseif(n == 4) then 
-            write(6,100) budname(n),qbudget4
-          elseif(n == 5) then 
-            write(6,100) budname(n),qbudget5
-          elseif(n == 6) then 
-            write(6,100) budname(n),qbudget6
-          elseif(n == 7) then 
-            write(6,100) budname(n),qbudget7
-          elseif(n == 8) then 
-            write(6,100) budname(n),qbudget8
-          elseif(n == 9) then 
-            write(6,100) budname(n),qbudget9
-          elseif(n == 10) then 
-            write(6,100) budname(n),qbudget10
-          else
-            write(6,100) budname(n),qbudget(n)
-            nstat = nstat + 1
-            rstat(nstat) = qbudget(n)
-          endif
+          write(6,100) budname(n),qbudget(n)
+          nstat = nstat + 1
+          rstat(nstat) = qbudget(n)
         enddo
       endif
       ENDIF

@@ -79,7 +79,7 @@
 
       subroutine solve1(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,qbudget8,qbudget9,qbudget10,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,xhref,yfref,yhref,dumk1,dumk2,rds,sigma,rdsf,sigmaf, &
@@ -180,7 +180,6 @@
       double precision, intent(inout), dimension(nk) :: bud
       double precision, intent(inout), dimension(nj) :: bud2
       double precision, intent(inout), dimension(nbudget) :: qbudget
-      double precision :: qbudget8,qbudget9,qbudget10
       double precision, intent(inout), dimension(numq) :: asq,bsq
       real, intent(in), dimension(ib:ie) :: xh,rxh,arh1,arh2,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf,rxf,arf1,arf2,uf,ruf
@@ -1048,7 +1047,6 @@
         !$acc end parallel
 #endif
         qbudget(9) = qtmp;
-        qbudget9=qtmp
         !$acc end data
         if(timestats.ge.1) time_misc09=time_misc09+mytime()
       endif
@@ -1181,10 +1179,12 @@
         enddo
         !$acc end parallel
         !FIXME
-        !$acc parallel loop gang vector default(present) private(k) reduction(+:qbudget10)
+        budtmp=qbudget(10)
+        !$acc parallel loop gang vector default(present) private(k) reduction(+:budtmp)
         do k=1,nk
-          qbudget10 = qbudget10 + tem0*bud(k)
+          budtmp = budtmp + tem0*bud(k)
         enddo
+        qbudget(10)=budtmp
         if( dotbud .and. td_rad.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)

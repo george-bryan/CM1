@@ -82,7 +82,6 @@
       logical, dimension(maxvars) :: cmpr_output
       character(len=40), dimension(maxvars) :: name_stat,desc_stat,unit_stat
       character(len=40), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
-      double precision :: qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10 
       double precision, dimension(:), allocatable :: bud,bud2
       double precision, dimension(:), allocatable :: qbudget
       double precision, dimension(:), allocatable :: asq,bsq
@@ -1655,16 +1654,6 @@
       bud2 = 0.0
       allocate( qbudget(nbudget) )
       qbudget   = 0.0
-      qbudget1  = 0.0
-      qbudget2  = 0.0
-      qbudget3  = 0.0
-      qbudget4  = 0.0
-      qbudget5  = 0.0
-      qbudget6  = 0.0
-      qbudget7  = 0.0
-      qbudget8  = 0.0
-      qbudget9  = 0.0
-      qbudget10 = 0.0
       allocate(    asq(numq) )
       asq = 0.0
       allocate(    bsq(numq) )
@@ -2515,16 +2504,6 @@
                               gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
                               dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
           ! end_read_restart
-        qbudget1 = qbudget(1)
-        qbudget2 = qbudget(2)
-        qbudget3 = qbudget(3)
-        qbudget4 = qbudget(4)
-        qbudget5 = qbudget(5)
-        qbudget6 = qbudget(6)
-        qbudget7 = qbudget(7)
-        qbudget8 = qbudget(8)
-        qbudget9 = qbudget(9)
-        qbudget10= qbudget(10)
         !  In case user wants to change values on a restart:
         IF( restart_reset_frqtim )THEN 
           if( statfrq.gt.1.0e-6 ) stattim = mtime + statfrq
@@ -3003,7 +2982,7 @@
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
         call     solve1(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,qbudget8,qbudget9,qbudget10,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,xhref,yfref,yhref,dumk1,dumk2,rds,sigma,rdsf,sigmaf, &
@@ -3094,7 +3073,7 @@
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,qbudget8,qbudget9,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,xhref,yfref,yhref,dumk1,dumk2,rds,sigma,rdsf,sigmaf, &
@@ -3185,8 +3164,7 @@
         ! qv only:
         call pdefq2_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
       else
-        call   mp_driver(nstep,dt,qbudget,qbudget1,qbudget2,qbudget3,qbudget4,qbudget5, &
-                         qbudget6,qbudget7,qbudget8,qbudget9,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
+        call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
                          rho,prs,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,  &
                          w3d,ppi,pp3d,ppten,sten,tha,th3d,thten,qa,q3d,qten,   &
@@ -3217,7 +3195,7 @@
 
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,qbudget8,qbudget9,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,yfref,dumk1,dumk2,rds,sigma,rdsf,sigmaf,     &
@@ -3410,7 +3388,7 @@
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(ust,u1,v1,s1)
-      call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,qbudget8,qbudget9,   &
+      call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget, &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
                    yh,vh,rvh,yf,vf,rvf,                              &
@@ -3548,8 +3526,7 @@
         ENDIF
 !#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
-                          qname,budname,qbudget,qbudget1,qbudget2,qbudget3,   &
-                          qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10,asq,bsq,                      &
+                          qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
                           xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf,zh,mh,rmh,zf,mf,   &
                           zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf,                 &
@@ -4019,7 +3996,7 @@
                                avgsfcu,avgsfcv,avgsfcs,avgsfct,                     &
                                dt,dtlast,mtime,ndt,adt,acfl,dbldt,mass1,            &
                                stattim,taptim,rsttim,radtim,prcltim,                &
-                               qbudget,qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10,asq,bsq,qname,                               &
+                               qbudget,asq,bsq,qname,                               &
                                xfref,yfref,zh,zf,sigma,sigmaf,zs,                   &
                                th0,prs0,pi0,rho0,qv0,u0,v0,                         &
                                rain,sws,svs,sps,srs,sgs,sus,shs,                    &
