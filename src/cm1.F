@@ -2814,7 +2814,7 @@
 !$acc              qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea, &
 !$acc              tke3d,tketen,effc,effi,effs,effr,effg,effis, &
 !$acc              out2d,out3d,rain,prate,p3a,p3o,asq, &
-!$acc              bsq,qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s, &
+!$acc              qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s, &
 !$acc              tst,qst,z0t,z0q,mznt,ppi,pp3d,ppten,sadv,ppx, &
 !$acc              tha,thten1,thterm,glw,gsw,ulspg,vlspg,savg,pavg, &
 !$acc              uavg,vavg,thavg,lsnudge_u,lsnudge_v,reqs_s, &
