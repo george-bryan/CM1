@@ -19,7 +19,7 @@
 
   CONTAINS
 
-      subroutine sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,    &
+      subroutine sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,qbudget8,qbudget9,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
                    yh,vh,rvh,yf,vf,rvf,                              &
@@ -104,6 +104,7 @@
       logical, intent(in) :: dosfcflx
       logical, intent(in), dimension(maxq) :: cloudvar
       double precision, intent(inout), dimension(nbudget) :: qbudget
+      double precision, intent(inout) :: qbudget8, qbudget9
       double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
       real, intent(in), dimension(ib:ie) :: xh,rxh,arh1,arh2,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf,rxf,arf1,arf2,uf,ruf
@@ -220,7 +221,7 @@
     !$acc declare &
     !$acc present(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
     !$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0)                      &
-    !$acc present(qbudget,tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
+    !$acc present(tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
     !$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,   &
     !$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
     !$acc      rrv,rrw,ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,     &
@@ -642,7 +643,6 @@
         IF( use_avg_sfc .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )THEN
             call getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
         ENDIF
-        !$acc compare(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 
         IF( sfcmodel.eq.1 )THEN
 
@@ -665,7 +665,7 @@
           if(isfcflx.eq.1)then
             call sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail, &
                          rho,rf,u1,v1,s1,ppi,tha,divx, &
-                         qbudget(8),psfc,u10,v10,s10,qsfc,znt,rtime)
+                         qbudget8,psfc,u10,v10,s10,qsfc,znt,rtime)
           endif
 
           ! get sfc diagnostics needed by pbl scheme:
@@ -1552,7 +1552,7 @@
 #endif
       endif
 
-        !$acc compare(ust,u1,v1,st,avgsfcu,avgsfcv,avgsfcs)
+        !$acc compare(ust,u1,v1,st)
         !  now, get turbulent stresses:
         call     gettau(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,ustt,ut,vt,st,rf,mf,dum1,dum2,dum3,dum4,dum5,dum6, &
                         kmh,kmv,t11,t12,t13,t22,t23,t33,ua,ugr,va,vgr,wa,avgsfcu,avgsfcv,avgsfcs,bndy,kbdy)

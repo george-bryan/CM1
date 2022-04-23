@@ -82,6 +82,7 @@
       logical, dimension(maxvars) :: cmpr_output
       character(len=40), dimension(maxvars) :: name_stat,desc_stat,unit_stat
       character(len=40), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
+      double precision :: qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10 
       double precision, dimension(:), allocatable :: bud,bud2
       double precision, dimension(:), allocatable :: qbudget
       double precision, dimension(:), allocatable :: asq,bsq
@@ -1653,7 +1654,17 @@
       allocate(  bud2(nj) )
       bud2 = 0.0
       allocate( qbudget(nbudget) )
-      qbudget = 0.0
+      qbudget   = 0.0
+      qbudget1  = 0.0
+      qbudget2  = 0.0
+      qbudget3  = 0.0
+      qbudget4  = 0.0
+      qbudget5  = 0.0
+      qbudget6  = 0.0
+      qbudget7  = 0.0
+      qbudget8  = 0.0
+      qbudget9  = 0.0
+      qbudget10 = 0.0
       allocate(    asq(numq) )
       asq = 0.0
       allocate(    bsq(numq) )
@@ -2504,6 +2515,16 @@
                               gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
                               dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
           ! end_read_restart
+        qbudget1 = qbudget(1)
+        qbudget2 = qbudget(2)
+        qbudget3 = qbudget(3)
+        qbudget4 = qbudget(4)
+        qbudget5 = qbudget(5)
+        qbudget6 = qbudget(6)
+        qbudget7 = qbudget(7)
+        qbudget8 = qbudget(8)
+        qbudget9 = qbudget(9)
+        qbudget10= qbudget(10)
         !  In case user wants to change values on a restart:
         IF( restart_reset_frqtim )THEN 
           if( statfrq.gt.1.0e-6 ) stattim = mtime + statfrq
@@ -2813,7 +2834,7 @@
 !$acc              xfref,xhref,yfref,yhref,dvdr,qpten,qtten, &
 !$acc              qvten,qcten,qa,q3d,qten,kmh,kmv,khh,khv,tkea, &
 !$acc              tke3d,tketen,effc,effi,effs,effr,effg,effis, &
-!$acc              out2d,out3d,rain,prate,p3a,p3o,qbudget,asq, &
+!$acc              out2d,out3d,rain,prate,p3a,p3o,asq, &
 !$acc              bsq,qavg,cavg,cloudvar,rho0s,pi0s,prs0s,rth0s, &
 !$acc              tst,qst,z0t,z0q,mznt,ppi,pp3d,ppten,sadv,ppx, &
 !$acc              tha,thten1,thterm,glw,gsw,ulspg,vlspg,savg,pavg, &
@@ -2982,7 +3003,7 @@
         ! (tendencies held fixed during Runge-Kutta integration and acoustic sub-stepping)
         call     solve1(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,qbudget8,qbudget9,qbudget10,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,xhref,yfref,yhref,dumk1,dumk2,rds,sigma,rdsf,sigmaf, &
@@ -3050,7 +3071,6 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,epsd2)
-!$acc compare(qbudget)
 !$acc compare(rru,rrv)
 !$acc compare(khh,khv)
         ! end_solve1
@@ -3074,7 +3094,7 @@
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,qmag,bud,bud2,qbudget,qbudget8,qbudget9,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,xhref,yfref,yhref,dumk1,dumk2,rds,sigma,rdsf,sigmaf, &
@@ -3145,7 +3165,6 @@
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
 !$acc compare(khh,khv)
 !$acc compare(tha)
-!$acc compare(qbudget)
 #ifdef _NVTX
         call nvtxEndRange
 #endif
@@ -3166,7 +3185,8 @@
         ! qv only:
         call pdefq2_GPU(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
       else
-        call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
+        call   mp_driver(nstep,dt,qbudget,qbudget1,qbudget2,qbudget3,qbudget4,qbudget5, &
+                         qbudget6,qbudget7,qbudget8,qbudget9,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
                          rho,prs,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,  &
                          w3d,ppi,pp3d,ppten,sten,tha,th3d,thten,qa,q3d,qten,   &
@@ -3181,7 +3201,6 @@
 #endif
 
       ENDIF
-!$acc compare(qbudget)
 
 
 #ifdef _NVTX
@@ -3198,7 +3217,7 @@
 
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
-                   dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,asq,bsq, &
+                   dosfcflx,cloudvar,rhovar,bud,bud2,qbudget,qbudget8,qbudget9,asq,bsq, &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,   &
                    yh,vh,rvh,yf,vf,rvf,                               &
                    xfref,yfref,dumk1,dumk2,rds,sigma,rdsf,sigmaf,     &
@@ -3268,7 +3287,6 @@
 !$acc compare(khh,khv)
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
 !$acc compare(tha,rru,rrv)
-!$acc compare(qbudget)
 #ifdef _NVTX
         call nvtxEndRange
 #endif
@@ -3392,7 +3410,7 @@
 #endif
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6)
 !$acc compare(ust,u1,v1,s1)
-      call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,   &
+      call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,qbudget8,qbudget9,   &
                    avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
                    yh,vh,rvh,yf,vf,rvf,                              &
@@ -3444,7 +3462,6 @@
                    dowriteout,doazimwrite)
         ! end_sfc_and_turb
 !$acc compare(dum1,dum2,dum3,dum4,dum5,dum6,epsd2)
-!$acc compare(qbudget)
 !$acc compare(khh,khv)
 #ifdef _NVTX
       call nvtxEndRange()
@@ -3531,7 +3548,8 @@
         ENDIF
 !#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
-                          qname,budname,qbudget,asq,bsq,                      &
+                          qname,budname,qbudget,qbudget1,qbudget2,qbudget3,   &
+                          qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
                           xh,rxh,uh,ruh,xf,uf,yh,vh,rvh,vf,zh,mh,rmh,zf,mf,   &
                           zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf,                 &
@@ -3542,7 +3560,6 @@
                           pta,u10,v10,hpbl,prate,reset,nstatout)
         !stop 'after call to statpack'
 !#endif
-!$acc compare(qbudget)
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
@@ -4002,7 +4019,7 @@
                                avgsfcu,avgsfcv,avgsfcs,avgsfct,                     &
                                dt,dtlast,mtime,ndt,adt,acfl,dbldt,mass1,            &
                                stattim,taptim,rsttim,radtim,prcltim,                &
-                               qbudget,asq,bsq,qname,                               &
+                               qbudget,qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,qbudget10,asq,bsq,qname,                               &
                                xfref,yfref,zh,zf,sigma,sigmaf,zs,                   &
                                th0,prs0,pi0,rho0,qv0,u0,v0,                         &
                                rain,sws,svs,sps,srs,sgs,sus,shs,                    &

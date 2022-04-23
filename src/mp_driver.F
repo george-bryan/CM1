@@ -14,7 +14,7 @@
   !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-    subroutine mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
+    subroutine mp_driver(nstep,dt,qbudget,qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
                          rho,prs,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,  &
                          w3d,ppi,pp3d,ppten,sten,tha,th3d,thten,qa,q3d,qten,  &
@@ -41,6 +41,7 @@
     integer, intent(in) :: nstep
     real, intent(inout) :: dt
     double precision, intent(inout), dimension(nbudget) :: qbudget
+    double precision, intent(inout) :: qbudget1,qbudget2,qbudget3,qbudget4,qbudget5,qbudget6,qbudget7,qbudget8,qbudget9
     double precision, intent(inout), dimension(numq) :: asq,bsq
     real, intent(in), dimension(ib:ie) :: xh,ruh
     real, intent(in), dimension(ib:ie+1) :: xf,ruf
@@ -159,7 +160,7 @@
 
     if(ptype.ne.5 .and. ptype .ne. 6) then 
       !$acc update &
-      !$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
+      !$acc host(asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
       !$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
       !$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
       !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
@@ -185,7 +186,7 @@
           call pdefq( qsmall,asq(2),ruh,rvh,rmh,rho,q3d(ib,jb,kb,2))
           call pdefq( qsmall,asq(3),ruh,rvh,rmh,rho,q3d(ib,jb,kb,3))
           call k_fallout(rho,q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
-          call geterain(dt,cpl,lv1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
+          call geterain(dt,cpl,lv1,qbudget7,ruh,rvh,dum1,dum3,q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
           if(efall.ge.1)then
             call getcvm(dum2,q3d)
             call getefall(1,cpl,mf,dum1,dum2,dum4,q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
@@ -215,12 +216,12 @@
               enddo
             endif
           endif
-          call fallout(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+          call fallout(dt,qbudget6,ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
-          call kessler(dt,qbudget(3),qbudget(4),qbudget(5),ruh,rvh,rmh,pi0,th0,dum1,   &
+          call kessler(dt,qbudget3,qbudget4,qbudget5,ruh,rvh,rmh,pi0,th0,dum1,   &
                        rho,dum3,pp3d,th3d,prs,                            &
                        q3d(ib,jb,kb,nqv),q3d(ib,jb,kb,2),q3d(ib,jb,kb,3))
-          call satadj(4,dt,qbudget(1),qbudget(2),ruh,rvh,rmh,pi0,th0,   &
+          call satadj(4,dt,qbudget1,qbudget2,ruh,rvh,rmh,pi0,th0,   &
                       rho,dum3,pp3d,prs,th3d,q3d)
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -235,19 +236,19 @@
           call pdefq( qsmall,asq(4),ruh,rvh,rmh,rho,q3d(ib,jb,kb,4))
           call pdefq( qsmall,asq(5),ruh,rvh,rmh,rho,q3d(ib,jb,kb,5))
           call pdefq( qsmall,asq(6),ruh,rvh,rmh,rho,q3d(ib,jb,kb,6))
-          call goddard(dt,qbudget(3),qbudget(4),qbudget(5),ruh,rvh,rmh,pi0,th0,             &
+          call goddard(dt,qbudget3,qbudget4,qbudget5,ruh,rvh,rmh,pi0,th0,             &
                        rho,dum3,prs,pp3d,th3d,                            &
      q3d(ib,jb,kb,1), q3d(ib,jb,kb,2),q3d(ib,jb,kb,3),qten(ib,jb,kb,3),   &
      q3d(ib,jb,kb,4),qten(ib,jb,kb,4),q3d(ib,jb,kb,5),qten(ib,jb,kb,5),   &
      q3d(ib,jb,kb,6),qten(ib,jb,kb,6))
-          call satadj_ice(4,dt,qbudget(1),qbudget(2),ruh,rvh,rmh,pi0,th0,     &
+          call satadj_ice(4,dt,qbudget1,qbudget2,ruh,rvh,rmh,pi0,th0,     &
                           rho,dum3,pp3d,prs,th3d,                     &
               q3d(ib,jb,kb,1),q3d(ib,jb,kb,2),q3d(ib,jb,kb,3),   &
               q3d(ib,jb,kb,4),q3d(ib,jb,kb,5),q3d(ib,jb,kb,6))
-          call geterain(dt,cpl,lv1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
-          call geterain(dt,cpi,ls1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,4),qten(ib,jb,kb,4))
-          call geterain(dt,cpi,ls1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,5),qten(ib,jb,kb,5))
-          call geterain(dt,cpi,ls1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,6),qten(ib,jb,kb,6))
+          call geterain(dt,cpl,lv1,qbudget7,ruh,rvh,dum1,dum3,q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
+          call geterain(dt,cpi,ls1,qbudget7,ruh,rvh,dum1,dum3,q3d(ib,jb,kb,4),qten(ib,jb,kb,4))
+          call geterain(dt,cpi,ls1,qbudget7,ruh,rvh,dum1,dum3,q3d(ib,jb,kb,5),qten(ib,jb,kb,5))
+          call geterain(dt,cpi,ls1,qbudget7,ruh,rvh,dum1,dum3,q3d(ib,jb,kb,6),qten(ib,jb,kb,6))
           if(efall.ge.1)then
             call getcvm(dum2,q3d)
             call getefall(1,cpl,mf,dum1,dum2,dum4,q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
@@ -280,13 +281,13 @@
               enddo
             endif
           endif
-          call fallout(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+          call fallout(dt,qbudget6,ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,3),qten(ib,jb,kb,3))
-          call fallout(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+          call fallout(dt,qbudget6,ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,4),qten(ib,jb,kb,4))
-          call fallout(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+          call fallout(dt,qbudget6,ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,5),qten(ib,jb,kb,5))
-          call fallout(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+          call fallout(dt,qbudget6,ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,6),qten(ib,jb,kb,6))
           if(getdbz) call calcdbz(rho,q3d(ib,jb,kb,3),q3d(ib,jb,kb,5),q3d(ib,jb,kb,6),  &
                                   qdiag(ibdq,jbdq,kbdq,qd_dbz))
@@ -346,8 +347,8 @@
                   re_cloud=dum6, re_ice=dum7, re_snow=dum8,                  &
                   has_reqc=has_reqc, has_reqi=has_reqi, has_reqs=has_reqs,   &
                   nrain=nrain,dx=dx, dy=dy, cm1dz=dz,                        &
-                  tcond=qbudget(1),tevac=qbudget(2),                         &
-                  tevar=qbudget(5),train=qbudget(6),                         &
+                  tcond=qbudget1,tevac=qbudget2,                         &
+                  tevar=qbudget5,train=qbudget6,                         &
                   ruh=ruh,rvh=rvh,rmh=rmh,rr=dum3,rain=rain,prate=prate,     &
                   ib3d=ib3d,ie3d=ie3d,jb3d=jb3d,je3d=je3d,kb3d=kb3d,ke3d=ke3d, &
                   nout3d=nout3d,out3d=out3d,eqtset=eqtset,                   &
@@ -417,7 +418,7 @@
           call lfo_ice_drive(dt, mf, pi0, prs0, pp3d, prs, th0, th3d,    &
                              qv0, rho0, q3d, qten, dum1)
           do n=2,numq
-            call fallout(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+            call fallout(dt,qbudget6,ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                          q3d(ib,jb,kb,n),qten(ib,jb,kb,n))
           enddo
 
@@ -467,7 +468,7 @@
           ENDIF
           ! cm1r17:  get fall velocities (store in qten array)
           !$acc update &
-          !$acc host(qbudget,ruh,rvh,rmh,  &
+          !$acc host(ruh,rvh,rmh,  &
           !$acc      rain,prate,rho,prs,dum1,&
           !$acc      dum3,dum4,dum5,w3d,ppten,    &
           !$acc      q3d,qten,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out3d) 
@@ -479,14 +480,14 @@
                           q3d(ib,jb,kb,10),ppten,                             &
                                prs,rho,dt,dum4,w3d,rain,prate,                &
                           effc,effi,effs,effr,effg,effis,                     &
-                          qbudget(1),qbudget(2),qbudget(5),qbudget(6),        &
+                          qbudget1,qbudget2,qbudget5,qbudget6,        &
                           ruh,rvh,rmh,dum3,getdbz,                            &
                           qten(ib,jb,kb,nqc),qten(ib,jb,kb,nqr),qten(ib,jb,kb,nqi),  &
                           qten(ib,jb,kb,nqs),qten(ib,jb,kb,nqg),getvt,dorad,  &
                           dotbud,doqbud,tdiag,qdiag,out3d)
           if(timestats.ge.1) time_microphy=time_microphy+mytime()
           !$acc update &
-          !$acc device(qbudget,rain,prate,rho,prs,dum1,dum3,dum4,dum5,ppten,   &
+          !$acc device(rain,prate,rho,prs,dum1,dum3,dum4,dum5,ppten,   &
           !$acc      q3d,qten,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out3d) 
           if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
           IF(numq.eq.11)THEN
@@ -625,7 +626,7 @@
 
         ELSEIF(ptype.eq.6)THEN
           !!$acc update &
-          !!$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
+          !!$acc host(asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
           !!$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
           !!$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
           !!$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
@@ -647,7 +648,7 @@
           enddo
           enddo
           enddo
-          call geterain_GPU(dt,cpl,lv1,qbudget(7),ruh,rvh,dum1,dum3,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
+          call geterain_GPU(dt,cpl,lv1,qbudget7,ruh,rvh,dum1,dum3,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
           if( efall.ge.1 .and. v_t.gt.1.0e-6 )then
             call getcvm_GPU(dum2,q3d)
             call getefall_GPU(1,cpl,mf,dum1,dum2,dum4,q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
@@ -677,10 +678,10 @@
               enddo
             endif
           endif
-          call fallout_GPU(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
+          call fallout_GPU(dt,qbudget6,ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
           !stop 'mp_driver: after call to fallout_GPU'
-          call satadj_GPU(4,dt,qbudget(1),qbudget(2),ruh,rvh,rmh,pi0,th0,   &
+          call satadj_GPU(4,dt,qbudget1,qbudget2,ruh,rvh,rmh,pi0,th0,   &
                       rho,dum3,pp3d,prs,th3d,q3d)
 
           IF( v_t.lt.(-0.0001) )THEN
@@ -697,7 +698,7 @@
             enddo
           ENDIF
           !!$acc update &
-         !!$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
+         !!$acc device(asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
           !!$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
           !!$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
           !!$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
@@ -763,10 +764,10 @@
                               dbz = qdiag(ibdq,jbdq,kbdq,qd_dbz), &
                               ruh = ruh, rvh = rvh, rmh = rmh, &
                               dx = dx, dy = dy,              &
-                              tcond = qbudget(1),            &
-                              tevac = qbudget(2),            &
-                              tevar = qbudget(5),            &
-                              train = qbudget(6),            &
+                              tcond = qbudget1,            &
+                              tevac = qbudget2,            &
+                              tevar = qbudget5,            &
+                              train = qbudget6,            &
                               rr    = dum3,                  &
                               diagflag = getdbz,                  &
                   ib3d=ib3d,ie3d=ie3d,jb3d=jb3d,je3d=je3d,kb3d=kb3d,ke3d=ke3d, &
@@ -805,10 +806,10 @@
                               dbz = qdiag(ibdq,jbdq,kbdq,qd_dbz), &
                               ruh = ruh, rvh = rvh, rmh = rmh, &
                               dx = dx, dy = dy,              &
-                              tcond = qbudget(1),            &
-                              tevac = qbudget(2),            &
-                              tevar = qbudget(5),            &
-                              train = qbudget(6),            &
+                              tcond = qbudget1,            &
+                              tevac = qbudget2,            &
+                              tevar = qbudget5,            &
+                              train = qbudget6,            &
                               rr    = dum3,                  &
                               diagflag = getdbz,             &
                   ib3d=ib3d,ie3d=ie3d,jb3d=jb3d,je3d=je3d,kb3d=kb3d,ke3d=ke3d, &
@@ -837,10 +838,10 @@
                               dbz = qdiag(ibdq,jbdq,kbdq,qd_dbz), &
                               ruh = ruh, rvh = rvh, rmh = rmh, &
                               dx = dx, dy = dy,              &
-                              tcond = qbudget(1),            &
-                              tevac = qbudget(2),            &
-                              tevar = qbudget(5),            &
-                              train = qbudget(6),            &
+                              tcond = qbudget1,            &
+                              tevac = qbudget2,            &
+                              tevar = qbudget5,            &
+                              train = qbudget6,            &
                               rr    = dum3,                  &
                               diagflag = getdbz,                  &
                   ib3d=ib3d,ie3d=ie3d,jb3d=jb3d,je3d=je3d,kb3d=kb3d,ke3d=ke3d, &
@@ -1005,12 +1006,12 @@
             if( axisymm.eq.1 )then
               do i=1,ni
                 prate(i,j) = p3a(i,1,22)*rdt
-                qbudget(6) = qbudget(6) + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy*dum3(i,j,1)/rho(i,j,1)
+                qbudget6 = qbudget6 + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy*dum3(i,j,1)/rho(i,j,1)
               enddo
             else
               do i=1,ni
                 prate(i,j) = p3a(i,1,22)*rdt
-                qbudget(6) = qbudget(6) + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy
+                qbudget6 = qbudget6 + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy
               enddo
             endif
 
@@ -1158,12 +1159,12 @@
             if( axisymm.eq.1 )then
               do i=1,ni
                 prate(i,j) = p3a(i,1,22)*rdt
-                qbudget(6) = qbudget(6) + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy*dum3(i,j,1)/rho(i,j,1)
+                qbudget6 = qbudget6 + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy*dum3(i,j,1)/rho(i,j,1)
               enddo
             else
               do i=1,ni
                 prate(i,j) = p3a(i,1,22)*rdt
-                qbudget(6) = qbudget(6) + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy
+                qbudget6 = qbudget6 + p3a(i,1,22)*ruh(i)*rvh(j)*dx*dy
               enddo
             endif
 
@@ -1276,7 +1277,7 @@
 !               q3d(ib,jb,kb,13), q3d(ib,jb,kb,14), q3d(ib,jb,kb,15), q3d(ib,jb,kb,16)
 
 !          write(6,*) ni, nk, nj, ib, ie, jb, je, kb, ke, rain(ib,jb,1),dum5(ib,jb,1)
-!          write(6,*) nrain, dx, dy, dz, qbudget(1), qbudget(2), qbudget(5), qbudget(6)
+!          write(6,*) nrain, dx, dy, dz, qbudget1, qbudget2, qbudget5, qbudget6
 !          write(6,*)  ruh(1), rvh(1), rmh(1,1,1), dum3(1,1,1), rain(1,1,1), prate(1,1)
 
 !               ib3d=ib3d,ie3d=ie3d,jb3d=jb3d,je3d=je3d,kb3d=kb3d,ke3d=ke3d, &
@@ -1309,8 +1310,8 @@
        diag_vmi3d_2=p3o(1,1,1, 5), diag_di3d_2=p3o(1,1,1, 6), diag_rhopo3d_2=p3o(1,1,1, 7), diag_phii3d_2=p3o(1,1,1, 8), &
        diag_vmi3d_3=p3o(1,1,1, 9), diag_di3d_3=p3o(1,1,1,10), diag_rhopo3d_3=p3o(1,1,1,11), diag_phii3d_3=p3o(1,1,1,12), &
                nrain=nrain,dx=dx, dy=dy, cm1dz=dz,                        &
-               tcond=qbudget(1),tevac=qbudget(2),                         &
-               tevar=qbudget(5),train=qbudget(6),                         &
+               tcond=qbudget1,tevac=qbudget2,                         &
+               tevar=qbudget5,train=qbudget6,                         &
                ruh=ruh,rvh=rvh,rmh=rmh,rr=dum3,rain=rain,prate=prate,     &
                ib3d=ib3d,ie3d=ie3d,jb3d=jb3d,je3d=je3d,kb3d=kb3d,ke3d=ke3d,eqtset=eqtset, &
                nout3d=nout3d,out3d=out3d,dowr=dowr,outfile=outfile,getdbz=getdbz,dorad=dorad)
@@ -1359,7 +1360,7 @@
     !print *,'ptype: ',ptype
     if(ptype.ne.5 .and. ptype .ne.6) then 
       !$acc update &
-      !$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
+      !$acc device(asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
       !$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
       !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
       !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
