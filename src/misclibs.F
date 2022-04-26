@@ -3670,11 +3670,9 @@
       !$acc end parallel
 #endif
  
-#ifdef _B4B07R
       tmass=0.0d0
-#else
+#ifndef _B4B07R
       !$acc parallel default(present) reduction(+:tmass)
-      tmass=0.0d0
       !$acc loop gang vector reduction(+:tmass)
 #endif
       do k=1,nk
@@ -3683,6 +3681,7 @@
 #ifndef _B4B07R
       !$acc end parallel
 #endif
+
 
 #ifdef MPI
       var=0.0d0

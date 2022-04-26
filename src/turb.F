@@ -4762,8 +4762,6 @@
       enddo
       ENDIF
 
-      !JMD
-      !JMD!$acc data copyin(numq,nqv,nql1,nql2,nqs1,nqs2,iice)
       DO n=1,numq
         IF( (n.eq.nqv) .or.                                 &
             (n.ge.nql1.and.n.le.nql2) .or.                  &
@@ -4779,7 +4777,6 @@
           enddo
         ENDIF
       ENDDO
-      !JMD!$acc end data
 
       k = 1
 
@@ -5386,30 +5383,15 @@
 
     !-------------------------------------------
 
-        !!$acc data copyin(arf1,arf2) &
-        !!$acc copyin(ust,u1,v1,s1,rf,mf) &
-        !!$acc copyin(kmh,kmv) &
-        !!$acc copyin(ugr,vgr) &
-        !!$acc copy(stau,dum1,dum2,t13,t23)
         call     sfcstress(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,rf,mf,dum1,dum2,  &
                         kmh,kmv,s13,s23,ua,ugr,va,vgr,avgsfcu,avgsfcv,avgsfcs)
-        !!$acc end data
 
     !-------------------------------------------
     !  surface vars:
 
-        !print *,'t2pcode: point #1'
-#ifdef _B4B07R
-        !$acc update host(s13,s23,rf,zntmp)
-#else
-        !$acc parallel default(present) private(i,j) reduction(+:ustbar,zntbar)
-#endif
         ustbar = 0.0
         zntbar = 0.0
-
-#ifndef _B4B07R
-        !$acc loop vector collapse(2) reduction(+:ustbar,zntbar)
-#endif
+        !$acc parallel loop vector collapse(2) default(present) reduction(+:ustbar,zntbar)
         do j=1,nj
         do i=1,ni
 !!!          ustbar = ustbar + ust(i,j)
@@ -5419,10 +5401,7 @@
           zntbar = zntbar + zntmp(i,j)
         enddo
         enddo
-#ifndef _B4B07R
-        !$acc end parallel
-#endif
-        !print *,'t2pcode: point #2'
+
 #ifdef MPI
         !Reductions are on the host anyway  
         call MPI_ALLREDUCE(MPI_IN_PLACE,ustbar,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)

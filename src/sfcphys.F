@@ -2,8 +2,6 @@
 
 #define _B4B06R
 #define _B4B08R
-#define _B4B09R
-#define _B4B10R
 #endif
   MODULE sfcphys_module
 
@@ -1117,14 +1115,14 @@
 
 !-----------------------------------------------------------------------
 
-#ifndef _B4B08R
-      !$acc parallel default(present) &
-      !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
       avgsfcu = 0.0
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
+#ifndef _B4B08R
+      !$acc parallel default(present) &
+      !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
+#endif
 #ifdef _B4B08R
       !$acc update host(u1,v1,s1,t1)
 #else
@@ -1150,21 +1148,21 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 #endif
 
-#ifndef _B4B10R
+      !JMD FIXME
+      !JMD Don't quite understand what is going on here.  THese are scalar
+      !JMD values and should be located in the CPU memory.  For some reason if I
+      !JMD remove the acc parallel directive the GPU results are further away from
+      !JMD the CPU results.
       !$acc parallel 
-#endif
       temd = 1.0/dble(nx*ny)
       avgsfcu = avgsfcu*temd
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
-#ifndef _B4B10R
       !$acc end parallel
-#else
-      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
 

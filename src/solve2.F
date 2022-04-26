@@ -1,6 +1,5 @@
 #ifdef _B4B
 
-#define _B4B05RF
 #define _B4B06R
 
 #endif
@@ -1744,7 +1743,7 @@
 #ifdef _B4B06R
         !$acc update host(rho,ruh,rvh,rmh,pi0,pp3d,xf)
 #else
-        !$acc parallel private(tmp1,tmp2) reduction(+:tmp1,tmp2)
+        !$acc parallel reduction(+:tmp1,tmp2)
 #endif
         IF( axisymm.eq.0 )THEN
 #ifndef _B4B06R
@@ -2127,17 +2126,9 @@
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
         !$acc update device(dumk3,dumk4)
 #endif
-#ifdef _B4B05RF
-        !$acc update host(dumk3,dumk4)
-#else
-        !$acc parallel reduction(+:temq1,temq2)
-#endif
-
         temq1 = 0.0
         temq2 = 0.0
-#ifndef _B4B05RF
-        !$acc loop vector reduction(+:temq1,temq2)
-#endif 
+        !$acc parallel loop vector reduction(+:temq1,temq2)
         do k=1,nk
           temq1 = temq1 + dumk3(k)
           temq2 = temq2 + dumk4(k)
@@ -2147,9 +2138,6 @@
         p2 = temq2
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
-#ifndef _B4B05RF
-        !$acc end parallel
-#endif
 
 !!!        if( myid.eq.0 ) print *,'  temd,tem = ',temd,tem
 
