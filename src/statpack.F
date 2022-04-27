@@ -472,7 +472,7 @@
       IF( bbc.eq.3 .and. sfcmodel.ge.1 )THEN
         call maxmin2d(ni,nj,hpbl(ibl,jbl),nstat,rstat,'HPBLMX','HPBLMN')
       ENDIF
-      !JMD-KLUDGE if(stat_cfl.eq.1) call calccfl(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,1)
+      if(stat_cfl.eq.1) call calccfl_fold(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,1)
 
       if(stat_cfl.eq.1.and.(sgsmodel.ge.1.or.ipbl.eq.2.or.horizturb.eq.1)) call calcksmax(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
 

@@ -293,9 +293,9 @@
                                ps1,ps2,pn1,pn2,reqs_p)
         endif
 #endif
-      text1='snd.1b'
-      text2='snd.1b'
-      call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
+      !text1='snd.1b'
+      !text2='snd.1b'
+      !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
       !$acc compare(ppd)
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -312,27 +312,21 @@
         tem1 = rdx*cp*0.5
         tem2 = rdy*cp*0.5
 
-        print *,'HOST: sounde: before loop: cp: ',cp
-        print *,'HOST: sounde: before loop: rdy: ',rdy
-        !$acc parallel
-        print *,'DEVICE: sounde: before loop: cp: ',cp
-        print *,'DEVICE: sounde: before loop: rdy: ',rdy
-        !$acc end parallel
-        text1='snd.1j'
-        text2='snd.1j'
-        call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
-        text1='snd.1k'
-        text2='snd.1k'
-        call maxmin2dhalo(ni,nj,dtv(ib,jb),text1,text2)
-        text1='snd.1m'
-        text2='snd.1m'
-        call maxmin2dhalo(ni,nj+1,vten(ib,jb,13),text1,text2)
-        text1='snd.1n'
-        text2='snd.1n'
-        call maxmin2dhalo(ni,nj,thv(ib,jb,13),text1,text2)
-        text1='snd.1x'
-        text2='snd.1x'
-        call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
+        !text1='snd.1j'
+        !text2='snd.1j'
+        !call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
+        !text1='snd.1k'
+        !text2='snd.1k'
+        !call maxmin2dhalo(ni,nj,dtv(ib,jb),text1,text2)
+        !text1='snd.1m'
+        !text2='snd.1m'
+        !call maxmin2dhalo(ni,nj+1,vten(ib,jb,13),text1,text2)
+        !text1='snd.1n'
+        !text2='snd.1n'
+        !call maxmin2dhalo(ni,nj,thv(ib,jb,13),text1,text2)
+        !text1='snd.1x'
+        !text2='snd.1x'
+        !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -348,9 +342,9 @@
           enddo
           enddo
         enddo
-        text1='snd.1h'
-        text2='snd.1h'
-        call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
+        !text1='snd.1h'
+        !text2='snd.1h'
+        !call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
 
         IF( do_ib )THEN
           call zero_out_uv(bndy,kbdy,u3d,v3d)
@@ -578,18 +572,18 @@
           call get_wnudge(mtime,dts,xh,yh,zf,w3d,dum1)
         ENDIF
       ENDIF
-      text1='snd.2a'
-      text2='snd.2a'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
-      text1='snd.2b'
-      text2='snd.2b'
-      call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
-      text1='snd.2c'
-      text2='snd.2c'
-      call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
-      text1='snd.2e'
-      text2='snd.2e'
-      call maxmin2dhalo(ni,nj,wten(ib,jb,13),text1,text2)
+      !text1='snd.2a'
+      !text2='snd.2a'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='snd.2b'
+      !text2='snd.2b'
+      !call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
+      !text1='snd.2c'
+      !text2='snd.2c'
+      !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
+      !text1='snd.2e'
+      !text2='snd.2e'
+      !call maxmin2dhalo(ni,nj,wten(ib,jb,13),text1,text2)
 
   !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
@@ -824,42 +818,39 @@
       IF(.not.terrain_flag)THEN
         ! Cartesian grid, without terrain:
 
-        text1='snd.5a'
-        text2='snd.5a'
-        call maxmin2dhalo(ni,nj,pp3d(ib,jb,13),text1,text2)
+        !text1='snd.5a'
+        !text2='snd.5a'
+        !call maxmin2dhalo(ni,nj,pp3d(ib,jb,13),text1,text2)
 #if 0
 #endif
-        print *,'temx,temy: ',temx,temy
-        print *,'kdiv: ',kdiv
-        print *,'smeps: ',smeps
-        text1='snd.5c'
-        text2='snd.5c'
-        call maxmin2dhalo(ni,nj,ppterm(ib,jb,13),text1,text2)
-        text1='snd.5d'
-        text2='snd.5d'
-        call maxmin2dhalo(ni,nj,piadv(ib,jb,13),text1,text2)
-        text1='snd.5e'
-        text2='snd.5e'
-        call maxmin2dhalo(ni,nj,pk1(ib,jb,13),text1,text2)
-        text1='snd.5f'
-        text2='snd.5f'
-        call maxmin2dhalo(ni,nj,pk2(ib,jb,13),text1,text2)
-        text1='snd.5g'
-        text2='snd.5g'
-        call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
-        text1='snd.5h'
-        text2='snd.5h'
-        call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
-        text1='snd.5i'
-        text2='snd.5i'
-        call maxmin2dhalo(ni+1,nj,u3d(ib,jb,13),text1,text2)
-        text1='snd.5j'
-        text2='snd.5j'
-        call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
-        text1='snd.5k'
-        text2='snd.5k'
-        call maxmin2dhalo(ni,nj+1,mh(ib,jb,13),text1,text2)
-        print *,'mh(1,1,13): ',mh(1,1,13)
+        !text1='snd.5c'
+        !text2='snd.5c'
+        !call maxmin2dhalo(ni,nj,ppterm(ib,jb,13),text1,text2)
+        !text1='snd.5d'
+        !text2='snd.5d'
+        !call maxmin2dhalo(ni,nj,piadv(ib,jb,13),text1,text2)
+        !text1='snd.5e'
+        !text2='snd.5e'
+        !call maxmin2dhalo(ni,nj,pk1(ib,jb,13),text1,text2)
+        !text1='snd.5f'
+        !text2='snd.5f'
+        !call maxmin2dhalo(ni,nj,pk2(ib,jb,13),text1,text2)
+        !text1='snd.5g'
+        !text2='snd.5g'
+        !call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
+        !text1='snd.5h'
+        !text2='snd.5h'
+        !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+        !text1='snd.5i'
+        !text2='snd.5i'
+        !call maxmin2dhalo(ni+1,nj,u3d(ib,jb,13),text1,text2)
+        !text1='snd.5j'
+        !text2='snd.5j'
+        !call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
+        !text1='snd.5k'
+        !text2='snd.5k'
+        !call maxmin2dhalo(ni,nj+1,mh(ib,jb,13),text1,text2)
+        !print *,'mh(1,1,13): ',mh(1,1,13)
 
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,div,delp)
@@ -886,15 +877,15 @@
         enddo
         enddo
         enddo
-      text1='snd.6a'
-      text2='snd.6a'
-      call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
-      text1='snd.6b'
-      text2='snd.6b'
-      call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
-      text1='snd.6c'
-      text2='snd.6c'
-      call maxmin2dhalo(ni,nj,pp3d(ib,jb,13),text1,text2)
+      !text1='snd.6a'
+      !text2='snd.6a'
+      !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
+      !text1='snd.6b'
+      !text2='snd.6b'
+      !call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
+      !text1='snd.6c'
+      !text2='snd.6c'
+      !call maxmin2dhalo(ni,nj,pp3d(ib,jb,13),text1,text2)
 
       ELSE
         ! Cartesian grid, with terrain:

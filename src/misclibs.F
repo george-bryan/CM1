@@ -2868,7 +2868,6 @@
  
       end subroutine vertvort
 
-
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3043,6 +3042,186 @@
 !$acc end data
 
       end subroutine calccfl
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+ 
+      subroutine calccfl_fold(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,writeit)
+      use input
+      use constants
+#ifdef MPI
+      use mpi
+#endif
+      implicit none
+
+      integer nstat
+      real, dimension(stat_out) :: rstat
+      real :: dt
+      double precision :: acfl
+      real, intent(in), dimension(ib:ie) :: uh
+      real, intent(in), dimension(jb:je) :: vh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: mh
+      real, dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      integer :: writeit
+ 
+      integer i,j,k,index
+      integer imax,jmax,kmax
+      integer imaxt(ni*nj),jmaxt(ni*nj),kmaxt(ni*nj)
+      real dtdx,dtdy,dtdz,cfl(ni*nj),fmax
+      real :: wsp
+      integer :: loc
+      integer RANGE, PAIRS
+      real, dimension(2) :: mmax,nmax
+
+!$acc data create(imaxt,jmaxt,kmaxt,cfl,mmax,nmax)
+
+      dtdx=0.5*dt*rdx
+      dtdy=0.5*dt*rdy
+      dtdz=0.5*dt*rdz
+
+      cfl = -1.0
+      imaxt = 0
+      jmaxt = 0
+      kmaxt = 0
+
+      if(nx.gt.1.and.ny.gt.1)then
+!! Each thread runs a serial loop and finds the max from that "stripe".
+!! We'd really want to split the second dimension between the parallel &
+!! serial loops so we can fill the SM's with threads but not oversubscribe.
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wsp)
+        do j=1,nj
+        do i=1,ni
+!$acc loop seq private(index)
+        do k=1,nk
+          wsp = sqrt( ( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
+                       +((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2 )   &
+                       +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
+          index=j*ni+i
+          if( wsp.gt.cfl(index) )then
+            cfl(index) = wsp
+            imaxt(index)=i
+            jmaxt(index)=j
+            kmaxt(index)=k
+          endif
+        enddo
+        enddo
+        enddo
+      elseif(nx.gt.1)then
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wsp)
+        do j=1,nj
+        do i=1,ni
+!$acc loop seq private(index)
+        do k=1,nk
+          wsp = sqrt( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
+                     +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
+          index=j*ni+i
+          if( wsp.gt.cfl(index) )then
+            cfl(index) = wsp
+            imaxt(index)=i
+            jmaxt(index)=j
+            kmaxt(index)=k
+          endif
+        enddo
+        enddo
+        enddo
+      elseif(axisymm.eq.0.and.ny.gt.1)then
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wsp)
+        do j=1,nj
+        do i=1,ni
+!$acc loop seq private(index)
+        do k=1,nk
+          wsp = sqrt( ((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2     &
+                     +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
+          index=j*ni+i
+          if( wsp.gt.cfl(index) )then
+            cfl(index) = wsp
+            imaxt(index)=i
+            jmaxt(index)=j
+            kmaxt(index)=k
+          endif
+        enddo
+        enddo
+        enddo
+      endif
+
+!! Using a serial loop here so all the data is sync'd between consecutive kernel
+!calls.
+!! The RANGE = PAIRS or (PAIRS+1) as a way to manage odd numbers.
+      PAIRS=ni*nj/2           !! Round down.
+      RANGE=(ni*nj+1)/2       !! Round up.
+      do while ( RANGE > 1 )
+!! Now fold the 2-d array with half the threads each time.
+!$acc parallel loop gang vector private(i)
+        do i=1,PAIRS
+          if ( cfl(i) .le. cfl(RANGE)) then
+             cfl(i)=cfl(RANGE+i)
+             imaxt(i)=imaxt(RANGE+i)
+             jmaxt(i)=jmaxt(RANGE+i)
+             kmaxt(i)=kmaxt(RANGE+i)
+          endif
+        enddo
+        PAIRS=RANGE/2
+        RANGE=(RANGE+1)/2
+!! May need some kind of sync-barrier here.
+      enddo
+
+      fmax=cfl(1)
+      imax=imaxt(1)
+      jmax=jmaxt(1)
+      kmax=kmaxt(1)
+
+#ifdef MPI
+      mmax(1)=fmax
+      mmax(2)=myid
+      call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
+                         MPI_COMM_WORLD,ierr)
+      !!$acc update device(mmax)
+      loc=nint(nmax(2))
+      imax=imax+(myi1-1)
+      jmax=jmax+(myj1-1)
+      call MPI_BCAST(imax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(jmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(kmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      !!$acc update device(imax,jmax,kmax)
+      fmax=nmax(1)
+      if(myid.eq.0)then
+#endif
+
+    IF(writeit.eq.1)THEN
+      nstat = nstat + 1
+      IF( adapt_dt.eq.1 )THEN
+        write(6,100) 'CFLMAX',sngl(acfl),imax,jmax,kmax
+        rstat(nstat) = sngl(acfl)
+      ELSE
+        write(6,100) 'CFLMAX',fmax,imax,jmax,kmax
+        rstat(nstat) = fmax
+      ENDIF
+100   format(2x,'stat:: ',a6,':',1x,f13.6,i5,i5,i5)
+    ENDIF
+
+#ifdef MPI
+      endif
+#endif
+
+
+      print *,'calccfl: fmax is: ',fmax
+      if(fmax.ge.1.50) stopit=.true.
+ 
+      if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
+
+      end subroutine calccfl_fold
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

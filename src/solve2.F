@@ -1250,9 +1250,9 @@
 
         get_time_avg = .false.
 
-      text1='sv2.15'
-      text2='sv2.15'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.15'
+      !text2='sv2.15'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
         IF(psolver.eq.1)THEN
 
@@ -1352,9 +1352,9 @@
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
 
         ENDIF
-      text1='sv2.16'
-      text2='sv2.16'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.16'
+      !text2='sv2.16'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
 !--------------------------------------------------------------------
 !  Update v for axisymmetric model simulations:
@@ -1459,9 +1459,9 @@
 !  For Bryan-Fritsch equation set, compute 3d divergence.
 !     Store in T11 array.
 
-      text1='sv2.17'
-      text2='sv2.17'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.17'
+      !text2='sv2.17'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
     IF( imoist.eq.1 .and. eqtset.eq.2 )THEN
       if( get_time_avg )then
         ! cm1r19:  rru,rrv,rrw store small-step-avg velocities
@@ -1472,9 +1472,9 @@
                         rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
       endif
     ENDIF
-      text1='sv2.18'
-      text2='sv2.18'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.18'
+      !text2='sv2.18'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
 !--------------------------------------------------------------------
 
@@ -1836,9 +1836,9 @@
 !  bcs and comms:
 
       !print *,'solve2: point #19'
-      text1='sv2.19'
-      text2='sv2.19'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.19'
+      !text2='sv2.19'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
       call bcu_GPU(u3d)
 #ifdef MPI
