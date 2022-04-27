@@ -84,9 +84,7 @@
 
 !-----------------------------------------------------------------------
 #ifdef MPI
-      !$acc data create(afoo,bfoo,cfoo)
       cfoo = 0.0
-      !$acc update host(asq)
       call MPI_REDUCE(qbudget,cfoo,nbudget,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       if( myid.eq.0 )then
@@ -118,8 +116,6 @@
           bsq = 0.0
         endif
       endif
-      !$acc update device(asq)
-      !$acc end data
 #endif
 !-----------------------------------------------------------------------
 
@@ -177,6 +173,7 @@
               do while( sigmaf(nkm).gt.zlev .and. nkm.gt.1 )
                 nkm = nkm-1
               enddo
+              print *,'nkm: ',nkm
               ! dum1(i,j,1) = wa(i,j,nkm)+(wa(i,j,nkm+1)-wa(i,j,nkm))  &
               !                          *(         zlev-sigmaf(nkm))  &
               !                          /(sigmaf(nkm+1)-sigmaf(nkm))

@@ -537,7 +537,6 @@
       endif
 
 !-----------------------------------------------------------------------
-    !$acc compare(ugr,vgr)
     if(timestats.ge.1) time_turb=time_turb+mytime()
 
     dosfc:  IF( getsfc )THEN
@@ -638,14 +637,12 @@
           enddo
          ENDIF
 
-        !$acc compare(ust,u1,v1,s1)
         IF( use_avg_sfc .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )THEN
             call getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
         ENDIF
 
         IF( sfcmodel.eq.1 )THEN
 
-          !$acc compare(ust,u1,v1,s1)
           call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
 
           if( tbc.eq.3 )then
@@ -672,7 +669,6 @@
                         xland,psfc,qsfc,u10,v10,hfx,qfx,cda,znt,gz1oz0,  &
                         psim,psih,br,zol,mol,hpbl,dsxy,th2,t2,q2,fm,fh,  &
                         zs,ppten(ib,jb,1),pi0s,pi0,th0,ppi,tha,rho,rf,divx)
-          !stop 'after call to sfcdiags'
           if( use_pbl )then
             !$omp parallel do default(shared) private(i,j)
             !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1043,7 +1039,6 @@
 
   bbc3b:  &
   IF( bbc.eq.3 )THEN
-    !$acc compare(ust,u1,v1,s1)
     !-------------!
     call bc2d_GPU(ust)
 #ifdef MPI
@@ -1079,7 +1074,6 @@
   endif
     !-------------!
 
-    !$acc compare(ust,u1,v1,s1)
 #ifdef MPI
     !-------------!
     call comm_1s2d_end_GPU(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
@@ -1109,14 +1103,12 @@
   endif
     !-------------!
 
-    !$acc compare(ust,u1,v1,s1)
     !-------------!
     call comm_2d_corner_GPU(ust)
     call comm_2d_corner_GPU(u1)
     call comm_2d_corner_GPU(v1)
     call comm_2d_corner_GPU(s1)
     call comm_2d_corner_GPU(znt)
-    !$acc compare(ust,u1,v1,s1)
   if( sfcmodel.eq.4 )then
     call comm_2d_corner_GPU(mznt)
   endif
@@ -1254,7 +1246,6 @@
                      dum1,dum2,ua,va,wa,t11,t12,t13,t22,t23,t33,gx,gy,rho,rr,rf)
 
       ENDIF
-    !$acc compare(dum1,dum2)
 
 !--------------------------------------
 !  LES subgrid models:
@@ -1267,7 +1258,6 @@
 !        print *,'ERROR: call to getgamk not supported in OpenACC'
 !#endif
         ! get gamk for two-part model:
-        !$acc compare(ust,u1,v1,s1)
         call     getgamk(dt,rtime,xf,rxf,c1,c2,zh,mh,zf,mf,rf0,rr0,rho0,rrf0,u0,v0,            &
                          uavg,vavg,savg,l2p,kmw,gamwall,gamk,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cavg,  &
                          ua,va,wa,t11,t12,t13,t22,t23,t33,dum1,dum2,dum3,dum4,                 &
@@ -1276,7 +1266,6 @@
                          u1,v1,s1,u1b,v1b,                                                     &
                          avgsfcu,avgsfcv,avgsfcs,                                              &
                          sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
-    !$acc compare(dum1,dum2)
         ! update turbulence model "constants":
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,nk+1
@@ -1293,7 +1282,6 @@
 
 
          ! Deardorff TKE: 
-        !$acc compare(ust)
         call tkekm(nstep,rtime,dt,ruh,rvh,rmh,zf,mf,rmf,zntmp,ust,ustt,rf,cmz,csz,ce1z,ce2z, &
                    nm,defv,defh,dum1,dum2,dum3,dum4,dum5,             &
                    kmh,kmv,khh,khv,tkea,lenscl,dissten,out3d,         &
@@ -1307,8 +1295,6 @@
                    kw1(1,1,4),kw2(1,1,4),ke1(1,1,4),ke2(1,1,4),       &
                    ks1(1,1,4),ks2(1,1,4),kn1(1,1,4),kn2(1,1,4))
 
-    !$acc compare(dum1,dum2)
-        !stop 'sfc_and_turb: after call to tkekm'
 
         if( do_ib )then
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -1324,13 +1310,11 @@
           enddo
           enddo
         endif
-        !$acc compare(ust,u1,v1,st)
         call     tkebc(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,          &
                        kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                        ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),  &
                        kw1(1,1,2),kw2(1,1,2),ke1(1,1,2),ke2(1,1,2),  &
                        ks1(1,1,2),ks2(1,1,2),kn1(1,1,2),kn2(1,1,2))
-        !$acc compare(ust,u1,v1,st)
        
         !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
         do j=0,nj+1
@@ -1354,7 +1338,6 @@
                          ua ,va ,wa ,tkea ,nm,                     &
                          kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,reqs_s,   &
                          nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-    !$acc compare(dum1,dum2)
         ENDIF
 
       ELSEIF(sgsmodel.eq.2)THEN
@@ -1388,7 +1371,6 @@
                          ua ,va ,wa ,tkea ,nm,                     &
                          kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,reqs_s,   &
                          nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-    !$acc compare(dum1,dum2)
 
       ELSEIF( sgsmodel.eq.0 )THEN
 
@@ -1450,7 +1432,6 @@
 !#ifdef _OPENACC
 !            print *,'ERROR: call to t2pcode not supported in OpenACC'
 !#endif
-            !$acc compare(ust,u1,v1,st)
             call t2pcode(dt,rtime,xf,rxf,c1,c2,zh,mh,zf,mf,rf0,rr0,rho0,rrf0,u0,v0,            &
                          uavg,vavg,savg,l2p,kmw,gamwall,gamk,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cavg,  &
                          ua,va,wa,t11,t12,t13,t22,t23,t33,dum1,dum2,dum3,dum4,                 &
@@ -1459,7 +1440,6 @@
                          u1,v1,s1,u1b,v1b,                                                     &
                          avgsfcu,avgsfcv,avgsfcs,                                              &
                          sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
-            !$acc compare(ust,u1,v1,st)
           else
             stop 54321
           endif
@@ -1471,7 +1451,6 @@
       !-------------
 
     ENDIF  les_sgs
-    !$acc compare(dum1,dum2)
 
 !--------------------------------------
 !  Simple Smagorinsky-like turbulence schemes:
@@ -1551,12 +1530,9 @@
 #endif
       endif
 
-        !$acc compare(ust,u1,v1,st)
         !  now, get turbulent stresses:
         call     gettau(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,ustt,ut,vt,st,rf,mf,dum1,dum2,dum3,dum4,dum5,dum6, &
                         kmh,kmv,t11,t12,t13,t22,t23,t33,ua,ugr,va,vgr,wa,avgsfcu,avgsfcv,avgsfcs,bndy,kbdy)
-    !$acc compare(dum1,dum2)
-    !stop 'sfc_and_turb: after gettau'
 
         if( do_ib )then
 #ifdef _OPENACC
@@ -1622,7 +1598,6 @@
           ENDIF
 
     ENDIF
-    !$acc compare(dum1,dum2)
 
 
 !-------------------------------------------------------------------
@@ -2583,7 +2558,6 @@
 #endif
 !--------------------------------------------------------------
 !   finished
-      !stop 'tkekm: at the end'      
       return
       end subroutine tkekm
 
@@ -3689,10 +3663,8 @@
 !--------------------------------------------------------------
 !  lower boundary conditions
 
-       !$acc compare(dum1,dum2,ust,u1,v1,s1,stau)
             call sfcstress(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,rf,mf,dum1,dum2,  &
                         kmh,kmv,t13,t23,ua,ugr,va,vgr,avgsfcu,avgsfcv,avgsfcs)
-       !$acc compare(dum1,dum2)
 !--------------------------------------------------------------
 !  upper boundary conditions
 
@@ -3898,7 +3870,6 @@
                            /( max(0.0001,avgsfcs*sqrt( avgsfcu**2 + avgsfcv**2 )) )
           enddo
           enddo
-          !$acc compare(dum1,dum2,ust,s1,u1,v1)
 
           !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
           do j=1,nj+1
@@ -5544,7 +5515,6 @@
     !$acc end data
    
       if(timestats.ge.1) time_turb=time_turb+mytime()
-      !stop 't2pcode: end of subroutine'
 
       end subroutine t2pcode
 
@@ -5676,7 +5646,6 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(1,2),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(cavg)
 #endif
-      !stop 'getgamk: point #2'
       !$acc parallel default(present) 
       temd = 1.0/dble(nx*ny)
 

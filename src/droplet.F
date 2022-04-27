@@ -609,10 +609,6 @@
 !
 !----------------------------------------------------------------------
       !$acc end data
-      !!$acc compare(pdata(1:50,1:npvals))
-      !!$acc compare(pdata)
-      !!$acc compare(qten,thten)
-      !stop 'droplet_driver: at the end subroutine'
 
       end subroutine droplet_driver
 

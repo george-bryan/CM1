@@ -1270,12 +1270,12 @@
 !----------------------------------------------------------------------
 
       !print *,'pdefq2_GPU: pdscheme: ',pdscheme
-      !$acc data create(budj,budk)
+!      !$acc data create(budj,budk)
       !tem = dx*dy*dz
       IF(pdscheme.eq.1)THEN
 
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
-        !$acc parallel default(present) private(i,j,k) copy(asq) &
+        !$acc parallel default(present) private(i,j,k) &
         !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:asq)
         !$acc loop gang collapse(2)
         do j=1,nj
@@ -1309,7 +1309,7 @@
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
         !$acc parallel default(present) private(i,j,k,a1,a2) reduction(+:budt,asq)
-        !$acc loop gang
+        !$acc loop gang reduction(+:asq)
         do k=1,nk
           budt=0.0d0
           !$acc loop vector collapse(2) reduction(+:budt)
@@ -1333,7 +1333,7 @@
         !$acc end parallel
 
       ENDIF
-      !$acc end data
+!      !$acc end data
 
 !----------------------------------------------------------------------
 
@@ -3134,7 +3134,6 @@
 #endif
 
       if(cflmax.ge.1.50) stopit=.true.
-          !stop 'calcflquick: end of subroutine'
 
 
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
@@ -3716,8 +3715,8 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
+ 
+ 
       subroutine totq(nstat,rstat,ruh,rvh,rmh,q,rho,aname)
       use input
       use constants
@@ -3976,19 +3975,22 @@
       double precision :: tmu,tmv,tmw,qtot,var,tem
       double precision, dimension(nk) :: foo1,foo2,foo3
       double precision :: foot1,foot2,foot3
+      double precision :: qltmp,vrtmp
 
       tmu=0.0d0
       tmv=0.0d0
       tmw=0.0d0
+      qltmp=0.0d0
+      vrtmp=0.0d0
 
 #ifdef _B4B09R
       !$acc update host(qv,ql,qi,ruh,rvh,rmh,ua,va,wa,vr,rho)
 #else
-      !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
+      !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw,qltmp,vrtmp)
 #endif
       !$omp parallel do default(shared) private(i,j,k,qtot,tem)
 #ifndef _B4B09R
-      !$acc loop vector collapse(3) reduction(+:tmu,tmv,tmw)
+      !$acc loop vector collapse(3) reduction(+:tmu,tmv,tmw,qltmp,vrtmp)
 #endif
       do k=1,nk
         do j=1,nj
@@ -4002,6 +4004,8 @@
           tmw=tmw   &
                 +rho(i,j,k)*tem*(1.0+qtot)*( 0.5*(wa(i,j,k)+wa(i,j,k+1)) )   &
                 -rho(i,j,k)*tem*ql(i,j,k)*vr(i,j,k)
+          qltmp = qltmp+ql(i,j,k)
+          vrtmp = vrtmp+vr(i,j,k)
         enddo
         enddo
       enddo
@@ -4014,6 +4018,8 @@
       tmu=tmu*(dx*dy*dz)
       tmv=tmv*(dx*dy*dz)
       tmw=tmw*(dx*dy*dz)
+      vrtmp=vrtmp*(dx*dy*dz)
+      qltmp=qltmp*(dx*dy*dz)
       
 
 #ifdef MPI
@@ -4021,20 +4027,35 @@
       call MPI_REDUCE(tmu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmu=var
+
       var=0.0d0
       call MPI_REDUCE(tmv,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmv=var
+
       var=0.0d0
       call MPI_REDUCE(tmw,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmw=var
+
+      var=0.0d0
+      call MPI_REDUCE(qltmp,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+                      MPI_COMM_WORLD,ierr)
+      qltmp=var
+
+      var=0.0d0
+      call MPI_REDUCE(vrtmp,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+                      MPI_COMM_WORLD,ierr)
+      vrtmp=var
+
       if(myid.eq.0)then
 #endif
  
       write(6,100) 'TMU   ',tmu
       write(6,100) 'TMV   ',tmv
       write(6,100) 'TMW   ',tmw
+      write(6,100) 'QL   ',qltmp
+      write(6,100) 'VR   ',vrtmp
 100   format(2x,'stat:: ',a6,':',1x,e13.6)
  
       nstat = nstat + 1

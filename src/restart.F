@@ -516,7 +516,7 @@
 
       if( imoist.eq.1 )then
         afoo = 0.0
-        call MPI_REDUCE(asq(1),afoo(1),numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+        call MPI_REDUCE(asq,afoo,numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                         MPI_COMM_WORLD,ierr)
         if( myid.eq.0 )then
           do n=1,numq
@@ -526,7 +526,7 @@
           asq = 0.0
         endif
         bfoo = 0.0
-        call MPI_REDUCE(bsq(1),bfoo(1),numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+        call MPI_REDUCE(bsq,bfoo,numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                         MPI_COMM_WORLD,ierr)
         if( myid.eq.0 )then
           do n=1,numq
