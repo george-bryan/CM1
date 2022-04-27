@@ -79,7 +79,6 @@
 #ifdef MPI
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
-      double precision :: tfoo
 #endif
 
 !-----------------------------------------------------------------------

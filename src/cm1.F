@@ -1653,7 +1653,7 @@
       allocate(  bud2(nj) )
       bud2 = 0.0
       allocate( qbudget(nbudget) )
-      qbudget   = 0.0
+      qbudget = 0.0
       allocate(    asq(numq) )
       asq = 0.0
       allocate(    bsq(numq) )

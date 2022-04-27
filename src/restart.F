@@ -146,7 +146,6 @@
       integer :: proc,index,count,req1,req2,req3,reqp
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
-      double precision :: tfoo
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
