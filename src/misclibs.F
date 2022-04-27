@@ -3102,7 +3102,7 @@
           wsp = sqrt( ( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
                        +((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2 )   &
                        +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          index=j*ni+i
+          index=(j-1)*ni+i
           if( wsp.gt.cfl(index) )then
             cfl(index) = wsp
             imaxt(index)=i
@@ -3122,7 +3122,7 @@
         do k=1,nk
           wsp = sqrt( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          index=j*ni+i
+          index=(j-1)*ni+i
           if( wsp.gt.cfl(index) )then
             cfl(index) = wsp
             imaxt(index)=i
@@ -3142,7 +3142,7 @@
         do k=1,nk
           wsp = sqrt( ((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2     &
                      +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
-          index=j*ni+i
+          index=(j-1)*ni+i
           if( wsp.gt.cfl(index) )then
             cfl(index) = wsp
             imaxt(index)=i
