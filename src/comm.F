@@ -9130,9 +9130,9 @@
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
 #else
+        !$acc update host(south)
         call mpi_isend(south,cs1sn,MPI_REAL,mysouth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
-        !$acc update host(south)
 #endif
       endif
 
