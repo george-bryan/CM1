@@ -205,25 +205,17 @@
       double precision :: temd
       double precision :: tmp1,tmp2,tmp3
       ! 180612:  area-weighted average
-#ifdef _B4B05R
-      !$acc update host(ua,va,th0,tha)
-#else
-      !$acc parallel default(present) private(i,j,k) reduction(+:tmp1,tmp2,tmp3)
-#endif
+
       tem = dx*dy
+
+      !$acc parallel default(present) reduction(+:tmp1,tmp2,tmp3)
       ! Get domain-averages:
-#ifndef _B4B05R
-      !$acc loop gang
-#endif
+      !$acc loop gang reduction(+:tmp1,tmp2,tmp3)
       do k=1,nk
-        !----
-        tmp1=0.0
-        tmp2=0.0
-        tmp3=0.0
-        !----
-#ifndef _B4B05R
+         tmp1=0.0
+         tmp2=0.0
+         tmp3=0.0
         !$acc loop vector collapse(2) reduction(+:tmp1,tmp2,tmp3)
-#endif
         do j=1,nj
         do i=1,ni
           tmp1 = tmp1 + ua(i,j,k)*tem*ruf(i)*rvh(j)
@@ -234,26 +226,19 @@
         cavg(k,1) = tmp1
         cavg(k,2) = tmp2
         cavg(k,3) = tmp3
-        !----
       enddo
-#ifdef _B4B05R
-      !$acc update device(cavg)
-#else
       !$acc end parallel
-#endif
 
 #ifdef MPI
-#ifndef _B4B05R
       !$acc update host(cavg)
-#endif
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*3       ,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(cavg)
 #endif
 
-      !$acc parallel default(present) private(k)
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
-      !$acc loop gang
+      !$acc parallel default(present)
+      !$acc loop gang vector
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
@@ -296,44 +281,13 @@
 
       ! 180612:  area-weighted average
 
-      !KLUDGE
-!#ifdef _B4B01R
-!      !$acc update host(th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
-!#else
-!      !$acc parallel default(present)
-!#endif
-!      tem = dx*dy
-
-      ! Get domain-averages:
-        !----
-      !!$acc loop gang vector collapse(2) private(k,n)
-!#ifndef _B4B01R
-!      !$acc loop gang vector private(k,n)
-!#endif
-!      do k=1,nk
-!        do n=1,(3+numq)
-!          cavg(k,n) = 0.0
-!        enddo
-!      enddo
-        !----
-!#ifndef _B4B01R
-!      !$acc end parallel
-!#endif
-      !!$acc parallel default(present) private(i,j,k) reduction(+:cavg1,cavg2,cavg3)
-#ifdef _B4B01R
-      !$acc update host(th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
-#else
-      !$acc parallel default(present) private(i,j,k,cavg1,cavg2,cavg3) &
-      !$acc reduction(+:cavg1,cavg2,cavg3,cavgt)
-      !$acc loop gang
-#endif
+      !$acc parallel default(present) reduction(+:cavg1,cavg2,cavg3)
+      !$acc loop gang reduction(+:cavg1,cavg2,cavg3)
       do k=1,nk
-        cavg1 = 0.0
-        cavg2 = 0.0
-        cavg3 = 0.0
-#ifndef _B4B01R
+         cavg1 = 0.0
+         cavg2 = 0.0
+         cavg3 = 0.0
         !$acc loop vector collapse(2) reduction(+:cavg1,cavg2,cavg3)
-#endif
         do j=1,nj
         do i=1,ni
           cavg1 = cavg1 + ua(i,j,k)*dx*dy*ruf(i)*rvh(j)
@@ -345,22 +299,14 @@
         cavg(k,2) = cavg2
         cavg(k,3) = cavg3
       enddo
-!#ifndef _B4B01R
-!      !$acc end parallel
-!#endif
+      !$acc end parallel
 
-#ifndef _B4B01R
-      !!$acc parallel default(present) private(i,j,k,n) reduction(+:cavg1,cavg2,cavg3)
-      !!$acc parallel default(present) private(i,j,k,n,cavgt)
-      !$acc loop gang
-#endif
+      !$acc parallel default(present) reduction(+:cavgt)
+      !$acc loop gang collapse(2) reduction(+:cavgt)
       do k=1,nk
-        !----
         do n=1,numq
           cavgt = 0.0
-#ifndef _B4B01R
           !$acc loop vector collapse(2) reduction(+:cavgt)
-#endif
           do j=1,nj
           do i=1,ni
             cavgt = cavgt + qa(i,j,k,n)*dx*dy*ruh(i)*rvh(j)
@@ -368,25 +314,18 @@
           enddo
           cavg(k,3+n) = cavgt
         enddo
-        !----
       enddo
-#ifdef _B4B01R
-      !$acc update device(cavg)
-#else
       !$acc end parallel
-#endif
 
 #ifdef MPI
-#ifndef _B4B01R
       !acc update host(cavg)
-#endif
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*(3+numq),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(cavg) 
 #endif
 
-      !$acc parallel default(present) private(k,n)
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
 
+      !$acc parallel default(present)
       !$acc loop gang vector
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
@@ -398,9 +337,7 @@
       enddo
       !$acc end parallel
 
-
       end subroutine get_avg_uvtq
-
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

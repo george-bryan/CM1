@@ -7530,7 +7530,7 @@
       ! send west
       if(ibw.eq.0)then
         !$omp parallel do default(shared) private(j)
-        !$acc parallel loop private(j)
+        !$acc parallel loop gang vector default(present) 
         do j=1,nj
           west(j)=s(1,j)
         enddo
@@ -7553,7 +7553,7 @@
       if(ibe.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(j)
-        !$acc parallel loop private(j)
+        !$acc parallel loop gang vector default(present)
         do j=1,nj
           east(j)=s(ni,j)
         enddo
@@ -7576,7 +7576,7 @@
       if(ibn.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(i)
-        !$acc parallel loop private(i)
+        !$acc parallel loop gang vector default(present)
         do i=1,ni
           north(i)=s(i,nj)
         enddo
@@ -7599,7 +7599,7 @@
       if(ibs.eq.0)then
 !$omp parallel do default(shared)   &
 !$omp private(i)
-        !$acc parallel loop private(i)
+        !$acc parallel loop gang vector default(present)
         do i=1,ni
           south(i)=s(i,1)
         enddo
@@ -10075,7 +10075,7 @@
           if(p2tchsww)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present)
             do k=1,nkp1
               t(0,0,k)=t(1,0,k)
             enddo
@@ -10084,7 +10084,7 @@
           if(p2tchnww)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present) 
             do k=1,nkp1
               t(0,nj+1,k)=t(1,nj+1,k)
             enddo
@@ -10097,7 +10097,7 @@
           if(p2tchsee)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present)
             do k=1,nkp1
               t(ni+1,0,k)=t(ni,0,k)
             enddo
@@ -10106,7 +10106,7 @@
           if(p2tchnee)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present) 
             do k=1,nkp1
               t(ni+1,nj+1,k)=t(ni,nj+1,k)
             enddo
@@ -10123,7 +10123,7 @@
           if(p2tchsws)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present) 
             do k=1,nkp1
               t(0,0,k)=t(0,1,k)
             enddo
@@ -10132,7 +10132,7 @@
           if(p2tchses)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present)
             do k=1,nkp1
               t(ni+1,0,k)=t(ni+1,1,k)
             enddo
@@ -10145,7 +10145,7 @@
           if(p2tchnwn)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present)
             do k=1,nkp1
               t(0,nj+1,k)=t(0,nj,k)
             enddo
@@ -10154,7 +10154,7 @@
           if(p2tchnen)then
 !$omp parallel do default(shared)   &
 !$omp private(k)
-!$acc parallel loop private(k)
+!$acc parallel loop gang vector default(present)
             do k=1,nkp1
               t(ni+1,nj+1,k)=t(ni+1,nj,k)
             enddo
@@ -13728,12 +13728,17 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       logical, parameter :: Debug = .FALSE.
 
       if(Debug) print *,'comm_all_s_GPU:'
+
+      !$acc data present (s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32, &
+      !$acc               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
+
       call comm_3s_start_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
       call comm_3s_end_GPU(  s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
       call getcorner3_GPU(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
                         s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
       call bcs2_GPU(s)
 
+      !$acc end data
       end subroutine comm_all_s_GPU
 
 #endif
@@ -13817,7 +13822,10 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       integer :: i,j
       logical, parameter :: Debug = .FALSE.
-      !$acc declare present(s)
+
+      !$acc data present(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2, &
+      !$acc              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2)
+
       if(Debug) print *,'prepcorners_GPU'
 !--------------------------------------------!
 !  This subroutine is ONLY for parcel_interp !
@@ -13842,7 +13850,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       IF( bbc.eq.1 .or. bbc.eq.2 .or. bbc.eq.3 )THEN
         ! extrapolate:
         !$omp parallel do default(shared) private(i,j)
-        !$acc parallel loop gang vector collapse(2) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present)
         do j=0,nj+1
         do i=0,ni+1
           s(i,j,0) = cgs1*s(i,j,1)+cgs2*s(i,j,2)+cgs3*s(i,j,3)
@@ -13853,13 +13861,15 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       IF( tbc.eq.1 .or. tbc.eq.2 )THEN
         ! extrapolate:
         !$omp parallel do default(shared) private(i,j)
-        !$acc parallel loop gang vector collapse(2) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present) 
         do j=0,nj+1
         do i=0,ni+1
           s(i,j,nk+1) = cgt1*s(i,j,nk)+cgt2*s(i,j,nk-1)+cgt3*s(i,j,nk-2)
         enddo
         enddo
       ENDIF
+
+      !$acc end data
 
       end subroutine prepcorners_GPU
 
@@ -14002,6 +14012,9 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 !  This subroutine is ONLY for parcel_interp !
 !--------------------------------------------!
 
+      !$acc data present (t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2, &
+      !$acc               tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+
       if(Debug) print *,'prepcornert_GPU'
       IF( comm.eq.1 )THEN
         call bcw_GPU(t,0)
@@ -14014,6 +14027,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       call getcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call bct2_GPU(t)
 #endif
+
+      !$acc end data
 
       end subroutine prepcornert_GPU
 
