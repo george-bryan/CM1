@@ -389,6 +389,7 @@
       real :: esl,qvs,qvnew,qcnew,cvml,rm,lhv,tlast,dqv
       real :: converge,t1,d1,tem,ql,qi,rdt
       double precision :: dum
+      double precision :: bud1tmp,bud2tmp
       double precision, dimension(nk) :: bud1,bud2
       logical :: doit
 
@@ -415,141 +416,147 @@
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n,tnew,pnew,esl,qvs,qvnew,qcnew,cvml,rm,lhv,   &
 !$omp tlast,dqv,t1,d1,tem,ql,qi,doit)
-      !$acc parallel default(present) private(i,j,k,n,tnew,pnew,esl,qvs,qvnew,qcnew,cvml,rm,lhv,tlast,dqv,t1,d1,tem,ql,qi,doit) 
-      !$acc loop gang vector 
+      !$acc parallel default(present) reduction(+:bud1tmp,bud2tmp) reduction(max:nmax) &
+      !$acc private(i,j,k,n,tnew,pnew,esl,qvs,qvnew,qcnew,cvml,rm,lhv,tlast,dqv,t1,d1,tem,ql,qi,doit) 
+      !$acc loop gang 
       do k=1,nk
-      bud1(k)=0.0d0
-      bud2(k)=0.0d0
-      !$acc loop gang vector collapse(2)
-      do j=1,nj
-      do i=1,ni
+        bud1tmp=0.0d0
+        bud2tmp=0.0d0
+        !$acc loop vector collapse(2) reduction(+:bud1tmp,bud2tmp) reduction(max:nmax)
+        do j=1,nj
+        do i=1,ni
 
-        tnew=(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))
-        esl=611.2*exp( 17.67 * ( tnew - 273.15 ) / ( tnew - 29.65 ) )
-        ! 171023 (fix for very cold temps):
-        esl = min( esl , prs(i,j,k)*0.5 )
-        qvs=eps*esl/(prs(i,j,k)-esl)
+          tnew=(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))
+          esl=611.2*exp( 17.67 * ( tnew - 273.15 ) / ( tnew - 29.65 ) )
+          ! 171023 (fix for very cold temps):
+          esl = min( esl , prs(i,j,k)*0.5 )
+          qvs=eps*esl/(prs(i,j,k)-esl)
 
-        IF(q3d(i,j,k,nqc).gt.1.0e-12 .or. q3d(i,j,k,nqv).gt.qvs)THEN
+          IF(q3d(i,j,k,nqc).gt.1.0e-12 .or. q3d(i,j,k,nqv).gt.qvs)THEN
 
-          qvnew=q3d(i,j,k,nqv)
-          qcnew=q3d(i,j,k,nqc)
-          ql=0.0
-          qi=0.0
-          do n=nql1,nql2
-            ql=ql+q3d(i,j,k,n)
-          enddo
-          if(iice.eq.1)then
-            do n=nqs1,nqs2
-              qi=qi+q3d(i,j,k,n)
+            qvnew=q3d(i,j,k,nqv)
+            qcnew=q3d(i,j,k,nqc)
+            ql=0.0
+            qi=0.0
+            !$acc loop seq
+            do n=nql1,nql2
+              ql=ql+q3d(i,j,k,n)
             enddo
-          endif
-          ql=max(0.0,ql)
-          qi=max(0.0,qi)
-          cvml=cv+cvv*qvnew+cpl*ql+cpi*qi
-          lhv=lv1-lv2*tnew
-
-          t1=(lhv-rv*tnew)/cvml
-          d1=t1*17.67*243.5
-
-          n=0
-          tlast=tnew
-          doit=.true.
-
-          do while( doit )
-            n=n+1
-            dqv=(qvs-qvnew)/(1.0+d1*qvs/((tnew-29.65)**2) )
-            dqv=min(dqv,qcnew)
-            if(  (qvnew+dqv).lt.1.0e-20 ) dqv=1.0e-20-qvnew
-
-            qvnew=qvnew+dqv
-            qcnew=qcnew-dqv
-            tnew=tnew-dqv*t1
-            pnew=rho(i,j,k)*(rd+rv*qvnew)*tnew
-
-            doit = .false.
-            if( abs(tnew-tlast).gt.converge )then
-              tlast=tnew
-              esl=611.2*exp( 17.67 * ( tnew - 273.15 ) / ( tnew - 29.65 ) )
-              ! 171023 (fix for very cold temps):
-              esl = min( esl , prs(i,j,k)*0.5 )
-              qvs=eps*esl/(pnew-esl)
-              doit = .true.
+            if(iice.eq.1)then
+              !$acc loop seq
+              do n=nqs1,nqs2
+                qi=qi+q3d(i,j,k,n)
+              enddo
             endif
+            ql=max(0.0,ql)
+            qi=max(0.0,qi)
+            cvml=cv+cvv*qvnew+cpl*ql+cpi*qi
+            lhv=lv1-lv2*tnew
 
-            if(n.gt.50) print *,'  satadj:',myid,n,tnew,pnew
-            if(n.eq.100)then
-              print *,'  infinite loop!'
-              print *,'  i,j,k=',i,j,k
-              iflag=1
-              doit=.false.
-            endif
+            t1=(lhv-rv*tnew)/cvml
+            d1=t1*17.67*243.5
 
-          enddo
+            n=0
+            tlast=tnew
+            doit=.true.
 
-          tem=ruh(i)*rvh(j)*rmh(i,j,k)
+            do while( doit )
+              n=n+1
+              dqv=(qvs-qvnew)/(1.0+d1*qvs/((tnew-29.65)**2) )
+              dqv=min(dqv,qcnew)
+              if(  (qvnew+dqv).lt.1.0e-20 ) dqv=1.0e-20-qvnew
 
-          bud1(k)=bud1(k)+rr(i,j,k)*max(qcnew-q3d(i,j,k,nqc),0.0)*tem
-          bud2(k)=bud2(k)+rr(i,j,k)*max(qvnew-q3d(i,j,k,nqv),0.0)*tem
+              qvnew=qvnew+dqv
+              qcnew=qcnew-dqv
+              tnew=tnew-dqv*t1
+              pnew=rho(i,j,k)*(rd+rv*qvnew)*tnew
 
-          prs(i,j,k) = pnew
-          pp3d(i,j,k) = (pnew*rp00)**rovcp - pi0(i,j,k)
-          th3d(i,j,k) = tnew/(pi0(i,j,k)+pp3d(i,j,k))-th0(i,j,k)
-          q3d(i,j,k,nqc) = qcnew
-          q3d(i,j,k,nqv) = qvnew
+              doit = .false.
+              if( abs(tnew-tlast).gt.converge )then
+                tlast=tnew
+                esl=611.2*exp( 17.67 * ( tnew - 273.15 ) / ( tnew - 29.65 ) )
+                ! 171023 (fix for very cold temps):
+                esl = min( esl , prs(i,j,k)*0.5 )
+                qvs=eps*esl/(pnew-esl)
+                doit = .true.
+              endif
 
-          nmax=max(n,nmax)
+              if(n.gt.50) print *,'  satadj:',myid,n,tnew,pnew
+              if(n.eq.100)then
+                print *,'  infinite loop!'
+                print *,'  i,j,k=',i,j,k
+                iflag=1
+                doit=.false.
+              endif
 
-        ENDIF
+            enddo
+
+            tem=ruh(i)*rvh(j)*rmh(i,j,k)
+
+            bud1tmp=bud1tmp+rr(i,j,k)*max(qcnew-q3d(i,j,k,nqc),0.0)*tem
+            bud2tmp=bud2tmp+rr(i,j,k)*max(qvnew-q3d(i,j,k,nqv),0.0)*tem
+
+            prs(i,j,k) = pnew
+            pp3d(i,j,k) = (pnew*rp00)**rovcp - pi0(i,j,k)
+            th3d(i,j,k) = tnew/(pi0(i,j,k)+pp3d(i,j,k))-th0(i,j,k)
+            q3d(i,j,k,nqc) = qcnew
+            q3d(i,j,k,nqv) = qvnew
+
+            nmax=max(n,nmax)
+
+          ENDIF
 
 
+        enddo
+        enddo
+        bud1(k)=bud1tmp
+        bud2(k)=bud2tmp
       enddo
-      enddo
-      enddo
-!$acc end parallel
+      !$acc end parallel
 
     ELSE
 
       nmax=1
 
-!$omp parallel do default(shared)  &
-!$omp private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm)
-      !$acc parallel default(present) private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm) 
-      !$acc loop gang vector 
+      !$omp parallel do default(shared) private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm)
+      !$acc parallel default(present) private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm) reduction(+:bud1tmp,bud2tmp)
+      !$acc loop gang
       do k=1,nk
-      bud1(k)=0.0d0
-      bud2(k)=0.0d0
-      !$acc loop gang vector collapse(2)
-      do j=1,nj
-      do i=1,ni
+        bud1tmp=0.0d0
+        bud2tmp=0.0d0
+        !$acc loop vector collapse(2) reduction(+:bud1tmp,bud2tmp)
+        do j=1,nj
+        do i=1,ni
 
-        qvnew=q3d(i,j,k,nqv)
-        qcnew=q3d(i,j,k,nqc)
-        tnew=(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))
-        esl=611.2*exp( 17.67 * ( tnew - 273.15 ) / ( tnew - 29.65 ) )
-        ! 171023 (fix for very cold temps):
-        esl = min( esl , prs(i,j,k)*0.5 )
-        qvs=eps*esl/(prs(i,j,k)-esl)
-        lhv=lv1-lv2*tnew
+          qvnew=q3d(i,j,k,nqv)
+          qcnew=q3d(i,j,k,nqc)
+          tnew=(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))
+          esl=611.2*exp( 17.67 * ( tnew - 273.15 ) / ( tnew - 29.65 ) )
+          ! 171023 (fix for very cold temps):
+          esl = min( esl , prs(i,j,k)*0.5 )
+          qvs=eps*esl/(prs(i,j,k)-esl)
+          lhv=lv1-lv2*tnew
 !!!        dqv=(qvs-qvnew)/(1.0+lhv*qvs*4097.8531/(cp*((tnew-35.86)**2)))
-        dqv=(qvs-qvnew)/(1.0+lhv*qvs*17.67*243.5/(cp*((tnew-29.65)**2)))
-        if(  (qvnew+dqv).lt.1.0e-20 ) dqv=1.0e-20-qvnew
-        dqv=min(dqv,max(0.0,qcnew))
+          dqv=(qvs-qvnew)/(1.0+lhv*qvs*17.67*243.5/(cp*((tnew-29.65)**2)))
+          if(  (qvnew+dqv).lt.1.0e-20 ) dqv=1.0e-20-qvnew
+          dqv=min(dqv,max(0.0,qcnew))
 
-        qvnew=qvnew+dqv
-        qcnew=qcnew-dqv
-        tem=ruh(i)*rvh(j)*rmh(i,j,k)
-        bud1(k)=bud1(k)+rr(i,j,k)*max(qcnew-q3d(i,j,k,nqc),0.0)*tem
-        bud2(k)=bud2(k)+rr(i,j,k)*max(qvnew-q3d(i,j,k,nqv),0.0)*tem
+          qvnew=qvnew+dqv
+          qcnew=qcnew-dqv
+          tem=ruh(i)*rvh(j)*rmh(i,j,k)
+          bud1tmp=bud1tmp+rr(i,j,k)*max(qcnew-q3d(i,j,k,nqc),0.0)*tem
+          bud2tmp=bud2tmp+rr(i,j,k)*max(qvnew-q3d(i,j,k,nqv),0.0)*tem
 
-        th3d(i,j,k)=th3d(i,j,k)-dqv*( lhv/(cp*(pi0(i,j,k)+pp3d(i,j,k))) )
-        q3d(i,j,k,nqc)=qcnew
-        q3d(i,j,k,nqv)=qvnew
-        rho(i,j,k)=prs(i,j,k)   &
+          th3d(i,j,k)=th3d(i,j,k)-dqv*( lhv/(cp*(pi0(i,j,k)+pp3d(i,j,k))) )
+          q3d(i,j,k,nqc)=qcnew
+          q3d(i,j,k,nqv)=qvnew
+          rho(i,j,k)=prs(i,j,k)   &
              /(rd*(th0(i,j,k)+th3d(i,j,k))*(pi0(i,j,k)+pp3d(i,j,k))*(1.0+qvnew*reps))
 
-      enddo
-      enddo
+        enddo
+        enddo
+        bud1(k)=bud1tmp
+        bud2(k)=bud2tmp
       enddo
       !$acc end parallel
 
@@ -756,9 +763,11 @@
     do j=1,nj
       bud(j)=0.0d0
     enddo
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n,nr) 
+    !JMD FIXME:  The following loop looks excessively complex
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,n,nr) 
     do j=1,nj
     do i=1,ni
+      !$acc loop seq
       do k=1,nk
         if (k==1) crmax = 0.0
         crmax = max( crmax , vq(i,j,k)*dt*rdz*mh(i,j,k) )
@@ -790,6 +799,7 @@
     enddo
     !$acc end parallel
 
+    !JMD FIXME:  This loop looks incorrect. what is going on with the n-loop 
     !$acc parallel default(present) private(i,j,k,ll,n)
     !$acc loop gang vector collapse(3) 
     do k=1,nk
@@ -803,14 +813,16 @@
       enddo
     enddo
     enddo
-
     !$acc end parallel
+
+    !JMD FIXME:  This loop looks incorrect. what is going on with the n-loop 
     !$acc parallel default(present) private(i,j,n,ll,nr)
     !$acc loop gang vector collapse(3)
     do nr=1,nrain
     do j=1,nj
     do i=1,ni
     ll = nfall(i,j)
+    !$acc loop seq
     do n=1,ll
           rain(i,j,nr)=rain(i,j,nr)+0.1*dtfall(i,j)*rq(i,j,1)
                                 ! mult by 100 cm/m  (convert from m to cm)
@@ -820,6 +832,8 @@
     enddo
     enddo
     !$acc end parallel
+    !JMD FIXME:  This loop looks incorrect. what is going on with the n-loop 
+    !JMD FIXME:  This loop needs a reduction clause due to the bud(j)
     !$acc parallel default(present) private(i,j,ll,n)
     !$acc loop gang vector collapse(2) 
     do j=1,nj

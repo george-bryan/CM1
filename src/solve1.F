@@ -361,7 +361,7 @@
       !$acc present(m11,m12,m13,m22,m23,m33) &
       !$acc present(kmw,u1b,v1b) &
       !$acc present(tauh,tauf,taus) &
-      !$acc present(bud2,qbudget) &
+      !$acc present(bud2) &
       !$acc present(ufrc,vfrc,thfrc,qvfrc) &
       !$acc present(t11,t12,t13,t22,t23,t33) &
       !$acc present(thflux,qvflux) &
@@ -1024,7 +1024,7 @@
         enddo
         enddo
 #ifdef _B4B03R
-        !$acc update host(budarray,qbudget)
+        !$acc update host(budarray)
 #else
         !$acc parallel default(present) reduction(+:budtmp,qtmp)
 #endif
@@ -1043,12 +1043,10 @@
           bud2(j)=budtmp
           qtmp = qtmp + dt*dx*dy*dz*bud2(j)
         enddo
-        qbudget(9) = qtmp;
-#ifdef _B4B03R
-        !$acc update device(qbudget)
-#else
+#ifndef _B4B03R
         !$acc end parallel
 #endif
+        qbudget(9) = qtmp;
         !$acc end data
         if(timestats.ge.1) time_misc09=time_misc09+mytime()
       endif
@@ -1157,30 +1155,36 @@
         tem0 = dt*dx*dy*dz
         !FIXME
         !$omp parallel do default(shared) private(i,j,k,thrad,prad)
-        !$acc parallel loop gang vector default(present) private(i,j,k,thrad,prad)
+        !$acc parallel default(present) private(i,j,k,thrad,prad) reduction(+:budtmp)
+        !$acc loop gang
         do k=1,nk
-        bud(k)=0.0d0
-        do j=1,nj
-        do i=1,ni
-          ! NOTE:  thrad is a POTENTIAL TEMPERATURE tendency
-          thrad = -tha(i,j,k)/(12.0*3600.0)
-          if( tha(i,j,k).gt. 1.0 ) thrad = -1.0/(12.0*3600.0)
-          if( tha(i,j,k).lt.-1.0 ) thrad =  1.0/(12.0*3600.0)
-          thten1(i,j,k)=thten1(i,j,k)+thrad
-          ! associated pressure tendency:
-          prad = (pi0(i,j,k)+ppi(i,j,k))*rddcv*thrad/(th0(i,j,k)+tha(i,j,k))
-          ! budget:
-          bud(k) = bud(k) + dum1(i,j,k)*dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*( &
+          budtmp=0.0d0
+          !$acc loop vector reduction(+:budtmp)
+          do j=1,nj
+          do i=1,ni
+            ! NOTE:  thrad is a POTENTIAL TEMPERATURE tendency
+            thrad = -tha(i,j,k)/(12.0*3600.0)
+            if( tha(i,j,k).gt. 1.0 ) thrad = -1.0/(12.0*3600.0)
+            if( tha(i,j,k).lt.-1.0 ) thrad =  1.0/(12.0*3600.0)
+            thten1(i,j,k)=thten1(i,j,k)+thrad
+            ! associated pressure tendency:
+            prad = (pi0(i,j,k)+ppi(i,j,k))*rddcv*thrad/(th0(i,j,k)+tha(i,j,k))
+            ! budget:
+            budtmp = budtmp + dum1(i,j,k)*dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*( &
                             thrad*(pi0(i,j,k)+ppi(i,j,k))    &
                            + prad*(th0(i,j,k)+tha(i,j,k)) )
+          enddo
+          enddo
+          bud(k) = budtmp
         enddo
-        enddo
-        enddo
+        !$acc end parallel
         !FIXME
-        !$acc parallel loop gang vector default(present) private(k)
+        budtmp=qbudget(10)
+        !$acc parallel loop gang vector default(present) private(k) reduction(+:budtmp)
         do k=1,nk
-          qbudget(10) = qbudget(10) + tem0*bud(k)
+          budtmp = budtmp + tem0*bud(k)
         enddo
+        qbudget(10)=budtmp
         if( dotbud .and. td_rad.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)

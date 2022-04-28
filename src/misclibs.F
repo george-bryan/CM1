@@ -1270,12 +1270,12 @@
 !----------------------------------------------------------------------
 
       !print *,'pdefq2_GPU: pdscheme: ',pdscheme
-      !$acc data create(budj,budk)
+!      !$acc data create(budj,budk)
       !tem = dx*dy*dz
       IF(pdscheme.eq.1)THEN
 
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
-        !$acc parallel default(present) private(i,j,k) copy(asq) &
+        !$acc parallel default(present) private(i,j,k) &
         !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:asq)
         !$acc loop gang collapse(2)
         do j=1,nj
@@ -1309,7 +1309,7 @@
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
         !$acc parallel default(present) private(i,j,k,a1,a2) reduction(+:budt,asq)
-        !$acc loop gang
+        !$acc loop gang reduction(+:asq)
         do k=1,nk
           budt=0.0d0
           !$acc loop vector collapse(2) reduction(+:budt)
@@ -1333,7 +1333,7 @@
         !$acc end parallel
 
       ENDIF
-      !$acc end data
+!      !$acc end data
 
 !----------------------------------------------------------------------
 
@@ -2868,7 +2868,6 @@
  
       end subroutine vertvort
 
-
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3044,6 +3043,186 @@
 
       end subroutine calccfl
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+ 
+      subroutine calccfl_fold(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,writeit)
+      use input
+      use constants
+#ifdef MPI
+      use mpi
+#endif
+      implicit none
+
+      integer nstat
+      real, dimension(stat_out) :: rstat
+      real :: dt
+      double precision :: acfl
+      real, intent(in), dimension(ib:ie) :: uh
+      real, intent(in), dimension(jb:je) :: vh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: mh
+      real, dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: wa
+      integer :: writeit
+ 
+      integer i,j,k,index
+      integer imax,jmax,kmax
+      integer imaxt(ni*nj),jmaxt(ni*nj),kmaxt(ni*nj)
+      real dtdx,dtdy,dtdz,cfl(ni*nj),fmax
+      real :: wsp
+      integer :: loc
+      integer RANGE, PAIRS
+      real, dimension(2) :: mmax,nmax
+
+!$acc data create(imaxt,jmaxt,kmaxt,cfl,mmax,nmax)
+
+      dtdx=0.5*dt*rdx
+      dtdy=0.5*dt*rdy
+      dtdz=0.5*dt*rdz
+
+      cfl = -1.0
+      imaxt = 0
+      jmaxt = 0
+      kmaxt = 0
+
+      if(nx.gt.1.and.ny.gt.1)then
+!! Each thread runs a serial loop and finds the max from that "stripe".
+!! We'd really want to split the second dimension between the parallel &
+!! serial loops so we can fill the SM's with threads but not oversubscribe.
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wsp)
+        do j=1,nj
+        do i=1,ni
+!$acc loop seq private(index)
+        do k=1,nk
+          wsp = sqrt( ( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
+                       +((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2 )   &
+                       +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
+          index=(j-1)*ni+i
+          if( wsp.gt.cfl(index) )then
+            cfl(index) = wsp
+            imaxt(index)=i
+            jmaxt(index)=j
+            kmaxt(index)=k
+          endif
+        enddo
+        enddo
+        enddo
+      elseif(nx.gt.1)then
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wsp)
+        do j=1,nj
+        do i=1,ni
+!$acc loop seq private(index)
+        do k=1,nk
+          wsp = sqrt( ((ua(i,j,k)+ua(i+1,j,k))*dtdx*uh(i))**2     &
+                     +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
+          index=(j-1)*ni+i
+          if( wsp.gt.cfl(index) )then
+            cfl(index) = wsp
+            imaxt(index)=i
+            jmaxt(index)=j
+            kmaxt(index)=k
+          endif
+        enddo
+        enddo
+        enddo
+      elseif(axisymm.eq.0.and.ny.gt.1)then
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,wsp)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wsp)
+        do j=1,nj
+        do i=1,ni
+!$acc loop seq private(index)
+        do k=1,nk
+          wsp = sqrt( ((va(i,j,k)+va(i,j+1,k))*dtdy*vh(j))**2     &
+                     +((wa(i,j,k)+wa(i,j,k+1))*dtdz*mh(i,j,k))**2 )
+          index=(j-1)*ni+i
+          if( wsp.gt.cfl(index) )then
+            cfl(index) = wsp
+            imaxt(index)=i
+            jmaxt(index)=j
+            kmaxt(index)=k
+          endif
+        enddo
+        enddo
+        enddo
+      endif
+
+!! Using a serial loop here so all the data is sync'd between consecutive kernel
+!calls.
+!! The RANGE = PAIRS or (PAIRS+1) as a way to manage odd numbers.
+      PAIRS=ni*nj/2           !! Round down.
+      RANGE=(ni*nj+1)/2       !! Round up.
+      do while ( RANGE > 1 )
+!! Now fold the 2-d array with half the threads each time.
+!$acc parallel loop gang vector private(i)
+        do i=1,PAIRS
+          if ( cfl(i) .le. cfl(RANGE)) then
+             cfl(i)=cfl(RANGE+i)
+             imaxt(i)=imaxt(RANGE+i)
+             jmaxt(i)=jmaxt(RANGE+i)
+             kmaxt(i)=kmaxt(RANGE+i)
+          endif
+        enddo
+        PAIRS=RANGE/2
+        RANGE=(RANGE+1)/2
+!! May need some kind of sync-barrier here.
+      enddo
+
+      fmax=cfl(1)
+      imax=imaxt(1)
+      jmax=jmaxt(1)
+      kmax=kmaxt(1)
+
+#ifdef MPI
+      mmax(1)=fmax
+      mmax(2)=myid
+      call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
+                         MPI_COMM_WORLD,ierr)
+      !!$acc update device(mmax)
+      loc=nint(nmax(2))
+      imax=imax+(myi1-1)
+      jmax=jmax+(myj1-1)
+      call MPI_BCAST(imax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(jmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(kmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      !!$acc update device(imax,jmax,kmax)
+      fmax=nmax(1)
+      if(myid.eq.0)then
+#endif
+
+    IF(writeit.eq.1)THEN
+      nstat = nstat + 1
+      IF( adapt_dt.eq.1 )THEN
+        write(6,100) 'CFLMAX',sngl(acfl),imax,jmax,kmax
+        rstat(nstat) = sngl(acfl)
+      ELSE
+        write(6,100) 'CFLMAX',fmax,imax,jmax,kmax
+        rstat(nstat) = fmax
+      ENDIF
+100   format(2x,'stat:: ',a6,':',1x,f13.6,i5,i5,i5)
+    ENDIF
+
+#ifdef MPI
+      endif
+#endif
+
+
+      print *,'calccfl: fmax is: ',fmax
+      if(fmax.ge.1.50) stopit=.true.
+ 
+      if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
+
+      end subroutine calccfl_fold
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3134,7 +3313,6 @@
 #endif
 
       if(cflmax.ge.1.50) stopit=.true.
-          !stop 'calcflquick: end of subroutine'
 
 
       if(timestats.ge.1) time_cflq=time_cflq+mytime()
@@ -3716,8 +3894,8 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
+ 
+ 
       subroutine totq(nstat,rstat,ruh,rvh,rmh,q,rho,aname)
       use input
       use constants
@@ -3976,19 +4154,22 @@
       double precision :: tmu,tmv,tmw,qtot,var,tem
       double precision, dimension(nk) :: foo1,foo2,foo3
       double precision :: foot1,foot2,foot3
+      double precision :: qltmp,vrtmp
 
       tmu=0.0d0
       tmv=0.0d0
       tmw=0.0d0
+      qltmp=0.0d0
+      vrtmp=0.0d0
 
 #ifdef _B4B09R
       !$acc update host(qv,ql,qi,ruh,rvh,rmh,ua,va,wa,vr,rho)
 #else
-      !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw)
+      !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw,qltmp,vrtmp)
 #endif
       !$omp parallel do default(shared) private(i,j,k,qtot,tem)
 #ifndef _B4B09R
-      !$acc loop vector collapse(3) reduction(+:tmu,tmv,tmw)
+      !$acc loop vector collapse(3) reduction(+:tmu,tmv,tmw,qltmp,vrtmp)
 #endif
       do k=1,nk
         do j=1,nj
@@ -4002,6 +4183,8 @@
           tmw=tmw   &
                 +rho(i,j,k)*tem*(1.0+qtot)*( 0.5*(wa(i,j,k)+wa(i,j,k+1)) )   &
                 -rho(i,j,k)*tem*ql(i,j,k)*vr(i,j,k)
+          qltmp = qltmp+ql(i,j,k)
+          vrtmp = vrtmp+vr(i,j,k)
         enddo
         enddo
       enddo
@@ -4014,6 +4197,8 @@
       tmu=tmu*(dx*dy*dz)
       tmv=tmv*(dx*dy*dz)
       tmw=tmw*(dx*dy*dz)
+      vrtmp=vrtmp*(dx*dy*dz)
+      qltmp=qltmp*(dx*dy*dz)
       
 
 #ifdef MPI
@@ -4021,20 +4206,35 @@
       call MPI_REDUCE(tmu,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmu=var
+
       var=0.0d0
       call MPI_REDUCE(tmv,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmv=var
+
       var=0.0d0
       call MPI_REDUCE(tmw,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       tmw=var
+
+      var=0.0d0
+      call MPI_REDUCE(qltmp,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+                      MPI_COMM_WORLD,ierr)
+      qltmp=var
+
+      var=0.0d0
+      call MPI_REDUCE(vrtmp,var,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+                      MPI_COMM_WORLD,ierr)
+      vrtmp=var
+
       if(myid.eq.0)then
 #endif
  
       write(6,100) 'TMU   ',tmu
       write(6,100) 'TMV   ',tmv
       write(6,100) 'TMW   ',tmw
+      write(6,100) 'QL   ',qltmp
+      write(6,100) 'VR   ',vrtmp
 100   format(2x,'stat:: ',a6,':',1x,e13.6)
  
       nstat = nstat + 1

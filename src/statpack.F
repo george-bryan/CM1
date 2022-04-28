@@ -83,10 +83,8 @@
 
 !-----------------------------------------------------------------------
 #ifdef MPI
-      !$acc data create(afoo,bfoo,cfoo)
       cfoo = 0.0
-      !$acc update host(qbudget,asq,bsq)
-      call MPI_REDUCE(qbudget(1),cfoo(1),nbudget,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+      call MPI_REDUCE(qbudget,cfoo,nbudget,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                       MPI_COMM_WORLD,ierr)
       if( myid.eq.0 )then
         do n=1,nbudget
@@ -97,7 +95,7 @@
       endif
       if( imoist.eq.1 )then
         afoo = 0.0
-        call MPI_REDUCE(asq(1),afoo(1),numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+        call MPI_REDUCE(asq,afoo,numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                         MPI_COMM_WORLD,ierr)
         if( myid.eq.0 )then
           do n=1,numq
@@ -107,7 +105,7 @@
           asq = 0.0
         endif
         bfoo = 0.0
-        call MPI_REDUCE(bsq(1),bfoo(1),numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
+        call MPI_REDUCE(bsq,bfoo,numq,MPI_DOUBLE_PRECISION,MPI_SUM,0,  &
                         MPI_COMM_WORLD,ierr)
         if( myid.eq.0 )then
           do n=1,numq
@@ -117,8 +115,6 @@
           bsq = 0.0
         endif
       endif
-      !$acc update device(qbudget,asq,bsq)
-      !$acc end data
 #endif
 !-----------------------------------------------------------------------
 
@@ -176,6 +172,7 @@
               do while( sigmaf(nkm).gt.zlev .and. nkm.gt.1 )
                 nkm = nkm-1
               enddo
+              print *,'nkm: ',nkm
               ! dum1(i,j,1) = wa(i,j,nkm)+(wa(i,j,nkm+1)-wa(i,j,nkm))  &
               !                          *(         zlev-sigmaf(nkm))  &
               !                          /(sigmaf(nkm+1)-sigmaf(nkm))
@@ -475,7 +472,7 @@
       IF( bbc.eq.3 .and. sfcmodel.ge.1 )THEN
         call maxmin2d(ni,nj,hpbl(ibl,jbl),nstat,rstat,'HPBLMX','HPBLMN')
       ENDIF
-      !JMD-KLUDGE if(stat_cfl.eq.1) call calccfl(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,1)
+      if(stat_cfl.eq.1) call calccfl_fold(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,1)
 
       if(stat_cfl.eq.1.and.(sgsmodel.ge.1.or.ipbl.eq.2.or.horizturb.eq.1)) call calcksmax(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
 

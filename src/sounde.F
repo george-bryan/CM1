@@ -27,6 +27,7 @@
       use misclibs , only : convinitu,convinitv,get_wnudge
       use bc_module
       use comm_module
+      use maxmin_module
       use ib_module
       implicit none
 
@@ -72,6 +73,7 @@
       real :: tem,tem1,tem2,tem3,tem4,r1,r2,rr1,rr2,dts,delp
 
       real :: temx,temy,u1,u2,v1,v2,w1,w2,ww,div,tavg,c1a,c1b,c2a,c2b,p1,p2,p3,p4
+      character (len=6) :: text1,text2
 
 !---------------------------------------------------------------------
 
@@ -96,7 +98,7 @@
       stop 97393
     ENDIF
 
-!!!      print *,'  nloop,dts,dttmp = ',nloop,dts,nloop*dts
+    !JMD print *,'  nloop,dts,dttmp = ',nloop,dts,nloop*dts
 
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       do j=1,nj+1
@@ -240,11 +242,8 @@
 !-----
 
         if(irbc.eq.2)then
- 
           if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,u3d)
- 
           if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,v3d)
- 
         endif
 
 !-----------------------------------------------------------------------
@@ -267,7 +266,6 @@
 
 !-----
 
-      !print *,'sounde: before openbc: N:= ',N
       IF(axisymm.eq.0)THEN
         IF(sbc.eq.2.and.ibs.eq.1)THEN
           ! south open bc tendency:
@@ -282,8 +280,6 @@
           call restrict_openbc_sn(ruh,rmh,rho0,v3d)
         ENDIF
       ENDIF
-      !print *,'sounde: after openbc: N:= ',N
-      !stop 'sounde: after openbc'
 
 !-----------------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -297,6 +293,10 @@
                                ps1,ps2,pn1,pn2,reqs_p)
         endif
 #endif
+      !text1='snd.1b'
+      !text2='snd.1b'
+      !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
+      !$acc compare(ppd)
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !  psolver = 2
@@ -312,7 +312,21 @@
         tem1 = rdx*cp*0.5
         tem2 = rdy*cp*0.5
 
-        !print *,'sounde: before loop'
+        !text1='snd.1j'
+        !text2='snd.1j'
+        !call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
+        !text1='snd.1k'
+        !text2='snd.1k'
+        !call maxmin2dhalo(ni,nj,dtv(ib,jb),text1,text2)
+        !text1='snd.1m'
+        !text2='snd.1m'
+        !call maxmin2dhalo(ni,nj+1,vten(ib,jb,13),text1,text2)
+        !text1='snd.1n'
+        !text2='snd.1n'
+        !call maxmin2dhalo(ni,nj,thv(ib,jb,13),text1,text2)
+        !text1='snd.1x'
+        !text2='snd.1x'
+        !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -328,6 +342,9 @@
           enddo
           enddo
         enddo
+        !text1='snd.1h'
+        !text2='snd.1h'
+        !call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
 
         IF( do_ib )THEN
           call zero_out_uv(bndy,kbdy,u3d,v3d)
@@ -555,6 +572,18 @@
           call get_wnudge(mtime,dts,xh,yh,zf,w3d,dum1)
         ENDIF
       ENDIF
+      !text1='snd.2a'
+      !text2='snd.2a'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='snd.2b'
+      !text2='snd.2b'
+      !call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
+      !text1='snd.2c'
+      !text2='snd.2c'
+      !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
+      !text1='snd.2e'
+      !text2='snd.2e'
+      !call maxmin2dhalo(ni,nj,wten(ib,jb,13),text1,text2)
 
   !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
@@ -789,6 +818,40 @@
       IF(.not.terrain_flag)THEN
         ! Cartesian grid, without terrain:
 
+        !text1='snd.5a'
+        !text2='snd.5a'
+        !call maxmin2dhalo(ni,nj,pp3d(ib,jb,13),text1,text2)
+#if 0
+#endif
+        !text1='snd.5c'
+        !text2='snd.5c'
+        !call maxmin2dhalo(ni,nj,ppterm(ib,jb,13),text1,text2)
+        !text1='snd.5d'
+        !text2='snd.5d'
+        !call maxmin2dhalo(ni,nj,piadv(ib,jb,13),text1,text2)
+        !text1='snd.5e'
+        !text2='snd.5e'
+        !call maxmin2dhalo(ni,nj,pk1(ib,jb,13),text1,text2)
+        !text1='snd.5f'
+        !text2='snd.5f'
+        !call maxmin2dhalo(ni,nj,pk2(ib,jb,13),text1,text2)
+        !text1='snd.5g'
+        !text2='snd.5g'
+        !call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
+        !text1='snd.5h'
+        !text2='snd.5h'
+        !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+        !text1='snd.5i'
+        !text2='snd.5i'
+        !call maxmin2dhalo(ni+1,nj,u3d(ib,jb,13),text1,text2)
+        !text1='snd.5j'
+        !text2='snd.5j'
+        !call maxmin2dhalo(ni,nj+1,v3d(ib,jb,13),text1,text2)
+        !text1='snd.5k'
+        !text2='snd.5k'
+        !call maxmin2dhalo(ni,nj+1,mh(ib,jb,13),text1,text2)
+        !print *,'mh(1,1,13): ',mh(1,1,13)
+
         !$omp parallel do default(shared)   &
         !$omp private(i,j,k,div,delp)
         !$acc parallel loop gang vector collapse(3) default(present) &
@@ -814,6 +877,15 @@
         enddo
         enddo
         enddo
+      !text1='snd.6a'
+      !text2='snd.6a'
+      !call maxmin2dhalo(ni,nj,ppd(ib,jb,13),text1,text2)
+      !text1='snd.6b'
+      !text2='snd.6b'
+      !call maxmin2dhalo(ni,nj,dum1(ib,jb,13),text1,text2)
+      !text1='snd.6c'
+      !text2='snd.6c'
+      !call maxmin2dhalo(ni,nj,pp3d(ib,jb,13),text1,text2)
 
       ELSE
         ! Cartesian grid, with terrain:
@@ -1044,7 +1116,6 @@
       ENDIF
       if(timestats.ge.1) time_sound=time_sound+mytime()
 
-      !stop 'sounde: at the end of the subroutine'
 
       end subroutine sounde
 

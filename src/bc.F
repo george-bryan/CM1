@@ -2039,6 +2039,7 @@
 !$omp private(j,k)
           do k=1,nk+1
           do j=nj+1,nj+ngxy
+            w(i,j,k)=w(i,nj,k)
           enddo
           enddo
         endif

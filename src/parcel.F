@@ -787,7 +787,6 @@
       enddo
       enddo
     endif
-    !$acc compare(qt)
       IF(iice.eq.1)THEN
         do n=nqs1,nqs2
         !$omp parallel do default(shared) private(i,j,k)
@@ -813,7 +812,6 @@
         enddo
         enddo
       ENDIF
-      !$acc compare(th,t)
       IF( prb.ge.1 .or. prvpg.ge.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -826,7 +824,6 @@
         enddo
         enddo
         enddo
-        !$acc compare(dum7)
       ENDIF
       IF( prvpg.ge.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
@@ -838,7 +835,6 @@
         enddo
         enddo
         enddo
-        !$acc compare(dum8)
       ENDIF
 
 
@@ -857,7 +853,6 @@
         enddo
         enddo
        enddo
-       !$acc compare(th,t)
       ENDIF
       IF( prb.ge.1 .or. prvpg.ge.1 )THEN
        !$omp parallel do default(shared) private(i,j,k)
@@ -869,7 +864,6 @@
         enddo
         enddo
        enddo
-       !$acc compare(dum7)
       ENDIF
       IF( prvpg.ge.1 )THEN
        !$omp parallel do default(shared) private(i,j,k)
@@ -881,7 +875,6 @@
         enddo
         enddo
        enddo
-       !$acc compare(dum8)
       ENDIF
 
 
@@ -902,7 +895,6 @@
       !!$acc update device(buoy)
       call    prepcornert_GPU(buoy,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,1)
-      !$acc compare(buoy)
       !!$acc update host(buoy)
 
       !$omp parallel do default(shared) private(i,j)
@@ -917,7 +909,6 @@
                                      /(  zf(i,j,nk  )-  zf(i,j,nk-1))
       enddo
       enddo
-      !$acc compare(buoy)
     ENDIF
     IF( prvpg.ge.1 )THEN
     if( .not. terrain_flag )then
@@ -932,7 +923,6 @@
       enddo
       enddo
       enddo
-      !$acc compare(vpg)
     else
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,tem1)
@@ -945,7 +935,6 @@
       enddo
       enddo
       enddo
-      !$acc compare(vpg)
     endif
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
       !!$acc update device(vpg)
@@ -978,7 +967,6 @@
       call bcw2_GPU(w3d)
       !!$acc update host(u3d,v3d,w3d)
 #endif
-      !$acc compare(u3d,v3d,w3d)
 
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
@@ -1001,7 +989,6 @@
         v3d(i,j,0) = cgs1*v3d(i,j,1)+cgs2*v3d(i,j,2)+cgs3*v3d(i,j,3)
       enddo
     ENDDO
-    !$acc compare(u3d,v3d)
   ELSEIF(bbc.eq.2)THEN
     ! no slip:
     if( imove.eq.1 )then
@@ -1017,7 +1004,6 @@
           v3d(i,j,0) = 0.0 - vmove
         enddo
        ENDDO
-    !$acc compare(u3d,v3d)
     else
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
       DO j=jb,je
@@ -1067,7 +1053,6 @@
       enddo
     ENDDO
   ENDIF
-    !$acc compare(u3d,v3d)
 
 !----------
 
@@ -1086,14 +1071,12 @@
         call prepcorners_GPU(th ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
         !!$acc update host(th)
-        !$acc compare(th)
       endif
       !print *,'parcel_interp: point #2'
       if( prt.ge.1 )then
         !!$acc update device(t)
         call prepcorners_GPU(t  ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-        !$acc compare(t)
         !!$acc update host(t)
       endif
       !print *,'parcel_interp: point #3'
@@ -1102,7 +1085,6 @@
         call prepcorners_GPU(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
         !!$acc update host(prs)
-        !$acc compare(prs)
       endif
       !print *,'parcel_interp: point #4'
       if( prrho.ge.1 )then
@@ -1110,7 +1092,6 @@
         call prepcorners_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
         !!$acc update host(rho)
-        !$acc compare(rho)
       endif
       !print *,'parcel_interp: point #5'
       if(prpt1.ge.1)then
@@ -1120,7 +1101,6 @@
                                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
         !!$acc update host(pt3d)
-        !$acc compare(pt3d)
       endif
       !print *,'parcel_interp: point #6'
       !!$acc update device(q3d)
@@ -1135,7 +1115,6 @@
                                            pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
       endif
-      !$acc compare(q3d)
       !!$acc update host(q3d)
       !print *,'parcel_interp: point #8'
       !!$acc update device(kmh,kmv)
@@ -1145,7 +1124,6 @@
         call prepcornert_GPU(kmv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
-      !$acc compare(kmh,kmv)
       !!$acc update host(kmh,kmv)
       !print *,'parcel_interp: point #9'
       !!$acc update device(khh,khv)
@@ -1155,7 +1133,6 @@
         call prepcornert_GPU(khv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
-      !$acc compare(khh,khv)
       !!$acc update host(khh,khv)
       !print *,'parcel_interp: point #10'
       !!$acc update device(tke3d)
@@ -1163,7 +1140,6 @@
         call prepcornert_GPU(tke3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
-      !$acc compare(tke3d)
       !!$acc update host(tke3d)
       !print *,'parcel_interp: point #11'
       !!$acc update device(qdiag)
@@ -1173,7 +1149,6 @@
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       endif
       !!$acc update host(qdiag)
-      !$acc compare(qdiag)
 
 !----------------------------------------------------------------------
 
@@ -1222,7 +1197,6 @@
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       !!$acc update host(dum2)
     ENDIF
-    !$acc compare(dum1,dum2)
     !  print *,'parcel_interp: point #13'
 
 !----------------------------------------------------------------------
@@ -1245,13 +1219,11 @@
       enddo
 
     ENDIF
-    !$acc compare(zv)
     !HERE print *,'parcel_interp: before nploop2'
 !----------------------------------------------------------------------
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !----------------------------------------------------------------------
 !  Loop through all parcels:  if you have it, get interpolated info:
-    !stop 'parcel_interp: before nploop2'
     !PORTME
     !$acc parallel loop gang vector default(present) &
     !$acc   private(x3d,y3d,z3d,i,j,k,n,iflag,jflag,kflag, &
@@ -1788,7 +1760,6 @@
       ENDIF  myprcl
 
     ENDDO  nploop2
-    !$acc compare(pdata)
     if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
 !----------------------------------------------------------------------
@@ -1807,7 +1778,6 @@
 #endif
 !----------------------------------------------------------------------
 
-      !stop 'parcel_interp: at the end of the subroutine'
 
       end subroutine parcel_interp
 

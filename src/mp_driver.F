@@ -159,7 +159,7 @@
 
     if(ptype.ne.5 .and. ptype .ne. 6) then 
       !$acc update &
-      !$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
+      !$acc host(xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
       !$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
       !$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
       !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
@@ -467,7 +467,7 @@
           ENDIF
           ! cm1r17:  get fall velocities (store in qten array)
           !$acc update &
-          !$acc host(qbudget,ruh,rvh,rmh,  &
+          !$acc host(ruh,rvh,rmh,  &
           !$acc      rain,prate,rho,prs,dum1,&
           !$acc      dum3,dum4,dum5,w3d,ppten,    &
           !$acc      q3d,qten,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out3d) 
@@ -486,7 +486,7 @@
                           dotbud,doqbud,tdiag,qdiag,out3d)
           if(timestats.ge.1) time_microphy=time_microphy+mytime()
           !$acc update &
-          !$acc device(qbudget,rain,prate,rho,prs,dum1,dum3,dum4,dum5,ppten,   &
+          !$acc device(rain,prate,rho,prs,dum1,dum3,dum4,dum5,ppten,   &
           !$acc      q3d,qten,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out3d) 
           if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
           IF(numq.eq.11)THEN
@@ -625,7 +625,7 @@
 
         ELSEIF(ptype.eq.6)THEN
           !!$acc update &
-          !!$acc host(qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
+          !!$acc host(xh,ruh,xf,ruf,yh,rvh,yf,rvf,mh,rmh,c1,c2,zh,  &
           !!$acc      mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,rho,prs,dum1,dum2, &
           !!$acc      dum3,dum4,dum5,dum6,dum7,dum8,w3d,ppi,pp3d,ppten,sten,tha,    &
           !!$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
@@ -679,7 +679,6 @@
           endif
           call fallout_GPU(dt,qbudget(6),ruh,rvh,zh,mh,mf,rain,prate,dum3,rho,   &
                        q3d(ib,jb,kb,2),qten(ib,jb,kb,2))
-          !stop 'mp_driver: after call to fallout_GPU'
           call satadj_GPU(4,dt,qbudget(1),qbudget(2),ruh,rvh,rmh,pi0,th0,   &
                       rho,dum3,pp3d,prs,th3d,q3d)
 
@@ -697,12 +696,11 @@
             enddo
           ENDIF
           !!$acc update &
-         !!$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
+         !!$acc device(rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
           !!$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
           !!$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
           !!$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 
           if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
-          !stop 'mp_driver: at the end of ptype==6'
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !  Ziegler/Mansell (NSSL) two-moment scheme
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1359,7 +1357,7 @@
     !print *,'ptype: ',ptype
     if(ptype.ne.5 .and. ptype .ne.6) then 
       !$acc update &
-      !$acc device(qbudget,asq,bsq,rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
+      !$acc device(rain,prate,rho,prs,dum1,dum2,dum3,dum4,dum5,  &
       !$acc      dum6,dum7,dum8,ppi,pp3d,ppten,sten,tha,    &
       !$acc      th3d,thten,qa,q3d,qten,p3a,p3o,dum2d1,dum2d2,dum2d3,dum2d4,   &
       !$acc      dum2d5,effc,effi,effs,effr,effg,effis,tdiag,qdiag,out2d,out3d) 

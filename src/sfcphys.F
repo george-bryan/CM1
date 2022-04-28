@@ -341,7 +341,7 @@
 
       !$acc declare &
       !$acc present(ruh,rvh,ch,th0,tsk,mavail,s1,rf,tha,qva,s10, &
-      !$acc         thflux,qvflux,qbsfc,qsfc)
+      !$acc         thflux,qvflux,qsfc)
 !-----------------------------------------------------------------------
 !
 !  This subroutine calculates surface fluxes of heat and moisture.
@@ -1148,21 +1148,13 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
 #endif
 
-      !JMD FIXME
-      !JMD Don't quite understand what is going on here.  THese are scalar
-      !JMD values and should be located in the CPU memory.  For some reason if I
-      !JMD remove the acc parallel directive the GPU results are further away from
-      !JMD the CPU results.
-      !$acc parallel 
       temd = 1.0/dble(nx*ny)
       avgsfcu = avgsfcu*temd
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
-      !$acc end parallel
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
 
