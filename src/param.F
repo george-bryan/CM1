@@ -5206,6 +5206,8 @@
         endif
       ENDIF
 
+      !$acc update device (td_nudge,qd_nudge)
+
       nudiag     = 0
       ud_hadv    = 0
       ud_vadv    = 0

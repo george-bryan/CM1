@@ -171,7 +171,7 @@
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
 !$acc                rmp,cmp,vd_vadv,ibw,ibe,ibs,ibn,nodex,nodey, &
-!$acc                myi,myj)
+!$acc                myi,myj,td_nudge,qd_nudge)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -212,7 +212,7 @@
 !$acc                alph,kdiv,wbc,ebc,sbc,nbc,rdx,rdy,rdz,minx,   &
 !$acc                maxx,miny,maxy,cflmax,ksmax,zt,rzt,umove,     &
 !$acc                vmove,viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
-!$acc                cgs3,cgt1,cgt2,cgt3)
+!$acc                cgs3,cgt1,cgt2,cgt3,hurr_rad,var2)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

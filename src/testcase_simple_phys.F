@@ -106,13 +106,14 @@
 !#endif
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
-        !$acc parallel default(present) private(i,j,k)
+
         tem = 1.0/hurr_rad
 
         !  Mesoscale Tendency terms:
         !  (radial advection and centrifugal accel terms)
 
         !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel default(present) private(i,j,k)
         !$acc loop gang vector
         DO k=1,nk
           ! ghb, 210826: account for moving domain

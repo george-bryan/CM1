@@ -485,8 +485,9 @@
       read(20,nml=param2)
       read(20,nml=param8)
       close(unit=20)
+
       !OpenACC data movement directives
-      !$acc update device(nx,ny,nz)
+      !$acc update device(nx,ny,nz,var2)
 
       ! note:  read remainder of namelist sections in param.F !
 
