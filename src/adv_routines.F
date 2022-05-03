@@ -56,8 +56,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-    !$acc parallel loop private(i,j,k)
-    DO k=1,nk
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=1,nk
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -65,9 +65,14 @@
           dumx(i,j,k) = rru(i,j,k)*weno3(a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),weps)
         else
           dumx(i,j,k) = rru(i,j,k)*weno3(a(i+1,j,k),a(i  ,j,k),a(i-1,j,k),weps)
-        endif
-      enddo
-      enddo
+        end if
+      end do
+      end do
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -75,10 +80,11 @@
           dumy(i,j,k) = rrv(i,j,k)*weno3(a(i,j-2,k),a(i,j-1,k),a(i,j  ,k),weps)
         else
           dumy(i,j,k) = rrv(i,j,k)*weno3(a(i,j+1,k),a(i,j  ,k),a(i,j-1,k),weps)
-        endif
-      enddo
-      enddo
-    ENDDO
+        end if
+      end do
+      end do
+    end do 
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -97,8 +103,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop private(i,j,k,ubar,vbar)
-    DO k=1,nk
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=1,nk
       do j=1,nj
       !dir$ vector always
       do i=(i1-1),i2
@@ -108,8 +114,13 @@
         else
           dumx(i,j,k) = ubar*weno3(a(i+2,j,k),a(i+1,j,k),a(i  ,j,k),weps)
         endif
-      enddo
-      enddo
+      end do
+      end do
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -119,9 +130,10 @@
         else
           dumy(i,j,k) = vbar*weno3(a(i,j+1,k),a(i,j  ,k),a(i,j-1,k),weps)
         endif
-      enddo
-      enddo
-    ENDDO
+      end do
+      end do
+    end do
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -140,8 +152,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop private(i,j,k,ubar,vbar)
-    DO k=1,nk
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=1,nk
       do j=j1,j2
       !dir$ vector always
       do i=1,ni+1
@@ -151,8 +163,13 @@
         else
           dumx(i,j,k) = ubar*weno3(a(i+1,j,k),a(i  ,j,k),a(i-1,j,k),weps)
         endif
-      enddo
-      enddo
+      end do
+      end do
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -162,17 +179,17 @@
         else
           dumy(i,j,k) = vbar*weno3(a(i,j+2,k),a(i,j+1,k),a(i,j  ,k),weps)
         endif
-      enddo
-      enddo
-    ENDDO
-
+      end do
+      end do
+    end do
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop private(i,j,k,ubar,vbar,cc1,cc2)
-    DO k=2,nk
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=2,nk
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -184,8 +201,13 @@
         else
           dumx(i,j,k) = ubar*weno3(a(i+1,j,k),a(i  ,j,k),a(i-1,j,k),weps)
         endif
-      enddo
-      enddo
+      end do
+      end do
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -197,9 +219,10 @@
         else
           dumy(i,j,k) = vbar*weno3(a(i,j+1,k),a(i,j  ,k),a(i,j-1,k),weps)
         endif
-      enddo
-      enddo
-    ENDDO
+      end do
+      end do
+    end do
+    !$acc end parallel
 
   ENDIF
 
@@ -238,8 +261,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-    DO k=1,nk
+    !$acc parallel loop gang vector collapse(3) default(present)
+    do k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni+1
@@ -307,6 +330,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -325,7 +349,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present) 
     DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
@@ -345,6 +369,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -363,7 +388,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present) 
     DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
@@ -383,13 +408,13 @@
       enddo
       enddo
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
@@ -413,6 +438,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -451,7 +477,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,bmax,doit)
-    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,doit,bmax)
+    !$acc parallel loop gang vector collapse(3) default(present) 
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -489,6 +515,11 @@
         ENDIF
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present) 
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -526,6 +557,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -544,7 +576,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -557,6 +589,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -569,6 +606,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -587,7 +625,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -600,6 +638,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -612,13 +655,13 @@
       enddo
       enddo
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -633,6 +676,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -647,6 +695,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -685,7 +734,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
-    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -727,6 +776,11 @@
         ENDIF
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -768,6 +822,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -786,7 +841,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -799,6 +854,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -811,6 +871,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -829,7 +890,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present) 
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -842,6 +903,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present) 
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -854,13 +920,13 @@
       enddo
       enddo
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -875,6 +941,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -889,6 +960,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -920,7 +992,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -928,6 +1000,11 @@
         dumx(i,j,k) = rru(i,j,k)*0.5*(a(i-1,j,k)+a(i  ,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -935,6 +1012,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -953,7 +1031,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present) 
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -962,6 +1040,11 @@
         dumx(i,j,k) = ubar*0.5*(a(i  ,j,k)+a(i+1,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present) 
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -970,6 +1053,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -988,7 +1072,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -997,6 +1081,11 @@
         dumx(i,j,k) = ubar*0.5*(a(i-1,j,k)+a(i  ,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1005,12 +1094,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1021,6 +1111,11 @@
         dumx(i,j,k) = ubar*0.5*(a(i-1,j,k)+a(i  ,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1031,6 +1126,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -1062,7 +1158,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1074,6 +1170,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1085,6 +1186,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1103,7 +1205,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present) 
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1116,6 +1218,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present) 
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -1128,6 +1235,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -1146,7 +1254,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1159,6 +1267,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1171,12 +1284,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1191,6 +1305,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1205,6 +1324,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -1236,7 +1356,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1244,6 +1364,11 @@
         dumx(i,j,k) = rru(i,j,k)*flx4(a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1251,6 +1376,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1269,7 +1395,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1278,6 +1404,11 @@
         dumx(i,j,k) = ubar*flx4(a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -1286,6 +1417,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -1304,7 +1436,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1313,6 +1445,11 @@
         dumx(i,j,k) = ubar*flx4(a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1321,12 +1458,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1337,6 +1475,11 @@
         dumx(i,j,k) = ubar*flx4(a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1347,6 +1490,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -1380,7 +1524,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
@@ -1398,6 +1542,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1416,8 +1561,7 @@
     nelem=ni*nj*nk
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel 
-    !$acc loop gang vector collapse(3) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj+1
       !!dir$ vector always
@@ -1433,7 +1577,7 @@
      ENDDO
     !$acc end parallel
 
-    !$acc parallel loop gang vector collapse(3) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj+1
       do i=(i1-1),i2
@@ -1446,7 +1590,7 @@
       enddo
       enddo
     ENDDO
-    
+    !$acc end parallel 
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -1465,7 +1609,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
@@ -1485,12 +1629,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
@@ -1514,6 +1659,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -1545,7 +1691,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(3) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1554,7 +1700,9 @@
       enddo
       enddo
     ENDDO
-    !$acc parallel loop gang collapse(3) private(i,j,k)
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
@@ -1563,6 +1711,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1579,9 +1728,8 @@
         i2=ni+1
       endif
 
-    !$acc parallel private(i,j,k,ubar,vbar)
     !$omp parallel do default(shared) private(i,j,k,ubar)
-    !$acc loop gang vector collapse(3)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1591,9 +1739,10 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
     !$omp parallel do default(shared) private(i,j,k,vbar)
-    !$acc loop gang vector collapse(3)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
@@ -1622,7 +1771,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang collapse(3) private(i,j,k,ubar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1632,7 +1781,9 @@
       enddo
       enddo
     ENDDO
-    !$acc parallel loop gang collapse(3) private(i,j,k,vbar)
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
@@ -1642,12 +1793,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1659,7 +1811,9 @@
       enddo
       enddo
     ENDDO
-    !$acc parallel loop gang collapse(3) private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
@@ -1671,7 +1825,8 @@
       enddo
       enddo
     ENDDO
-
+    !$acc end parallel
+ 
   ENDIF
 
     end subroutine hadv_flx6
@@ -1702,7 +1857,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1714,6 +1869,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1725,6 +1885,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1743,7 +1904,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1756,6 +1917,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -1768,6 +1934,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -1786,7 +1953,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1799,6 +1966,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1811,12 +1983,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1831,6 +2004,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1845,7 +2023,7 @@
       enddo
       enddo
     ENDDO
-
+    !$acc end parallel
   ENDIF
 
     end subroutine hadv_flx7
@@ -1875,7 +2053,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1883,6 +2061,11 @@
         dumx(i,j,k) = rru(i,j,k)*flx8(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1890,6 +2073,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -1908,7 +2092,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -1917,6 +2101,11 @@
         dumx(i,j,k) = ubar*flx8(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -1925,6 +2114,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -1943,7 +2133,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -1952,6 +2142,11 @@
         dumx(i,j,k) = ubar*flx8(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1960,12 +2155,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -1976,6 +2172,11 @@
         dumx(i,j,k) = ubar*flx8(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1986,6 +2187,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -2017,7 +2219,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2029,6 +2231,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2040,6 +2247,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -2058,7 +2266,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2071,6 +2279,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -2083,6 +2296,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -2101,7 +2315,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -2114,6 +2328,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -2126,12 +2345,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -2146,6 +2366,11 @@
         endif
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2160,6 +2385,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -2191,7 +2417,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2199,6 +2425,11 @@
         dumx(i,j,k) = rru(i,j,k)*flx10(a(i-5,j,k),a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2206,6 +2437,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -2224,7 +2456,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -2233,6 +2465,11 @@
         dumx(i,j,k) = ubar*flx10(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k),a(i+5,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -2241,6 +2478,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -2259,7 +2497,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=j1,j2
       !dir$ vector always
@@ -2268,6 +2506,11 @@
         dumx(i,j,k) = ubar*flx10(a(i-5,j,k),a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=1,nk
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -2276,12 +2519,13 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang private(i,j,k,ubar,vbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -2292,6 +2536,11 @@
         dumx(i,j,k) = ubar*flx10(a(i-5,j,k),a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
+    end do
+    !$acc end parallel
+
+    !$acc parallel loop gang vector collapse(3) default(present)
+    DO k=2,nk
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2302,6 +2551,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -2338,7 +2588,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
       do k=3,nk-1
       !dir$ vector always
@@ -2350,8 +2600,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -2370,9 +2620,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,nk-1
       !dir$ vector always
       do i=i1,i2
@@ -2384,8 +2633,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -2404,9 +2653,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=3,nk-1
       !dir$ vector always
       do i=1,ni
@@ -2418,17 +2666,15 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=2,nk-1
       !dir$ vector always
       do i=1,ni
@@ -2440,8 +2686,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -2487,7 +2733,7 @@
   if( pdefweno.eq.1 )then
       !$omp parallel do default(shared)   &
       !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=3,nk-1
       do j=1,nj
       !dir$ vector always
@@ -2518,6 +2764,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
       call     vadv_lwr_weno_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
 
@@ -2526,9 +2773,8 @@
   !--------------------------------------!
   else  pdefs
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=4,nk-2
       do j=1,nj
       !dir$ vector always
@@ -2541,6 +2787,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
       call     vadv_lwr_weno_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
 
@@ -2566,11 +2813,9 @@
         i2=ni+1
       endif
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-2
       !dir$ vector always
       do i=i1,i2
@@ -2582,8 +2827,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
 !ccccccccccccccccccccccccccccccccccc
 !  v-staggered variable:
@@ -2603,11 +2848,9 @@
         j2=nj+1
       endif
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=4,nk-2
       !dir$ vector always
       do i=1,ni
@@ -2619,18 +2862,16 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
 !ccccccccccccccccccccccccccccccccccc
 !  w-staggered variable:
 
   ELSEIF( stag.eq.4 )THEN
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) 
-    !!! private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=3,nk-2
       do j=1,nj
       !dir$ vector always
@@ -2643,8 +2884,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
 !ccccccccccccccccccccccccccccccccccc
 
@@ -2692,7 +2933,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,bmax,doit)
-    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,bmax,doit)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
       do k=5,nk-3
       !dir$ vector always
@@ -2732,6 +2973,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -2748,11 +2990,9 @@
         i2=ni+1
       endif
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-3
       !dir$ vector always
       do i=i1,i2
@@ -2764,8 +3004,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -2782,11 +3022,9 @@
         j2=nj+1
       endif
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=5,nk-3
       !dir$ vector always
       do i=1,ni
@@ -2798,17 +3036,14 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-3
       !dir$ vector always
       do i=1,ni
@@ -2820,8 +3055,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -2866,7 +3101,7 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
-    !$acc parallel loop gang collapse(2) private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
       do k=6,nk-4
       !dir$ vector always
@@ -2909,6 +3144,7 @@
       enddo
       enddo
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -2925,11 +3161,9 @@
         i2=ni+1
       endif
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=6,nk-4
       !dir$ vector always
       do i=i1,i2
@@ -2941,9 +3175,9 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
+ 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
 
@@ -2959,11 +3193,9 @@
         j2=nj+1
       endif
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=6,nk-4
       !dir$ vector always
       do i=1,ni
@@ -2975,17 +3207,14 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
-    !$omp parallel do default(shared)   &
-    !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-4
       !dir$ vector always
       do i=1,ni
@@ -2997,8 +3226,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -3039,17 +3268,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=2,nk
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*(c1(i,j,k)*a(i,j,k-1)+c2(i,j,k)*a(i,j,k))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -3068,9 +3296,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=2,nk
       !dir$ vector always
       do i=i1,i2
@@ -3080,8 +3307,8 @@
         dumz(i,j,k) = wbar*(cc1*a(i,j,k-1)+cc2*a(i,j,k))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -3100,9 +3327,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=2,nk
       !dir$ vector always
       do i=1,ni
@@ -3112,17 +3338,15 @@
         dumz(i,j,k) = wbar*(cc1*a(i,j,k-1)+cc2*a(i,j,k))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=1,nk
       !dir$ vector always
       do i=1,ni
@@ -3130,8 +3354,8 @@
         dumz(i,j,k) = wbar*0.5*(a(i,j,k)+a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -3162,9 +3386,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k),
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,nk-1
       !dir$ vector always
       do i=1,ni
@@ -3175,8 +3398,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -3195,9 +3418,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,nk-1
       !dir$ vector always
       do i=i1,i2
@@ -3209,8 +3431,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -3229,9 +3451,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=3,nk-1
       !dir$ vector always
       do i=1,ni
@@ -3243,17 +3464,15 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=2,nk-1
       !dir$ vector always
       do i=1,ni
@@ -3265,8 +3484,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -3301,17 +3520,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,(nk-1)
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -3330,9 +3548,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,(nk-1)
       !dir$ vector always
       do i=i1,i2
@@ -3340,8 +3557,8 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -3360,9 +3577,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=3,(nk-1)
       !dir$ vector always
       do i=1,ni
@@ -3370,17 +3586,15 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=2,(nk-1)
       !dir$ vector always
       do i=1,ni
@@ -3388,8 +3602,8 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -3422,9 +3636,8 @@
 
   IF( stag.eq.1 )THEN
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k)
-      !$acc parallel loop gang collapse(2) private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=4,nk-2
       do j=1,nj
       !dir$ vector always
@@ -3437,6 +3650,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -3453,9 +3667,8 @@
         i2=ni+1
       endif
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+      !$omp parallel do default(shared) private(i,j,k,wbar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=4,nk-2
       do j=1,nj
       !dir$ vector always
@@ -3469,6 +3682,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -3485,9 +3699,8 @@
         j2=nj+1
       endif
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+      !$omp parallel do default(shared) private(i,j,k,wbar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=4,nk-2
       do j=j1,j2
       !dir$ vector always
@@ -3501,12 +3714,12 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+      !$omp parallel do default(shared) private(i,j,k,wbar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=3,nk-2
       do j=1,nj
       !dir$ vector always
@@ -3520,6 +3733,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
   ENDIF
 
@@ -3556,17 +3770,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-2
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -3585,9 +3798,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-2
       !dir$ vector always
       do i=i1,i2
@@ -3595,8 +3807,8 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -3615,9 +3827,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=4,nk-2
       !dir$ vector always
       do i=1,ni
@@ -3625,17 +3836,15 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,nk-2
       !dir$ vector always
       do i=1,ni
@@ -3643,8 +3852,8 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -3682,9 +3891,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-3
       !dir$ vector always
       do i=1,ni
@@ -3695,8 +3903,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.2 )THEN
@@ -3716,9 +3924,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-3
       !dir$ vector always
       do i=i1,i2
@@ -3730,9 +3937,8 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.3 )THEN
@@ -3752,9 +3958,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=5,nk-3
       !dir$ vector always
       do i=1,ni
@@ -3766,18 +3971,16 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-3
       !dir$ vector always
       do i=1,ni
@@ -3789,8 +3992,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -3829,17 +4032,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-3
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -3858,9 +4060,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-3
       !dir$ vector always
       do i=i1,i2
@@ -3868,8 +4069,8 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -3888,9 +4089,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=5,nk-3
       !dir$ vector always
       do i=1,ni
@@ -3898,17 +4098,15 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-3
       !dir$ vector always
       do i=1,ni
@@ -3916,8 +4114,8 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -3957,9 +4155,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=6,nk-4
       !dir$ vector always
       do i=1,ni
@@ -3970,8 +4167,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.2 )THEN
@@ -3991,9 +4188,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=6,nk-4
       !dir$ vector always
       do i=i1,i2
@@ -4005,9 +4201,8 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.3 )THEN
@@ -4027,9 +4222,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=6,nk-4
       !dir$ vector always
       do i=1,ni
@@ -4041,18 +4235,16 @@
         endif
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-4
       !dir$ vector always
       do i=1,ni
@@ -4064,8 +4256,8 @@
         endif
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -4106,17 +4298,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=6,nk-4
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx10(a(i,j,k-5),a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -4135,9 +4326,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=6,nk-4
       !dir$ vector always
       do i=i1,i2
@@ -4145,8 +4335,8 @@
         dumz(i,j,k) = wbar*flx10(a(i,j,k-5),a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -4165,9 +4355,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=6,nk-4
       !dir$ vector always
       do i=1,ni
@@ -4175,17 +4364,15 @@
         dumz(i,j,k) = wbar*flx10(a(i,j,k-5),a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-4
       !dir$ vector always
       do i=1,ni
@@ -4193,8 +4380,8 @@
         dumz(i,j,k) = wbar*flx10(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4),a(i,j,k+5))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -4241,11 +4428,12 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
-    !$acc parallel loop gang vector private(i,j,k,s1,s2,s3,s4,s5,s6,s7,s8,s9,bmax,doit)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO j=1,nj
-
       k = 2
       !dir$ vector always
+      !$acc loop vector
       do i=1,ni
         if( rrw(i,j,k).ge.0.0 )then
           dumz(i,j,k) = rrw(i,j,k)*(c1(i,j,k)*a(i,j,k-1)+c2(i,j,k)*a(i,j,k))
@@ -4256,6 +4444,7 @@
 
       k = nk
       !dir$ vector always
+      !$acc loop vector
       do i=1,ni
         if( rrw(i,j,k).gt.0.0 )then
           dumz(i,j,k) = rrw(i,j,k)*upstrpd(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),weps)
@@ -4263,8 +4452,8 @@
           dumz(i,j,k) = rrw(i,j,k)*(c1(i,j,k)*a(i,j,k-1)+c2(i,j,k)*a(i,j,k))
         endif
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -4283,11 +4472,13 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO j=1,nj
 
       k = 2
       !dir$ vector always
+      !$acc loop vector
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
         if( wbar.ge.0.0 )then
@@ -4301,6 +4492,7 @@
 
       k = nk
       !dir$ vector always
+      !$acc loop vector
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
         if( wbar.gt.0.0 )then
@@ -4311,8 +4503,8 @@
           dumz(i,j,k) = wbar*(cc1*a(i,j,k-1)+cc2*a(i,j,k))
         endif
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -4331,11 +4523,12 @@
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO j=j1,j2
-
       k = 2
       !dir$ vector always
+      !$acc loop vector
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
         if( wbar.ge.0.0 )then
@@ -4349,6 +4542,7 @@
 
       k = nk
       !dir$ vector always
+      !$acc loop vector
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
         if( wbar.gt.0.0 )then
@@ -4359,19 +4553,20 @@
           dumz(i,j,k) = wbar*(cc1*a(i,j,k-1)+cc2*a(i,j,k))
         endif
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
     !$omp parallel do default(shared)   &
     !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO j=1,nj
 
       k = 1
       !dir$ vector always
+      !$acc loop vector
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
         if( wbar.ge.0.0 )then
@@ -4383,6 +4578,7 @@
 
       k = nk
       !dir$ vector always
+      !$acc loop vector
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
         if( wbar.gt.0.0 )then
@@ -4391,8 +4587,8 @@
           dumz(i,j,k) = wbar*0.5*(a(i,j,k)+a(i,j,k+1))
         endif
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -4428,9 +4624,8 @@
   IF( stag.eq.1 )THEN
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4441,11 +4636,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4456,6 +4651,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -4473,9 +4669,8 @@
       endif
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4487,11 +4682,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4503,6 +4698,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -4520,9 +4716,8 @@
       endif
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4534,11 +4729,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4550,14 +4745,13 @@
         endif
       enddo
       enddo
-
+      !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
       k = 2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4569,11 +4763,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4585,6 +4779,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ENDIF
 
@@ -4618,9 +4813,8 @@
     bmin = weps
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4629,11 +4823,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4642,6 +4836,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
     end subroutine vadv_lwr_weno_35_b
 
@@ -4675,9 +4870,8 @@
   IF( stag.eq.1 )THEN
 
       k = 4
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4688,11 +4882,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4703,6 +4897,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -4720,9 +4915,8 @@
       endif
 
       k = 4
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4734,11 +4928,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4750,6 +4944,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -4767,9 +4962,8 @@
       endif
 
       k = 4
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4781,11 +4975,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4797,14 +4991,13 @@
         endif
       enddo
       enddo
-
+      !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4816,11 +5009,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4832,6 +5025,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ENDIF
 
@@ -4867,9 +5061,8 @@
   IF( stag.eq.1 )THEN
 
       k = 5
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4880,11 +5073,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -4895,6 +5088,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -4912,9 +5106,8 @@
       endif
 
       k = 5
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4926,11 +5119,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -4942,6 +5135,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -4959,9 +5153,8 @@
       endif
 
       k = 5
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4973,11 +5166,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -4989,14 +5182,13 @@
         endif
       enddo
       enddo
-
+      !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
       k = 4
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5008,11 +5200,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5024,6 +5216,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ENDIF
 
@@ -5052,9 +5245,8 @@
   IF( stag.eq.1 )THEN
 
       k = 2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5065,11 +5257,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5080,6 +5272,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -5097,9 +5290,8 @@
       endif
 
       k = 2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,cc1,cc2,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$omp parallel do default(shared) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5113,11 +5305,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,cc1,cc2,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$omp parallel do default(shared) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5131,6 +5323,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
 
   ELSEIF( stag.eq.3 )THEN
@@ -5149,9 +5342,8 @@
       endif
 
       k = 2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,cc1,cc2,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$omp parallel do default(shared) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5165,11 +5357,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,cc1,cc2,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,cc1,cc2,wbar)
+      !$omp parallel do default(shared) private(i,j,cc1,cc2,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5183,14 +5375,13 @@
         endif
       enddo
       enddo
-
+      !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
       k = 1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5202,11 +5393,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5218,6 +5409,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ENDIF
 
@@ -5246,9 +5438,8 @@
   IF( stag.eq.1 )THEN
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5259,11 +5450,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j)
-      !$acc parallel loop gang collapse(2) private(i,j)
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5274,6 +5465,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -5291,9 +5483,8 @@
       endif
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5305,11 +5496,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5321,6 +5512,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -5338,9 +5530,8 @@
       endif
 
       k = 3
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5352,11 +5543,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5368,13 +5559,13 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
       k = 2
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5386,11 +5577,11 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
       k = nk-1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,wbar)
-      !$acc parallel loop gang collapse(2) private(i,j,wbar)
+      !$omp parallel do default(shared) private(i,j,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5402,7 +5593,7 @@
         endif
       enddo
       enddo
-
+      !$acc end parallel
   ENDIF
 
     end subroutine vadv_lwr_flx_35
@@ -5432,7 +5623,7 @@
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5443,11 +5634,12 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
 
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5457,8 +5649,8 @@
           dumz(i,j,k) = rrw(i,j,k)*flx5(a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2))
         endif
       enddo
-
     ENDDO
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.2 )THEN
@@ -5479,7 +5671,7 @@
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5490,12 +5682,13 @@
           dumz(i,j,k) = wbar*flx7(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3))
         endif
       enddo
-   ENDDO
+    ENDDO
+    !$acc end parallel
 
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5506,9 +5699,8 @@
           dumz(i,j,k) = wbar*flx5(a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2))
         endif
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.3 )THEN
@@ -5529,7 +5721,7 @@
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5541,11 +5733,12 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
 
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5557,7 +5750,7 @@
         endif
       enddo
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.4 )THEN
@@ -5565,9 +5758,8 @@
     k = 3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
-
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -5578,11 +5770,12 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
 
     k = nk-2
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5593,8 +5786,8 @@
           dumz(i,j,k) = wbar*flx5(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1))
         endif
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -5626,7 +5819,7 @@
     k = 5
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5637,11 +5830,12 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
 
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j)
-    !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5652,6 +5846,7 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.2 )THEN
@@ -5672,7 +5867,7 @@
     k = 5
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5684,10 +5879,12 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
+
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -5698,9 +5895,8 @@
           dumz(i,j,k) = wbar*flx7(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3))
         endif
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.3 )THEN
@@ -5721,7 +5917,7 @@
     k = 5
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5733,10 +5929,12 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
+
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -5747,9 +5945,8 @@
           dumz(i,j,k) = wbar*flx7(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3))
         endif
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c
   ELSEIF( stag.eq.4 )THEN
@@ -5757,7 +5954,7 @@
     k = 4
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5769,10 +5966,12 @@
         endif
       enddo
     ENDDO
+    !$acc end parallel
+
     k = nk-3
 !$omp parallel do default(shared)   &
 !$omp private(i,j,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -5783,8 +5982,8 @@
           dumz(i,j,k) = wbar*flx7(a(i,j,k+4),a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2))
         endif
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -5814,7 +6013,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
       do k=2,nk,(nk-2)
       !dir$ vector always
@@ -5822,8 +6021,8 @@
         dumz(i,j,k) = rrw(i,j,k)*(c1(i,j,k)*a(i,j,k-1)+c2(i,j,k)*a(i,j,k))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -5842,9 +6041,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=2,nk,(nk-2)
       !dir$ vector always
       do i=i1,i2
@@ -5854,8 +6052,8 @@
         dumz(i,j,k) = wbar*(cc1*a(i,j,k-1)+cc2*a(i,j,k))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -5874,9 +6072,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=2,nk,(nk-2)
       !dir$ vector always
       do i=1,ni
@@ -5886,17 +6083,15 @@
         dumz(i,j,k) = wbar*(cc1*a(i,j,k-1)+cc2*a(i,j,k))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=1,nk,(nk-1)
       !dir$ vector always
       do i=1,ni
@@ -5904,8 +6099,8 @@
         dumz(i,j,k) = wbar*0.5*(a(i,j,k)+a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -5935,17 +6130,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,(nk-1),(nk-4)
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -5964,9 +6158,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,(nk-1),(nk-4)
       !dir$ vector always
       do i=i1,i2
@@ -5974,8 +6167,8 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -5994,9 +6187,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=3,(nk-1),(nk-4)
       !dir$ vector always
       do i=1,ni
@@ -6004,17 +6196,15 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=2,(nk-1),(nk-3)
       !dir$ vector always
       do i=1,ni
@@ -6022,8 +6212,8 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -6053,17 +6243,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-2,(nk-6)
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -6082,9 +6271,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-2,(nk-6)
       !dir$ vector always
       do i=i1,i2
@@ -6092,8 +6280,8 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -6112,9 +6300,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=4,nk-2,(nk-6)
       !dir$ vector always
       do i=1,ni
@@ -6122,17 +6309,15 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=3,nk-2,(nk-5)
       !dir$ vector always
       do i=1,ni
@@ -6140,8 +6325,8 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -6171,17 +6356,16 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-3,(nk-8)
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.2 )THEN
     ! u-staggered:
@@ -6200,9 +6384,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=5,nk-3,(nk-8)
       !dir$ vector always
       do i=i1,i2
@@ -6210,8 +6393,8 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
     ! v-staggered:
@@ -6230,9 +6413,8 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
-
       do k=5,nk-3,(nk-8)
       !dir$ vector always
       do i=1,ni
@@ -6240,17 +6422,15 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
-
     ENDDO
-
+    !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
-    !$acc parallel loop gang vector collapse(2) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=1,nj
-
       do k=4,nk-3,(nk-7)
       !dir$ vector always
       do i=1,ni
@@ -6258,8 +6438,8 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4))
       enddo
       enddo
-
     ENDDO
+    !$acc end parallel
 
   ENDIF
 
@@ -6724,9 +6904,8 @@
 
     IF( weno_order.eq.3 )THEN
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=3,nk-1
       !dir$ vector always
       do i=2,i2
@@ -6738,12 +6917,12 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
     ELSEIF( weno_order.eq.5 )THEN
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=4,nk-2
       !dir$ vector always
       do i=2,i2
@@ -6755,12 +6934,12 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
     ELSEIF( weno_order.eq.7 )THEN
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=5,nk-3
       !dir$ vector always
       do i=2,i2
@@ -6772,12 +6951,12 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
     ELSEIF( weno_order.eq.9 )THEN
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=6,nk-4
       !dir$ vector always
       do i=2,i2
@@ -6789,6 +6968,7 @@
         endif
       enddo
       enddo
+      !$acc end parallel
 
     ELSE
 
@@ -6802,6 +6982,7 @@
     IF( weno_order.eq.9 )THEN
       k = 5
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.ge.0.0 )then
@@ -6810,8 +6991,11 @@
           dumz(i,j,k) = wbar*weno9(a(i,j,k+4),a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3),a(i,j,k-4),weps)
         endif
       enddo
+      !$acc end parallel
+
       k = nk-3
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.gt.0.0 )then
@@ -6820,11 +7004,13 @@
           dumz(i,j,k) = wbar*weno7(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3),weps)
         endif
       enddo
+      !$acc end parallel
     ENDIF
 
     IF( weno_order.eq.9 .or. weno_order.eq.7 )THEN
       k = 4
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.ge.0.0 )then
@@ -6833,8 +7019,11 @@
           dumz(i,j,k) = wbar*weno7(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3),weps)
         endif
       enddo
+      !$acc end parallel
+
       k = nk-2
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.gt.0.0 )then
@@ -6843,11 +7032,13 @@
           dumz(i,j,k) = wbar*weno5(a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),weps)
         endif
       enddo
+      !$acc end parallel
     ENDIF
 
     IF( weno_order.eq.9 .or. weno_order.eq.7 .or. weno_order.eq.5 )THEN
       k = 3
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.ge.0.0 )then
@@ -6856,8 +7047,11 @@
           dumz(i,j,k) = wbar*weno5(a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),weps)
         endif
       enddo
+      !$acc end parallel
+
       k = nk-1
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.gt.0.0 )then
@@ -6866,11 +7060,13 @@
           dumz(i,j,k) = wbar*upstrpd(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),weps)
         endif
       enddo
+      !$acc end parallel
     ENDIF
 
     ! all weno orders do this:
       k = 2
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.ge.0.0 )then
@@ -6879,8 +7075,11 @@
           dumz(i,j,k) = wbar*upstrpd(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),weps)
         endif
       enddo
+      !$acc end parallel
+
       k = nk
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if( wbar.gt.0.0 )then
@@ -6889,6 +7088,7 @@
           dumz(i,j,k) = wbar*(c1(1,1,k)*a(i,j,k-1)+c2(1,1,k)*a(i,j,k))
         endif
       enddo
+      !$acc end parallel
 
     ! end of weno section
 
@@ -6898,19 +7098,18 @@
     ! begin not-weno section:
 
     IF(     vadvordrv.eq.2 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=2,nk
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         dumz(i,j,k) = wbar*0.5*(a(i,j,k-1)+a(i,j,k))
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.3 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=3,nk-1
       !dir$ vector always
       do i=2,i2
@@ -6922,10 +7121,10 @@
         endif
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.4 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=3,nk-1
       !dir$ vector always
       do i=2,i2
@@ -6933,10 +7132,10 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.5 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=4,nk-2
       !dir$ vector always
       do i=2,i2
@@ -6948,10 +7147,10 @@
         endif
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.6 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=4,nk-2
       !dir$ vector always
       do i=2,i2
@@ -6959,10 +7158,10 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.7 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=5,nk-3
       !dir$ vector always
       do i=2,i2
@@ -6974,10 +7173,10 @@
         endif
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.8 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=5,nk-3
       !dir$ vector always
       do i=2,i2
@@ -6985,10 +7184,10 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.9 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=6,nk-4
       !dir$ vector always
       do i=2,i2
@@ -7000,10 +7199,10 @@
         endif
       enddo
       enddo
+      !$acc end parallel
     ELSEIF( vadvordrv.eq.10 )THEN
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,wbar)
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$omp parallel do default(shared) private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=6,nk-4
       !dir$ vector always
       do i=2,i2
@@ -7011,6 +7210,7 @@
         dumz(i,j,k) = wbar*flx10(a(i,j,k-5),a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4))
       enddo
       enddo
+      !$acc end parallel
     ENDIF
 
     !--------
@@ -7019,6 +7219,7 @@
     IF( vadvordrv.eq.9 )THEN
       k = 5
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7027,8 +7228,11 @@
           dumz(i,j,k) = wbar*flx9(a(i,j,k+4),a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3),a(i,j,k-4))
         endif
       enddo
+      !$acc end parallel
+
       k = nk-3
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7037,10 +7241,12 @@
           dumz(i,j,k) = wbar*flx7(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3))
         endif
       enddo
+      !$acc end parallel
     ENDIF
     IF( vadvordrv.eq.9 .or. vadvordrv.eq.7 )THEN
       k = 4
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7049,8 +7255,11 @@
           dumz(i,j,k) = wbar*flx7(a(i,j,k+3),a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2),a(i,j,k-3))
         endif
       enddo
+      !$acc end parallel
+
       k = nk-2
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7059,10 +7268,12 @@
           dumz(i,j,k) = wbar*flx5(a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2))
         endif
       enddo
+      !$acc end parallel
     ENDIF
     IF( vadvordrv.eq.9 .or. vadvordrv.eq.7 .or. vadvordrv.eq.5 )THEN
       k = 3
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7071,8 +7282,11 @@
           dumz(i,j,k) = wbar*flx5(a(i,j,k+2),a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),a(i,j,k-2))
         endif
       enddo
+      !$acc end parallel
+
       k = nk-1
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7081,10 +7295,12 @@
           dumz(i,j,k) = wbar*flx3(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1))
         endif
       enddo
+      !$acc end parallel
     ENDIF
     IF( vadvordrv.eq.9 .or. vadvordrv.eq.7 .or. vadvordrv.eq.5 .or. vadvordrv.eq.3 )THEN
       k = 2
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7093,8 +7309,11 @@
           dumz(i,j,k) = wbar*flx3(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1))
         endif
       enddo
+      !$acc end parallel
+
       k = nk
       !dir$ vector always
+      !$acc parallel loop gang vector default(present)
       do i=2,i2
         wbar = 0.5*(arf2(i)*rrw(i,j,k)+arf1(i)*rrw(i-1,j,k))
         if(wbar.ge.0.0)then
@@ -7103,6 +7322,7 @@
           dumz(i,j,k) = wbar*(c1(1,1,k)*a(i,j,k-1)+c2(1,1,k)*a(i,j,k))
         endif
       enddo
+      !$acc end parallel
     ENDIF
 
 
@@ -7110,7 +7330,7 @@
     ! near boundaries (even-ordered schemes):
 
     IF( vadvordrv.eq.10 )THEN
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=5,(nk-3),(nk-8)
       !dir$ vector always
       do i=2,i2
@@ -7118,9 +7338,10 @@
         dumz(i,j,k) = wbar*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
       enddo
       enddo
+      !$acc end parallel
     ENDIF
     IF( vadvordrv.eq.10 .or. vadvordrv.eq.8 )THEN
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=4,(nk-2),(nk-6)
       !dir$ vector always
       do i=2,i2
@@ -7128,9 +7349,10 @@
         dumz(i,j,k) = wbar*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
       enddo
       enddo
+      !$acc end parallel
     ENDIF
     IF( vadvordrv.eq.10 .or. vadvordrv.eq.8 .or. vadvordrv.eq.6 )THEN
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=3,(nk-1),(nk-4)
       !dir$ vector always
       do i=2,i2
@@ -7138,9 +7360,10 @@
         dumz(i,j,k) = wbar*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
       enddo
       enddo
+      !$acc end parallel
     ENDIF
     IF( vadvordrv.eq.10 .or. vadvordrv.eq.8 .or. vadvordrv.eq.6 .or. vadvordrv.eq.4 )THEN
-      !$acc parallel loop gang vector private(i,k,wbar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do k=2,nk,(nk-2)
       !dir$ vector always
       do i=2,i2
@@ -7148,6 +7371,7 @@
         dumz(i,j,k) = wbar*(c1(1,1,k)*a(i,j,k-1)+c2(1,1,k)*a(i,j,k))
       enddo
       enddo
+      !$acc end parallel
     ENDIF
 
     !--------
@@ -7195,15 +7419,10 @@
       real :: tem0
       double precision, dimension(nk) :: budx
       integer, dimension(4) :: reqsx
-      !$acc declare present(xh,rxh,arh1,arh2,uh,ruh) &
-      !$acc present(xf,vh,rvh) &
-      !$acc present(rmh,rho0,rr0,rf0,rrf0) &
-      !$acc present(gz,rgz) &
-      !$acc present(advx,dum,mass) &
-      !$acc present(rru,s0,s,flag) &
-      !$acc create(budx)
-
-!!!      budx(k) = 0.0d0
+      !$acc declare present(xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh, &
+      !$acc                 rmh,rho0,rr0,rf0,rrf0,gz,rgz,advx, &
+      !$acc                 dum,mass,rru,s0,s,flag) &
+      !$acc         create(budx)
 
 !----------------------------------------------------------------
 ! Advection in r-direction
@@ -7214,7 +7433,7 @@
     if( weno_order.eq.3 )then
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7227,11 +7446,12 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.5 )then
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7244,11 +7464,12 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.7 )then
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7261,11 +7482,12 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.9 )then
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7278,6 +7500,7 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     else
 
@@ -7291,7 +7514,7 @@
     if( weno_order.eq.9 )then
       i = 5
       !$omp parallel do default(shared) private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7301,11 +7524,12 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 )then
       i = 4
       !$omp parallel do default(shared) private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7315,11 +7539,12 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 .or. weno_order.eq.5 )then
       i = 3
       !$omp parallel do default(shared) private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7329,11 +7554,12 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
 
       i = 2
       !$omp parallel do default(shared) private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7344,11 +7570,12 @@
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
 
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
       !$omp parallel do default(shared) private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7359,6 +7586,7 @@
         dum(ni+1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
 
 
@@ -7367,19 +7595,22 @@
 
     if(hadvorder.eq.2)then
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel default(present)
+      !$acc loop gang collapse(2)
       DO k=1,nk
       do j=1,nj
       dum(1,j,k) = 0.0
       !dir$ vector always
+      !$acc loop vector
       do i=2,ni+1
         dum(i,j,k) = rru(i,j,k)*0.5*(s(i-1,j,k)+s(i,j,k))
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.3)then
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7392,9 +7623,10 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.4)then
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7403,9 +7635,10 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.5)then
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7418,9 +7651,10 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.6)then
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7429,9 +7663,10 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.7)then
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7444,10 +7679,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.8)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7456,10 +7692,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.9)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7472,10 +7709,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadvorder.eq.10)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7484,6 +7722,7 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     else
       stop 34788
     endif
@@ -7495,7 +7734,7 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7505,12 +7744,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadvorder.eq.9 .or. hadvorder.eq.7 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7520,12 +7760,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadvorder.eq.9 .or. hadvorder.eq.7 .or. hadvorder.eq.5 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7535,12 +7776,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadvorder.eq.9 .or. hadvorder.eq.7 .or. hadvorder.eq.5 .or. hadvorder.eq.3 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -7551,11 +7793,12 @@
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-        !$acc parallel loop gang vector private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present)
         DO k=1,nk
         do j=1,nj
           if(rru(i,j,k).ge.0.0)then
@@ -7566,6 +7809,7 @@
           dum(ni+1,j,k) = 0.0
         enddo
         ENDDO
+        !$acc end parallel
       ENDIF
     endif
 
@@ -7574,46 +7818,50 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx8(s(i-4,j,k),s(i-3,j,k),s(i-2,j,k),s(i-1,j,k),s(i  ,j,k),s(i+1,j,k),s(i+2,j,k),s(i+3,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadvorder.eq.10 .or. hadvorder.eq.8 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx6(s(i-3,j,k),s(i-2,j,k),s(i-1,j,k),s(i  ,j,k),s(i+1,j,k),s(i+2,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadvorder.eq.10 .or. hadvorder.eq.8 .or. hadvorder.eq.6 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx4(s(i-2,j,k),s(i-1,j,k),s(i  ,j,k),s(i+1,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadvorder.eq.10 .or. hadvorder.eq.8 .or. hadvorder.eq.6 .or. hadvorder.eq.4 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*0.5*(s(i-1,j,k)+s(i,j,k))
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
     endif
 
     if( hadvorder.eq.10 .or. hadvorder.eq.8 .or. hadvorder.eq.6 .or. hadvorder.eq.4 .or. hadvorder.eq.2 )then
@@ -7621,13 +7869,14 @@
       i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*0.5*(s(i-1,j,k)+s(i,j,k))
         dum(ni+1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
     ENDIF
     endif
 
@@ -7639,7 +7888,7 @@
         i=ni+1
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-      !$acc parallel loop gang vector private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).le.0.0)then
@@ -7648,11 +7897,12 @@
         budx(k) = budx(k)-dum(ni+1,j,k)*rvh(j)*rmh(ni+1,j,k)
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7661,12 +7911,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
       IF(ebc.eq.2 .and. ibe.eq.1)THEN
         i=ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
-        !$acc parallel loop gang vector private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present)
         DO k=1,nk
         do j=1,nj
           if(rru(ni+1,j,k).le.0.0)then
@@ -7674,8 +7925,8 @@
           endif
         enddo
         ENDDO
+        !$acc end parallel
       ENDIF
-
 
 !----------------------------------------------------------------
 !  Misc for r-direction
@@ -7757,6 +8008,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7770,11 +8022,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.5 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7788,11 +8042,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.7 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7806,11 +8062,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.9 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7824,6 +8082,7 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     endif
 
@@ -7834,6 +8093,7 @@
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -7844,11 +8104,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -7859,11 +8121,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 .or. weno_order.eq.5 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -7874,11 +8138,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
 
       i = 1
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -7889,11 +8155,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
 
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -7904,6 +8172,7 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
 
 
@@ -7913,6 +8182,7 @@
     if(hadv.eq.2)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7922,9 +8192,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.3)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7938,9 +8210,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.4)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7950,9 +8224,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.5)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7966,9 +8242,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.6)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7978,9 +8256,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.7)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -7994,9 +8274,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.8)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8006,9 +8288,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.9)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8022,9 +8306,11 @@
       enddo
       enddo
       ENDDO
+       !$acc end parallel
     elseif(hadv.eq.10)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8034,10 +8320,10 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     else
       stop 34789
     endif
-
 
     ! Near boundaries ...
 
@@ -8045,6 +8331,7 @@
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -8055,11 +8342,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -8070,11 +8359,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 .or. hadv.eq.5 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -8085,11 +8376,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 .or. hadv.eq.5 .or. hadv.eq.3 )then
       i = 1
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -8100,10 +8393,12 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
@@ -8114,65 +8409,75 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
     endif
-
 
     if( hadv.eq.10 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
         dum(i,j,k) = ubar*flx8(u3d(i-3,j,k),u3d(i-2,j,k),u3d(i-1,j,k),u3d(i  ,j,k),u3d(i+1,j,k),u3d(i+2,j,k),u3d(i+3,j,k),u3d(i+4,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
         dum(i,j,k) = ubar*flx6(u3d(i-2,j,k),u3d(i-1,j,k),u3d(i  ,j,k),u3d(i+1,j,k),u3d(i+2,j,k),u3d(i+3,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
         dum(i,j,k) = ubar*flx4(u3d(i-1,j,k),u3d(i  ,j,k),u3d(i+1,j,k),u3d(i+2,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 .or. hadv.eq.4 )then
       i = 1
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
         dum(i,j,k) = ubar*0.5*(u3d(i+1,j,k)+u3d(i,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 .or. hadv.eq.4 .or. hadv.eq.2 )then
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         ubar = 0.5*(arh1(i)*rru(i,j,k)+arh2(i)*rru(i+1,j,k))
         dum(i,j,k) = ubar*0.5*(u3d(i+1,j,k)+u3d(i,j,k))
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
     endif
 
@@ -8184,25 +8489,31 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel default(present)
+      !$acc loop gang collapse(2)
       DO k=1,nk
       do j=1,nj
         advx(1,j,k)=0.0
         !dir$ vector always
+        !$acc loop vector
         do i=2,i2
           advx(i,j,k) = -(arf2(i)*dum(i,j,k)-arf1(i)*dum(i-1,j,k))*rdx*uf(i)
         enddo
       enddo
       ENDDO
-
+      !$acc end parallel
 
       IF(ebc.eq.3.or.ebc.eq.4)THEN
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+        !$acc parallel default(present)
+        !$acc loop gang vector collapse(2)
         DO k=1,nk
         do j=1,nj
           advx(ni+1,j,k)=0.0
         enddo
         ENDDO
+        !$acc end parallel
       ENDIF
 
 !----------------------------------------------------------------
@@ -8255,6 +8566,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8267,11 +8579,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.5 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8284,11 +8598,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.7 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8301,11 +8617,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.9 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8318,9 +8636,9 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     endif
-
 
     ! Near boundaries ...
 
@@ -8328,6 +8646,7 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8337,11 +8656,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8351,11 +8672,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 .or. weno_order.eq.5 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8365,11 +8688,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
 
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8380,11 +8705,13 @@
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
 
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8395,6 +8722,7 @@
         dum(ni+1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
 
 
@@ -8404,18 +8732,23 @@
     if(hadv.eq.2)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel default(present)
+      !$acc loop gang collapse(2)
       DO k=1,nk
       do j=1,nj
       dum(1,j,k) = 0.0
       !dir$ vector always
+      !$acc loop vector
       do i=2,ni+1
         dum(i,j,k) = rru(i,j,k)*0.5*(v3d(i-1,j,k)+v3d(i,j,k))
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.3)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8428,9 +8761,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.4)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8439,9 +8774,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.5)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8454,9 +8791,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.6)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8465,9 +8804,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.7)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8480,9 +8821,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.8)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8491,9 +8834,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.9)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8506,9 +8851,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.10)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8517,10 +8864,10 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     else
       stop 34790
     endif
-
 
     ! Near boundaries ...
 
@@ -8528,6 +8875,7 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8537,11 +8885,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8551,11 +8901,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 .or. hadv.eq.5 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8565,11 +8917,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 .or. hadv.eq.5 .or. hadv.eq.3 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         if(rru(i,j,k).ge.0.0)then
@@ -8580,10 +8934,12 @@
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present)
         DO k=1,nk
         do j=1,nj
           if(rru(i,j,k).ge.0.0)then
@@ -8594,6 +8950,7 @@
           dum(ni+1,j,k) = 0.0
         enddo
         ENDDO
+        !$acc end parallel
       ENDIF
     endif
 
@@ -8602,42 +8959,50 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx8(v3d(i-4,j,k),v3d(i-3,j,k),v3d(i-2,j,k),v3d(i-1,j,k),v3d(i  ,j,k),v3d(i+1,j,k),v3d(i+2,j,k),v3d(i+3,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx6(v3d(i-3,j,k),v3d(i-2,j,k),v3d(i-1,j,k),v3d(i  ,j,k),v3d(i+1,j,k),v3d(i+2,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*flx4(v3d(i-2,j,k),v3d(i-1,j,k),v3d(i  ,j,k),v3d(i+1,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 .or. hadv.eq.4 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*0.5*(v3d(i-1,j,k)+v3d(i,j,k))
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
     endif
 
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 .or. hadv.eq.4 .or. hadv.eq.2 )then
@@ -8645,12 +9010,14 @@
       i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         dum(i,j,k) = rru(i,j,k)*0.5*(v3d(i-1,j,k)+v3d(i,j,k))
         dum(ni+1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
     ENDIF
     endif
 
@@ -8661,6 +9028,7 @@
       IF(ebc.eq.2 .and. ibe.eq.1)THEN
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=1,nk
       do j=1,nj
         i=ni+1
@@ -8670,10 +9038,12 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
       do j=1,nj
       !dir$ vector always
@@ -8686,11 +9056,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
       IF(ebc.eq.2 .and. ibe.eq.1)THEN
         i=ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k)
+        !$acc parallel loop gang vector collapse(2) default(present)
         DO k=1,nk
         do j=1,nj
           if(rru(ni+1,j,k).le.0.0)then
@@ -8698,8 +9070,8 @@
           endif
         enddo
         ENDDO
+        !$acc end parallel
       ENDIF
-
 
 !----------------------------------------------------------------
  
@@ -8749,6 +9121,7 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8762,11 +9135,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.5 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8780,11 +9155,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.7 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8798,11 +9175,13 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     elseif( weno_order.eq.9 )then
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8816,6 +9195,7 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
 
     endif
 
@@ -8826,6 +9206,7 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -8836,11 +9217,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -8851,11 +9234,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( weno_order.eq.9 .or. weno_order.eq.7 .or. weno_order.eq.5 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -8866,11 +9251,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
 
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -8882,11 +9269,13 @@
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
 
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -8898,6 +9287,7 @@
         dum(ni+1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
 
 
@@ -8907,19 +9297,24 @@
     if(hadv.eq.2)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel default(present)
+      !$acc loop gang collapse(2)
       DO k=2,nk
       do j=1,nj
       dum(1,j,k) = 0.0
       !dir$ vector always
+      !$acc loop vector
       do i=2,ni+1
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
         dum(i,j,k) = ubar*0.5*(w3d(i-1,j,k)+w3d(i,j,k))
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.3)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8933,9 +9328,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.4)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8945,9 +9342,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.5)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8961,9 +9360,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.6)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8973,9 +9374,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.7)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -8989,9 +9392,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.8)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -9001,9 +9406,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.9)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -9017,9 +9424,11 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     elseif(hadv.eq.10)then
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -9029,10 +9438,10 @@
       enddo
       enddo
       ENDDO
+      !$acc end parallel
     else
       stop 34791
     endif
-
 
     ! Near boundaries ...
 
@@ -9040,6 +9449,7 @@
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -9050,11 +9460,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -9065,11 +9477,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 .or. hadv.eq.5 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -9080,11 +9494,13 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.9 .or. hadv.eq.7 .or. hadv.eq.5 .or. hadv.eq.3 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -9096,10 +9512,12 @@
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
       IF(ebc.eq.3.or.ebc.eq.4)THEN
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+        !$acc parallel loop gang vector collapse(2) default(present)
         DO k=2,nk
         do j=1,nj
           ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -9111,48 +9529,54 @@
           dum(ni+1,j,k) = 0.0
         enddo
         ENDDO
+        !$acc end parallel
       ENDIF
     endif
-
-
 
     if( hadv.eq.10 )then
       i = 5
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
         dum(i,j,k) = ubar*flx8(w3d(i-4,j,k),w3d(i-3,j,k),w3d(i-2,j,k),w3d(i-1,j,k),w3d(i  ,j,k),w3d(i+1,j,k),w3d(i+2,j,k),w3d(i+3,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 )then
       i = 4
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
         dum(i,j,k) = ubar*flx6(w3d(i-3,j,k),w3d(i-2,j,k),w3d(i-1,j,k),w3d(i  ,j,k),w3d(i+1,j,k),w3d(i+2,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 )then
       i = 3
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
         dum(i,j,k) = ubar*flx4(w3d(i-2,j,k),w3d(i-1,j,k),w3d(i  ,j,k),w3d(i+1,j,k))
       enddo
       ENDDO
+      !$acc end parallel
     endif
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 .or. hadv.eq.4 )then
       i = 2
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -9160,6 +9584,7 @@
         dum(1,j,k) = 0.0
       enddo
       ENDDO
+      !$acc end parallel
     endif
 
     if( hadv.eq.10 .or. hadv.eq.8 .or. hadv.eq.6 .or. hadv.eq.4 .or. hadv.eq.2 )then
@@ -9167,6 +9592,7 @@
         i = ni
 !$omp parallel do default(shared)   &
 !$omp private(j,k,ubar)
+        !$acc parallel loop gang vector collapse(2) default(present)
         DO k=2,nk
         do j=1,nj
           ubar = c2(1,1,k)*rru(i,j,k)+c1(1,1,k)*rru(i,j,k-1)
@@ -9174,18 +9600,18 @@
           dum(ni+1,j,k) = 0.0
         enddo
         ENDDO
+        !$acc end parallel
       ENDIF
     endif
 
-
   endif  wenocheckwaxi
-
 
     !-------------------------------------
 
       IF(ebc.eq.2 .and. ibe.eq.1)THEN
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+      !$acc parallel loop gang vector collapse(2) default(present)
       DO k=2,nk
       do j=1,nj
         i=ni+1
@@ -9196,11 +9622,12 @@
         endif
       enddo
       ENDDO
+      !$acc end parallel
       ENDIF
-
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=2,nk
       do j=1,nj
       !dir$ vector always
@@ -9209,11 +9636,12 @@
       enddo
       enddo
       ENDDO
-
+      !$acc end parallel
 
       IF(ebc.eq.2 .and. ibe.eq.1)THEN
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar)
+        !$acc parallel loop gang vector collapse(2) default(present)
         DO k=2,nk
         do j=1,nj
           i=ni+1
@@ -9226,7 +9654,8 @@
           endif
         enddo
         ENDDO
-      ENDIF
+        !$acc end parallel
+      ENDIF      !$acc parallel loop gang vector collapse(2) default(present)
 
 !----------------------------------------------------------------
  
@@ -9266,23 +9695,24 @@
       real :: tem
 
 !------------------------------------------------------------
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
     do j=1,nj
     do i=1,ni
       s(i,j)=sfc(i,j)
     enddo
     enddo
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$acc end parallel
+
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
     do j=0,nj+1
     do i=0,ni+1
       dum1(i,j)=0.0
       dum2(i,j)=0.0
     enddo
     enddo
+!$acc end parallel
 
     rkloop:  &
     DO nrk=1,3
@@ -9296,89 +9726,89 @@
                            south,newsouth,north,newnorth,reqs)
 #else
       if(wbc.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,nj
         do i=1,ngxy
           s(1-i,j)=s(ni+1-i,j)
         enddo
         enddo
+!$acc end parallel
       endif
       if(ebc.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,nj
         do i=1,ngxy
           s(ni+i,j)=s(i,j)
         enddo
         enddo
+!$acc end parallel
       endif
       if(sbc.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,ngxy
         do i=1,ni
           s(i,1-j)=s(i,nj+1-j)
         enddo
         enddo
+!$acc end parallel
       endif
       if(nbc.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,ngxy
         do i=1,ni
           s(i,nj+j)=s(i,j)
         enddo
         enddo
+!$acc end parallel
       endif
 #endif
 
       if(ibw.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,nj
         do i=1,ngxy
           s(1-i,j)=s(1,j)
         enddo
         enddo
+!$acc end parallel
       endif
 
       if(ibe.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,nj
         do i=1,ngxy
           s(ni+i,j)=s(ni,j)
         enddo
         enddo
+!$acc end parallel
       endif
 
       if(ibs.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,ngxy
         do i=1,ni
           s(i,1-j)=s(i,1)
         enddo
         enddo
+!$acc end parallel
       endif
 
       if(ibn.eq.1)then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
         do j=1,ngxy
         do i=1,ni
           s(i,nj+j)=s(i,nj)
         enddo
         enddo
+!$acc end parallel
       endif
 
 !-------------------------
@@ -9393,9 +9823,8 @@
     if(abs(umove).gt.0.01)then
 
     if( hadvordrs.le.4 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -9406,10 +9835,10 @@
         endif
       enddo
       enddo
+!$acc end parallel
     elseif( hadvordrs.eq.5 .or. hadvordrs.eq.6 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -9420,10 +9849,10 @@
         endif
       enddo
       enddo
+!$acc end parallel
     elseif( hadvordrs.eq.7 .or. hadvordrs.eq.8 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -9434,10 +9863,10 @@
         endif
       enddo
       enddo
+!$acc end parallel
     elseif( hadvordrs.eq.9 .or. hadvordrs.eq.10 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -9448,6 +9877,7 @@
         endif
       enddo
       enddo
+!$acc end parallel
     endif
 
     endif
@@ -9464,9 +9894,8 @@
     if(abs(vmove).gt.0.01)then
 
     if( hadvordrs.le.4 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -9477,10 +9906,10 @@
         endif
       enddo
       enddo
+!$acc end parallel
     elseif( hadvordrs.eq.5 .or. hadvordrs.eq.6 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -9491,10 +9920,10 @@
         endif
       enddo
       enddo
+!$acc end parallel
     elseif( hadvordrs.eq.7 .or. hadvordrs.eq.8 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -9505,10 +9934,10 @@
         endif
       enddo
       enddo
+!$acc end parallel
     elseif( hadvordrs.eq.9 .or. hadvordrs.eq.10 )then
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -9519,6 +9948,7 @@
         endif
       enddo
       enddo
+!$acc end parallel
     endif
 
     endif
@@ -9526,9 +9956,8 @@
 !-------------------------
 
       tem=dt/(4-nrk)
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       !dir$ vector always
       do i=1,ni
@@ -9537,19 +9966,19 @@
                          +vmove*(dum2(i,j+1)-dum2(i,j))*rdy*vh(j) ) )
       enddo
       enddo
+!$acc end parallel
 
 !-------------------------
 
     ENDDO  rkloop
-!$acc parallel loop gang vector collapse(2) default(present) private(i,j)
-!$omp parallel do default(shared)  &
-!$omp private(i,j)
+!$omp parallel do default(shared) private(i,j)
+!$acc parallel loop gang vector collapse(2) default(present)
     do j=1,nj
     do i=1,ni
       sfc(i,j)=s(i,j)
     enddo
     enddo
-
+!$acc end parallel
 
 !----------------------------------------------------------------
 
@@ -9581,31 +10010,31 @@
     integer :: i,j,k
     integer :: k1,k2,k3
     real :: div
-    !$acc declare present(a,wprof,c1,c2,mh,rr0,rf0) &
-    !$acc present(dumz,subs)
+    !$acc declare present(a,wprof,c1,c2,mh,rr0,rf0,dumz,subs)
 
     k=2
     if(wprof(k).le.0.0) then 
-      !$acc parallel loop gang vector collapse(2) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,jy
         !dir$ vector always
         do i=1,ix
           dumz(i,j,k) = rf0(1,1,k)*wprof(k)*upstrpd(a(i,j,k+1),a(i,j,k  ),a(i,j,k-1),weps)
         enddo
       enddo
+      !$acc end parallel
     else
-      !$acc parallel loop gang vector collapse(2) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,jy
         !dir$ vector always
         do i=1,ix
           dumz(i,j,k) = rf0(1,1,k)*wprof(k)*(c1(i,j,k)*a(i,j,k-1)+c2(i,j,k)*a(i,j,k))
         enddo
       enddo
+      !$acc end parallel
     endif
 
     !$omp parallel do default(shared)private(i,j,k)
-    !$acc parallel loop gang vector collapse(3) private(i,j,k,k1,k2,k3)
-    !-----
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,(nk-1)
         do j=1,jy
           !dir$ vector always
@@ -9624,9 +10053,9 @@
         enddo
     ENDDO
     !$acc end parallel
-    !-----
+
     !$omp parallel do default(shared)private(i,j)
-    !$acc parallel loop gang vector collapse(2) private(i,j)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,jy
       !dir$ vector always
       do i=1,ix
@@ -9635,9 +10064,10 @@
         dumz(i,j,nk+1) = 0.0
       enddo
     ENDDO
-    !-----
+    !$acc end parallel
+
     !$omp parallel do default(shared)private(i,j,k,div)
-    !$acc parallel loop gang vector collapse(3) private(i,j,k,div)
+    !$acc parallel loop gang vector collapse(3) default(present)
     do k=1,nk
       DO j=1,jy
         !dir$ vector always
@@ -9647,8 +10077,8 @@
                           +a(i,j,k)*div )*rr0(1,1,k)
         enddo
       enddo
-      !-----
     ENDDO
+    !$acc end parallel
 
     end subroutine wsub
 
@@ -9671,59 +10101,77 @@
 
     n = max( hadvordrs , hadvordrv )
 
+    !$acc parallel default(present)
+    !$acc loop gang
     do j=1,nj
       if( n.le.2 )then
+        !$acc loop vector
         do i=1,ni+1
           gz(i,j) = 0.5*(zs(i-1,j)+zs(i,j))
         enddo
       elseif( n.eq.3 .or. n.eq.4 )then
+        !$acc loop vector
         do i=1,ni+1
           gz(i,j) = flx4(zs(i-2,j),zs(i-1,j),zs(i  ,j),zs(i+1,j))
         enddo
       elseif( n.eq.5 .or. n.eq.6 )then
+        !$acc loop vector
         do i=1,ni+1
           gz(i,j) = flx6(zs(i-3,j),zs(i-2,j),zs(i-1,j),zs(i  ,j),zs(i+1,j),zs(i+2,j))
         enddo
       elseif( n.eq.7 .or. n.eq.8 )then
+        !$acc loop vector
         do i=1,ni+1
           gz(i,j) = flx8(zs(i-4,j),zs(i-3,j),zs(i-2,j),zs(i-1,j),zs(i  ,j),zs(i+1,j),zs(i+2,j),zs(i+3,j))
         enddo
       elseif( n.ge.9 )then
+        !$acc loop vector
         do i=1,ni+1
           gz(i,j) = flx10(zs(i-5,j),zs(i-4,j),zs(i-3,j),zs(i-2,j),zs(i-1,j),zs(i  ,j),zs(i+1,j),zs(i+2,j),zs(i+3,j),zs(i+4,j))
         enddo
       endif
+      !$acc loop vector
       do i=1,ni
         dzdx(i,j) = (gz(i+1,j)-gz(i,j))*rdx*uh(i)
       enddo
     enddo
+    !$acc end parallel
 
+    !$acc parallel default(present)
+    !$acc loop gang
     do i=1,ni
       if( n.le.2 )then
+        !$acc loop vector
         do j=1,nj+1
           gz(i,j) = 0.5*(zs(i,j-1)+zs(i,j))
         enddo
       elseif( n.eq.3 .or. n.eq.4 )then
+        !$acc loop vector
         do j=1,nj+1
           gz(i,j) = flx4(zs(i,j-2),zs(i,j-1),zs(i,j  ),zs(i,j+1))
         enddo
       elseif( n.eq.5 .or. n.eq.6 )then
+        !$acc loop vector
         do j=1,nj+1
           gz(i,j) = flx6(zs(i,j-3),zs(i,j-2),zs(i,j-1),zs(i,j  ),zs(i,j+1),zs(i,j+2))
         enddo
       elseif( n.eq.7 .or. n.eq.8 )then
+        !$acc loop vector
         do j=1,nj+1
           gz(i,j) = flx8(zs(i,j-4),zs(i,j-3),zs(i,j-2),zs(i,j-1),zs(i,j  ),zs(i,j+1),zs(i,j+2),zs(i,j+3))
         enddo
       elseif( n.ge.9 )then
+        !$acc loop vector
         do j=1,nj+1
           gz(i,j) = flx10(zs(i,j-5),zs(i,j-4),zs(i,j-3),zs(i,j-2),zs(i,j-1),zs(i,j  ),zs(i,j+1),zs(i,j+2),zs(i,j+3),zs(i,j+4))
         enddo
       endif
+      !$acc loop vector
       do j=1,nj
         dzdy(i,j) = (gz(i,j+1)-gz(i,j))*rdy*vh(j)
       enddo
     enddo
+    !$acc end parallel
 
     end subroutine zsgrad
 

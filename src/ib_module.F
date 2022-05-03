@@ -7,6 +7,7 @@
     integer :: ibib,ieib,jbib,jeib,kbib,keib
     integer :: kmaxib
 
+    !$acc declare create (ibib,ieib,jbib,jeib,kbib,keib,kmaxib)
 
   CONTAINS
 
@@ -234,6 +235,7 @@
 
 #ifdef MPI
       call MPI_ALLREDUCE(mpi_in_place,kmaxib,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
+      !$acc update device (kmaxib)
 #endif
 
       if(dowr) write(outfile,*)

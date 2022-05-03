@@ -2406,7 +2406,7 @@
 
       if(ibw.eq.1.and.wbc.eq.2)then
        !$omp parallel do default(shared) private(j,k,foo,avgw,cbcw)
-       !$acc parallel loop gang vector private(j,k,foo,avgw,cbcw)
+       !$acc parallel loop gang vector default(present) 
         do j=1,nj
           avgw=0.
           do k=1,nk
@@ -2425,7 +2425,7 @@
 
       if(ibe.eq.1.and.ebc.eq.2)then
         !$omp parallel do default(shared) private(j,k,foo,avge,cbce)
-        !$acc parallel loop gang vector private(j,k,foo,avge,cbce)
+        !$acc parallel loop gang vector default(present) 
         do j=1,nj
           avge=0.
           do k=1,nk
@@ -2470,7 +2470,7 @@
 
       if(ibs.eq.1.and.sbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgs,foo,cbcs)
-        !$acc parallel loop gang vector private(i,k,avgs,foo,cbcs)
+        !$acc parallel loop gang vector default(present) 
         do i=1,ni
           avgs=0.
           do k=1,nk
@@ -2489,7 +2489,7 @@
 
       if(ibn.eq.1.and.nbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgn,foo,cbcn)
-        !$acc parallel loop gang vector private(i,k,avgn,foo,cbcn)
+        !$acc parallel loop gang vector default(present) 
         do i=1,ni
           avgn=0.
           do k=1,nk
@@ -2535,8 +2535,9 @@
       !$acc declare present(rvh,rmh,rho0,u3d)
 
       !$acc data create(temout,temin)
+
       !$omp parallel do default(shared) private(k)
-      !$acc parallel loop gang vector private(k)
+      !$acc parallel loop gang vector default(present) 
       do k=1,nk
         temout(k) = 0.0d0
         temin(k)  = 0.0d0
@@ -2545,11 +2546,12 @@
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
         !$omp parallel do default(shared) private(j,k,temp1,temp2)
-        !$acc parallel loop gang vector private(j,k,temp1,temp2)
+        !$acc parallel default(present) reduction(-:temp1) reduction(+:temp2)
+        !$acc loop gang
         do k=1,nk
           temp1 = temout(k)
           temp2 = temin(k)
-          !$acc loop reduction(+:temp1,temp2)
+          !$acc loop vector reduction(-:temp1) reduction(+:temp2)
           do j=1,nj
             temp1 = temp1 - min(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
             temp2 = temp2 + max(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
@@ -2557,6 +2559,7 @@
           temout(k) = temp1
           temin(k)  = temp2
         enddo
+        !$acc end parallel
       endif
 
       if(ebc.eq.2.and.ibe.eq.1)then
@@ -2570,11 +2573,12 @@
         !enddo
 
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector private(j,k,temp1,temp2)
+        !$acc parallel default(present) reduction(+:temp1) reduction(-:temp2) 
+        !$acc loop gang
         do k=1,nk
           temp1 = temout(k)
           temp2 = temin(k)
-          !$acc loop reduction(+:temp1,temp2)
+          !$acc loop vector reduction(+:temp1) reduction(-:temp2)
           do j=1,nj
             temp1 = temp1 + max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
             temp2 = temp2 - min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
@@ -2582,17 +2586,18 @@
           temout(k) = temp1
           temin(k)  = temp2
         enddo
-
+        !$acc end parallel
       endif
 
       fluxout = 0.0d0
       fluxin  = 0.0d0
 
-      !$acc parallel loop reduction(+:fluxout,fluxin)
+      !$acc parallel loop gang vector default(present) reduction(+:fluxout,fluxin)
       do k=1,nk
         fluxout = fluxout + temout(k)
         fluxin  = fluxin  + temin(k)
       enddo
+      !$acc end parallel
 
 #ifdef MPI
       tem=0.0d0
@@ -2610,7 +2615,7 @@
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
         !$omp parallel do default(shared) private(j,k,u1)
-        !$acc parallel loop gang vector collapse(2) private(j,k,u1)
+        !$acc parallel loop gang vector collapse(2) default(present) 
         do k=1,nk
         do j=1,nj
           u1=rho0(1,j,k)*u3d(i,j,k)
@@ -2624,7 +2629,7 @@
       if(ebc.eq.2.and.ibe.eq.1)then
         i=ni+1
         !$omp parallel do default(shared) private(j,k,u1)
-        !$acc parallel loop gang vector collapse(2) private(j,k,u1)
+        !$acc parallel loop gang vector collapse(2) default(present)
         do k=1,nk
         do j=1,nj
           u1=rho0(ni,j,k)*u3d(i,j,k)
@@ -2634,6 +2639,7 @@
         enddo
         enddo
       endif
+
       !$acc end data
 
       if(timestats.ge.1) time_bc=time_bc+mytime()

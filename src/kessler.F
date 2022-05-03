@@ -562,20 +562,16 @@
 
     ENDIF
 
-    !$acc parallel
     IF(nrk.ge.nrkmax)THEN
       dum=dx*dy*dz
-      !$acc loop gang vector reduction(+:tcond)
+      !$acc parallel default(present)
+      !$acc loop gang vector reduction(+:tcond,tevac)
       do k=1,nk
         tcond=tcond+bud1(k)*dum
-      enddo
-
-      !$acc loop gang vector reduction(+:tevac)
-      do k=1,nk
         tevac=tevac+bud2(k)*dum
       enddo
+      !$acc end parallel
     ENDIF
-    !$acc end parallel
 
 !!!#ifdef MPI
 !!!      omax=0
@@ -1015,36 +1011,21 @@
       double precision :: budt
 
       !$acc data create(bud)
-#ifdef _B4B01R
-      !$acc update host(ruh,rvh,erain,t,rr,q3d,vr)
-#else
-      !$omp parallel do default(shared) private(i,j)
-      !$acc parallel default(present) private(i,j) reduction(+:budt,erain)
-      !$acc loop gang
-#endif
-      do j=1,nj
-        budt=0.0d0
-#ifndef _B4B01R
-        !$acc loop vector reduction(+:budt)
-#endif
-        do i=1,ni
-          budt=budt+dt*vr(i,j,1)*rr(i,j,1)*q3d(i,j,1)*(cpx*t(i,j,1)-lx1)*ruh(i)*rvh(j)
-        enddo
-        bud(j)=budt
-      enddo
 
-     
-#ifndef _B4B01R
-      !$acc loop vector reduction(+:erain)
-#endif
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel default(present) reduction(+:budt,erain)
+      !$acc loop gang reduction(+:erain)
       do j=1,nj
-        erain=erain+bud(j)*dx*dy
+         budt=0.0d0
+         !$acc loop vector reduction(+:budt)
+         do i=1,ni
+            budt=budt+dt*vr(i,j,1)*rr(i,j,1)*q3d(i,j,1)*(cpx*t(i,j,1)-lx1)*ruh(i)*rvh(j)
+         end do
+         bud(j)=budt
+         erain=erain+bud(j)*dx*dy
       enddo
-#ifdef _B4B01R
-      !$acc update device(erain)
-#else
       !$acc end parallel
-#endif
+      
       !$acc end data
 
 !-----------------------------------------------------------------------

@@ -749,14 +749,7 @@
       real :: x3d,y3d,z3d,z0,rznt,var
 
       logical, parameter :: debug = .false.
-!      !$acc update  &
-!      !$acc host(xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,zh,mh,rmh,zf,mf,znt,ust, &
-!      !$acc      c1,c2,zs,sigma,sigmaf,rds,gz,pi0,th0,thv0,qv0,qc0,qi0,rth0, &
-!      !$acc      dum1,dum2,dum3,dum4,zv,qt,prs,rho,dum7,dum8,u3d,v3d,w3d,buoy, &
-!      !$acc      vpg,pp3d,th3d,th,t,q3d,kmh,kmv,khh,khv,tke3d,pt3d,pdata, &
-!      !$acc      tdiag,qdiag)
-!      !!$acc      pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,nw1,nw2,ne1,ne2, &
-!      !!$acc      sw1,sw2,se1,se2,tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+
       if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
 !----------------------------------------------------------------------
@@ -1154,11 +1147,7 @@
 
       !print *,'parcel_interp: point #12'
     IF( prqsl.ge.1 )THEN
-#ifdef _B4B02F
-      !$acc update host(prs,t)
-#else
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
-#endif
+      !$acc parallel loop gang vector collapse(3) default(present) 
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1166,21 +1155,14 @@
       enddo
       enddo
       enddo
-#ifndef _B4B02F
-      !$acc update device(dum1)
-#endif
+
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
       call prepcorners_GPU(dum1,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-      !!$acc update host(dum1)
     ENDIF
     IF( prqsi.ge.1 )THEN
-#ifdef _B4B03F
-      !$acc update host(prs,t)
-#else
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
-#endif
+      !$acc parallel loop gang vector collapse(3) default(present) 
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1188,14 +1170,11 @@
       enddo
       enddo
       enddo
-#ifndef _B4B03F
-      !$acc update device(dum2)
-#endif
+
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
       call prepcorners_GPU(dum2,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-      !!$acc update host(dum2)
     ENDIF
     !  print *,'parcel_interp: point #13'
 
@@ -1207,8 +1186,7 @@
 !           Use log-layer equations for bbc=3 (see below)
 
     IF( przv.ge.1)THEN
-
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=0,nk+1
       do j=1,nj+1
       do i=1,ni+1
