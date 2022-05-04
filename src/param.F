@@ -572,7 +572,7 @@
       !$acc update device(dx,dy,dz,dtl,timax,run_time,tapfrq,rstfrq,statfrq,prclfrq, &
       !$acc               imoist,psolver,ptype,ebc,sbc,nbc,bbc,tbc,axisymm,imove, &
       !$acc               nparcels,kdiff2,kdiff6,fcor,kdiv,alph,umove,vmove, &
-      !$acc               viscosity,pr_num,sc_num,ptc_top,ptc_bot)
+      !$acc               viscosity,pr_num,sc_num,ptc_top,ptc_bot,mdiff)
 
 !-----------------------------------------------------------------------
 !  Set constants:
@@ -6742,7 +6742,8 @@
       !$acc update device (vd_vadv,vd_hadv,ud_hadv,ud_vadv,wd_hadv, &
       !$acc                wd_vadv,vd_hidiff,vd_hediff,ud_hidiff, &
       !$acc                ud_hediff,wd_hidiff,wd_hediff,vd_lsw, &
-      !$acc                ud_lsw)
+      !$acc                ud_lsw,ud_vidiff,vd_vidiff,wd_vidiff, &
+      !$acc                td_vidiff,qd_vidiff)
 
 !----------
 

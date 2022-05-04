@@ -308,7 +308,7 @@
       np3o = 1
       cflmax = 0.0
       ksmax = 0.0
-      !$acc update device(cflmax,ksmax)
+      !$acc update device(cflmax,ksmax,smeps,qsmall,tsmall)
       ndt = 0
       adt = 0.0
       acfl = 0.0

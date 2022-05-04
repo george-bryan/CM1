@@ -174,7 +174,9 @@
 !$acc                td_nudge,qd_nudge,td_rad,vd_vadv,vd_hadv, &
 !$acc                ud_hadv,ud_vadv,wd_hadv,wd_vadv,vd_hidiff, &
 !$acc                vd_hediff,ud_hidiff,ud_hediff,wd_hidiff, &
-!$acc                wd_hediff,vd_lsw,ud_lsw)
+!$acc                wd_hediff,vd_lsw,ud_lsw,mdiff,ud_vidiff, &
+!$acc                vd_vidiff,wd_vidiff,td_vidiff,qd_vidiff)
+
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -216,7 +218,7 @@
 !$acc                maxx,miny,maxy,cflmax,ksmax,zt,rzt,umove,     &
 !$acc                vmove,viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
 !$acc                cgs3,cgt1,cgt2,cgt3,hurr_rad,var2,ptc_top,    &
-!$acc                ptc_bot)
+!$acc                ptc_bot,smeps,qsmall,tsmall)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
