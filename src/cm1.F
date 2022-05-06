@@ -2584,6 +2584,7 @@
 
       IF( run_time .gt. 0.0 )THEN
         timax = mtime + run_time
+!$acc update device(timax)
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  Detected positive value for run_time. '
         if(dowr) write(outfile,*) '     Using the following values: '
