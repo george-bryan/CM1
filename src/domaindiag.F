@@ -1127,7 +1127,7 @@
         zimin =  1.0e30
         zimax = -1.0e30
         !$acc parallel default(present) reduction(min:zimin) reduction(max:zimax)
-        !$acc loop gang vector collapse(2)
+        !$acc loop gang vector collapse(2) reduction(min:zimin) reduction(max:zimax)
         do j=1,nj
         do i=1,ni
           zi = 0.0
