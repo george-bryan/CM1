@@ -233,10 +233,10 @@
       call bcast_real(dtl,device=.true.)
       call bcast_real(timax,device=.true.)
       call bcast_real(run_time,device=.true.)
-      call bcast_real(tapfrq,device=.true.)
-      call bcast_real(rstfrq,device=.true.)
-      call bcast_real(statfrq,device=.true.)
-      call bcast_real(prclfrq,device=.true.)
+      call bcast_real(tapfrq)
+      call bcast_real(rstfrq)
+      call bcast_real(statfrq)
+      call bcast_real(prclfrq)
 
       call bcast_int(cm1setup)
       call bcast_int(testcase)
@@ -255,7 +255,7 @@
       call bcast_int(idiff)
       call bcast_int(mdiff)
       call bcast_int(difforder)
-      call bcast_int(imoist,device=.true.)
+      call bcast_int(imoist)
       call bcast_int(ipbl)
       call bcast_int(sgsmodel)
       call bcast_int(tconfig)
@@ -264,7 +264,7 @@
       call bcast_int(doimpl)
       call bcast_int(irdamp)
       call bcast_int(hrdamp)
-      call bcast_int(psolver,device=.true.)
+      call bcast_int(psolver)
       call bcast_int(ptype,device=.true.)
       call bcast_int(ihail)
       call bcast_int(iautoc)
@@ -291,12 +291,12 @@
       call bcast_int(ibalance)
       call bcast_int(iorigin)
       call bcast_int(axisymm)
-      call bcast_int(imove,device=.true.)
+      call bcast_int(imove)
       call bcast_int(iptra)
       call bcast_int(npt)
       call bcast_int(pdtra)
       call bcast_int(iprcl)
-      call bcast_int(nparcels,device=.true.)
+      call bcast_int(nparcels)
       call bcast_real(kdiff2,device=.true.)
       call bcast_real(kdiff6,device=.true.)
       call bcast_real(fcor,device=.true.)
@@ -306,8 +306,8 @@
       call bcast_real(zd)
       call bcast_real(xhd)
       call bcast_real(alphobc)
-      call bcast_real(umove,device=.true.)
-      call bcast_real(vmove,device=.true.)
+      call bcast_real(umove)
+      call bcast_real(vmove)
       call bcast_real(v_t)
       call bcast_real(l_h)
       call bcast_real(lhref1)
@@ -591,7 +591,6 @@
           imove = 0
         endif
       endif
-      !$acc update device(umove,vmove,imove)
       irst = max( irst , 0 )
       irst = min( irst , 1 )
       if( cm1setup.eq.2 ) tconfig = 2
@@ -6220,7 +6219,7 @@
       if(dowr) write(outfile,*) '    pract    = ',pract
       if(dowr) write(outfile,*)
 
-      !$acc update device (nparcels,npvals,npvars,prx,pry,prz,pru, &
+      !$acc update device (npvals,npvars,prx,pry,prz,pru, &
       !$acc                prv,prw,prtime,prth,prt,prprs,prpt1, &
       !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm, &
       !$acc                prkh,prtke,prdbz,prb,prvpg,przv,prrho, &

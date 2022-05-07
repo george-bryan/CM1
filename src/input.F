@@ -161,10 +161,10 @@
               nutk,nvtk,nwtk
 
 !$acc declare create(nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
-!$acc                ptype,psolver,ngxy,ngz,nx,ny,nz, &
-!$acc                nparcels,npvals,npvars,ni,nj,nk,nip1,njp1, &
+!$acc                ptype,ngxy,ngz,nx,ny,nz, &
+!$acc                npvals,npvars,ni,nj,nk,nip1,njp1, &
 !$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke, &
-!$acc                numq,imoist,imove,nqv,bbc,tbc,prx,pry,prz, &
+!$acc                numq,nqv,bbc,tbc,prx,pry,prz, &
 !$acc                pru,prv,prw,prth,prt,prprs,prtime,prpt1, &
 !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh, &
 !$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
@@ -207,11 +207,11 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
-!$acc declare create(dx,dy,dz,dtl,timax,run_time,tapfrq,rstfrq,    &
-!$acc                statfrq,prclfrq,diagfrq,kdiff2,kdiff6,fcor,   &
+!$acc declare create(dx,dy,dz,dtl,timax,run_time, &
+!$acc                kdiff2,kdiff6,fcor,   &
 !$acc                alph,kdiv,wbc,ebc,sbc,nbc,rdx,rdy,rdz,minx,   &
-!$acc                maxx,miny,maxy,zt,rzt,umove,     &
-!$acc                vmove,viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
+!$acc                maxx,miny,maxy,zt,rzt,    &
+!$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
 !$acc                cgs3,cgt1,cgt2,cgt3)
 !-----------------------------------------------------------------------
 
