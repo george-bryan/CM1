@@ -308,7 +308,6 @@
       np3o = 1
       cflmax = 0.0
       ksmax = 0.0
-      !$acc update device(cflmax,ksmax)
       ndt = 0
       adt = 0.0
       acfl = 0.0
@@ -580,7 +579,7 @@
       nkp1 = nk+1
       nkm1 = nk-1
       !$acc update device(nip1,njp1,nkp1,nkm1,ni,nj,nk,nparcels, &
-      !$acc               npvals,terrain_flag,numq,bbc,tbc, &
+      !$acc               npvals,numq,tbc, &
       !$acc               pr_num,sc_num,prvpx,prvpy,prvpz,prrp, &
       !$acc               prms,prtp,prx,pry,prsig,prz,pract, &
       !$acc               nodex,nodey)
@@ -2660,7 +2659,6 @@
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
 #ifdef MPI
           call mpi_wait(reqc,mpi_status_ignore,ierr)
-          !$acc update device(cflmax)
           if(myid.eq.0) print *,'cm1: cflmax: ',cflmax
           if(cflmax.ge.1.50) stopit=.true.
           if(timestats.ge.1) time_cflq=time_cflq+mytime()
@@ -2962,7 +2960,6 @@
         donudge = .false.
 
         if( adapt_dt.eq.1 .and. myid.eq.0 ) then 
-           !!$acc update host(cflmax,ksmax)
            write(6,122) cflmax,ksmax,dt,nsound
         endif
 122     format(1x,'cflmax,ksmax,dt,nsound:',2x,f6.4,2x,f6.4,2x,f9.4,2x,i3)

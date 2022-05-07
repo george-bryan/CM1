@@ -3306,7 +3306,6 @@
       cflmax = fmax
       !print *,'calccflquick: afterloop: ',cflmax
 #ifdef MPI
-!!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
 !     call mpi_wait(reqc,mpi_status_ignore,ierr)
 ! interesting cflmax is never used.
@@ -3436,7 +3435,6 @@
 #ifdef MPI
       call MPI_IALLREDUCE(MPI_IN_PLACE,ksmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqk,ierr)
 #endif
-      !$acc update device(ksmax)
 
       if(ksmax.ge.0.50) then 
          stopit=.true.
