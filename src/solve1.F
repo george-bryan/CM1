@@ -753,6 +753,7 @@
           ! (Bryan et al, 2017, BLM, eqn 10)
           ! using base-state wind profiles:
           !---------------------------------------------------------------!
+          !JMD FIXME
           !$omp parallel do default(shared) private(i,j,k,tem)
           !$acc parallel loop gang vector default(present) private(i,j,k,tem)
           do k=1,nk
@@ -896,6 +897,7 @@
 
         IF(iice.eq.1)THEN
 
+        !JMD missing OpenACC
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
           do k=1,nk
@@ -907,6 +909,7 @@
           enddo
 
           do n=nqs1+1,nqs2
+        !JMD missing OpenACC
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
             do k=1,nk
@@ -920,6 +923,7 @@
 
         ELSE
 
+        !JMD missing OpenACC
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
           do k=1,nk
@@ -932,6 +936,7 @@
 
         ENDIF
 
+        !JMD missing OpenACC
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
         DO k=1,nk

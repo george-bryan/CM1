@@ -579,7 +579,7 @@
       nkp1 = nk+1
       nkm1 = nk-1
       !$acc update device(nip1,njp1,nkp1,nkm1,ni,nj,nk, &
-      !$acc               npvals,numq,tbc, &
+      !$acc               npvals,numq, &
       !$acc               pr_num,sc_num,prvpx,prvpy,prvpz,prrp, &
       !$acc               prms,prtp,prx,pry,prsig,prz,pract, &
       !$acc               nodex,nodey)

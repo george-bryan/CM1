@@ -231,8 +231,8 @@
       call bcast_real(dy,device=.true.)
       call bcast_real(dz,device=.true.)
       call bcast_real(dtl,device=.true.)
-      call bcast_real(timax,device=.true.)
-      call bcast_real(run_time,device=.true.)
+      call bcast_real(timax)
+      call bcast_real(run_time)
       call bcast_real(tapfrq)
       call bcast_real(rstfrq)
       call bcast_real(statfrq)
@@ -274,12 +274,12 @@
       call bcast_int(idiss)
       call bcast_int(efall)
       call bcast_int(rterm)
-      call bcast_int(wbc,device=.true.)
-      call bcast_int(ebc,device=.true.)
-      call bcast_int(sbc,device=.true.)
-      call bcast_int(nbc,device=.true.)
-      call bcast_int(bbc,device=.true.)
-      call bcast_int(tbc,device=.true.)
+      call bcast_int(wbc)
+      call bcast_int(ebc)
+      call bcast_int(sbc)
+      call bcast_int(nbc)
+      call bcast_int(bbc)
+      call bcast_int(tbc)
       call bcast_int(irbc)
       call bcast_int(roflux)
       call bcast_int(nudgeobc)
@@ -296,7 +296,7 @@
       call bcast_int(npt)
       call bcast_int(pdtra)
       call bcast_int(iprcl)
-      call bcast_int(nparcels)
+      call bcast_int(nparcels,device=.true.)
       call bcast_real(kdiff2,device=.true.)
       call bcast_real(kdiff6,device=.true.)
       call bcast_real(fcor,device=.true.)
@@ -306,8 +306,8 @@
       call bcast_real(zd)
       call bcast_real(xhd)
       call bcast_real(alphobc)
-      call bcast_real(umove)
-      call bcast_real(vmove)
+      call bcast_real(umove,device=.true.)
+      call bcast_real(vmove,device=.true.)
       call bcast_real(v_t)
       call bcast_real(l_h)
       call bcast_real(lhref1)
@@ -591,6 +591,7 @@
           imove = 0
         endif
       endif
+      !$acc update device(umove,vmove)
       irst = max( irst , 0 )
       irst = min( irst , 1 )
       if( cm1setup.eq.2 ) tconfig = 2
@@ -721,7 +722,6 @@
         bbc = 3
         ENDIF
       ENDIF
-      !$acc update device(bbc)
       !-----
       IF( irst.eq.1 .and. iinit.ne.0 )THEN
         if(myid.eq.0)then
@@ -1814,6 +1814,7 @@
       ENDIF
       !-----
       IF( icor.eq.0 ) fcor = 0.0
+      !$acc update device(fcor)
       !-----
       IF( (axisymm.eq.1) .and. (wbc.ne.3) )THEN
         if(myid.eq.0)then
