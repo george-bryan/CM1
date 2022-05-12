@@ -6175,6 +6175,7 @@
         nparcels = 1
 
       endif
+      !$acc update device(nparcels)
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  nparcels = ',nparcels
       if(dowr) write(outfile,*) '  npvals   = ',npvals
