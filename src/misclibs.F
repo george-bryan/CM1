@@ -3482,8 +3482,9 @@
 !JMD-FIXME
 !!$acc update host(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
 
-!$acc data copyout (ksh,ksv,imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv) &
-!$acc      copyin (khh,vh,uh,mf)
+!!$acc data copyout (ksh,ksv,imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv) &
+!!$acc      copyin (khh,vh,uh,mf)
+!$acc data create (ksh,ksv,imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv,mmax,nmax)
 
       dtdx=dt*rdx*rdx
       dtdy=dt*rdy*rdy
@@ -3523,20 +3524,29 @@
             do i=1,ni
                tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
                if( tem.eq.ksh(k) )then
+                 !$acc atomic write
                  imaxth(k)=i
+                 !$acc atomic write
                  jmaxth(k)=j
+                 !$acc atomic write
                  kmaxth(k)=k
                end if
                tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
                if( tem.eq.ksh(k) )then
+                 !$acc atomic write
                  imaxth(k)=i
+                 !$acc atomic write
                  jmaxth(k)=j
+                 !$acc atomic write
                  kmaxth(k)=k
                end if
                tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
                if( tem.eq.ksv(k) )then
+                 !$acc atomic write
                  imaxtv(k)=i
+                 !$acc atomic write
                  jmaxtv(k)=j
+                 !$acc atomic write
                  kmaxtv(k)=k
                endif
             end do
@@ -3551,18 +3561,26 @@
       imaxv=1
       jmaxv=1
       kmaxv=1
-      !$acc parallel loop gang vector default(present)
+      !$acc parallel loop default(present)
       do k=2,nk
          if(ksh(k).gt.fhmax)then
+           !$acc atomic write
            fhmax=ksh(k)
+           !$acc atomic write
            imaxh=imaxth(k)
+           !$acc atomic write
            jmaxh=jmaxth(k)
+           !$acc atomic write
            kmaxh=kmaxth(k)
          endif
          if(ksv(k).gt.fvmax)then
+           !$acc atomic write
            fvmax=ksv(k)
+           !$acc atomic write
            imaxv=imaxtv(k)
+           !$acc atomic write
            jmaxv=jmaxtv(k)
+           !$acc atomic write
            kmaxv=kmaxtv(k)
          endif
       enddo
