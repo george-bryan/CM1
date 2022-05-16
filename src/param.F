@@ -227,6 +227,7 @@
       endif  myid0
 #endif
 
+      call bcast_log(terrain_flag,device=.true.)
       call bcast_real(dx,device=.true.)
       call bcast_real(dy,device=.true.)
       call bcast_real(dz,device=.true.)
@@ -255,7 +256,7 @@
       call bcast_int(idiff)
       call bcast_int(mdiff)
       call bcast_int(difforder)
-      call bcast_int(imoist)
+      call bcast_int(imoist,device=.true.)
       call bcast_int(ipbl)
       call bcast_int(sgsmodel)
       call bcast_int(tconfig)
@@ -278,7 +279,7 @@
       call bcast_int(ebc)
       call bcast_int(sbc)
       call bcast_int(nbc)
-      call bcast_int(bbc)
+      call bcast_int(bbc,device=.true.)
       call bcast_int(tbc)
       call bcast_int(irbc)
       call bcast_int(roflux)
@@ -289,8 +290,8 @@
       call bcast_int(iinit)
       call bcast_int(irandp)
       call bcast_int(ibalance)
-      call bcast_int(iorigin)
-      call bcast_int(axisymm)
+      call bcast_int(iorigin,device=.true.)
+      call bcast_int(axisymm,device=.true.)
       call bcast_int(imove)
       call bcast_int(iptra)
       call bcast_int(npt)
@@ -4273,7 +4274,7 @@
         if( qname(n).eq.'nci' ) nnci = n
         if( qname(n).eq.'ncc' ) nncc = n
       enddo
-      !$acc update device(nqr,nqi,nqs,nqg,nnci,nncc)
+      !$acc update device(nqc,nqr,nqi,nqs,nqg,nnci,nncc)
 
       if( ptype.eq.55 ) nqi = 4
 

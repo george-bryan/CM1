@@ -161,17 +161,17 @@
               nutk,nvtk,nwtk
 
 !$acc declare create(nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
-!$acc                ptype,ngxy,ngz,nx,ny,nz, &
+!$acc                ptype,ngxy,ngz,nx,ny,nz,axisymm, &
 !$acc                nparcels,npvals,npvars,ni,nj,nk,nip1,njp1, &
-!$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke, &
-!$acc                numq,nqv,prx,pry,prz, &
+!$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke,terrain_flag, &
+!$acc                numq,imoist,imove,nqv,bbc,nqc,prx,pry,prz, &
 !$acc                pru,prv,prw,prth,prt,prprs,prtime,prpt1, &
 !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh, &
 !$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
 !$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey, &
-!$acc                myi,myj)
+!$acc                myi,myj,hurr_rad)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
