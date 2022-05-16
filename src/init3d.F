@@ -2251,8 +2251,8 @@
 
 #endif
       if(terrain_flag)then
+        !$acc data copyin(gz,dzdx,dzdy,ua,va) copy(wa)
         call bcwsfc(gz,dzdx,dzdy,ua,va,wa)
-        !$acc data copy(wa)
         call bc2d_GPU(wa(ib,jb,1))
         !$acc end data
       endif
