@@ -53,7 +53,7 @@
                         ! end_writeout
       use input
       use constants
-      use bc_module
+      use bc_module, only:
       use comm_module
       use misclibs
       use getcape_module

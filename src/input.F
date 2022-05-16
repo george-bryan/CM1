@@ -161,10 +161,10 @@
               nutk,nvtk,nwtk
 
 !$acc declare create(nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
-!$acc                ptype,ngxy,ngz,nx,ny,nz, &
+!$acc                ptype,ngxy,ngz,nx,ny,nz,axisymm, &
 !$acc                nparcels,npvals,npvars,ni,nj,nk,nip1,njp1, &
-!$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke, &
-!$acc                numq,nqv,prx,pry,prz, &
+!$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke,terrain_flag,&
+!$acc                numq,imoist,imove,nqv,bbc,nqc,prx,pry,prz, &
 !$acc                pru,prv,prw,prth,prt,prprs,prtime,prpt1, &
 !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh, &
 !$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
@@ -212,7 +212,7 @@
 !$acc                alph,kdiv,rdx,rdy,rdz,minx,   &
 !$acc                maxx,miny,maxy,zt,rzt,umove,vmove,   &
 !$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
-!$acc                cgs3,cgt1,cgt2,cgt3)
+!$acc                cgs3,cgt1,cgt2,cgt3,hurr_rad)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

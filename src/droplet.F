@@ -30,7 +30,7 @@
                                uten,vten,wten,thten,qten,pdata_locind)
       use input
       use constants
-      use bc_module
+      use bc_module, only:
       use comm_module
       use misclibs
       use parcel_module
@@ -616,7 +616,7 @@
       !$acc routine seq
       use input
       use constants
-      use bc_module
+      use bc_module, only:
       use comm_module
       use misclibs
       use parcel_module
@@ -933,7 +933,7 @@
       !$acc routine seq
       use input
       use constants
-      use bc_module
+      use bc_module, only:
       use comm_module
       use misclibs
       use parcel_module

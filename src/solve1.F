@@ -149,7 +149,7 @@
         ! end_solve1
       use input
       use constants
-      use bc_module
+      use bc_module, only: radbcew, radbcns 
       use comm_module
       use diff2_module
       use turbtend_module
@@ -398,6 +398,7 @@
       else
         tqnudge = .false.
       endif
+      tqnudge = .false.
 
 
       timenudge = mtime+dt

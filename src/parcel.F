@@ -28,7 +28,7 @@
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata)
       use input
       use constants
-      use bc_module
+      use bc_module, only:
       use comm_module
 #ifdef MPI
       use mpi
@@ -692,7 +692,7 @@
       use input
       use constants
       use cm1libs , only : rslf,rsif
-      use bc_module
+      use bc_module, only: bcu2_GPU, bcv2_GPU, bcw2_GPU
       use comm_module
 #ifdef MPI
       use mpi

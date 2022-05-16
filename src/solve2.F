@@ -151,7 +151,8 @@
         ! end_solve2
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
+                           radbcew4, radbcns4, bcs2_gpu 
       use comm_module
       use adv_module
       use maxmin_module

@@ -1,6 +1,22 @@
   MODULE bc_module
 
   implicit none
+  private
+
+  !GPU enabled
+  public :: bc2d_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcs_GPU, bcp, bcwsfc
+  public :: radbcew, radbcns, radbcew4, radbcns4, extrapbcs
+  public :: restrict_openbc_sn, restrict_openbc_we
+  public :: ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn, bcs_tend_halo
+
+  !CPU only 
+  public :: bcs, bcs2
+
+  !MPI + GPU enabled
+  public :: bcs2_GPU, bct2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_gpu
+
+  !MPI CPU only 
+  public :: bcs2_2d
 
   CONTAINS
 
@@ -2404,6 +2420,7 @@
 
       umax=csmax
 
+      !JMD FIXME these are reductions 
       if(ibw.eq.1.and.wbc.eq.2)then
        !$omp parallel do default(shared) private(j,k,foo,avgw,cbcw)
        !$acc parallel loop gang vector private(j,k,foo,avgw,cbcw)
@@ -2423,6 +2440,7 @@
         enddo
       endif
 
+      !JMD FIXME these are reductions 
       if(ibe.eq.1.and.ebc.eq.2)then
         !$omp parallel do default(shared) private(j,k,foo,avge,cbce)
         !$acc parallel loop gang vector private(j,k,foo,avge,cbce)
@@ -2468,6 +2486,7 @@
 
       umax=csmax
 
+      !JMD FIXME these are reductions 
       if(ibs.eq.1.and.sbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgs,foo,cbcs)
         !$acc parallel loop gang vector private(i,k,avgs,foo,cbcs)
@@ -2487,6 +2506,7 @@
         enddo
       endif
 
+      !JMD FIXME these are reductions 
       if(ibn.eq.1.and.nbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgn,foo,cbcn)
         !$acc parallel loop gang vector private(i,k,avgn,foo,cbcn)

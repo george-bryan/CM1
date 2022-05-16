@@ -144,7 +144,8 @@
         ! end_solve3
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
+          bcs_tend_halo, bcs2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU
       use comm_module
       use maxmin_module
       use adv_routines, only : movesfc

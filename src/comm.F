@@ -13692,7 +13692,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 
       use input
-      use bc_module
+      use bc_module, only: bcs2
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -13709,7 +13709,6 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       end subroutine comm_all_s
 
-
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -13717,7 +13716,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 
       use input
-      use bc_module
+      use bc_module, only: bcs2_GPU
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -13747,10 +13746,11 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
+#if 0
       subroutine prepcorners(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,comm)
       use input
-      use bc_module
+      use bc_module, only:
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -13805,12 +13805,13 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+#endif
 
 
       subroutine prepcorners_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,comm)
       use input
-      use bc_module
+      use bc_module, only: bcs_GPU,bcs2_GPU
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -13874,6 +13875,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       end subroutine prepcorners_GPU
 
 
+#if 0
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -13881,7 +13883,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       subroutine prepcorners3(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                                 n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,comm)
       use input
-      use bc_module
+      use bc_module, only:
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -13927,6 +13929,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       ENDIF
       !$acc update device(s)
       end subroutine prepcorners3
+#endif
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -13935,7 +13938,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       subroutine prepcorners3_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                                 n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,comm)
       use input
-      use bc_module
+      use bc_module, only: bcs_GPU
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -13996,7 +13999,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       subroutine prepcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,comm)
       use input
-      use bc_module
+      use bc_module, only: bcw_GPU, bct2_GPU
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: t
@@ -14032,6 +14035,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
       end subroutine prepcornert_GPU
 
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -14040,7 +14044,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
       subroutine prepcorner2d(s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       use input
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcs2_2d_GPU
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je) :: s
@@ -14062,6 +14066,8 @@ if(Debug) print *,"calling comm_1s2d_end_GPU from prepcorner2d"
 #endif
        
       end subroutine prepcorner2d
+
+#endif
 
 
 #ifdef MPI
