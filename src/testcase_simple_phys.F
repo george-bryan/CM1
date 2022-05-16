@@ -113,7 +113,7 @@
         !  (radial advection and centrifugal accel terms)
 
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel default(present) private(i,j,k)
+        !$acc parallel default(present)
         !$acc loop gang vector
         DO k=1,nk
           ! ghb, 210826: account for moving domain

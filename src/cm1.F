@@ -308,7 +308,7 @@
       np3o = 1
       cflmax = 0.0
       ksmax = 0.0
-      !$acc update device(cflmax,ksmax,smeps,qsmall,tsmall)
+      !$acc update device(cflmax,ksmax)
       ndt = 0
       adt = 0.0
       acfl = 0.0
@@ -487,7 +487,7 @@
       close(unit=20)
 
       !OpenACC data movement directives
-      !$acc update device(nx,ny,nz,var2)
+      !$acc update device(nx,ny,nz)
 
       ! note:  read remainder of namelist sections in param.F !
 

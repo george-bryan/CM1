@@ -572,7 +572,7 @@
       !$acc update device(dx,dy,dz,dtl,timax,run_time,tapfrq,rstfrq,statfrq,prclfrq, &
       !$acc               imoist,psolver,ptype,ebc,sbc,nbc,bbc,tbc,axisymm,imove, &
       !$acc               nparcels,kdiff2,kdiff6,fcor,kdiv,alph,umove,vmove, &
-      !$acc               viscosity,pr_num,sc_num,ptc_top,ptc_bot,mdiff)
+      !$acc               viscosity,pr_num,sc_num)
 
 !-----------------------------------------------------------------------
 !  Set constants:
@@ -5206,8 +5206,6 @@
         endif
       ENDIF
 
-      !$acc update device (td_nudge,qd_nudge,td_rad)
-
       nudiag     = 0
       ud_hadv    = 0
       ud_vadv    = 0
@@ -6739,12 +6737,6 @@
 
       endif
 
-      !$acc update device (vd_vadv,vd_hadv,ud_hadv,ud_vadv,wd_hadv, &
-      !$acc                wd_vadv,vd_hidiff,vd_hediff,ud_hidiff, &
-      !$acc                ud_hediff,wd_hidiff,wd_hediff,vd_lsw, &
-      !$acc                ud_lsw,ud_vidiff,vd_vidiff,wd_vidiff, &
-      !$acc                td_vidiff,qd_vidiff)
-
 !----------
 
       if(dowr) write(outfile,*)
@@ -8131,8 +8123,6 @@
         print *,'    kbib,keib = ',kbib,keib
         print *
       endif
-
-      !$acc update device (ibib,ieib,jbib,jeib,kbib,keib)
 
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !                  END   TERRAIN !

@@ -2825,8 +2825,6 @@
       z1    =  1000.0    ! level of min w
       z2    =  4000.0    ! level where w = 0
 
-      !$acc update device (hurr_rad)
-
       do k=1,nk
 
         ! radial gradient of tangential velocity (defined on scalar levels)

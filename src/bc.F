@@ -854,7 +854,6 @@
 
 #ifndef MPI
       if(wbc.eq.1)then
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=jb,je
         do i=1,ngxy
           w(1-i,j,k)=w(ni+1-i,j,k)
@@ -864,7 +863,6 @@
 #else
       if(ibw.eq.1.and.wbc.eq.2)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present) 
         do j=0,nj+1
         do i=1-ngxy,0
           w(i,j,k)=w(1,j,k)
@@ -875,7 +873,6 @@
 #else
       elseif(wbc.eq.3.or.wbc.eq.4)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=0,nj+1
         do i=1,ngxy
           w(1-i,j,k)=w(i,j,k)
@@ -888,7 +885,6 @@
 
 #ifndef MPI
       if(ebc.eq.1)then
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=jb,je
         do i=1,ngxy
           w(ni+i,j,k)=w(i,j,k)
@@ -898,7 +894,6 @@
 #else
       if(ibe.eq.1.and.ebc.eq.2)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=0,nj+1
         do i=ni+1,ni+ngxy
           w(i,j,k)=w(ni,j,k)
@@ -909,7 +904,6 @@
 #else
       elseif(ebc.eq.3.or.ebc.eq.4)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=0,nj+1
         do i=1,ngxy
           w(ni+i,j,k)=w(ni+1-i,j,k)
@@ -922,7 +916,6 @@
 
 #ifndef MPI
       if(sbc.eq.1)then
-        !$acc parallel loop gang vector collapse(2) default(present) 
         do j=1,ngxy
         do i=ib,ie
           w(i,1-j,k)=w(i,nj+1-j,k)
@@ -932,7 +925,6 @@
 #else
       if(ibs.eq.1.and.sbc.eq.2)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=1-ngxy,0
         do i=0,ni+1
           w(i,j,k)=w(i,1,k)
@@ -943,7 +935,6 @@
 #else
       elseif(sbc.eq.3.or.sbc.eq.4)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=1,ngxy
         do i=0,ni+1
           w(i,1-j,k)=w(i,j,k)
@@ -956,7 +947,6 @@
 
 #ifndef MPI
       if(nbc.eq.1)then
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=1,ngxy
         do i=ib,ie
           w(i,nj+j,k)=w(i,j,k)
@@ -966,7 +956,6 @@
 #else
       if(ibn.eq.1.and.nbc.eq.2)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=nj+1,nj+ngxy
         do i=0,ni+1
           w(i,j,k)=w(i,nj,k)
@@ -977,7 +966,6 @@
 #else
       elseif(nbc.eq.3.or.nbc.eq.4)then
 #endif
-        !$acc parallel loop gang vector collapse(2) default(present)
         do j=1,ngxy
         do i=0,ni+1
           w(i,nj+j,k)=w(i,nj+1-j,k)
@@ -993,7 +981,6 @@
     IF(flag.eq.1)THEN
 
 !$omp parallel do default(shared) private(i,j)
-!$acc parallel loop gang vector collapse(2) default(present) 
       do j=0,nj+1
       do i=0,ni+1
         w(i,j, 1)=0.0
@@ -2390,11 +2377,9 @@
 
       if(ibw.eq.1.and.wbc.eq.2)then
        !$omp parallel do default(shared) private(j,k,foo,avgw,cbcw)
-       !$acc parallel default(present) reduction(+:avgw)
-       !$acc loop gang
+       !$acc parallel loop gang vector private(j,k,foo,avgw,cbcw)
         do j=1,nj
           avgw=0.
-          !$acc loop vector reduction(+:avgw)
           do k=1,nk
             foo=(u1(3,j,k)-u1(2,j,k))
             cbcw=dx*ruf(2)*(u1(2,j,k)-u2(2,j,k))   &
@@ -2403,21 +2388,17 @@
             avgw=avgw+cbcw
           enddo
           avgw=avgw/float(nk)
-          !$acc loop vector
           do k=1,nk
             radbcw(j,k)=avgw
           enddo
         enddo
-        !$acc end parallel
       endif
 
       if(ibe.eq.1.and.ebc.eq.2)then
         !$omp parallel do default(shared) private(j,k,foo,avge,cbce)
-        !$acc parallel default(present) reduction(+:avge)
-        !$acc loop gang
+        !$acc parallel loop gang vector private(j,k,foo,avge,cbce)
         do j=1,nj
           avge=0.
-          !$acc loop vector reduction(+:avgw)
           do k=1,nk
             foo=(u1(ni+1-1,j,k)-u1(ni+1-2,j,k))
             cbce=dx*ruf(ni+1-1)*(u1(ni+1-1,j,k)-u2(ni+1-1,j,k))   &
@@ -2426,12 +2407,10 @@
             avge=avge+cbce
           enddo
           avge=avge/float(nk)
-          !$acc loop vector
           do k=1,nk
             radbce(j,k)=avge
           enddo
         enddo
-        !$acc end parallel
       endif
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
@@ -2463,11 +2442,9 @@
 
       if(ibs.eq.1.and.sbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgs,foo,cbcs)
-        !$acc parallel default(present) reduction(+:avgs)
-        !$acc loop gang
+        !$acc parallel loop gang vector private(i,k,avgs,foo,cbcs)
         do i=1,ni
           avgs=0.
-          !$acc loop vector reduction(+:avgs) 
           do k=1,nk
             foo=(v1(i,3,k)-v1(i,2,k))
             cbcs=dy*rvf(2)*(v1(i,2,k)-v2(i,2,k))   &
@@ -2476,7 +2453,6 @@
             avgs=avgs+cbcs
           enddo
           avgs=avgs/float(nk)
-          !$acc loop vector
           do k=1,nk
             radbcs(i,k)=avgs
           enddo
@@ -2486,11 +2462,9 @@
 
       if(ibn.eq.1.and.nbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgn,foo,cbcn)
-        !$acc parallel default(present) reduction(+:avgn)
-        !$acc loop gang
+        !$acc parallel loop gang vector private(i,k,avgn,foo,cbcn)
         do i=1,ni
           avgn=0.
-          !$acc loop vector reduction(+:avgn) 
           do k=1,nk
             foo=(v1(i,nj+1-1,k)-v1(i,nj+1-2,k))
             cbcn=dy*rvf(nj+1-1)*(v1(i,nj+1-1,k)-v2(i,nj+1-1,k))   &
@@ -2499,7 +2473,6 @@
             avgn=avgn+cbcn
           enddo
           avgn=avgn/float(nk)
-          !$acc loop vector
           do k=1,nk
             radbcn(i,k)=avgn
           enddo
@@ -2547,12 +2520,11 @@
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
         !$omp parallel do default(shared) private(j,k,temp1,temp2)
-        !$acc parallel default(present) reduction(-:temp1) reduction(+:temp2)
-        !$acc loop gang
+        !$acc parallel loop gang vector private(j,k,temp1,temp2)
         do k=1,nk
           temp1 = temout(k)
           temp2 = temin(k)
-          !$acc loop vector reduction(-:temp1) reduction(+:temp2)
+          !$acc loop reduction(+:temp1,temp2) 
           do j=1,nj
             temp1 = temp1 - min(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
             temp2 = temp2 + max(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
@@ -2574,12 +2546,11 @@
         !enddo
 
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel default(present) reduction(+:temp1) reduction(-:temp2) 
-        !$acc loop gang
+        !$acc parallel loop gang vector private(j,k,temp1,temp2)
         do k=1,nk
           temp1 = temout(k)
           temp2 = temin(k)
-          !$acc loop vector reduction(+:temp1) reduction(-:temp2)
+          !$acc loop reduction(+:temp1,temp2)
           do j=1,nj
             temp1 = temp1 + max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
             temp2 = temp2 - min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
@@ -2670,7 +2641,6 @@
       double precision, dimension(nk) :: temout,temin
 
 !$omp parallel do default(shared) private(k)
-!$acc parallel loop gang vector default(present)
       do k=1,nk
         temout(k) = 0.0d0
         temin(k)  = 0.0d0
@@ -2679,35 +2649,28 @@
       if(sbc.eq.2.and.ibs.eq.1)then
         j=1
 !$omp parallel do default(shared) private(i,k)
-!$acc parallel loop gang vector default(present)
         do k=1,nk
-        !$acc loop seq
         do i=1,ni
           temout(k)=temout(k)-min(0.0,rho0(i,1,k)*v3d(i,j,k)*ruh(i)*rmh(i,1,k))
           temin(k) =temin(k) +max(0.0,rho0(i,1,k)*v3d(i,j,k)*ruh(i)*rmh(i,1,k))
         enddo
         enddo
-!$acc end parallel
       endif
 
       if(nbc.eq.2.and.ibn.eq.1)then
         j=nj+1
 !$omp parallel do default(shared) private(i,k)
-!$acc parallel loop gang vector default(present)
         do k=1,nk
-        !$acc loop seq
         do i=1,ni
           temout(k)=temout(k)+max(0.0,rho0(i,nj,k)*v3d(i,j,k)*ruh(i)*rmh(i,nj,k))
           temin(k) =temin(k) -min(0.0,rho0(i,nj,k)*v3d(i,j,k)*ruh(i)*rmh(i,nj,k))
         enddo
         enddo
-!$acc end parallel
       endif
 
       fluxout = 0.0d0
       fluxin  = 0.0d0
 
-!$acc parallel loop gang vector default(present) reduction(+:fluxout,fluxin)
       do k=1,nk
         fluxout = fluxout + temout(k)
         fluxin  = fluxin  + temin(k)
@@ -2729,7 +2692,6 @@
       if(sbc.eq.2.and.ibs.eq.1)then
         j=1
 !$omp parallel do default(shared) private(i,k,u1)
-!$acc parallel loop gang vector collapse(2) default(present)
         do k=1,nk
         do i=1,ni
           u1=rho0(i,1,k)*v3d(i,j,k)
@@ -2743,7 +2705,6 @@
       if(nbc.eq.2.and.ibn.eq.1)then
         j=nj+1
 !$omp parallel do default(shared) private(i,k,u1)
-!$acc parallel loop gang vector collapse(2) default(present)
         do k=1,nk
         do i=1,ni
           u1=rho0(i,nj,k)*v3d(i,j,k)

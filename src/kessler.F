@@ -564,7 +564,7 @@
 
     IF(nrk.ge.nrkmax)THEN
       dum=dx*dy*dz
-      !$acc parallel default(present)
+      !$acc parallel default(present) reduction(+:tcond,tevac)
       !$acc loop gang vector reduction(+:tcond,tevac)
       do k=1,nk
         tcond=tcond+bud1(k)*dum

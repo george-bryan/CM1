@@ -170,12 +170,8 @@
 !$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
-!$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey,myi,myj, &
-!$acc                td_nudge,qd_nudge,td_rad,vd_vadv,vd_hadv, &
-!$acc                ud_hadv,ud_vadv,wd_hadv,wd_vadv,vd_hidiff, &
-!$acc                vd_hediff,ud_hidiff,ud_hediff,wd_hidiff, &
-!$acc                wd_hediff,vd_lsw,ud_lsw,mdiff,ud_vidiff, &
-!$acc                vd_vidiff,wd_vidiff,td_vidiff,qd_vidiff)
+!$acc                rmp,cmp,vd_vadv,ibw,ibe,ibs,ibn,nodex,nodey, &
+!$acc                myi,myj)
 
 !-----------------------------------------------------------------------
 
@@ -217,8 +213,8 @@
 !$acc                alph,kdiv,wbc,ebc,sbc,nbc,rdx,rdy,rdz,minx,   &
 !$acc                maxx,miny,maxy,cflmax,ksmax,zt,rzt,umove,     &
 !$acc                vmove,viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
-!$acc                cgs3,cgt1,cgt2,cgt3,hurr_rad,var2,ptc_top,    &
-!$acc                ptc_bot,smeps,qsmall,tsmall)
+!$acc                cgs3,cgt1,cgt2,cgt3)
+
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
