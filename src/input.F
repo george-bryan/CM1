@@ -163,7 +163,7 @@
 !$acc declare create(nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
 !$acc                ptype,ngxy,ngz,nx,ny,nz,axisymm, &
 !$acc                nparcels,npvals,npvars,ni,nj,nk,nip1,njp1, &
-!$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke,terrain_flag,&
+!$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke,terrain_flag, &
 !$acc                numq,imoist,imove,nqv,bbc,nqc,prx,pry,prz, &
 !$acc                pru,prv,prw,prth,prt,prprs,prtime,prpt1, &
 !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh, &
