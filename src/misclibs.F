@@ -3175,6 +3175,8 @@
 !! May need some kind of sync-barrier here.
       enddo
 
+      !$acc update host (cfl,imaxt,jmaxt,kmaxt)
+
       fmax=cfl(1)
       imax=imaxt(1)
       jmax=jmaxt(1)
@@ -3777,6 +3779,8 @@
         PAIRS=RANGE/2
         RANGE=(RANGE+1)/2
       enddo 
+
+      !$acc update host (ksh,imaxth,jmaxth,kmaxth,ksv,imaxtv,jmaxtv,kmaxtv)
 
       fhmax=ksh(1)
       imaxh=imaxth(1)
