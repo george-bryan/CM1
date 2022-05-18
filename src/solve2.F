@@ -598,9 +598,6 @@
         enddo
         if(timestats.ge.1) time_misc14=time_misc14+mytime()
         !print *,'solve2: point #2'
-      !text1='sv2.5'
-      !text2='sv2.5'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 !--------------------------------------------------------------------
         IF(nrk.ge.2)THEN
 #ifdef MPI
@@ -616,9 +613,6 @@
             call bc2d_GPU(w3d(ib,jb,1))
           endif
         ENDIF
-      !text1='sv2.6'
-      !text2='sv2.6'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
         !print *,'solve2: point #27'
 !--------------------------------------------------------------------
 !  Get rru,rrv,rrw,divx
@@ -1032,9 +1026,6 @@
         ENDIF
 #endif
         !print *,'solve2: point #7'
-      !text1='sv2.7'
-      !text2='sv2.7'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 !--------------------------------------------------------------------
 !  advection:
           call advu(nrk   ,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
@@ -1046,9 +1037,6 @@
                       rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       dowbud ,wdiag,hadvordrv,vadvordrv,advwenov,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
 
-      !text1='sv2.8'
-      !text2='sv2.8'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 !--------------------------------------------------------------------
 !  Buoyancy
 
@@ -1251,9 +1239,6 @@
 
         get_time_avg = .false.
 
-      !text1='sv2.15'
-      !text2='sv2.15'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
         IF(psolver.eq.1)THEN
 
@@ -1346,9 +1331,6 @@
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
 
         ENDIF
-      !text1='sv2.16'
-      !text2='sv2.16'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
 !--------------------------------------------------------------------
 !  Update v for axisymmetric model simulations:
@@ -1453,9 +1435,6 @@
 !  For Bryan-Fritsch equation set, compute 3d divergence.
 !     Store in T11 array.
 
-      !text1='sv2.17'
-      !text2='sv2.17'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
     IF( imoist.eq.1 .and. eqtset.eq.2 )THEN
       if( get_time_avg )then
         ! cm1r19:  rru,rrv,rrw store small-step-avg velocities
@@ -1466,9 +1445,6 @@
                         rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
       endif
     ENDIF
-      !text1='sv2.18'
-      !text2='sv2.18'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
 !--------------------------------------------------------------------
 
@@ -1830,9 +1806,6 @@
 !  bcs and comms:
 
       !print *,'solve2: point #19'
-      !text1='sv2.19'
-      !text2='sv2.19'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
       call bcu_GPU(u3d)
 #ifdef MPI
@@ -1888,9 +1861,6 @@
         ENDIF
       ENDIF
       !print *,'solve2: point #20'
-      !text1='sv2.20'
-      !text2='sv2.20'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
 !--------------------------------------------------------------------
 !  TKE advection
