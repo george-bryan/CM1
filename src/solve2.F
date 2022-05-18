@@ -598,9 +598,9 @@
         enddo
         if(timestats.ge.1) time_misc14=time_misc14+mytime()
         !print *,'solve2: point #2'
-      text1='sv2.5'
-      text2='sv2.5'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.5'
+      !text2='sv2.5'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 !--------------------------------------------------------------------
         IF(nrk.ge.2)THEN
 #ifdef MPI
@@ -616,9 +616,9 @@
             call bc2d_GPU(w3d(ib,jb,1))
           endif
         ENDIF
-      text1='sv2.6'
-      text2='sv2.6'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.6'
+      !text2='sv2.6'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
         !print *,'solve2: point #27'
 !--------------------------------------------------------------------
 !  Get rru,rrv,rrw,divx
@@ -1032,9 +1032,9 @@
         ENDIF
 #endif
         !print *,'solve2: point #7'
-      text1='sv2.7'
-      text2='sv2.7'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.7'
+      !text2='sv2.7'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 !--------------------------------------------------------------------
 !  advection:
           call advu(nrk   ,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
@@ -1046,9 +1046,9 @@
                       rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho,dttmp,               &
                       dowbud ,wdiag,hadvordrv,vadvordrv,advwenov,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
 
-      text1='sv2.8'
-      text2='sv2.8'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.8'
+      !text2='sv2.8'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 !--------------------------------------------------------------------
 !  Buoyancy
 
@@ -1275,7 +1275,6 @@
 
         ELSEIF( psolver.eq.2 .or. psolver.eq.7 )THEN
           get_time_avg = .true.
-          print *,'solve2: before call to sounde'
           call   sounde(dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
                         pi0,rho0,rr0,rf0,rrf0,th0,rth0,thv0,zs,           &
@@ -1291,11 +1290,7 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-          print *,'solve2: after call to sounde'
         ELSEIF(psolver.eq.3)THEN
-
-          
-          print *,'solve2: before call to sound'
           get_time_avg = .true.
           call   sound( dt,xh,arh1,arh2,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,     &
                         rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,mf,zf,      &
@@ -1312,8 +1307,6 @@
                         t11,t22   ,nrk,dttmp,rtime,mtime,get_time_avg,    &
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-          print *,'solve2: after call to sound'
-
         ELSEIF(psolver.eq.4.or.psolver.eq.5)THEN
           ! anelastic/incompressible solver:
 
@@ -1895,9 +1888,9 @@
         ENDIF
       ENDIF
       !print *,'solve2: point #20'
-      text1='sv2.20'
-      text2='sv2.20'
-      call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
+      !text1='sv2.20'
+      !text2='sv2.20'
+      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
 !--------------------------------------------------------------------
 !  TKE advection
