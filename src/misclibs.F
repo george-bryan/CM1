@@ -3175,6 +3175,8 @@
 !! May need some kind of sync-barrier here.
       enddo
 
+      !$acc update host (cfl,imaxt,jmaxt,kmaxt)
+
       fmax=cfl(1)
       imax=imaxt(1)
       jmax=jmaxt(1)
@@ -3306,7 +3308,6 @@
       cflmax = fmax
       !print *,'calccflquick: afterloop: ',cflmax
 #ifdef MPI
-!!$acc update host(cflmax)
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
 !     call mpi_wait(reqc,mpi_status_ignore,ierr)
 ! interesting cflmax is never used.
@@ -3436,7 +3437,6 @@
 #ifdef MPI
       call MPI_IALLREDUCE(MPI_IN_PLACE,ksmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqk,ierr)
 #endif
-      !$acc update device(ksmax)
 
       if(ksmax.ge.0.50) then 
          stopit=.true.
@@ -3480,10 +3480,7 @@
       real maxksh,maxksv
 
 !JMD-FIXME
-!!$acc update host(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
-
-!$acc data copyout (ksh,ksv,imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv) &
-!$acc      copyin (khh,vh,uh,mf)
+!$acc data create (ksh,ksv,imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv,mmax,nmax)
 
       dtdx=dt*rdx*rdx
       dtdy=dt*rdy*rdy
@@ -3523,20 +3520,29 @@
             do i=1,ni
                tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
                if( tem.eq.ksh(k) )then
+                 !$acc atomic write
                  imaxth(k)=i
+                 !$acc atomic write
                  jmaxth(k)=j
+                 !$acc atomic write
                  kmaxth(k)=k
                end if
                tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
                if( tem.eq.ksh(k) )then
+                 !$acc atomic write
                  imaxth(k)=i
+                 !$acc atomic write
                  jmaxth(k)=j
+                 !$acc atomic write
                  kmaxth(k)=k
                end if
                tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
                if( tem.eq.ksv(k) )then
+                 !$acc atomic write
                  imaxtv(k)=i
+                 !$acc atomic write
                  jmaxtv(k)=j
+                 !$acc atomic write
                  kmaxtv(k)=k
                endif
             end do
@@ -3551,18 +3557,26 @@
       imaxv=1
       jmaxv=1
       kmaxv=1
-      !$acc parallel loop gang vector default(present)
+      !$acc parallel loop seq default(present)
       do k=2,nk
          if(ksh(k).gt.fhmax)then
+           !$acc atomic write
            fhmax=ksh(k)
+           !$acc atomic write
            imaxh=imaxth(k)
+           !$acc atomic write
            jmaxh=jmaxth(k)
+           !$acc atomic write
            kmaxh=kmaxth(k)
          endif
          if(ksv(k).gt.fvmax)then
+           !$acc atomic write
            fvmax=ksv(k)
+           !$acc atomic write
            imaxv=imaxtv(k)
+           !$acc atomic write
            jmaxv=jmaxtv(k)
+           !$acc atomic write
            kmaxv=kmaxtv(k)
          endif
       enddo
@@ -3629,6 +3643,212 @@
 !!$acc update device(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
       end subroutine calcksmax
 
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+
+      subroutine calcksmax_fold(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
+      use input
+      use constants
+#ifdef MPI
+      use mpi
+#endif
+      implicit none
+
+      integer nstat
+      real, dimension(stat_out) :: rstat
+      real :: dt
+      real, dimension(ib:ie) :: uh
+      real, dimension(jb:je) :: vh
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: mf
+      real, dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
+
+      integer i,j,k,index
+      integer imaxh,jmaxh,kmaxh
+      integer imaxv,jmaxv,kmaxv
+      integer imaxth(ni*nj),jmaxth(ni*nj),kmaxth(ni*nj)
+      integer imaxtv(ni*nj),jmaxtv(ni*nj),kmaxtv(ni*nj)
+      real dtdx,dtdy,dtdz,tem,ksh(ni*nj),ksv(ni*nj),fhmax,fvmax
+      integer RANGE, PAIRS
+      integer :: loc
+      real, dimension(2) :: mmax,nmax
+
+!$acc data create (ksh,ksv,imaxth,jmaxth,kmaxth,imaxtv,jmaxtv,kmaxtv,mmax,nmax)
+
+      dtdx=dt*rdx*rdx
+      dtdy=dt*rdy*rdy
+      dtdz=dt*rdz*rdz
+
+!$acc parallel loop gang vector collapse(2) default(present)
+      do j=1,nj
+      do i=1,ni
+          index=(j-1)*ni+i
+          ksh(index) = -99999.0
+          ksv(index) = -99999.0
+      enddo
+      enddo
+
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,tem)
+
+!$acc parallel default(present) 
+!$acc loop vector collapse(2) 
+      do j=1,nj
+      do i=1,ni
+!$acc loop seq private(index)
+         do k=2,nk
+            index=(j-1)*ni+i
+            tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
+            ksh(index)=max(tem,ksh(index))
+
+            tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
+            ksh(index)=max(tem,ksh(index))
+
+            tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
+            ksv(index)=max(tem,ksv(index))
+         end do
+      end do
+      enddo
+!$acc end parallel
+
+!$omp parallel do default(shared)  &
+!$omp private(i,j,k,tem)
+!$acc parallel loop gang vector collapse(2) default(present)
+      do i=1,ni
+         do j=1,nj
+!$acc loop seq private(index)
+            do k=2,nk
+               index=(j-1)*ni+i
+               tem = khh(i,j,k)*dtdx*uh(i)*uh(i)
+               if( tem.eq.ksh(index) )then
+                 imaxth(index)=i
+                 jmaxth(index)=j
+                 kmaxth(index)=k
+               end if
+               tem = khh(i,j,k)*dtdy*vh(j)*vh(j)
+               if( tem.eq.ksh(index) )then
+                 imaxth(index)=i
+                 jmaxth(index)=j
+                 kmaxth(index)=k
+               end if
+               tem = khv(i,j,k)*dtdz*mf(i,j,k)*mf(i,j,k)
+               if( tem.eq.ksv(index) )then
+                 imaxtv(index)=i
+                 jmaxtv(index)=j
+                 kmaxtv(index)=k
+               endif
+            end do
+         end do
+      end do
+
+      fhmax=-99999999.
+      fvmax=-99999999.
+      imaxh=1
+      jmaxh=1
+      kmaxh=1
+      imaxv=1
+      jmaxv=1
+      kmaxv=1
+
+!! Using a serial loop here so all the data is sync'd between consecutive kernel
+!calls.
+!! The RANGE = PAIRS or (PAIRS+1) as a way to manage odd numbers.
+      PAIRS=ni*nj/2           !! Round down.
+      RANGE=(ni*nj+1)/2       !! Round up.
+      do while ( RANGE > 1 )
+!! Now fold the 2-d array with half the threads each time.
+!$acc parallel loop gang vector private(i)
+        do i=1,PAIRS
+          if( ksh(i) .le. ksh(RANGE)) then
+             ksh(i) = ksh(RANGE+1)
+             imaxth(i) = imaxth(RANGE+1)
+             jmaxth(i) = jmaxth(RANGE+1)
+             kmaxth(i) = kmaxth(RANGE+1)
+          endif
+          if( ksv(i) .le. ksv(RANGE)) then
+             ksv(i) = ksv(RANGE+1)
+             imaxtv(i) = imaxtv(RANGE+1)
+             jmaxtv(i) = jmaxtv(RANGE+1)
+             kmaxtv(i) = kmaxtv(RANGE+1)
+          endif
+        enddo
+        PAIRS=RANGE/2
+        RANGE=(RANGE+1)/2
+      enddo 
+
+      !$acc update host (ksh,imaxth,jmaxth,kmaxth,ksv,imaxtv,jmaxtv,kmaxtv)
+
+      fhmax=ksh(1)
+      imaxh=imaxth(1)
+      jmaxh=jmaxth(1)
+      kmaxh=kmaxth(1)
+      fvmax=ksv(1)
+      imaxv=imaxtv(1)
+      jmaxv=jmaxtv(1)
+      kmaxv=kmaxtv(1)
+
+      if( cm1setup.eq.2 .and. horizturb.eq.0 )then
+        fhmax=0.0
+        imaxh=0
+        jmaxh=0
+        kmaxh=0
+      endif
+      if( cm1setup.eq.2 .and. ipbl.ne.2 )then
+        fvmax=0.0
+        imaxv=0
+        jmaxv=0
+        kmaxv=0
+      endif
+
+#ifdef MPI
+      mmax(1)=fhmax
+      mmax(2)=myid
+      call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
+                         MPI_COMM_WORLD,ierr)
+      loc=nint(nmax(2))
+      imaxh=imaxh+(myi1-1)
+      jmaxh=jmaxh+(myj1-1)
+      call MPI_BCAST(imaxh,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(jmaxh,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(kmaxh,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      fhmax=nmax(1)
+
+      mmax(1)=fvmax
+      mmax(2)=myid
+      call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
+                         MPI_COMM_WORLD,ierr)
+      loc=nint(nmax(2))
+      imaxv=imaxv+(myi1-1)
+      jmaxv=jmaxv+(myj1-1)
+      call MPI_BCAST(imaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(jmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      call MPI_BCAST(kmaxv,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
+      fvmax=nmax(1)
+      if(myid.eq.0)then
+#endif
+
+      write(6,100) 'KSHMAX',fhmax,imaxh,jmaxh,kmaxh
+
+      nstat = nstat + 1
+      rstat(nstat) = fhmax
+
+      write(6,100) 'KSVMAX',fvmax,imaxv,jmaxv,kmaxv
+
+      nstat = nstat + 1
+      rstat(nstat) = fvmax
+
+100   format(2x,'stat:: ',a6,':',1x,g13.6,i5,i5,i5)
+
+#ifdef MPI
+      endif
+#endif
+
+      if(timestats.ge.1) time_stat=time_stat+mytime()
+
+!$acc end data
+      end subroutine calcksmax_fold
 
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC

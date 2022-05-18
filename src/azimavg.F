@@ -2605,7 +2605,7 @@
 
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcs2_2d
 #ifdef MPI
       use comm_module
       use mpi
@@ -2745,7 +2745,6 @@
 
       use input
       use constants
-      use bc_module
 #ifdef MPI
       use comm_module
       use mpi

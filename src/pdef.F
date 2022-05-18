@@ -14,7 +14,7 @@
 
       subroutine pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,west,newwest,east,neweast,reqs_s)
       use input
-      use bc_module
+      use bc_module, only: bcs_GPU
       use comm_module
       implicit none
 
@@ -288,7 +288,7 @@
 
       subroutine pdefy1(vh,rho0,gz,rgz,rrv,advy,dum,mass,s0,s,dt,flag,south,newsouth,north,newnorth,reqs_s)
       use input
-      use bc_module
+      use bc_module, only: bcs_GPU
       use comm_module
       implicit none
 

@@ -474,7 +474,7 @@
       ENDIF
       if(stat_cfl.eq.1) call calccfl_fold(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,1)
 
-      if(stat_cfl.eq.1.and.(sgsmodel.ge.1.or.ipbl.eq.2.or.horizturb.eq.1)) call calcksmax(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
+      if(stat_cfl.eq.1.and.(sgsmodel.ge.1.or.ipbl.eq.2.or.horizturb.eq.1)) call calcksmax_fold(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
 
       if(stat_vort.eq.1) call vertvort(nstat,rstat,xh,xf,uf,vf,zh,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf,dum1,dum2,ua,va)
 

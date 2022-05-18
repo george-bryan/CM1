@@ -72,7 +72,7 @@
       ! end_sfc_and_turb
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcw_GPU, bcs_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_GPU
       use comm_module
       use misclibs , only : calcksquick
       use sfcphys_module
@@ -2327,7 +2327,7 @@
                          kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bcw_GPU, bct2_GPU
       use comm_module
       implicit none
 
@@ -2572,7 +2572,7 @@
                        kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcs2_2d_GPU
       use comm_module
       implicit none
 
@@ -2743,7 +2743,7 @@
                           kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcw_GPU, bct2_GPU, bcs2_2d_GPU
       use comm_module
       implicit none
 
@@ -2999,7 +2999,7 @@
                           kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bcw_GPU, bct2_GPU
       use comm_module
       implicit none
 
@@ -3161,7 +3161,7 @@
                           kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcw_GPU, bct2_GPU, bcs2_2d_GPU
       use comm_module
       implicit none
 
@@ -3232,6 +3232,7 @@
       !$acc end data
 
 #ifdef MPI
+      !JMD FIXME:  These subroutine operate on GPU resident data
       call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
       call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
@@ -5498,7 +5499,7 @@
       ENDDO  kloop2
       !$acc end parallel
 
-      !$acc parallel default(present)`
+      !$acc parallel default(present)
       ! diagnostic only:
       l2p(1) = zntbar
       !$acc loop gang vector

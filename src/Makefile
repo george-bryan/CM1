@@ -74,7 +74,7 @@ endif
 #  NVHPC compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},nvfortran)
-    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee
+    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee -Mnofma
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${DEBUG_L},true)
          OPTS    += -g -O0
@@ -92,9 +92,9 @@ ifeq (${FC},nvfortran)
     endif
     ifeq (${USE_OPENACC_L},true)
         ifeq (${DEBUG_L},true)
-            OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Mnofma
+            OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
         else
-            OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel -Mnofma
+            OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
         endif
         DM       += -D_OPENACC
     endif
@@ -104,7 +104,7 @@ endif
 #  PGI compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},pgf90)
-    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee
+    OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee -Mnofma
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${DEBUG_L},true)
          OPTS    += -g -O0
@@ -122,9 +122,9 @@ ifeq (${FC},pgf90)
     endif
     ifeq (${USE_OPENACC_L},true)
         ifeq (${DEBUG_L},true)
-            OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform -Mnofma
+            OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
         else
-            OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel -Mnofma
+            OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
         endif
         DM       += -D_OPENACC
     endif
@@ -138,7 +138,7 @@ endif
 #  Intel compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},ifort)
-    OPTS         += -g -O3 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback -no-fma
+    OPTS         += -g -O2 -XhOst -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback -no-fma
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -qopenmp

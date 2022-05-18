@@ -763,6 +763,7 @@
       vargrid(nvar) = '2'
       call getavg2d( u10  ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: u component of 10m wind speed (m/s)= ',savg2d
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -778,6 +779,7 @@
       vargrid(nvar) = '2'
       call getavg2d( v10  ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: v component of 10m wind speed (m/s)= ',savg2d
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -793,6 +795,7 @@
       vargrid(nvar) = '2'
       call getavg2d( s10  ,savg2d)
       call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: horiz wind speed at 10m (m/s)= ',savg2d
 
       !c-c-c-c-c-c-c-c-c-c
 

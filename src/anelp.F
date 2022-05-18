@@ -22,7 +22,8 @@
       use input
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
-      use bc_module
+      use bc_module, only: bcs_GPU, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
+          ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
       use poiss_module
       implicit none
 
@@ -67,10 +68,11 @@
 !---------------------------------------------------------------------
 
         if(irbc.eq.2)then
- 
+          !$acc update device(ua,va)
           if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,ua)
  
           if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,va)
+          !$acc update host(radbcw,radbcs)
  
         endif
 
@@ -101,7 +103,7 @@
 
 
         IF( (wbc.eq.2.and.ibw.eq.1) .or. (ebc.eq.2.and.ibe.eq.1) )THEN
-
+          !JMD FIXME: note that this operator assumes GPU resident memory 
           call restrict_openbc_we(rvh,rmh,rho0,u3d)
 
           rdt = 1.0/dttmp
@@ -143,6 +145,7 @@
 
         IF( (sbc.eq.2.and.ibs.eq.1) .or. (nbc.eq.2.and.ibn.eq.1) )THEN
 
+          !JMD FIXME: note that this operator assumes GPU resident memory 
           call restrict_openbc_sn(ruh,rmh,rho0,v3d)
 
           rdt = 1.0/dttmp

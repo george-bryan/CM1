@@ -101,9 +101,6 @@
 
       IF( testcase.eq.6 .or. testcase.eq.10 )THEN
 
-!#ifdef _OPENACC
-!        print *,'WARNING: testcase_simple_phys: testcase={6 or 10} not supported'
-!#endif
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
 
@@ -113,8 +110,7 @@
         !  (radial advection and centrifugal accel terms)
 
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel default(present)
-        !$acc loop gang vector
+        !$acc parallel loop gang vector default(present) private(i,j,k)
         DO k=1,nk
           ! ghb, 210826: account for moving domain
           ufrc(k) = +(uavg(k)+umove)*(uavg(k)+umove)*tem  &
@@ -122,7 +118,6 @@
           vfrc(k) = -(uavg(k)+umove)*dvdr(k)  &
                     -(uavg(k)+umove)*(v0(1,1,k)+vmove)*tem
         ENDDO
-        !$acc end parallel
         !stop 'testcase_simple_phys: testcase={6 or 10}'
       ENDIF
 

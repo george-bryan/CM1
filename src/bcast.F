@@ -1,7 +1,11 @@
 MODULE bcast_module
 
   implicit none
-  public :: bcast_int,bcast_real
+  public :: bcast_int,bcast_real,bcast_log
+
+interface bcast_log
+   module procedure bcast_log_scalar 
+end interface bcast_log
 
 interface bcast_int 
    module procedure bcast_int_scalar 
@@ -16,17 +20,38 @@ end interface bcast_real
   CONTAINS
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-      subroutine bcast_int_scalar(val)
+      subroutine bcast_log_scalar(val,device)
+
+#ifdef MPI
+      use mpi
+#endif
+      integer :: ierr
+      logical,intent(inout) :: val
+      logical, optional :: device
+#ifdef MPI
+      call MPI_BCAST(val,1,MPI_LOGICAL,0,MPI_COMM_WORLD,ierr)
+#endif
+      if(present(device) .and. device) then 
+        !$acc update device(val)
+      endif
+
+      end subroutine bcast_log_scalar
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      subroutine bcast_int_scalar(val,device)
 
 #ifdef MPI
       use mpi
 #endif
       integer :: ierr
       integer,intent(inout) :: val
+      logical, optional :: device
 #ifdef MPI
       call MPI_BCAST(val,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 #endif
-      !$acc update device(val)
+      if(present(device) .and. device) then 
+        !$acc update device(val)
+      endif
 
       end subroutine bcast_int_scalar
 
@@ -50,17 +75,20 @@ end interface bcast_real
       end subroutine bcast_int_vector
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-      subroutine bcast_real_scalar(val)
+      subroutine bcast_real_scalar(val,device)
 
 #ifdef MPI
       use mpi
 #endif
       integer :: ierr
       real,intent(inout) :: val
+      logical, intent(in), optional :: device
 #ifdef MPI
       call MPI_BCAST(val,1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
 #endif
-      !$acc update device(val)
+      if(present(device) .and. device) then 
+        !$acc update device(val)
+      endif
 
       end subroutine bcast_real_scalar
 

@@ -161,16 +161,16 @@
               nutk,nvtk,nwtk
 
 !$acc declare create(nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
-!$acc                ptype,psolver,ngxy,ngz,nx,ny,nz,axisymm, &
+!$acc                ptype,ngxy,ngz,nx,ny,nz,axisymm, &
 !$acc                nparcels,npvals,npvars,ni,nj,nk,nip1,njp1, &
 !$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke,terrain_flag, &
-!$acc                numq,imoist,imove,nqv,bbc,tbc,prx,pry,prz, &
+!$acc                numq,imoist,imove,nqv,bbc,nqc,prx,pry,prz, &
 !$acc                pru,prv,prw,prth,prt,prprs,prtime,prpt1, &
 !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh, &
 !$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
-!$acc                rmp,cmp,vd_vadv,ibw,ibe,ibs,ibn,nodex,nodey, &
+!$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey, &
 !$acc                myi,myj)
 
 !-----------------------------------------------------------------------
@@ -208,12 +208,10 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
-!$acc declare create(dx,dy,dz,dtl,timax,run_time,tapfrq,rstfrq,    &
-!$acc                statfrq,prclfrq,diagfrq,kdiff2,kdiff6,fcor,   &
-!$acc                alph,kdiv,wbc,ebc,sbc,nbc,rdx,rdy,rdz,minx,   &
-!$acc                maxx,miny,maxy,cflmax,ksmax,zt,rzt,umove,     &
-!$acc                vmove,viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
-!$acc                cgs3,cgt1,cgt2,cgt3)
+!$acc declare create(dx,dy,dz,dtl,kdiff2,kdiff6,fcor,alph,kdiv,rdx,  &
+!$acc                rdy,rdz,minx,maxx,miny,maxy,zt,rzt,umove,vmove, &
+!$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2,cgs3,    &
+!$acc                cgt1,cgt2,cgt3,hurr_rad)
 
 !-----------------------------------------------------------------------
 
