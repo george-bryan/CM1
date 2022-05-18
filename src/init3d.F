@@ -77,7 +77,7 @@
       use constants
       use misclibs
       use cm1libs , only : rslf,rsif
-      use bc_module
+      use bc_module, only: bcu_GPU, bcv_GPU, bcw_GPU, bcs
       use module_mp_nssl_2mom, only: ccn, lccn
       use poiss_module
       use parcel_module , only : getparcelzs
@@ -2063,7 +2063,8 @@
       use input
       use constants
       use misclibs
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, bcs, &
+          bcs2_GPU, bcs2_2d
       use comm_module
       use parcel_module , only : getparcelzs
       use ib_module

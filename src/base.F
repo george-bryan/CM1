@@ -34,7 +34,8 @@
                       sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bcu_GPU, bcv_GPU, bcs_GPU, extrapbcs, &
+          bcu2_GPU, bcv2_GPU
       use comm_module
       use goddard_module, only : T0K,T00K,RT0
       use cm1libs , only : rslf,rsif

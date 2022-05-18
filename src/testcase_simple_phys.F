@@ -101,9 +101,6 @@
 
       IF( testcase.eq.6 .or. testcase.eq.10 )THEN
 
-!#ifdef _OPENACC
-!        print *,'WARNING: testcase_simple_phys: testcase={6 or 10} not supported'
-!#endif
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
         tem = 1.0/hurr_rad

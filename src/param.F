@@ -26,7 +26,7 @@
       use input
       use constants
       use init_terrain_module
-      use bc_module
+      use bc_module, only: bcs_GPU
       use comm_module
       use bcast_module
       use ib_module

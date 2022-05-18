@@ -32,7 +32,7 @@
                          nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bc2d_GPU, bcs2_GPU, bct2_GPU, bcs2_2d_GPU
       use comm_module
       implicit none
 
@@ -469,7 +469,7 @@
                          nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       use input
       use constants
-      use bc_module
+      use bc_module, only: bcs2_GPU
       use comm_module
       implicit none
 

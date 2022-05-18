@@ -1,6 +1,23 @@
   MODULE bc_module
 
   implicit none
+  private
+
+  !GPU enabled
+  public :: bc2d_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcs_GPU, bcp, bcwsfc
+  public :: radbcew, radbcns, radbcew4, radbcns4, extrapbcs
+  public :: restrict_openbc_sn, restrict_openbc_we
+  public :: ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn, bcs_tend_halo
+
+  !CPU only 
+  public :: bcs, bcs2
+
+  !MPI + GPU enabled
+  public :: bcs2_GPU, bct2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_gpu
+
+  !MPI CPU only 
+  public :: bcs2_2d
+
 
   CONTAINS
 
