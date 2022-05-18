@@ -2745,7 +2745,6 @@
 
       use input
       use constants
-      use bc_module, only:
 #ifdef MPI
       use comm_module
       use mpi

@@ -28,7 +28,6 @@
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata)
       use input
       use constants
-      use bc_module, only:
       use comm_module
 #ifdef MPI
       use mpi
