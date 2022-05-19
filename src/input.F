@@ -40,6 +40,8 @@
               use_pbl,use_avg_sfc,dot2p,iusetke,do_adapt_move,                &
               bl_mynn_tkeadvect
 
+!$acc declare create(p2tchsws,p2tchsww,p2tchses,p2tchsee,p2tchnwn,p2tchnww,p2tchnen,p2tchnee)
+
 !-----------------------------------------------------------------------
 
       integer nx,ny,nz,nodex,nodey,ppnode,timeformat,timestats,               &
@@ -171,7 +173,7 @@
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
 !$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey, &
-!$acc                myi,myj)
+!$acc                myi,myj,mdiff)
 
 !-----------------------------------------------------------------------
 

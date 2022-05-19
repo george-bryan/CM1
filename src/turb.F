@@ -5350,7 +5350,7 @@
     doingt2p:  &
     if( t2pfac.ge.0.001 )then
 
-      if( myid.eq.0 ) print *,'  t2pfac = ',t2pfac
+      if( myid.eq.0 ) print *,'t2pcode:  t2pfac = ',t2pfac
 
     !-------------------------------------------
 
@@ -5636,8 +5636,7 @@
 
       temd = 1.0/dble(nx*ny)
 
-      !$acc parallel default(present) 
-      !$acc loop gang vector
+      !$acc parallel loop gang vector default(present) 
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
@@ -5696,6 +5695,8 @@
     !$acc parallel default(present)
     !$acc loop gang vector
     do k=2,ntwk
+      s13b = 0.5*(uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
+      s23b = 0.5*(vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
       spavg(k) = sqrt( spavg(k)*teme )
 
       shravg = sqrt( 4.0*( s13b**2 + s23b**2 ) )
@@ -5708,7 +5709,8 @@
     enddo
     !$acc end parallel
 
-    !$acc parallel  
+
+    !$acc parallel
     gamk(1) = gamk(2)
     !$acc end parallel 
  
