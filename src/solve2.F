@@ -1733,8 +1733,8 @@
         !          conservation of total dry-air mass
         !FIXME
         !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
+        !$acc parallel reduction(+:tmp1,tmp2)
         IF( axisymm.eq.0 )THEN
-          !$acc parallel default(present) reduction(+:tmp1,tmp2)
           !$acc loop gang
           do k=1,nk
             tmp1=0
@@ -1750,9 +1750,7 @@
             dumk3(k) = tmp1
             dumk4(k) = tmp2
           enddo
-          !$acc end parallel
         ELSEIF( axisymm.eq.1 )THEN
-          !$acc parallel default(present) reduction(+:tmp1,tmp2)
           !$acc loop gang
           do k=1,nk
             tmp1=0
@@ -1768,10 +1766,8 @@
             dumk3(k) = tmp1
             dumk4(k) = tmp2
           enddo
-          !$acc end parallel
         ENDIF
 
-        !print *,'solve2: point #17'
 #ifdef MPI
         !$acc update host(dumk3,dumk4)
         call MPI_IALLREDUCE(mpi_in_place,dumk3,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)

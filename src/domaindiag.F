@@ -1130,7 +1130,7 @@
         zimin =  1.0e30
         zimax = -1.0e30
         !$acc parallel default(present) reduction(min:zimin) reduction(max:zimax)
-        !$acc loop gang vector collapse(2) reduction(min:zimin) reduction(max:zimax)
+        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           zi = 0.0
@@ -10104,8 +10104,7 @@
 
     
 #ifndef _B4B21R
-    !$acc parallel default(present) private(i,j,k) reduction(+:vbart)
-    !reduction(+:vfrt,vfdt)
+    !$acc parallel default(present) private(i,j,k) reduction(+:vbart) reduction(+:vfrt,vfdt)
     !$acc loop gang vector
 #endif
     do k=1,nk
@@ -10426,21 +10425,17 @@
       !-----------------------------
       ! 171122:  boundary conditions
 
+      !$acc parallel default(present) private(i,j) reduction(+:sfst,sfst1,sfst2)
       IF( cm1setup.eq.1 .or. cm1setup.eq.2 )THEN
-
-        !$acc update host (sfs)
-
         sfcfl:  &
         IF( iflux.eq.1 .and. dosfcflx )THEN
           sfst = 0.0d0
-          !$acc parallel default(present) reduction(+:sfst)
           !$acc loop gang vector collapse(2) reduction(+:sfst)
           do j=1,nj
           do i=1,ni
             sfst = sfst + sflux(i,j)
           enddo
           enddo
-          !$acc end parallel
 
           sfs(1) = sfst
 
@@ -10461,7 +10456,6 @@
           if(bc_temp.eq.1)then
             ! specified theta at boundary
 
-            !$acc parallel default(present) reduction(-:sfst1,sfst2)
             !$acc loop gang vector collapse(2) reduction(-:sfst1,sfst2) 
             do j=1,nj
             do i=1,ni
@@ -10469,7 +10463,6 @@
               sfst2 = sfst2-(viscosity/pr_num)*2.0*(ptc_top-savg(nk))*rdz*mf(1,1,nk+1)
             enddo
             enddo
-            !$acc end parallel
 
             sfs(1)=sfst1
             sfs(nk+1)=sfst2
@@ -10477,7 +10470,6 @@
           elseif(bc_temp.eq.2)then
             ! specified flux at boundary
 
-            !$acc parallel default(present) reduction(+:sfst1,sfst2)
             !$acc loop gang vector collapse(2) reduction(+:sfst1,sfst2) 
             do j=1,nj
             do i=1,ni
@@ -10485,7 +10477,6 @@
               sfst2 = sfst2 + (viscosity/pr_num)*ptc_top
             enddo
             enddo
-            !$acc end parallel
 
             sfs(1)=sfst1
             sfs(nk+1)=sfst2
@@ -10493,9 +10484,10 @@
           endif
 
       ENDIF
+      !$acc end parallel
 
 #ifdef MPI
-      !$acc update host(sfr,sfd)
+      !$acc update host(sfr,sfs,sfd)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfr,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfs,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,sfd,nk+1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -10560,7 +10552,9 @@
           wstar = wstar + (zf(1,1,k+1)-zf(1,1,k))*0.5*(fb1+fb2)
 
           if( fb1.lt.fbmin )then
+            !$acc atomic write
             fbmin = fb1
+            !$acc atomic write
             zfbmin = zf(1,1,k)
           endif
 

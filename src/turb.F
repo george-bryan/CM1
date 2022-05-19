@@ -5601,15 +5601,13 @@
     !-------------------------------------------
     !  Get domain average profiles:
 
-      !$acc parallel default(present)
+      !$acc parallel default(present) reduction(+:cavg1,cavg2)
       !$acc loop gang vector
       do k=kb,ke
         uavg(k) = 0.0
         vavg(k) = 0.0
       enddo
-      !$acc end parallel 
 
-      !$acc parallel default(present) reduction(+:cavg1,cavg2)
       !$acc loop gang
       do k=1,nk
         cavg(k,1) = 0.0
@@ -5710,9 +5708,9 @@
     enddo
     !$acc end parallel
 
-    !$acc update host (gamk)
+    !$acc parallel  
     gamk(1) = gamk(2)
-    !$acc update device (gamk)
+    !$acc end parallel 
  
     endif  doinggamk
 
