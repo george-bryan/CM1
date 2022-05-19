@@ -31,7 +31,7 @@
 
     use input
     use constants
-    use bc_module, only: bc2d_GPU, bcs2_2d
+    use bc_module, only: bc2d_GPU, bcs2_2d_GPU
     use comm_module
 #ifdef MPI
     use mpi
@@ -197,8 +197,8 @@
                                south,newsouth,north,newnorth,reqs_p)
       call comm_2dew_end(zsfoo,west,newwest,east,neweast,reqs_p)
       call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p)
-      call bcs2_2d(zsfoo)
       !$acc data copy(zsfoo)
+      call bcs2_2d_GPU(zsfoo)
       call bc2d_GPU(zsfoo)
       !$acc end data
       call getcorner3_2d(zsfoo)

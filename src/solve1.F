@@ -398,7 +398,6 @@
       else
         tqnudge = .false.
       endif
-      tqnudge = .false.
 
 
       timenudge = mtime+dt

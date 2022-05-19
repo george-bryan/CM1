@@ -5350,7 +5350,7 @@
     doingt2p:  &
     if( t2pfac.ge.0.001 )then
 
-      if( myid.eq.0 ) print *,'  t2pfac = ',t2pfac
+      if( myid.eq.0 ) print *,'t2pcode:  t2pfac = ',t2pfac
 
     !-------------------------------------------
 
@@ -5647,10 +5647,9 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(1,2),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(cavg)
 #endif
-      !$acc parallel default(present) 
       temd = 1.0/dble(nx*ny)
 
-      !$acc loop gang vector
+      !$acc parallel loop gang vector default(present) 
       do k=1,nk
         uavg(k)  = cavg(k,1)*temd
         vavg(k)  = cavg(k,2)*temd
@@ -5660,7 +5659,6 @@
       enddo
 
       teme = 1.0/dble(nx*ny)
-      !$acc end parallel
 
 #ifdef _B4B11R
     !$acc update host(mf,c1,c2,t11,t22,t33,t12,t13,t23,rf)
@@ -5724,6 +5722,8 @@
     !$acc parallel private(k,shravg) 
     !$acc loop gang vector
     do k=2,ntwk
+      s13b = 0.5*(uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
+      s23b = 0.5*(vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
       spavg(k) = sqrt( spavg(k)*teme )
 
       shravg = sqrt( 4.0*( s13b**2 + s23b**2 ) )
@@ -5734,7 +5734,9 @@
       s2b(k) = shravg
 
     enddo
+    !$acc end parallel
 
+    !$acc parallel
     gamk(1) = gamk(2)
     !$acc end parallel
     endif  doinggamk
