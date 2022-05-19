@@ -5734,7 +5734,9 @@
       s2b(k) = shravg
 
     enddo
+    !$acc end parallel
 
+    !$acc parallel
     gamk(1) = gamk(2)
     !$acc end parallel
     endif  doinggamk
