@@ -214,7 +214,7 @@
 !$acc                alph,kdiv,rdx,rdy,rdz,minx,   &
 !$acc                maxx,miny,maxy,zt,rzt,umove,vmove,   &
 !$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
-!$acc                cgs3,cgt1,cgt2,cgt3,hurr_rad)
+!$acc                cgs3,cgt1,cgt2,cgt3,csound,hurr_rad,smeps)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
