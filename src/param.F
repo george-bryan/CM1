@@ -254,7 +254,7 @@
       call bcast_int(weno_order)
       call bcast_int(apmasscon)
       call bcast_int(idiff)
-      call bcast_int(mdiff)
+      call bcast_int(mdiff,device=.true.)
       call bcast_int(difforder)
       call bcast_int(imoist,device=.true.)
       call bcast_int(ipbl)
@@ -7934,6 +7934,7 @@
       if(dowr) write(outfile,*) '  p2tchnwn =',p2tchnwn
       if(dowr) write(outfile,*) '  p2tchnen =',p2tchnen
       if(dowr) write(outfile,*)
+      !$acc update device(p2tchsws,p2tchsww,p2tchses,p2tchsee,p2tchnwn,p2tchnww,p2tchnen,p2tchnee)
 #endif
 
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
