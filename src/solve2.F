@@ -1767,6 +1767,7 @@
             dumk4(k) = tmp2
           enddo
         ENDIF
+        !$acc end parallel
 
 #ifdef MPI
         !$acc update host(dumk3,dumk4)
