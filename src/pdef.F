@@ -107,7 +107,6 @@
         endif
 
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
-        !call flush(6)
 
         call bcs_GPU(dum)
 #ifdef MPI
@@ -365,7 +364,6 @@
           !$acc end parallel
         endif
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
-        !call flush(6)
 
         call bcs_GPU(dum)
 #ifdef MPI
