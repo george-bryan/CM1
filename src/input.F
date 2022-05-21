@@ -162,7 +162,8 @@
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk
 
-!$acc declare create(nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
+
+!$acc declare create(nql1,nql2,nqs1,nqs2,nqr,nqi,nqs,nqg,nnci,nncc, &
 !$acc                ptype,ngxy,ngz,nx,ny,nz,axisymm, &
 !$acc                nparcels,npvals,npvars,ni,nj,nk,nip1,njp1, &
 !$acc                nkm1,nkp1,ib,ie,jb,je,kb,ke,terrain_flag, &
@@ -173,7 +174,30 @@
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
 !$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey, &
-!$acc                myi,myj,mdiff)
+!$acc                myi,myj,mdiff,nrain,npt,ibl,iel,jbl,jel, &
+!$acc                ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag, &
+!$acc                ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag, &
+!$acc                ibdv,iedv,jbdv,jedv,kbdv,kedv,nudiag,nvdiag,nwdiag, &
+!$acc                ibdk,iedk,jbdk,jedk,kbdk,kedk,nkdiag, &
+!$acc                ibdp,iedp,jbdp,jedp,kbdp,kedp,npdiag, &
+!$acc                ib2d,ie2d,jb2d,je2d,nout2d )
+
+!$acc declare create(qd_dbz,qd_vtc,qd_vtr,qd_vts,qd_vtg,qd_vti, &
+!$acc         td_hadv,td_vadv,td_hturb,td_vturb,td_mp,td_rdamp, &
+!$acc         td_rad,td_div,td_diss,td_pbl,td_lsw,td_efall, &
+!$acc         td_cond,td_evac,td_evar,td_dep,td_subl,td_melt,td_frz,td_nudge, &
+!$acc         qd_hadv,qd_vadv,qd_hturb,qd_vturb,qd_mp,qd_pbl,qd_lsw, &
+!$acc         qd_cond,qd_evac,qd_evar,qd_dep,qd_subl,qd_nudge, &
+!$acc         ud_hadv,ud_vadv,ud_hturb,ud_vturb,ud_pgrad,ud_rdamp, &
+!$acc         ud_pbl,ud_cor,ud_cent,ud_lsw, &
+!$acc         vd_hadv,vd_vadv,vd_hturb,vd_vturb,vd_pgrad,vd_rdamp, &
+!$acc         vd_pbl,vd_cor,vd_cent,vd_lsw,kd_adv,kd_turb, &
+!$acc         wd_hadv,wd_vadv,wd_hturb,wd_vturb,wd_pgrad,wd_rdamp,wd_buoy, &
+!$acc         td_hidiff,td_vidiff,td_hediff,td_vediff, &
+!$acc         qd_hidiff,qd_vidiff,qd_hediff,qd_vediff, &
+!$acc         ud_hidiff,ud_vidiff,ud_hediff,ud_vediff, &
+!$acc         vd_hidiff,vd_vidiff,vd_hediff,vd_vediff, &
+!$acc         wd_hidiff,wd_vidiff,wd_hediff,wd_vediff,nutk,nvtk,nwtk)
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -209,12 +233,11 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
-!$acc declare create(dx,dy,dz,dtl, &
-!$acc                kdiff2,kdiff6,fcor,   &
-!$acc                alph,kdiv,rdx,rdy,rdz,minx,   &
-!$acc                maxx,miny,maxy,zt,rzt,umove,vmove,   &
-!$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
-!$acc                cgs3,cgt1,cgt2,cgt3,csound,hurr_rad,smeps)
+!$acc declare create(dx,dy,dz,dtl,kdiff2,kdiff6,fcor,rdalpha,alph,kdiv, &
+!$acc   rdx,rdy,rdz,minx,maxx,miny,maxy,zt,rzt,umove,vmove, &
+!$acc   xc_uforce,xr_uforce,zr_uforce,alpha_uforce,t1_uforce,t2_uforce,    &
+!$acc   viscosity,pr_num,sc_num,maxz,cgs1,cgs2,tsmall,qsmall, &
+!$acc   cgs3,cgt1,cgt2,cgt3,csound,hurr_rad,smeps)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

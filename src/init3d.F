@@ -1385,6 +1385,7 @@
         alpha_uforce  =    0.1                     ! alpha (m/s/s), max intensity of forcing
         t1_uforce     =  3300.0                    ! time (s) to start ramping down u-forcing
         t2_uforce     =  3600.0                    ! time (s) to turn off u-forcing
+        !$acc update device(xc_uforce,xr_uforce,zr_uforce,alpha_uforce,t1_uforce,t2_uforce)
 
 !------------------------------------------------------------------
 !  iinit = 11
