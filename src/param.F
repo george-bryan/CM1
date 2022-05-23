@@ -6459,6 +6459,7 @@
         if(dowr) write(outfile,*) 'csound=',csound
         if(dowr) write(outfile,*)
       endif
+      !$acc update device(csound)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'timeformat   =',timeformat

@@ -19,7 +19,11 @@
                        wa,w3d,wten,                                 &
                        ppi,pp3d,phi1,phi2,cfb,cfa,cfc,              &
                         d1, d2,pdt,lgbth,lgbph,rhs,trans,dttmp,nrk,rtime,mtime)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,rmp,imp,jmp,kmp, &
+          ibph,ieph,jbph,jeph,kbph,keph,ipb,ipe,jpb,jpe,kpb,kpe, &
+          ni,nj,nk,nsound,terrain_flag,rdx,rdy,rdz,axisymm,timestats,time_sound, &
+          mytime,irbc,ibw,ibe,ibs,ibn,wbc,ebc,sbc,nbc,roflux,convinit,convtime,nx,ny,myid, &
+          zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
       use bc_module, only: bcs_GPU, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &

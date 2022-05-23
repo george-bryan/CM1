@@ -213,7 +213,7 @@
 !$acc declare create(dx,dy,dz,dtl,kdiff2,kdiff6,fcor,alph,kdiv,rdx,  &
 !$acc                rdy,rdz,minx,maxx,miny,maxy,zt,rzt,umove,vmove, &
 !$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2,cgs3,    &
-!$acc                cgt1,cgt2,cgt3,hurr_rad)
+!$acc                cgt1,cgt2,cgt3,csound,hurr_rad,smeps)
 
 !-----------------------------------------------------------------------
 

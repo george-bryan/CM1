@@ -336,6 +336,7 @@
       iusetke = .false.
       ramp_up_turb = .false.
       do_adapt_move = .false.
+      !$acc update device(smeps)
 
       dorestart = .false.
       dowriteout = .false.
