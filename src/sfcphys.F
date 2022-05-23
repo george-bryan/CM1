@@ -1119,16 +1119,8 @@
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
-#ifndef _B4B08R
-      !$acc parallel default(present) &
-      !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
-#ifdef _B4B08R
-      !$acc update host(u1,v1,s1,t1)
-#else
-      !$acc loop collapse(2) &
-      !$acc reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#endif
+      !$acc parallel default(present)  reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      !$acc loop gang vector collapse(2) reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
       do j=1,nj
       do i=1,ni
         avgsfcu = avgsfcu + u1(i,j)
@@ -1137,11 +1129,7 @@
         avgsfct = avgsfct + t1(i,j)
       enddo
       enddo
-#ifdef _B4B08R
-      !$acc update device(avgsfcu,avgsfcv,avgsfcs,avgsfct)
-#else
       !$acc end parallel
-#endif
   
 #ifdef MPI
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcu,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)

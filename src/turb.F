@@ -736,7 +736,7 @@
                        1  ,ni , 1  ,nj , 1  ,nk ,                    &
                        ustm,ck,cka,cd,cda,isftcflx,iz0tlnd,tst,qst,psiq,z0t,z0q)
         elseif( sfcmodel.eq.4 )then
-          !$acc parallel loop gang vector collapse(2) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) 
           do j=jbl,jel
           do i=ibl,iel
             cd_out(i,j) = 0.0
@@ -745,7 +745,7 @@
             zol(i,j)    = 0.0
           enddo
           enddo
-          !$acc parallel loop gang vector collapse(3) private(i,j,n)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do n=1,nout2d
           do j=jb2d,je2d
           do i=ib2d,ie2d
@@ -754,7 +754,7 @@
           enddo
           enddo
 
-          !$acc parallel loop gang vector collapse(2) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present) 
           do j=1,nj
           do i=1,ni
             zkmax(i,j) = zh(i,j,1)
@@ -2195,7 +2195,7 @@
                   ids=1  ,ide=ni+1 , jds=1  ,jde=1    , kds=1  ,kde=nk+1 ,          &
                   ims=ibmyj ,ime=iemyj   , jms=1  ,jme=1    , kms=kbmyj ,kme=kemyj ,            &
                   its=1  ,ite=ni   , jts=1  ,jte=1    , kts=1  ,kte=nk )
-        !$acc parallel loop gang vector collapse(2) private(i,k)
+        !$acc parallel loop gang vector collapse(2) default(present) 
         do k=1,nk
         do i=1,ni
           tke_myj(i,j,k) = tmp_myj(i,k,4)
@@ -5601,45 +5601,31 @@
     !-------------------------------------------
     !  Get domain average profiles:
 
-#ifdef _B4B10R
-      !$acc update host(ugr,vgr)
-#else
-      !$acc parallel default(present) private(i,j,k) reduction(+:cavg1,cavg2)
+      !$acc parallel default(present) reduction(+:cavg1,cavg2)
       !$acc loop gang vector
-#endif
       do k=kb,ke
         uavg(k) = 0.0
         vavg(k) = 0.0
       enddo
-#ifndef _B4B10R
+
       !$acc loop gang
-#endif
       do k=1,nk
-        !----
         cavg(k,1) = 0.0
         cavg(k,2) = 0.0
-        !----
         ! GHB, 220302: need to initialize cavg1,cavg2
         cavg1 = 0.0
         cavg2 = 0.0
-#ifndef _B4B10R
         !$acc loop vector collapse(2) reduction(+:cavg1,cavg2)
-#endif
         do j=1,nj
         do i=1,ni
           cavg1 = cavg1 + ugr(i,j,k)
           cavg2 = cavg2 + vgr(i,j,k)
         enddo
         enddo
-        !----
         cavg(k,1) = cavg1
         cavg(k,2) = cavg2
       enddo
-#ifdef _B4B10R
-      !$acc update device(cavg)
-#else
       !$acc end parallel
-#endif
 
 #ifdef MPI
       !$acc update host(cavg)
@@ -5647,6 +5633,7 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(1,2),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc update device(cavg)
 #endif
+
       temd = 1.0/dble(nx*ny)
 
       !$acc parallel loop gang vector default(present) 
@@ -5657,30 +5644,20 @@
         u1b(k) = uavg(k)
         v1b(k) = vavg(k)
       enddo
+      !$acc end parallel
 
       teme = 1.0/dble(nx*ny)
 
-#ifdef _B4B11R
-    !$acc update host(mf,c1,c2,t11,t22,t33,t12,t13,t23,rf)
-#else
-    !$acc parallel default(present) &
-    !$acc   private(i,j,k,tmp11,tmp22,tmp33,tmp12,tmp13,tmp23) &
-    !$acc   reduction(+:spavgt)
-#endif
     !-------------------------------------------
     !  Get new value of gamma:
-#ifndef _B4B11R
-    !$acc loop gang 
-#endif
-    do k=2,ntwk
 
+    !$acc parallel default(present) reduction(+:spavgt)
+    !$acc loop gang 
+    do k=2,ntwk
       spavgt = 0.0
       s13b = 0.5*(uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
       s23b = 0.5*(vavg(k)-vavg(k-1))*rdz*mf(1,1,k)
-
-#ifndef _B4B11R
       !$acc loop vector collapse(2) reduction(+:spavgt)
-#endif
       do j=1,nj
       do i=1,ni
 
@@ -5707,11 +5684,7 @@
       enddo
       spavg(k) = spavgt
     enddo
-#ifdef _B4B11R
-    !$acc update device(spavg)
-#else
     !$acc end parallel
-#endif
 
 #ifdef MPI
       !$acc update host(spavg)
@@ -5719,7 +5692,7 @@
       !$acc update device(spavg)
 #endif
 
-    !$acc parallel private(k,shravg) 
+    !$acc parallel default(present)
     !$acc loop gang vector
     do k=2,ntwk
       s13b = 0.5*(uavg(k)-uavg(k-1))*rdz*mf(1,1,k)
@@ -5736,9 +5709,11 @@
     enddo
     !$acc end parallel
 
+
     !$acc parallel
     gamk(1) = gamk(2)
-    !$acc end parallel
+    !$acc end parallel 
+ 
     endif  doinggamk
 
     !$acc end data

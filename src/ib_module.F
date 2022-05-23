@@ -7,7 +7,6 @@
     integer :: ibib,ieib,jbib,jeib,kbib,keib
     integer :: kmaxib
 
-
   CONTAINS
 
 !-----------------------------------------------------------------------

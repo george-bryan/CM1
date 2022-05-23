@@ -1733,22 +1733,14 @@
         !          conservation of total dry-air mass
         !FIXME
         !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
-#ifdef _B4B06R
-        !$acc update host(rho,ruh,rvh,rmh,pi0,pp3d,xf)
-#else
         !$acc parallel reduction(+:tmp1,tmp2)
-#endif
         IF( axisymm.eq.0 )THEN
-#ifndef _B4B06R
           !$acc loop gang
-#endif
           do k=1,nk
-            tmp1=0;
-            tmp2=0;
+            tmp1=0
+            tmp2=0
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
-#ifndef _B4B06R
             !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
-#endif
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -1759,16 +1751,12 @@
             dumk4(k) = tmp2
           enddo
         ELSEIF( axisymm.eq.1 )THEN
-#ifndef _B4B06R
           !$acc loop gang
-#endif
           do k=1,nk
-            tmp1=0;
-            tmp2=0;
+            tmp1=0
+            tmp2=0
             !$omp parallel do default(shared) private(i,j) reduction(+:tmp1,tmp2)
-#ifndef _B4B06R
             !$acc loop vector collapse(2) reduction(+:tmp1,tmp2)
-#endif
             do j=1,nj
             do i=1,ni
               tmp1 = tmp1 + rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*pi*(xf(i+1)**2-xf(i)**2)
@@ -1779,14 +1767,8 @@
             dumk4(k) = tmp2
           enddo
         ENDIF
-#ifdef _B4B06R
-        !$acc update device(dumk3,dumk4)
-#else
         !$acc end parallel
-#endif
-        !print *,'solve2: dumk{1,2} loop'
 
-        !print *,'solve2: point #17'
 #ifdef MPI
         !$acc update host(dumk3,dumk4)
         call MPI_IALLREDUCE(mpi_in_place,dumk3,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
@@ -1869,7 +1851,7 @@
 
           ! use wten for tke tendency, step tke forward:
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -1890,7 +1872,7 @@
         if( dotdwrite .and. kd_adv.ge.1 )then
         if( nrk.eq.nrkmax )then
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do k=1,nk+1
           do j=1,nj
           do i=1,ni
@@ -1909,7 +1891,7 @@
         if( dotdwrite .and. kd_adv.ge.1 )then
         if( nrk.eq.nrkmax )then
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do k=1,nk+1
           do j=1,nj
           do i=1,ni
@@ -1921,7 +1903,7 @@
         endif
 
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=2,nk
           do j=1,nj
           do i=1,ni
@@ -1955,7 +1937,7 @@
 
         IF( nrk.eq.1 )THEN
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -1966,7 +1948,7 @@
           enddo
         ELSE
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2121,7 +2103,7 @@
 #endif
         temq1 = 0.0
         temq2 = 0.0
-        !$acc parallel loop vector reduction(+:temq1,temq2)
+        !$acc parallel loop gang vector default(present) reduction(+:temq1,temq2)
         do k=1,nk
           temq1 = temq1 + dumk3(k)
           temq2 = temq2 + dumk4(k)
@@ -2132,11 +2114,9 @@
 
         tem = ( (mass1/mass2)**rddcv - 1.0d0 )*p2/(nx*ny*nz)
 
-!!!        if( myid.eq.0 ) print *,'  temd,tem = ',temd,tem
-
         IF( imoist.eq.1 )THEN
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
           !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2149,8 +2129,8 @@
           enddo
           enddo
         ELSE
-          !$acc parallel loop gang vector collapse(3)  private(i,j,k)
           !$omp parallel do default(shared) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) 
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -2171,7 +2151,7 @@
 
       IF( idiff.ge.1 .and. difforder.eq.6 .and. nrk.lt.nrkmax )THEN
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
