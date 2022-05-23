@@ -149,7 +149,32 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,               &
                    doazimwrite,dorestart)
         ! end_solve2
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ibb2,ibe2,jbb2,jbe2, &
+          kbb2,kbe2,ibph,ieph,jbph,jeph,kbph,keph,ibnba,ienba,jbnba,jenba,kbnba,kenba, &
+          nx,ny,nz,ni,nj,nk,ibm,iem,jbm,jem,kbm,kem,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt, &
+          jet,kbt,ket,ibb,ieb,jbb,jeb,kbb,keb,ibr,ier,jbr,jer,kbr,ker,maxq,nbudget,numq,ngxy, &
+          nrain,npt,nparcels,npvals,ibl,iel,jbl,jel,ibp,iep,jbp,jep,kbp,kep,ib2pt,ie2pt, &
+          jb2pt,je2pt,kb2pt,ke2pt,ipb,ipe,jpb,jpe,kpb,kpe,rmp,cmp,kmt,imp,jmp,kmp,d3i,d3j, &
+          d3t,d3n,d2i,d2j,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibdq,iedq,jbdq,jedq,kbdq, &
+          kedq,nqdiag,ibdv,iedv,jbdv,jedv,kbdv,kedv,nudiag,nvdiag,nwdiag,ibdk,iedk,jbdk, &
+          jedk,kbdk,kedk,nkdiag,ibdp,iedp,jbdp,jedp,kbdp,kedp,npdiag,ib2d,ie2d,jb2d,je2d, &
+          nout2d,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ibmynn,iemynn,jbmynn,jemynn,kbmynn,kemynn, &
+          qp,nf,nu,nv,nw,testcase,myid,timestats,hadvordrv,vadvordrv,hadvordrs,vadvordrs, &
+          psolver,dolsw,nqc,nqi,nnci,nncc,zt,rzt,rdx,rdy,rdz,smeps,advwenov,advwenos, &
+          time_misc13,time_misc14,time_misc15,time_misc16,time_misc17,time_misc18,time_misc19, &
+          time_misc20,time_misc21,time_misc22,time_buoyan,time_advs,time_divx,time_cor, &
+          time_advu,time_integ,time_prsrho,time_cflq,mytime,cm1setup,iusetke,sgsmodel,doimpl, &
+          iinit,ptype,wbc,ebc,sbc,nbc,icor,betaplane,nudgeobc,alphobc,iprcl,apmasscon, &
+          ibw,ibe,ibs,ibn,imoist,irdamp,hrdamp,irbc,rdalpha,iptra,lspgrad,ierr,fcor,vmove, &
+          umove,hurr_rad,difforder,idiff,nqv,eqtset,idiss,rterm,iice,nql1,nql2,nqs1,nqs2, &
+          axisymm,dx,dy,dz,bbc,terrain_flag,radopt,use_pbl,tsmall,qsmall,dohturb,dovturb, &
+          xc_uforce,xr_uforce,zr_uforce,alpha_uforce,t1_uforce,t2_uforce,stat_qsrc, &
+          bl_mynn_tkeadvect,cflmax,stopit,pdtra, &
+          kd_turb,ud_rdamp,vd_rdamp,wd_rdamp,td_rdamp,td_hediff,td_vediff,qd_hediff,qd_vediff, &
+          td_diss,td_rad,td_pbl,td_hturb,td_vturb,qd_hturb,qd_vturb,ud_pbl,vd_pbl,qd_pbl, &
+          td_nudge,qd_nudge,ud_cor,td_hadv,td_vadv,td_lsw,td_hidiff,td_vidiff,qd_hadv,qd_vadv, &
+          qd_lsw,qd_hidiff,qd_vidiff,vd_cor,ud_cent,vd_cent,vd_hadv,wd_buoy,ud_pgrad,vd_pgrad, &
+          wd_pgrad,td_div,kd_adv
       use constants
       use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
                            radbcew4, radbcns4, bcs2_gpu 
