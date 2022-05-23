@@ -30,14 +30,10 @@
 
       integer i,j,k
       real foo1,foo2,foo3,rdt
-      !$acc declare present(xh,arh1,arh2,uh) &
-      !$acc present(rho0,s0,s) &
-      !$acc present(gz,rgz) &
-      !$acc present(rru) &
-      !$acc present(advx,dum,mass) &
-      !$acc present(flag) &
-      !$acc present(west,newwest,east,neweast) 
 
+      !$acc declare present(xh,arh1,arh2,uh,rho0,s0,s,gz,rgz,rru, &
+      !$acc                 advx,dum,mass,flag,west,newwest,east, &
+      !$acc                 neweast) 
      
 !----------------------------------------------------------------
 ! cm1r17:  include divx component
@@ -45,7 +41,7 @@
       IF(.not.terrain_flag)THEN
         IF(axisymm.eq.0)THEN
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -54,9 +50,10 @@
           enddo
           enddo
           enddo
+          !$acc end parallel
         ELSE
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -65,10 +62,11 @@
           enddo
           enddo
           enddo
+          !$acc end parallel
         ENDIF
       ELSE
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang collapse(2) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -77,12 +75,13 @@
           enddo
           enddo
           enddo
+          !$acc end parallel
       ENDIF
 
         if(wbc.eq.2 .and. ibw.eq.1)then
           i=1
           !$omp parallel do default(shared) private(j,k)
-          !$acc parallel loop gang collapse(2) default(present) private(j,k)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do k=1,nk
           do j=1,nj
             if(rru(i,j,k).ge.0.0)then
@@ -90,13 +89,13 @@
             endif
           enddo
           enddo
+          !$acc end parallel
         endif
 
         if(ebc.eq.2 .and. ibe.eq.1)then
           i=ni
-          !$omp parallel do default(shared)   &
-          !$omp private(j,k)
-          !$acc parallel loop gang collapse(2) default(present) private(j,k)
+          !$omp parallel do default(shared) private(j,k)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do k=1,nk
           do j=1,nj
             if(rru(ni+1,j,k).le.0.0)then
@@ -104,10 +103,11 @@
             endif
           enddo
           enddo
+          !$acc end parallel
         endif
+
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
-        !call flush(6)
-        !print *,'pdefx1: before bcs_GPU'
+
         call bcs_GPU(dum)
 #ifdef MPI
         call comm_2we_start_GPU(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
@@ -116,7 +116,6 @@
 !----------------------------------------------------------------
 
       end subroutine pdefx1
-
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -140,14 +139,10 @@
 
       integer i,j,k
       real foo1,foo2,foo3,rdt
-      !$acc declare present(xh,arh1,arh2,uh) &
-      !$acc present(rho0,s0,s) &
-      !$acc present(gz,rgz) &
-      !$acc present(rru) &
-      !$acc present(advx,dum,mass) &
-      !$acc present(flag) &
-      !$acc present(west,newwest,east,neweast) 
 
+      !$acc declare present(xh,arh1,arh2,uh,rho0,s0,s,gz,rgz,rru, &
+      !$acc                 advx,dum,mass,flag,west,newwest,east, &
+      !$acc                 neweast) 
 
 !----------------------------------------------------------------
 ! cm1r17:  include divx component
@@ -160,9 +155,8 @@
 
     IF(axisymm.eq.0)THEN
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,foo1,foo2,foo3)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)
+      !$acc parallel loop gang vector collapse(3) default(present)
       DO k=1,nk
         do j=1,nj
         do i=-1,ni+2
@@ -171,10 +165,10 @@
         enddo
         enddo
       ENDDO
+      !$acc end parallel
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,foo1,foo2,foo3)
-      !$acc parallel loop gang collapse(2) private(i,j,k,foo1,foo2,foo3)
+      !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=1,nk
         do j=1,nj
         do i=0,ni+1
@@ -193,14 +187,13 @@
           endif
         enddo
         enddo
-
-      ENDDO
+      end do
+      !$acc end parallel
 
         !-----
         IF(.not.terrain_flag)THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -211,11 +204,11 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
         !-----
         ELSE
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -226,20 +219,24 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
         ENDIF
         !-----
 
     ELSE
       !JMD-KLUDGE
       !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)
-      !$acc parallel loop gang private(i,j,k,foo1,foo2,foo3)
+      !$acc parallel default(present)
+      !$acc loop gang
       DO k=1,nk
+        !$acc loop vector collapse(2)
         do j=1,nj
         do i=-1,ni+2
           mass(i,j,k)=0.0
           flag(i,j,k)=.false.
         enddo
         enddo
+        !$acc loop vector collapse(2)
         do j=1,nj
         do i=0,ni+1
           if(dum(i,j,k).lt.0.0)then
@@ -258,12 +255,11 @@
           endif
         enddo
         enddo
-
       ENDDO
+      !$acc end parallel
 
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,foo1,foo2,foo3)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -274,6 +270,7 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
 
     ENDIF
 !----------------------------------------------------------------
@@ -306,21 +303,16 @@
 
       integer i,j,k
       real foo1,foo2,foo3,rdt
-      !$acc declare present(vh) &
-      !$acc present(rho0,s0,s) &
-      !$acc present(gz,rgz) &
-      !$acc present(rrv) &
-      !$acc present(advy,dum,mass) &
-      !$acc present(flag) &
-      !$acc present(south,newsouth,north,newnorth)
+
+      !$acc declare present(vh,rho0,s0,s,gz,rgz,rrv,advy,dum,mass, &
+      !$acc                 flag,south,newsouth,north,newnorth)
 
 !----------------------------------------------------------------
 ! cm1r17:  include divx component
 
       IF(.not.terrain_flag)THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !$acc parallel loop gang collapse(3) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -329,10 +321,10 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
       ELSE
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !$acc parallel loop gang collapse(3) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -341,12 +333,13 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
       ENDIF
 
         if(sbc.eq.2 .and. ibs.eq.1)then
           j=1
           !$omp parallel do default(shared) private(i,k)
-          !$acc parallel loop gang collapse(2) private(i,k)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do k=1,nk
           do i=1,ni
             if(rrv(i,j,k).ge.0.0)then
@@ -354,12 +347,13 @@
             endif
           enddo
           enddo
+          !$acc end parallel
         endif
 
         if(nbc.eq.2 .and. ibn.eq.1)then
           j=nj
           !$omp parallel do default(shared) private(i,k)
-          !$acc parallel loop gang collapse(2) private(i,k)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do k=1,nk
           do i=1,ni
             if(rrv(i,nj+1,k).le.0.0)then
@@ -367,10 +361,10 @@
             endif
           enddo
           enddo
+          !$acc end parallel
         endif
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
-        !call flush(6)
-        !print *,'pdefy1: before bcs_GPU'
+
         call bcs_GPU(dum)
 #ifdef MPI
         call comm_2sn_start_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
@@ -403,13 +397,9 @@
 
       integer i,j,k
       real foo1,foo2,foo3,rdt
-      !$acc declare present(vh) &
-      !$acc present(rho0,s0,s) &
-      !$acc present(gz,rgz) &
-      !$acc present(rrv) &
-      !$acc present(advy,dum,mass) &
-      !$acc present(flag) &
-      !$acc present(south,newsouth,north,newnorth)
+
+      !$acc declare present(vh,rho0,s0,s,gz,rgz,rrv,advy,dum,mass, &
+      !$acc                 flag,south,newsouth,north,newnorth)
 
 !----------------------------------------------------------------
 ! cm1r17:  include divx component
@@ -418,9 +408,8 @@
       call comm_2sn_end_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
 
-      !$omp parallel do default(shared)   &
-      !$omp private(i,j,k,foo1,foo2,foo3)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)
+      !$acc parallel loop gang vector collapse(3) default(present) 
       DO k=1,nk
         do j=-1,nj+2
         do i=1,ni
@@ -429,12 +418,11 @@
         enddo
         enddo
       ENDDO
+      !$acc end parallel
 
-      !$acc parallel private(i,j,k,foo1,foo2,foo3)
+      !$acc parallel loop gang vector collapse(3) default(present) 
       do j=0,nj+1
-      !$omp parallel do default(shared)   &
-      !$omp private(i,k,foo1,foo2,foo3)
-      !$acc loop gang vector collapse(2)
+      !$omp parallel do default(shared) private(i,k,foo1,foo2,foo3)
       DO k=1,nk
         do i=1,ni
           if(dum(i,j,k).lt.0.0)then
@@ -452,7 +440,6 @@
           endif
         enddo
         enddo
-
       ENDDO
       !$acc end parallel
 
@@ -460,9 +447,8 @@
 
         !-----
         IF(.not.terrain_flag)THEN
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -473,11 +459,11 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
         !-----
         ELSE
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$omp parallel do default(shared) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -488,6 +474,7 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
         ENDIF
         !-----
 
@@ -517,19 +504,15 @@
 
       integer i,j,k
       real foo1,foo2,foo3,rdt
-      !$acc declare present(mh,rho0,s0,s) &
-      !$acc present(gz,rgz) &
-      !$acc present(rdsf) &
-      !$acc present(rrw) &
-      !$acc present(advz,dum,mass) &
-      !$acc present(flag)
 
+      !$acc declare present(mh,rho0,s0,s,gz,rgz,rdsf,rrw, &
+      !$acc                 advz,dum,mass,flag)
 
 !----------------------------------------------------------------
 
       IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -538,9 +521,10 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
       ELSE
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -549,19 +533,21 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
       ENDIF
 
         !$omp parallel do default(shared) private(i,j)
-        !$acc parallel loop gang vector collapse(2) private(i,j)
+        !$acc parallel loop gang vector collapse(2) default(present)
         do j=1,nj
         do i=1,ni
           dum(i,j, 0)=0.0
           dum(i,j,nk+1)=0.0
         enddo
         enddo
+        !$acc end parallel
 
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=0,nk+1
         do j=1,nj
         do i=1,ni
@@ -570,16 +556,13 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
 
-
-        !$acc parallel private(i,j,k,foo1,foo2,foo3)
-        !$omp parallel do default(shared)   &
-        !$omp private(i,j,k,foo1,foo2,foo3)
+        !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)
+        !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
-
         ! GHB, 210613:  needed to rearrange do loops to parallelize 
         !               correctly with openmp
-        !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
           if(dum(i,j,k).lt.0.0)then
@@ -597,7 +580,6 @@
           endif
         enddo
         enddo
-
         enddo
         !$acc end parallel
 
@@ -606,7 +588,7 @@
         !-----
         IF(.not.terrain_flag)THEN
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -617,10 +599,11 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
         !-----
         ELSE
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -631,6 +614,7 @@
         enddo
         enddo
         enddo
+        !$acc end parallel
         ENDIF
         !-----
 

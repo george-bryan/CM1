@@ -1010,8 +1010,9 @@
           call bcs_tend_halo(dpten(ib,jb,kb,1))
           call bcs_tend_halo(dpten(ib,jb,kb,2))
 #endif
-      !print *,'solve3: point #17'
+#ifdef MPI
           if(timestats.ge.1) time_dpc=time_dpc+mytime()
+#endif
           if( nout3d.ge.2 )then
             !$omp parallel do default(shared) private(i,j,k)
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)

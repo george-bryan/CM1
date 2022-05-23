@@ -174,6 +174,7 @@
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
 !$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey, &
 !$acc                myi,myj,mdiff)
+
 !-----------------------------------------------------------------------
 
       real dx,dy,dz,dtl,timax,run_time,                                       &
@@ -209,12 +210,11 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
-!$acc declare create(dx,dy,dz,dtl, &
-!$acc                kdiff2,kdiff6,fcor,   &
-!$acc                alph,kdiv,rdx,rdy,rdz,minx,   &
-!$acc                maxx,miny,maxy,zt,rzt,umove,vmove,   &
-!$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2, &
-!$acc                cgs3,cgt1,cgt2,cgt3,hurr_rad)
+!$acc declare create(dx,dy,dz,dtl,kdiff2,kdiff6,fcor,alph,kdiv,rdx,  &
+!$acc                rdy,rdz,minx,maxx,miny,maxy,zt,rzt,umove,vmove, &
+!$acc                viscosity,pr_num,sc_num,maxz,cgs1,cgs2,cgs3,    &
+!$acc                cgt1,cgt2,cgt3,hurr_rad)
+
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

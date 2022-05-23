@@ -103,6 +103,7 @@
 
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
+
         tem = 1.0/hurr_rad
 
         !  Mesoscale Tendency terms:
