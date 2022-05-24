@@ -17,7 +17,9 @@
                        flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,ri,diffit, &
                        dobud,ibd,ied,jbd,jed,kbd,ked,ndiag,diag,sd_hadv,sd_vadv,sd_lsw,     &
                        sd_hidiff,sd_vidiff,sd_hediff,wprof,dumk1,dumk2,hadvorder,vadvorder,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,imp,jmp,kmp,cmp,ib3d,ie3d,jb3d,je3d,kb3d,ke3d, &
+          nout3d,wbc,ebc,sbc,nbc,ni,nj,nk,ibw,ibe,ibs,ibn,axisymm,kdiff6,dx,dy,dz,rdx,rdy,rdz,mdiff, &
+          timestats,time_advs,mytime,terrain_flag,advwenos,weno_order,terrain_flag,dolsw,pdscheme,stat_qsrc
       use constants
       use pdef_module
       use adv_routines
@@ -919,7 +921,12 @@
 
       subroutine advu(nrk,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dumx,dumy,dumz,advx,advy,advz,subs,divx, &
                        rru,u3d,uten,rrv,rrw,rdsf,c1,c2,rho,dt,doubud,udiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,vf,mf,v3d,w3d)
-      use input
+
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,imp,jmp,kmp,cmp,ib3d,ie3d,jb3d,je3d,kb3d,ke3d, &
+          ibdv,iedv,jbdv,jedv,kbdv,kedv,nudiag,nout3d,wbc,ebc,sbc,nbc,ni,nj,nk,ibw,ibe,ibs,ibn,axisymm, &
+          kdiff6,dx,dy,dz,rdx,rdy,rdz,mdiff,advwenov,advwenos,hadvordrv,vadvordrv,idiff,difforder, &
+          timestats,time_advu,mytime,terrain_flag,weno_order,terrain_flag,dolsw,pdscheme,stat_qsrc, &
+          ud_hediff,ud_hadv,ud_vadv,ud_lsw,ud_hidiff,ud_vidiff
       use constants
       use adv_routines
       use ib_module
@@ -1863,7 +1870,11 @@
 
       subroutine advv(nrk,xh,rxh,arh1,arh2,uh,xf,vh,vf,gz,rgz,gzv,mh,rho0,rr0,rf0,rrf0,dumx,dumy,dumz,advx,advy,advz,subs,divx, &
                        rru,rrv,v3d,vten,rrw,rdsf,c1,c2,rho,dt,dovbud,vdiag,wprof,bndy,kbdy,hflxw,hflxe,hflxs,hflxn,uf,mf,u3d,w3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,imp,jmp,kmp,cmp,ib3d,ie3d,jb3d,je3d,kb3d,ke3d, &
+          ibdv,iedv,jbdv,jedv,kbdv,kedv,nvdiag,nout3d,wbc,ebc,sbc,nbc,ni,nj,nk,ibw,ibe,ibs,ibn,axisymm, &
+          kdiff6,fcor,dx,dy,dz,rdx,rdy,rdz,mdiff,advwenov,advwenos,hadvordrv,vadvordrv,idiff,difforder, &
+          timestats,time_advv,mytime,terrain_flag,weno_order,terrain_flag,dolsw,pdscheme, &
+          vd_hediff,vd_hadv,vd_vadv,vd_lsw,vd_hidiff,vd_vidiff
       use constants
       use adv_routines
       use ib_module
@@ -2811,7 +2822,11 @@
                       dumx,dumy,dumz,advx,advy,advz,subs,divx,                       &
                       rru,rrv,rrw,w3d  ,wten,rds,rdsf,c1,c2,rho,dt,                  &
                       dowbud ,wdiag,hadvorder,vadvorder,advweno ,bndy,kbdy,uf,vf,u3d,v3d,hflxw,hflxe,hflxs,hflxn)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,imp,jmp,kmp,cmp,ib3d,ie3d,jb3d,je3d,kb3d,ke3d, &
+          ibdv,iedv,jbdv,jedv,kbdv,kedv,nwdiag,nout3d,wbc,ebc,sbc,nbc,ni,nj,nk,ibw,ibe,ibs,ibn,axisymm, &
+          kdiff6,fcor,dx,dy,dz,rdx,rdy,rdz,mdiff,advwenov,advwenos,hadvordrv,vadvordrv,idiff,difforder, &
+          timestats,time_advw,mytime,terrain_flag,weno_order,terrain_flag,dolsw,pdscheme, &
+          wd_hediff,wd_hadv,wd_vadv,wd_hidiff,wd_vidiff
       use constants
       use adv_routines
       use ib_module
