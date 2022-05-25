@@ -294,7 +294,7 @@
       call bcast_int(axisymm,device=.true.)
       call bcast_int(imove,device=.true.)
       call bcast_int(iptra)
-      call bcast_int(npt)
+      call bcast_int(npt,device=.true.)
       call bcast_int(pdtra)
       call bcast_int(iprcl)
       call bcast_int(nparcels,device=.true.)
@@ -303,7 +303,7 @@
       call bcast_real(fcor,device=.true.)
       call bcast_real(kdiv,device=.true.)
       call bcast_real(alph,device=.true.)
-      call bcast_real(rdalpha)
+      call bcast_real(rdalpha,device=.true.)
       call bcast_real(zd)
       call bcast_real(xhd)
       call bcast_real(alphobc)
@@ -599,6 +599,7 @@
       if( psolver.eq.4 .or. psolver.eq.5 ) roflux = 1
 
       if( irdamp.eq.0 .and. hrdamp.eq.0 ) rdalpha = 0.0
+      !$acc update device(rdalpha)
       if( irdamp.ge.1 .and. hrdamp.ge.1 ) hrdamp = irdamp
 
       pdcomp = .false.
@@ -2412,6 +2413,7 @@
       else
         npt      = 1
       endif
+      !$acc update device(npt)
 
       ! for parcels:
       nparcels = max(1,nparcels)
@@ -4234,7 +4236,7 @@
         ENDIF    ! endif for ptype
 
       ENDIF    ! endif for imoist=1
-      !$acc update device(numq,nqs1,nqs2)
+      !$acc update device(numq,nql1,nql2,nqs1,nqs2)
 
 !-----------------------------------------------------------------------
 !-------   END:  modify stuff above here -------------------------------
@@ -4396,9 +4398,11 @@
 
       nrain = 1
       if(imove.eq.1) nrain = 2
+      !$acc update device(nrain)
 
       if(dowr) write(outfile,*) 'nrain     =',nrain
       if(dowr) write(outfile,*)
+   
 
 !!!      if( restart_file_dbz .or. prcl_dbz.ge.1 )then
 !!!        if( ptype.ne.4 )then
@@ -4739,6 +4743,7 @@
         jbl=1
         jel=1
       endif
+      !$acc update device(ibl,iel,jbl,jel)
 
       if( cm1setup.eq.1 .or. cm1setup.eq.2 .or. ipbl.ge.1 .or. cm1setup.eq.3 )then
         iusekm = 1
@@ -5044,6 +5049,9 @@
           td_frz = ntdiag
         endif
       ENDIF
+      !$acc update device(td_hadv,td_vadv,td_hturb,td_vturb,td_hidiff,td_vidiff, &
+      !$acc   td_hediff,td_vediff,td_mp,td_rdamp,td_nudge,td_rad,td_div,td_diss, &
+      !$acc   td_pbl,td_lsw,td_efall,td_cond,td_evac,td_dep,td_subl,td_melt,td_frz)
 
       nqdiag   = 0
       qd_dbz   = 0
@@ -5196,6 +5204,9 @@
           qd_subl = nqdiag
         endif
       ENDIF
+      !$acc update device(qd_dbz,qd_vtc,qd_vtr,qd_vts,qd_vtg,qd_vti,qd_hadv,qd_vadv, &
+      !$acc   qd_hturb,qd_vturb,qd_hidiff,qd_vidiff,qd_hediff,qd_vediff,qd_mp,qd_nudge, &
+      !$acc   qd_pbl,qd_lsw,qd_cond,qd_evac,qd_dep,qd_subl)
 
       nudiag     = 0
       ud_hadv    = 0
@@ -5213,6 +5224,7 @@
       ud_pbl     = 0
       ud_lsw     = 0
       nutk       = 0
+
 
       IF( output_ubudget.eq.1 .or. dodomaindiag )THEN
         ! 170721: to more easily calculate rtke budget, save budget terms
@@ -5292,6 +5304,8 @@
         endif
 
       ENDIF
+      !$acc update device(ud_hadv,ud_vadv,ud_hturb,ud_vturb,ud_hidiff,ud_vidiff, &
+      !$acc   ud_hediff,ud_vediff,ud_pgrad,ud_rdamp,ud_cor,ud_cent,ud_pbl,ud_lsw,nutk)
 
       nvdiag     = 0
       vd_hadv    = 0
@@ -5309,6 +5323,7 @@
       vd_pbl     = 0
       vd_lsw     = 0
       nvtk       = 0
+
 
       IF( output_vbudget.eq.1 .or. dodomaindiag )THEN
         ! 170721: to more easily calculate rtke budget, save budget terms
@@ -5388,6 +5403,8 @@
         endif
 
       ENDIF
+      !$acc update device(vd_hadv,vd_vadv,vd_hturb,vd_vturb,vd_hidiff,vd_vidiff,vd_vediff, &
+      !$acc   vd_pgrad,vd_rdamp,vd_cor,vd_cent,vd_pbl,vd_lsw,nvtk)
 
 
       nwdiag     = 0
@@ -5465,6 +5482,8 @@
         endif
 
       ENDIF
+      !$acc update device(wd_hadv,wd_vadv,wd_hturb,wd_vturb,wd_hidiff,wd_vidiff,wd_hediff, &
+      !$acc   wd_vediff,wd_pgrad,wd_rdamp,wd_buoy,nwtk)
 
       !-----
 
@@ -5496,6 +5515,7 @@
         kd_turb = nkdiag
 
       ENDIF
+      !$acc update device(kd_adv,kd_turb)
 
       !-----
 
@@ -5523,6 +5543,11 @@
         if( icor.eq.1 ) npdiag = npdiag+1
 
       ENDIF
+      !$acc update device(ibdt,iedt,jbdt,jedt,kbdt,kedt, &
+      !$acc               ibdq,iedq,jbdq,jedq,kbdq,kedq, &
+      !$acc               ibdv,iedv,jbdv,jedv,kbdv,kedv, &
+      !$acc               ibdk,iedk,jbdk,jedk,kbdk,kedk, &
+      !$acc               ibdp,iedp,jbdp,jedp,kbdp,kedp )
 
       !-----
 
@@ -5533,6 +5558,7 @@
       nwdiag = max( nwdiag , 1 )
       nkdiag = max( nkdiag , 1 )
       npdiag = max( npdiag , 1 )
+      !$acc update device(ntdiag,nqdiag,nudiag,nvdiag,nwdiag,nkdiag,npdiag)
 
       !-------------------------------------------------------------!
 
@@ -5549,6 +5575,7 @@
       ENDIF
 
       nout2d = max( nout2d , 1 )
+      !$acc update device(ib2d,ie2d,jb2d,ie2d,nout2d)
 
       !-------------------------------------------------------------!
 
@@ -9080,6 +9107,7 @@
 
 !--------------------------------------------------------------
 
+    !$acc update device(imoist)
     IF( myid.eq.0 )THEN
       open(unit=21,file='cm1_config.txt')
       write(21,*)

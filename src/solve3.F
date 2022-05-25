@@ -142,7 +142,28 @@
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart,pdata_locind)
         ! end_solve3
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ibb2,ibe2,jbb2,jbe2, &
+          kbb2,kbe2,ibph,ieph,jbph,jeph,kbph,keph,ibnba,ienba,jbnba,jenba,kbnba,kenba, &
+          nx,ny,nz,ni,nj,nk,ibm,iem,jbm,jem,kbm,kem,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt, &
+          jet,kbt,ket,ibb,ieb,jbb,jeb,kbb,keb,ibr,ier,jbr,jer,kbr,ker,maxq,nbudget,numq,ngxy, &
+          nrain,npt,nparcels,npvals,ibl,iel,jbl,jel,ibp,iep,jbp,jep,kbp,kep,ib2pt,ie2pt, &
+          jb2pt,je2pt,kb2pt,ke2pt,ipb,ipe,jpb,jpe,kpb,kpe,rmp,cmp,kmt,imp,jmp,kmp,d3i,d3j, &
+          d3t,d3n,d2i,d2j,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibdq,iedq,jbdq,jedq,kbdq, &
+          kedq,nqdiag,ibdv,iedv,jbdv,jedv,kbdv,kedv,nudiag,nvdiag,nwdiag,ibdk,iedk,jbdk, &
+          jedk,kbdk,kedk,nkdiag,ibdp,iedp,jbdp,jedp,kbdp,kedp,npdiag,ib2d,ie2d,jb2d,je2d, &
+          nout2d,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,nf,nu,nv,nw,testcase,myid,timestats, &
+          psolver,dolsw,nqc,nqi,nnci,nncc,mytime,cm1setup,iusetke,sgsmodel,doimpl,iinit,ptype, &
+          time_prsrho,time_microphy,time_parcels,time_integ,time_dpc,time_poiss,time_swath, & 
+          ibw,ibe,ibs,ibn,imoist,irdamp,hrdamp,irbc,rdalpha,iptra,lspgrad,ierr,fcor,vmove, &
+          umove,hurr_rad,difforder,idiff,nqv,eqtset,idiss,rterm,iice,nql1,nql2,nqs1,nqs2, &
+          axisymm,dx,dy,dz,rdz,bbc,terrain_flag,radopt,use_pbl,tsmall,qsmall,dohturb,dovturb, &
+          xc_uforce,xr_uforce,zr_uforce,alpha_uforce,t1_uforce,t2_uforce,iprcl,imove,sfcmodel, &
+          nutk,nvtk,nwtk,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,rzt,zt,rdx,rdy,rdz,nqg,nqr,dot2p, &
+          kd_turb,ud_rdamp,vd_rdamp,wd_rdamp,td_rdamp,td_hediff,td_vediff,qd_hediff,qd_vediff, &
+          td_diss,td_rad,td_pbl,td_hturb,td_vturb,qd_hturb,qd_vturb,ud_pbl,vd_pbl,qd_pbl, &
+          td_nudge,qd_nudge,prcl_droplet,ntwk,pdcomp, &
+          output_rain,output_sws,output_svs,output_sps,output_srs,output_sgs,output_sus,output_shs
+
       use constants
       use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
           bcs_tend_halo, bcs2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU
