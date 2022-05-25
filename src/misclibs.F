@@ -25,7 +25,9 @@
 
       subroutine getdiv(arh1,arh2,uh,vh,mh,u,v,w,dum1,dum2,dum3,div,  &
                         rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj,nk, &
+          axisymm,terrain_flag,rdx,rdy,rdz,zt,rzt,smeps,timestats,mytime, &
+          time_divx
       implicit none
 
       real, intent(in), dimension(ib:ie) :: arh1,arh2,uh
@@ -144,7 +146,10 @@
 
       subroutine getdivx(arh1,arh2,uh,vh,mh,rho0,rf0,rru,rrv,rrw,divx,  &
                          rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj,nk, &
+          axisymm,terrain_flag,rdx,rdy,rdz,zt,rzt,smeps,timestats,mytime, &
+          time_divs,time_divx
+
       implicit none
 
       real, intent(in), dimension(ib:ie) :: arh1,arh2,uh

@@ -592,7 +592,7 @@
           imove = 0
         endif
       endif
-      !$acc update device(imoist,umove,vmove)
+      !$acc update device(umove,vmove)
       irst = max( irst , 0 )
       irst = min( irst , 1 )
       if( cm1setup.eq.2 ) tconfig = 2
@@ -9107,6 +9107,7 @@
 
 !--------------------------------------------------------------
 
+    !$acc update device(imoist)
     IF( myid.eq.0 )THEN
       open(unit=21,file='cm1_config.txt')
       write(21,*)
