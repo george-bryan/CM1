@@ -310,7 +310,7 @@
       call bcast_real(umove,device=.true.)
       call bcast_real(vmove,device=.true.)
       call bcast_real(v_t)
-      call bcast_real(l_h)
+      call bcast_real(l_h,device=.true.)
       call bcast_real(lhref1)
       call bcast_real(lhref2)
       call bcast_real(l_inf)

@@ -148,7 +148,7 @@
                          rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
       use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj,nk, &
           axisymm,terrain_flag,rdx,rdy,rdz,zt,rzt,smeps,timestats,mytime, &
-          time_divs,time_divx
+          time_advs,time_divx
 
       implicit none
 
@@ -315,7 +315,7 @@
 
       ! Generate random perturbations, add to tha (by default):
 
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,nx,ny,ngxy,ni,nj,nk
       implicit none
 
       real, intent(in), dimension(1-ngxy:nx+ngxy+1) :: xfref
@@ -361,7 +361,7 @@
 
 
       subroutine reinit_random_seed
-      use input
+      use input, only : myid
       implicit none
 
       integer :: k,n
@@ -475,6 +475,7 @@
 
 
       subroutine get_wnudge(mtime,dtin,xh,yh,zf,wa,wndgten)
+      !use input, only : ib,ie,jb,je,kb,ke,mtime,ni,nj,nk,mtime
       use input
       use constants , only : pi
       implicit none
@@ -968,7 +969,9 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine getcvm_GPU(cvm,q)
-      use input
+      use input, only :ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem,numq, &
+          eqtset,imoist,ni,nj,nk,nqv,nql1,nql2,nqs1,nqs2,iice,timestats, &
+          time_misc03,mytime
       use constants
       implicit none
 
@@ -4654,7 +4657,22 @@
 
 
       subroutine set_time_to_zero
-      use input
+      use input, only : time_sound,time_poiss,time_advs,time_phys_H2D,time_phys_D2H, &
+          time_H2D,time_D2H,time_advu,time_advv,time_advw,time_buoyan,time_turb, &
+          time_diffu,time_microphy,time_dbz,time_stat,time_cflq,time_bc,time_bcs, &
+          time_bcs2,time_bcst,time_misc,time_misc01,time_misc02,time_misc03,time_misc04, &
+          time_misc05,time_misc06,time_misc07,time_misc08,time_misc09,time_misc10, &
+          time_misc11,time_misc12,time_misc13,time_misc14,time_misc15,time_misc16, &
+          time_misc17,time_misc18,time_misc19,time_misc20,time_misc21,time_misc22, &
+          time_misc23,time_integ,time_rdamp,time_divx,time_write,time_nvtx,time_restart, &
+          time_ttend,time_cor,time_fall,time_satadj,time_sfcphys,time_parcels,time_parceli, &
+          time_droplet,time_droplet_reduce,time_parceli_reduce,time_rad,time_pbl,time_swath, &
+          time_pdef,time_prsrho,time_diag,time_azimavg,time_hifrq,time_ercyl,time_mpu1, &
+          time_mpv1,time_mpw1,time_mpp1,time_mpu2,time_mpv2,time_mpw2,time_mpp2,time_mps1, &
+          time_mps3,time_mpq1,time_mptk1,time_mptk2,time_mps2,time_mps4,time_mpq2,time_mpb, &
+          time_dpc
+
+
       implicit none
 
       time_sound=0.0

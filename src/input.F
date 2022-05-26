@@ -237,7 +237,7 @@
 !$acc   rdx,rdy,rdz,minx,maxx,miny,maxy,zt,rzt,umove,vmove, &
 !$acc   xc_uforce,xr_uforce,zr_uforce,alpha_uforce,t1_uforce,t2_uforce,    &
 !$acc   viscosity,pr_num,sc_num,maxz,cgs1,cgs2,tsmall,qsmall, &
-!$acc   cgs3,cgt1,cgt2,cgt3,csound,hurr_rad,smeps)
+!$acc   cgs3,cgt1,cgt2,cgt3,csound,hurr_rad,smeps,l_h)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
