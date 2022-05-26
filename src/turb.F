@@ -70,7 +70,21 @@
                    iamsat,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
       ! end_sfc_and_turb
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ibnba,ienba,jbnba,jenba,kbnba,kenba, & 
+          ibm,iem,jbm,jem,kbm,kem,numq,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt,jet,kbt,ket, &
+          ibb,ieb,jbb,jeb,kbb,keb,ibmynn,iemynn,jbmynn,jemynn,kbmynn,kemynn,ibr,ier,jbr,jer,kbr,ker, &
+          ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibl,iel,jbl,jel,ibmyj,iemyj,jbmyj,jemyj,kbmyj,kemyj, &
+          ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt,maxq,ktb,kte,ni,nj,nk,nmyj,rmp,kmt,jmp,kmp,imp,cmp, &
+          ib2d,ie2d,jb2d,je2d,nout2d,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,nbudget,nqs1,nqs2,nql1,nql2, &
+          nnci,nncc,nqv,nqc,nqi,dx,dy,dz,umove,vmove,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc, &
+          terrain_flag,mytime,iice,sfcmodel,sgsmodel,myid,cm1setup,testcase,ipbl,idiss,horizturb, &
+          time_turb,time_sfcphys,time_pbl,output_dissten,use_pbl,rdx,rdy,rdz,timestats,isfcflx, &
+          output_def,output_nm,output_km,output_kh,output_sfcflx,imoist,oceanmodel,imove, &
+          viscosity,sc_num,pr_num,smeps,dot2p,use_avg_sfc,use_avg_sfc,dowr,ptype,axisymm, &
+          td_diss,td_pbl,pertflx,radopt,outfile,dodomaindiag,cnst_znt,isftcflx,iz0tlnd,adapt_dt, &
+          bl_mynn_edmf,bl_mynn_tkeadvect,bl_mynn_tkebudget,bl_mynn_cloudpdf,bl_mynn_mixlength,bl_mynn_edmf, &
+          bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,bl_mynn_output,bl_mynn_cloudmix,bl_mynn_mixqt, &
+          icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag
       use constants
       use bc_module, only: bc2d_GPU, bcw_GPU, bcs_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_GPU
       use comm_module
