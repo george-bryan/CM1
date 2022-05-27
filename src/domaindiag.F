@@ -5741,7 +5741,7 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
-#if 0
+
         call     momentum_flux(u3d,v3d,w3d,t13,t23,m13,m23,rf,rf0,c1,c2,dum3,dum4,dum5,ufr,ufs,ufd,vfr,vfs,vfd)
 
         nvar = nvar+1
@@ -7120,7 +7120,6 @@
 
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-       stop 'domaindiag: ub_vturbr'
       !c-c-c-c-c-c-c-c-c-c
 
         nvar = nvar+1
@@ -7150,7 +7149,6 @@
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
       !c-c-c-c-c-c-c-c-c-c
-#endif
 
       if( ud_hadv.ge.1 )then
 
@@ -10102,25 +10100,18 @@
 
   !----------------------
 
-    
-#ifndef _B4B21R
-    !$acc parallel default(present) private(i,j,k) reduction(+:vbart) reduction(+:vfrt,vfdt)
+    !$acc parallel default(present)
     !$acc loop gang vector
-#endif
     do k=1,nk
       vbar(k) = 0.0
     enddo
+    !$acc end parallel
 
-#ifdef _B4B21R
-    !$acc update host(dum3)
-#else
+    !$acc parallel default(present) reduction(+:vbart)
     !$acc loop gang
-#endif
     do k=2,nk
       vbart = 0.0d0
-#ifndef _B4B21R
       !$acc loop vector collapse(2) reduction(+:vbart)  
-#endif
       do j=1,nj
       do i=1,ni
         vbart = vbart+dum3(i,j,k)
@@ -10128,13 +10119,7 @@
       enddo
       vbar(k) = vbart
     enddo
-#ifdef _B4B21R
-    !$acc update device(vbar)
-#else
     !$acc end parallel
-#endif
-        !buh4
-    !stop 'domaindiag: point #1'
 
 #ifdef MPI
     !$acc update host(vbar)
@@ -10165,7 +10150,6 @@
           wbar = 0.5*(w3d(i,j,k)+w3d(i,j-1,k))
           vfrt = vfrt + wbar*(dum4(i,j,k)-vbar(k))
           vfdt = vfdt+ wbar*(dum3(i,j,k)-dum4(i,j,k))
-        !buh5
         enddo
         enddo
         vfr(k) = vfrt
@@ -10175,11 +10159,7 @@
 
     !-------------------------------------------------------
 
-#ifdef _B4B23R
-      !$acc update host(rf,m13,m23,t13,t23)
-#else
       !$acc parallel default(present) private(i,j,k) reduction(+:ufst,vfst)
-#endif
       if( cm1setup.ge.1 .or. ipbl.eq.2 )then
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
           ! use mij:
@@ -10257,7 +10237,6 @@
 
       !$acc end data
 
-      stop 'momentum_flux: at the end'
       end subroutine momentum_flux
 
 
@@ -10347,12 +10326,14 @@
 
   !----------------------
 
-    !$acc parallel default(present) reduction(+:sbart)
-    !$acc loop vector gang 
+    !$acc parallel default(present)
+    !$acc loop gang vector
     do k=1,nk+1
       sbar(k) = 0.0
     enddo
+    !$acc end parallel
 
+    !$acc parallel default(present) reduction(+:sbart)
     !$acc loop gang
     do k=2,nk
       sbart=0.d0
@@ -10365,7 +10346,6 @@
       sbar(k) = sbart
     enddo
     !$acc end parallel
-        !buh4
 
 #ifdef MPI
     !$acc update host(sbar)
@@ -10384,8 +10364,8 @@
 
   !----------------------
 
-    !$acc parallel default(present) private(i,j,k) reduction(+:sfrt,sfdt,sfst)
     !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel default(present) reduction(+:sfrt,sfdt)
     !$acc loop gang 
     do k=2,nk
       sfrt=0.0d0
@@ -10395,14 +10375,15 @@
       do i=1,ni
         sfrt = sfrt + w3d(i,j,k)*(dum4(i,j,k)-sbar(k))
         sfdt = sfdt + w3d(i,j,k)*(dum3(i,j,k)-dum4(i,j,k))
-        !buh5
       enddo
       enddo
       sfr(k) = sfrt
       sfd(k) = sfdt
     enddo
+    !$acc end parallel
 
     if( cm1setup.ge.1 .or. ipbl.eq.2 .or. cm1setup.eq.3 )then
+      !$acc parallel default(present) reduction(+:sfst)
       !$acc loop gang 
       do k=2,nk
         sfst=0.0d0
@@ -10414,13 +10395,15 @@
         enddo
         sfs(k) = sfst
       enddo
+      !$acc end parallel
     else
+      !$acc parallel default(present)
       !$acc loop gang vector
       do k=2,nk
         sfs(k) = 0.0d0
       enddo
+      !$acc end parallel
     endif
-    !$acc end parallel
 
       !-----------------------------
       ! 171122:  boundary conditions
@@ -10531,12 +10514,12 @@
       integer :: k
       real :: fb1,fb2
 
-        !$acc parallel default(present) private(k,fb1,fb2) reduction(+:wstar)
         wstar = 0.0
         fbmin = 1.0e30
         zfbmin = 0.0
 
-        !$acc loop vector reduction(+:wstar)
+        !$acc parallel default(present)
+        !$acc loop seq
         do k=1,nk
           if( k.eq.1 )then
             fb1 = g*( thfavg*rth0s(1,1) + repsm1*qvfavg )
@@ -10552,16 +10535,13 @@
           wstar = wstar + (zf(1,1,k+1)-zf(1,1,k))*0.5*(fb1+fb2)
 
           if( fb1.lt.fbmin )then
-            !$acc atomic write
             fbmin = fb1
-            !$acc atomic write
             zfbmin = zf(1,1,k)
           endif
-
         enddo
+        !$acc end parallel
         
         wstar = 2.5*(max(0.0d0,wstar)**(1.0/3.0))
-        !$acc end parallel
 
       end subroutine getwstar
 
@@ -10586,7 +10566,7 @@
     integer :: i,j
 
     savg2d = 0.0
-    !$acc parallel default(present) private(i,j) reduction(+:savg2d)
+    !$acc parallel default(present) reduction(+:savg2d)
     !$acc loop gang vector collapse(2) reduction(+:savg2d)
     do j=1,nj
     do i=1,ni
@@ -10635,12 +10615,14 @@
       k2 = min(nkm,nk+1)
     ENDIF
 
-    !$acc parallel default(present) reduction(+:stmp)
-    !$acc loop 
+    !$acc parallel default(present)
+    !$acc loop gang vector
     do k=1,nk+1
       savg(k) = 0.0
     enddo
+    !$acc end parallel
 
+    !$acc parallel default(present)
     !$acc loop gang
     do k=1,k2
       stmp = 0.0
@@ -10664,10 +10646,9 @@
     do k=1,k2
       savg(k) = savg(k)/dble(nx*ny)
     enddo
+    !$acc end parallel
 
     end subroutine getavg3d
-
-
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10695,19 +10676,20 @@
     IF( present(nkm) )THEN
       k2 = min(nkm,nk+1)
     ENDIF
-    !$acc parallel default(present) private(i,j,k) reduction(max:temd)
+    !$acc parallel default(present)
     !$acc loop gang vector
     do k=1,nk+1
       savg(k) = -1.0e30
     enddo
+    !$acc end parallel
 
+    !$acc parallel default(present) reduction(max:temd)
     !$acc loop gang
     do k=1,k2
       temd = -1.0e30
       !$acc loop vector collapse(2) reduction(max:temd)
       do j=1,nj
       do i=1,ni
-        !savg(k) = max(savg(k),s(i,j,k))
         temd = max(temd,s(i,j,k))
       enddo
       enddo
@@ -10749,19 +10731,20 @@
     IF( present(nkm) )THEN
       k2 = min(nkm,nk+1)
     ENDIF
-    !$acc parallel default(present) reduction(min:temd)
+    !$acc parallel default(present)
     !$acc loop gang vector
     do k=1,nk+1
       savg(k) = 1.0e30
     enddo
+    !$acc end parallel
 
+    !$acc parallel default(present) reduction(min:temd)
     !$acc loop gang
     do k=1,k2
       temd = 1.0e30
       !$acc loop vector collapse(2) reduction(min:temd)
       do j=1,nj
       do i=1,ni
-        !savg(k) = min(savg(k),s(i,j,k))
         temd = min(temd,s(i,j,k))
       enddo
       enddo
@@ -10938,7 +10921,7 @@
     integer :: i,j,k
     !$acc declare present(rtkeb,utk,udiag,uavg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -10954,7 +10937,7 @@
     enddo
     enddo
     enddo
-
+    !$acc end parallel
 
     if( myid.eq.0 ) print *,'  rtkeb_addu,udn = ',udn
 
@@ -10977,7 +10960,7 @@
     integer :: i,j,k
     !$acc declare present(rtkeb,vtk,vdiag,vavg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -10993,6 +10976,7 @@
     enddo
     enddo
     enddo
+    !$acc end parallel
 
     if( myid.eq.0 ) print *,'  rtkeb_addv,vdn = ',vdn
 
@@ -11015,7 +10999,7 @@
     integer :: i,j,k
     !$acc declare present(rtkeb,wtk,wdiag,wavg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     do k=1,nk
     do j=1,nj
     do i=1,ni
@@ -11028,6 +11012,7 @@
     enddo
     enddo
     enddo
+    !$acc end parallel
 
     if( myid.eq.0 ) print *,'  rtkeb_addw,wdn = ',wdn
 
@@ -11052,7 +11037,7 @@
     integer :: i,j,k
     !$acc declare present(uwb,utk,wtk,udiag,wdiag,u_avg,w_avg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -11066,6 +11051,7 @@
     enddo
     enddo
     enddo
+    !$acc end parallel
 
     if( myid.eq.0 ) print *,'  uwb: udn,wdn = ',udn,wdn
 
@@ -11090,7 +11076,7 @@
     integer :: i,j,k
     !$acc declare present(vwb,vtk,wtk,vdiag,wdiag,v_avg,w_avg)
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     do k=2,nk
     do j=1,nj
     do i=1,ni
@@ -11104,6 +11090,7 @@
     enddo
     enddo
     enddo
+    !$acc end parallel
 
     if( myid.eq.0 ) print *,'  vwb: vdn,wdn = ',vdn,wdn
 

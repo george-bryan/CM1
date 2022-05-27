@@ -1913,7 +1913,7 @@
 
     IF( dolsw )THEN
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector collapse(2) default(present)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1
