@@ -360,7 +360,8 @@
 
 
       subroutine bcp(p)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,ni,nj,nk,timestats,time_bc,mytime
       implicit none
 
       real, dimension(ib:ie,jb:je,kb:ke) :: p
@@ -855,7 +856,8 @@
 
 
       subroutine bcw(w,flag)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,wbc,ebc,sbc,nbc,ngxy, &
+          ibw,ibe,ibs,ibn,ni,nj,nk,timestats,time_bc,mytime
       implicit none
 
       real, dimension(ib:ie,jb:je,kb:ke+1) :: w
@@ -1020,7 +1022,9 @@
 
 
       subroutine bcwsfc(gz,dzdx,dzdy,u,v,w)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj, &
+          timestats,time_bc,mytime
+
       implicit none
 
       real, intent(in), dimension(itb:ite,jtb:jte) :: gz
@@ -1057,7 +1061,8 @@
 
 
       subroutine bcs_tend_halo(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          time_bcst,timestats,mytime
       implicit none
 
       double precision, dimension(ib:ie,jb:je,kb:ke) :: s
@@ -1139,7 +1144,7 @@
 
 
       subroutine extrapbcs(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,nk,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -1297,7 +1302,9 @@
 
 
       subroutine bct2(t)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
       implicit none
 
       real t(ib:ie,jb:je,kb:ke+1)
@@ -1423,7 +1430,9 @@
 
 
       subroutine bct2_GPU(t)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
       implicit none
 
       real t(ib:ie,jb:je,kb:ke+1)
@@ -1548,7 +1557,9 @@
 
 
       subroutine bcu2_GPU(u)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
       implicit none
 
       real u(ib:ie+1,jb:je,kb:ke)
@@ -1675,7 +1686,9 @@
 
 
       subroutine bcv2_GPU(v)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
       implicit none
 
       real v(ib:ie,jb:je+1,kb:ke)
@@ -1929,7 +1942,9 @@
 
 
       subroutine bcw2_GPU(w)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
       implicit none
 
       real w(ib:ie,jb:je,kb:ke+1)
@@ -2056,7 +2071,9 @@
 
 
       subroutine bcs2_2d(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
       implicit none
 
       real s(ib:ie,jb:je)
@@ -2157,7 +2174,9 @@
 
 
       subroutine bcs2_2d_GPU(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
       implicit none
 
       real s(ib:ie,jb:je)
@@ -2267,7 +2286,8 @@
 
 
       subroutine radbcew(radbcw,radbce,ua)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,wbc,ebc,sbc,nbc,ni,nj,nk, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime
       use constants
       implicit none
 
@@ -2322,7 +2342,9 @@
 
 
       subroutine radbcns(radbcs,radbcn,va)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,wbc,ebc,sbc,nbc,ni,nj,nk, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime
+
       use constants
       implicit none
 
@@ -2377,7 +2399,9 @@
 
 
       subroutine radbcew4(ruf,radbcw,radbce,u1,u2,dt)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,wbc,ebc,sbc,nbc,ni,nj,nk, &
+          ibw,ibe,ibs,ibn,dx,timestats,time_bc,mytime
+
       use constants
       implicit none
 
@@ -2441,7 +2465,8 @@
 
 
       subroutine radbcns4(rvf,radbcs,radbcn,v1,v2,dt)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,wbc,ebc,sbc,nbc,ni,nj,nk, &
+          ibw,ibe,ibs,ibn,dy,timestats,time_bc,mytime
       use constants
       implicit none
 
@@ -2508,7 +2533,9 @@
 
 
       subroutine restrict_openbc_we(rvh,rmh,rho0,u3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk, &
+          wbc,ebc,sbc,nbc,ibw,ibe,ibs,ibn,time_bc, &
+          ierr,timestats,mytime
 #ifdef MPI
       use mpi
 #endif
@@ -2639,7 +2666,9 @@
 
 
       subroutine restrict_openbc_sn(ruh,rmh,rho0,v3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk, &
+          wbc,ebc,sbc,nbc,ibw,ibe,ibs,ibn,time_bc, &
+          ierr,timestats,mytime
 #ifdef MPI
       use mpi
 #endif
@@ -2740,7 +2769,8 @@
 
 
       subroutine ssopenbcw(uh,rds,sigma,rdsf,sigmaf,gz,rgzu,gx,radbcw,dum1,u3d,uten,dts)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ni,nj,nk, &
+          cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,rdx,terrain_flag,timestats,time_bc,mytime
       implicit none
 
       real, intent(in),    dimension(ib:ie) :: uh
@@ -2825,7 +2855,8 @@
 
 
       subroutine ssopenbce(uh,rds,sigma,rdsf,sigmaf,gz,rgzu,gx,radbce,dum1,u3d,uten,dts)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ni,nj,nk, &
+          cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,rdx,terrain_flag,timestats,time_bc,mytime
       implicit none
 
       real, intent(in),    dimension(ib:ie) :: uh
@@ -2910,7 +2941,8 @@
 
 
       subroutine ssopenbcs(vh,rds,sigma,rdsf,sigmaf,gz,rgzv,gy,radbcs,dum1,v3d,vten,dts)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ni,nj,nk, &
+          cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,rdy,terrain_flag,timestats,time_bc,mytime
       implicit none
 
       real, intent(in),    dimension(jb:je) :: vh
@@ -2995,7 +3027,8 @@
 
 
       subroutine ssopenbcn(vh,rds,sigma,rdsf,sigmaf,gz,rgzv,gy,radbcn,dum1,v3d,vten,dts)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ni,nj,nk, &
+          cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,rdy,terrain_flag,timestats,time_bc,mytime
       implicit none
 
       real, intent(in),    dimension(jb:je) :: vh
@@ -3077,7 +3110,8 @@
 !GPU================================================================================================
 
       subroutine bc2d_GPU(s)
-      use input
+      use input, only : ib,ie,jb,je,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime 
       implicit none
 
       real, dimension(ib:ie,jb:je) :: s
@@ -3241,7 +3275,8 @@
       end subroutine bc2d_GPU
 
       subroutine bcs(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime
       implicit none
 
       real, dimension(ib:ie,jb:je,kb:ke) :: s
@@ -3417,7 +3452,8 @@
       end subroutine bcs
 
       subroutine bcs_GPU(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bcs,mytime
       implicit none
 
       real, dimension(ib:ie,jb:je,kb:ke) :: s
@@ -3631,7 +3667,8 @@
       end subroutine bcs_GPU
 
       subroutine bcu_GPU(u)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime
       implicit none
 
       real, dimension(ib:ie+1,jb:je,kb:ke) :: u
@@ -3849,7 +3886,8 @@
       end subroutine bcu_GPU
 
       subroutine bcv_GPU(v)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime,axisymm
       implicit none
 
       real, dimension(ib:ie,jb:je+1,kb:ke) :: v
@@ -4072,7 +4110,8 @@
       end subroutine bcv_GPU
 
       subroutine bcw_GPU(w,flag)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime
       implicit none
 
       real, dimension(ib:ie,jb:je,kb:ke+1) :: w
@@ -4279,7 +4318,9 @@
 
 
    subroutine bcs2(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime,patchsww,patchnww, &
+          patchsee,patchnee,patchsws,patchses,patchnwn,patchnen
       implicit none
 
       real s(ib:ie,jb:je,kb:ke)
@@ -4399,7 +4440,9 @@
       end subroutine bcs2
 
       subroutine bcs2_GPU(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bcs2,mytime,patchsww,patchnww, &
+          patchsee,patchnee,patchsws,patchses,patchnwn,patchnen
       implicit none
 
       real s(ib:ie,jb:je,kb:ke)

@@ -173,7 +173,7 @@
 !$acc                prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi, &
 !$acc                prznt,prust,przs,prsig,prvpx,prvpy,prvpz,prrp, &
 !$acc                prms,prtp,prmult,pract,ntwk,imp,jmp,kmp,kmt, &
-!$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey, &
+!$acc                rmp,cmp,ibw,ibe,ibs,ibn,nodex,nodey,nnc1,nnc2, &
 !$acc                myi,myj,mdiff,nrain,npt,ibl,iel,jbl,jel, &
 !$acc                ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag, &
 !$acc                ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag, &
@@ -241,7 +241,7 @@
 !$acc   cnst_znt,cnst_shflx,cnst_lhflx,cnst_ust,cnstcd,cnstce, &
 !$acc   xc_wnudge,xr_wnudge,zr_wnudge,alpha_wnudge,t1_wnudge,t2_wnudge, &
 !$acc   yc_wnudge,yr_wnudge,zc_wnudge,wmax_wnudge,rxrwnudge,ryrwnudge,rzrwnudge, &
-!$acc   dgs1,dgs2,dgs3,dgt1,dgt2,dgt3)
+!$acc   dgs1,dgs2,dgs3,dgt1,dgt2,dgt3,centerx,centery)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string
