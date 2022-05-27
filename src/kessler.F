@@ -565,13 +565,9 @@
     !$acc parallel
     IF(nrk.ge.nrkmax)THEN
       dum=dx*dy*dz
-      !$acc loop gang vector reduction(+:tcond)
+      !$acc loop gang vector reduction(+:tcond,tevac)
       do k=1,nk
         tcond=tcond+bud1(k)*dum
-      enddo
-
-      !$acc loop gang vector reduction(+:tevac)
-      do k=1,nk
         tevac=tevac+bud2(k)*dum
       enddo
     ENDIF
@@ -1017,8 +1013,8 @@
       !$acc data create(bud)
 
       !$omp parallel do default(shared) private(i,j)
-      !$acc parallel default(present) private(i,j) reduction(+:budt,erain)
-      !$acc loop gang
+      !$acc parallel default(present) reduction(+:budt,erain)
+      !$acc loop gang reduction(+:erain)
       do j=1,nj
         budt=0.0d0
         !$acc loop vector reduction(+:budt)
@@ -1026,10 +1022,6 @@
           budt=budt+dt*vr(i,j,1)*rr(i,j,1)*q3d(i,j,1)*(cpx*t(i,j,1)-lx1)*ruh(i)*rvh(j)
         enddo
         bud(j)=budt
-      enddo
-
-      !$acc loop vector reduction(+:erain)
-      do j=1,nj
         erain=erain+bud(j)*dx*dy
       enddo
       !$acc end parallel

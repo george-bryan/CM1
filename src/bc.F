@@ -2533,15 +2533,17 @@
         temout(k) = 0.0d0
         temin(k)  = 0.0d0
       enddo
+      !$acc end parallel
 
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
         !$omp parallel do default(shared) private(j,k,temp1,temp2)
-        !$acc parallel loop gang vector private(j,k,temp1,temp2)
+        !$acc parallel default(present) reduction(+:temp1,temp2)
+        !$acc loop gang
         do k=1,nk
           temp1 = temout(k)
           temp2 = temin(k)
-          !$acc loop reduction(+:temp1,temp2) 
+          !$acc loop vector reduction(+:temp1,temp2) 
           do j=1,nj
             temp1 = temp1 - min(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
             temp2 = temp2 + max(0.0,rho0(1,j,k)*u3d(i,j,k)*rvh(j)*rmh(1,j,k))
@@ -2554,20 +2556,13 @@
 
       if(ebc.eq.2.and.ibe.eq.1)then
         i=ni+1
-        !!$omp parallel do default(shared) private(j,k)
-        !do k=1,nk
-        !do j=1,nj
-        !  temout(k)=temout(k)+max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
-        !  temin(k) =temin(k) -min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
-        !enddo
-        !enddo
-
         !$omp parallel do default(shared) private(j,k)
-        !$acc parallel loop gang vector private(j,k,temp1,temp2)
+        !$acc parallel default(present) reduction(+:temp1,temp2)
+        !$acc loop gang
         do k=1,nk
           temp1 = temout(k)
           temp2 = temin(k)
-          !$acc loop reduction(+:temp1,temp2)
+          !$acc loop vector reduction(+:temp1,temp2)
           do j=1,nj
             temp1 = temp1 + max(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
             temp2 = temp2 - min(0.0,rho0(ni,j,k)*u3d(i,j,k)*rvh(j)*rmh(ni,j,k))
@@ -2613,6 +2608,7 @@
           endif
         enddo
         enddo
+        !$acc end parallel
       endif
 
       if(ebc.eq.2.and.ibe.eq.1)then
@@ -2627,6 +2623,7 @@
           endif
         enddo
         enddo
+        !$acc end parallel
       endif
 
       !$acc end data

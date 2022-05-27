@@ -1154,6 +1154,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
@@ -1169,6 +1170,7 @@
       enddo
       enddo
       enddo
+      !$acc end parallel
 
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
@@ -1194,7 +1196,7 @@
       enddo
       enddo
       enddo
-
+      !$acc end parallel
     ENDIF
     !HERE print *,'parcel_interp: before nploop2'
 !----------------------------------------------------------------------
@@ -1202,11 +1204,7 @@
 !----------------------------------------------------------------------
 !  Loop through all parcels:  if you have it, get interpolated info:
     !PORTME
-    !$acc parallel loop gang vector default(present) &
-    !$acc   private(x3d,y3d,z3d,i,j,k,n,iflag,jflag,kflag, &
-    !$acc       rx,ry,rz,rxu,ryv,rzw,rxs,rys,rzs, &
-    !$acc       w1,w2,w3,w4,w5,w6,w7,w8, &
-    !$acc       uval,vval,wval,z0,var,rznt)
+    !$acc parallel loop gang vector default(present)
     nploop2:  &
     DO np=1,nparcels
 
