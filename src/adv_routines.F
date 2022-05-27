@@ -28,7 +28,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_weno3(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -233,7 +233,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_weno5(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -449,7 +449,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_weno7(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -706,7 +706,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_weno9(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -971,7 +971,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx2(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -1137,7 +1137,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx3(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -1335,7 +1335,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx4(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -1501,7 +1501,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx5(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -1670,7 +1670,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx6(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -1836,7 +1836,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx7(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -2033,7 +2033,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx8(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -2198,7 +2198,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx9(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -2396,7 +2396,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine hadv_flx10(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -2562,7 +2562,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_weno3(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -2702,7 +2702,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_weno5(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,pdefweno,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -2907,7 +2907,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_weno7(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -3075,7 +3075,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_weno9(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -3248,7 +3248,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx2(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -3366,7 +3366,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx3(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -3500,7 +3500,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx4(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -3618,7 +3618,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx5(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -3750,7 +3750,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx6(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -3870,7 +3870,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx7(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -4012,7 +4012,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx8(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -4134,7 +4134,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx9(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -4278,7 +4278,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_flx10(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -4402,7 +4402,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_weno_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -4599,7 +4599,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_weno_35(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -4790,7 +4790,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_weno_35_b(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -4845,7 +4845,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_weno_57(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -5036,7 +5036,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_weno_79(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -5227,7 +5227,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_23(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -5420,7 +5420,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_35(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -5603,7 +5603,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_57(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -5798,7 +5798,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_79(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -5994,7 +5994,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_2(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -6111,7 +6111,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_4(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -6224,7 +6224,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_6(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -6337,7 +6337,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vadv_lwr_flx_8(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -6858,7 +6858,9 @@
 
 
       subroutine vadv_axiu(doweno,arf1,arf2,c1,c2,rrw,a,dumz,weps)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          wbc,ebc,sbc,nbc,rdx,vadvordrv,weno_order,pdscheme,timestats, &
+          time_advs,mytime
       use constants
       implicit none
 
@@ -7389,7 +7391,8 @@
       subroutine advsaxi(doweno,bflag,bsq,xh,rxh,arh1,arh2,uh,ruh,xf,vh,rvh,rmh,gz,rgz, &
                   rho0,rr0,rf0,rrf0,advx,dum,mass,rru,s0,s,pdef,dt,weps, &
                   hadvorder,flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn,itb,ite,jtb,jte, &
+          imp,cmp,jmp,kmp,wbc,ebc,sbc,nbc,rdx,weno_order,pdscheme,timestats,time_advs,mytime
       use constants
       use pdef_module
       implicit none
@@ -7957,7 +7960,8 @@
 
 
       subroutine advuaxi(doweno,arh1,arh2,xf,rxf,arf1,arf2,uf,vh,rho0,rr0,rf0,rrf0,dum,advx,rru,u3d,hadv)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn,itb,ite,jtb,jte, &
+          imp,cmp,jmp,kmp,wbc,ebc,sbc,nbc,rdx,weno_order,pdscheme,timestats,time_advu,mytime
       use constants
       implicit none
 
@@ -8466,7 +8470,9 @@
 
 
       subroutine advvaxi(doweno,xh,rxh,arh1,arh2,uh,xf,vf,rho0,rr0,rf0,rrf0,dum,advx,v3d,rru,hadv)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn,itb,ite,jtb,jte, &
+          imp,cmp,jmp,kmp,wbc,ebc,sbc,nbc,rdx,weno_order,pdscheme,timestats,time_advv, &
+          mytime,fcor
       use constants
       implicit none
 
@@ -8959,7 +8965,9 @@
 
 
       subroutine advwaxi(doweno,xh,rxh,arh1,arh2,uh,xf,vh,rho0,rr0,rf0,rrf0,dum,advx,rru,w3d,c1,c2,hadv)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn,itb,ite,jtb,jte, &
+          imp,cmp,jmp,kmp,wbc,ebc,sbc,nbc,rdx,weno_order,pdscheme,timestats,time_advw, &
+          mytime,fcor
       use constants
       implicit none
 
@@ -9485,7 +9493,9 @@
       subroutine movesfc(rmax,dt,weps,uh,vh,sfc,s,dum1,dum2,   &
                          reqs,west,newwest,east,neweast,       &
                          south,newsouth,north,newnorth)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn,itb,ite,jtb,jte, &
+          imp,cmp,jmp,timestats,time_swath,mytime,ngxy,hadvordrs,umove,vmove,rdx,rdy, &
+          wbc,ebc,sbc,nbc
 #ifdef MPI
       use comm_module
 #endif
@@ -9806,7 +9816,8 @@
 
 
     subroutine wsub(ix  ,jy  ,kz  ,a  ,wprof,c1,c2,mh,rr0,rf0,weps,dumz,subs)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy,ngz,rdz
+
     implicit none
 
     integer, intent(in) :: ix,jy,kz
@@ -9898,7 +9909,8 @@
 
 
     subroutine zsgrad(zs,gz,dzdx,dzdy,uh,vh)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy,ngz,rdz,itb,ite,jtb,jte, &
+        hadvordrs,hadvordrv,rdx,rdy
     implicit none
 
     real, intent(in), dimension(ib:ie,jb:je) :: zs

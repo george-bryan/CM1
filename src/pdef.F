@@ -13,7 +13,8 @@
 
 
       subroutine pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,west,newwest,east,neweast,reqs_s)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,jmp,kmp,ni,nj,nk,&
+          wbc,ebc,ibw,ibe,rdx,axisymm,terrain_flag,timestats,time_pdef,mytime
       use bc_module, only: bcs_GPU
       use comm_module
       implicit none
@@ -123,7 +124,8 @@
 
 
       subroutine pdefx2(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,west,newwest,east,neweast,reqs_s)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,jmp,kmp,ni,nj,nk,&
+          wbc,ebc,ibw,ibe,rdx,axisymm,terrain_flag,timestats,time_pdef,mytime,smeps
       use comm_module
       implicit none
 
@@ -286,7 +288,8 @@
 
 
       subroutine pdefy1(vh,rho0,gz,rgz,rrv,advy,dum,mass,s0,s,dt,flag,south,newsouth,north,newnorth,reqs_s)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,imp,jmp,kmp,ni,nj,nk,&
+          sbc,nbc,ibs,ibn,rdy,axisymm,terrain_flag,timestats,time_pdef,mytime,smeps
       use bc_module, only: bcs_GPU
       use comm_module
       implicit none
@@ -381,7 +384,8 @@
 
 
       subroutine pdefy2(vh,rho0,gz,rgz,rrv,advy,dum,mass,s0,s,dt,flag,south,newsouth,north,newnorth,reqs_s)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,imp,jmp,kmp,ni,nj,nk,&
+          sbc,nbc,ibs,ibn,rdy,axisymm,terrain_flag,timestats,time_pdef,mytime,smeps
       use comm_module
       implicit none
 
@@ -491,7 +495,8 @@
 
 
       subroutine pdefz(mh,rho0,gz,rgz,rdsf,rrw,advz,dum,mass,s0,s,dt,flag)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj,nk, &
+          rdz,smeps,timestats,time_pdef,mytime,terrain_flag
       implicit none
 
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: mh,rho0,s0,s
