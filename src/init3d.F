@@ -1437,6 +1437,9 @@
         rxrwnudge = 1.0/max( xr_wnudge , 1.0e-12 )
         ryrwnudge = 1.0/max( yr_wnudge , 1.0e-12 )
         rzrwnudge = 1.0/max( zr_wnudge , 1.0e-12 )
+        !$acc update device(xc_wnudge,xr_wnudge,yc_wnudge,yr_wnudge,zc_wnudge, &
+        !$acc   zr_wnudge,alpha_wnudge,wmax_wnudge,t1_wnudge,t2_wnudge,rxrwnudge, &
+        !$acc   ryrwnudge, rzrwnudge)
 
 !------------------------------------------------------------------
 !  iinit = 13

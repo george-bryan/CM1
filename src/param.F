@@ -8680,6 +8680,7 @@
       wte3 = delta(2,0,2)
       var = wte1*sigmaf(nk)+wte2*sigmaf(nk-1)+wte3*sigmaf(nk-2)
     ENDIF
+    !$acc update device(dgs1,dgs2,dgs3,dgt1,dgt2,dgt3)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  ---------------------------------- '
