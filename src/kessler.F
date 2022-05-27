@@ -561,7 +561,6 @@
 
     ENDIF
 
-    !$acc parallel
     IF(nrk.ge.nrkmax)THEN
       dum=dx*dy*dz
       !$acc parallel default(present)

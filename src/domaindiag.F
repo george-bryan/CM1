@@ -369,8 +369,6 @@
       enddo
       !$acc end parallel
     ELSE
-      !$acc parallel default(present)
-      !$acc loop gang
       do k=1,nk
         !$acc parallel loop gang vector collapse(2) default(present)
         do j=1,nj
@@ -457,21 +455,21 @@
       do k=1,nk
         thvavg(k) = savg(k)
       enddo
-      !$acc end paralell
+      !$acc end parallel
 
       call getavg3d(prs,savg)
       !$acc parallel loop gang vector default(present)
       do k=1,nk
         pavg(k) = savg(k)
       enddo
-      !$acc end paralell
+      !$acc end parallel
 
       call getavg3d(dum1,savg)
       !$acc parallel loop gang vector default(present)
       do k=1,nk
         wsp(k) = savg(k)
       enddo
-      !$acc end paralell
+      !$acc end parallel
 
       !c-c-c-c-c-c-c-c-c-c
 
@@ -2494,7 +2492,7 @@
         enddo
         enddo
         enddo
-        !$acc parallel 
+        !$acc end parallel 
         call getavg3d(dum1,savg)
 
         !$acc parallel default(present)
@@ -2601,7 +2599,7 @@
         enddo
         enddo
         enddo
-        !$acc parallel
+        !$acc end parallel
 
         call getavg3d(dum1,savg)
 
@@ -2611,7 +2609,6 @@
         !$acc end parallel
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
 
-        !stop 'domaindiag: after thinterp'
       !c-c-c-c-c-c-c-c-c-c
 
         nvar = nvar+1
@@ -2662,7 +2659,7 @@
         enddo
         enddo
         enddo
-        !$acc parallel
+        !$acc end parallel
 
         call getavg3d(dum1,savg)
         !$acc parallel default(present)
@@ -4246,7 +4243,7 @@
         vardesc(nvar) = 'Momentum Diffusivity (from MYJ)'
         varunit(nvar) = 'm2/s'
         vargrid(nvar) = 'w'
-        !$acc parallel loo`p gang vector collapse(3) default(present)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -6063,6 +6060,7 @@
         enddo
         !$acc end parallel
 
+        !$acc parallel default(present)
         !$acc loop gang vector collapse(3) 
         do k=2,nk
         do j=1,nj
@@ -10218,6 +10216,7 @@
       !$acc end parallel
 
       ! baseline algorithm:
+      !$acc parallel default(present)
       !$acc loop gang vector collapse(3) 
       do k=2,nk
       do j=1,nj
