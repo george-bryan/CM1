@@ -70,7 +70,21 @@
                    iamsat,out2d,out3d,rtime,update_sfc,dotbud,dotdwrite,restarted,  &
                    dowriteout,doazimwrite)
       ! end_sfc_and_turb
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ibnba,ienba,jbnba,jenba,kbnba,kenba, & 
+          ibm,iem,jbm,jem,kbm,kem,numq,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt,jet,kbt,ket, &
+          ibb,ieb,jbb,jeb,kbb,keb,ibmynn,iemynn,jbmynn,jemynn,kbmynn,kemynn,ibr,ier,jbr,jer,kbr,ker, &
+          ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibl,iel,jbl,jel,ibmyj,iemyj,jbmyj,jemyj,kbmyj,kemyj, &
+          ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt,maxq,ktb,kte,ni,nj,nk,nmyj,rmp,kmt,jmp,kmp,imp,cmp, &
+          ib2d,ie2d,jb2d,je2d,nout2d,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,nbudget,nqs1,nqs2,nql1,nql2, &
+          nnci,nncc,nqv,nqc,nqi,dx,dy,dz,umove,vmove,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc, &
+          terrain_flag,mytime,iice,sfcmodel,sgsmodel,myid,cm1setup,testcase,ipbl,idiss,horizturb, &
+          time_turb,time_sfcphys,time_pbl,output_dissten,use_pbl,rdx,rdy,rdz,timestats,isfcflx, &
+          output_def,output_nm,output_km,output_kh,output_sfcflx,imoist,oceanmodel,imove, &
+          viscosity,sc_num,pr_num,smeps,dot2p,use_avg_sfc,use_avg_sfc,dowr,ptype,axisymm, &
+          td_diss,td_pbl,pertflx,radopt,outfile,dodomaindiag,cnst_znt,isftcflx,iz0tlnd,adapt_dt, &
+          bl_mynn_edmf,bl_mynn_tkeadvect,bl_mynn_tkebudget,bl_mynn_cloudpdf,bl_mynn_mixlength,bl_mynn_edmf, &
+          bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,bl_mynn_output,bl_mynn_cloudmix,bl_mynn_mixqt, &
+          icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag
       use constants
       use bc_module, only: bc2d_GPU, bcw_GPU, bcs_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_GPU
       use comm_module
@@ -2325,7 +2339,9 @@
                          khdw1,khdw2,khde1,khde2,khds1,khds2,khdn1,khdn2,   &
                          kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2,   &
                          kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmt,ibc,iec,jbc,jec,kbc,kec, &
+          ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
+          dx,dy,dz,myid,timestats,time_turb,mytime,tconfig 
       use constants
       use bc_module, only: bcw_GPU, bct2_GPU
       use comm_module
@@ -2570,7 +2586,9 @@
       subroutine tkebc(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt,              &
                        khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2,  &
                        kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmt,ibc,iec,jbc,jec,kbc,kec, &
+          ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
+          dx,dy,dz,myid,timestats,time_turb,mytime,tbc,bbc
       use constants
       use bc_module, only: bc2d_GPU, bcs2_2d_GPU
       use comm_module
@@ -2741,7 +2759,9 @@
                           nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                 &
                           khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2, &
                           kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec,ib3d,ie3d, &
+          jb3d,je3d,kb3d,ke3d,nout3d,imp,jmp,kmt,ni,nj,nk,dx,dy,dz,tconfig, &
+          myid,timestats,time_turb,mytime,bbc
       use constants
       use bc_module, only: bc2d_GPU, bcw_GPU, bct2_GPU, bcs2_2d_GPU
       use comm_module
@@ -2997,7 +3017,9 @@
                           nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                         &
                           khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2,         &
                           kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec,ib3d,ie3d, &
+          jb3d,je3d,kb3d,ke3d,nout3d,kmt,imp,jmp,ni,nj,nk,nx,ny,dx,dy,timestats, &
+          time_turb,mytime,l_h,lhref1,lhref2,idiss,output_dissten
       use constants
       use bc_module, only: bcw_GPU, bct2_GPU
       use comm_module
@@ -3159,7 +3181,9 @@
                           nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                         &
                           khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2,         &
                           kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec,ib3d,ie3d, &
+          jb3d,je3d,kb3d,ke3d,nout3d,imp,jmp,kmt,ni,nj,nk,timestats,time_turb, &
+          mytime,idiss,output_dissten,bbc,myid,l_inf
       use constants
       use bc_module, only: bc2d_GPU, bcw_GPU, bct2_GPU, bcs2_2d_GPU
       use comm_module
@@ -3322,7 +3346,8 @@
       ! gettau
       subroutine gettau(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,ustt,ut,vt,st,rf,mf,dum1,dum2,dum3,dum4,dum5,dum6, &
                         kmh,kmv,t11,t12,t13,t22,t23,t33,ua,ugr,va,vgr,wa,avgsfcu,avgsfcv,avgsfcs,bndy,kbdy)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec,ni,nj,nk,&
+          wbc,ebc,sbc,nbc,ibw,ibe,ibs,ibn,tbc,axisymm,rdz,timestats,time_turb,mytime
       use constants
       use ib_module
       implicit none
@@ -3760,7 +3785,8 @@
 
       subroutine sfcstress(xf,rxf,arf1,arf2,ust,stau,u1,v1,s1,rf,mf,dum1,dum2,  &
                         kmh,kmv,t13,t23,ua,ugr,va,vgr,avgsfcu,avgsfcv,avgsfcs)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec,bbc,ni,nj,rdz, &
+          axisymm,sfcmodel,testcase,use_avg_sfc
       use constants
       implicit none
       
@@ -3941,7 +3967,9 @@
       subroutine calcdef(rds,sigma,rdsf,sigmaf,zs,gz,rgz,gzu,rgzu,gzv,rgzv,                &
                      xh,rxh,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,vf,mh,c1,c2,mf,defv,defh,  &
                      dum1,dum2,ua,va,wa,s11,s12,s13,s22,s23,s33,gx,gy,rho,rr,rf)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ni,nj,nk,axisymm, &
+          rdx,rdy,rdz,wbc,ebc,sbc,nbc,ibw,ibe,ibs,ibn,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3, &
+          zt,timestats,time_turb,mytime,terrain_flag
       use constants
       implicit none
 
@@ -4635,7 +4663,9 @@
 
       subroutine calcnm(c1,c2,mf,pi0,thv0,th0,cloudvar,nm,t,qt,thv,qvci,   &
                         prs,pp,th,qa,iamsat)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem,numq, &
+          imoist,maxq,ni,nj,nk,rdz,ptype,nqv,nqc,nqi,iice,nql1,nql2,nqs1, &
+          nqs2,timestats,time_turb,mytime
       use constants
       use cm1libs , only : rslf,rsif
       implicit none
@@ -4940,7 +4970,8 @@
                          u1,v1,s1,u1b,v1b,avgsfcu,avgsfcv,avgsfcs,                &
                          reqs_s,uw31,uw32,ue31,ue32,us31,us32,un31,un32)
 
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,numq,ibc,iec,jbc,jec,kbc,kec,imp,jmp,cmp, &
+          rmp,kmp,ni,nj,nk,nx,ny,ierr,myid,ntwk,rdz,smeps,timestats,time_turb,mytime
       use constants , only : karman
 #ifdef MPI
       use mpi
@@ -5286,7 +5317,9 @@
                          avgsfcu,avgsfcv,avgsfcs,                                              &
                          sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
 
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt,numq, &
+          ibc,iec,jbc,jec,kbc,kec,imp,jmp,kmp,cmp,rmp,ntwk,ni,nj,nx,ny,myid,ierr,rdz, &
+          timestats,time_turb,mytime
       use constants , only : karman
 #ifdef MPI
       use mpi
@@ -5534,7 +5567,10 @@
                          avgsfcu,avgsfcv,avgsfcs,                                              &
                          sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
 
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt, &
+          ibc,iec,jbc,jec,kbc,kec,imp,jmp,kmp,cmp,rmp,ntwk,numq,ni,nj,nk,nx,ny, &
+          ierr,rdz,smeps,timestats,time_turb,mytime
+  
       use constants , only : karman
 #ifdef MPI
       use mpi
@@ -5806,7 +5842,8 @@
 
       subroutine getepsd(xh,rxh,uh,xf,rxf,uf,vh,vf,mh,c1,c2,mf,ua ,va ,wa ,  &
                          dum1,dum2,epsd1,epsd2,rho0,rf0,rrf0,rru,rrv,rrw,dt)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ni,nj,nk,rdx,rdy,rdz,axisymm,hadvordrv, &
+          vadvordrv,idiff,difforder,kdiff6,timestats,time_diag,mytime,terrain_flag
       use constants
       implicit none
 
@@ -6446,7 +6483,8 @@
       subroutine getepst(xh,rxh,uh,xf,rxf,uf,vh,vf,mh,c1,c2,mf,ua ,va ,wa ,  &
                          t11,t12,t13,t22,t23,t33,rf,                         &
                          dum1,dum2,epst,epstp,epstn)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ni,nj,nk,rdx,rdy,rdz,timestats, &
+          time_turb,mytime
       use constants
       implicit none
 

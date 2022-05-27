@@ -237,7 +237,11 @@
 !$acc   rdx,rdy,rdz,minx,maxx,miny,maxy,zt,rzt,umove,vmove, &
 !$acc   xc_uforce,xr_uforce,zr_uforce,alpha_uforce,t1_uforce,t2_uforce,    &
 !$acc   viscosity,pr_num,sc_num,maxz,cgs1,cgs2,tsmall,qsmall, &
-!$acc   cgs3,cgt1,cgt2,cgt3,csound,hurr_rad,smeps)
+!$acc   cgs3,cgt1,cgt2,cgt3,csound,hurr_rad,smeps,l_h,ptc_bot,ptc_top, &
+!$acc   cnst_znt,cnst_shflx,cnst_lhflx,cnst_ust,cnstcd,cnstce, &
+!$acc   xc_wnudge,xr_wnudge,zr_wnudge,alpha_wnudge,t1_wnudge,t2_wnudge, &
+!$acc   yc_wnudge,yr_wnudge,zc_wnudge,wmax_wnudge,rxrwnudge,ryrwnudge,rzrwnudge, &
+!$acc   dgs1,dgs2,dgs3,dgt1,dgt2,dgt3)
 !-----------------------------------------------------------------------
 
       character(len=maxstring) :: string

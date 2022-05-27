@@ -310,7 +310,7 @@
       call bcast_real(umove,device=.true.)
       call bcast_real(vmove,device=.true.)
       call bcast_real(v_t)
-      call bcast_real(l_h)
+      call bcast_real(l_h,device=.true.)
       call bcast_real(lhref1)
       call bcast_real(lhref2)
       call bcast_real(l_inf)
@@ -332,8 +332,8 @@
       call bcast_real(dz_bot)
       call bcast_real(dz_top)
       call bcast_int(bc_temp)
-      call bcast_real(ptc_top)
-      call bcast_real(ptc_bot)
+      call bcast_real(ptc_top,device=.true.)
+      call bcast_real(ptc_bot,device=.true.)
       call bcast_real(viscosity,device=.true.)
       call bcast_real(pr_num,device=.true.)
       call bcast_real(sc_num,device=.true.)
@@ -512,8 +512,8 @@
       call bcast_int(season)
       call bcast_int(cecd)
       call bcast_int(pertflx)
-      call bcast_real(cnstce)
-      call bcast_real(cnstcd)
+      call bcast_real(cnstce,device=.true.)
+      call bcast_real(cnstcd,device=.true.)
       call bcast_int(isftcflx)
       call bcast_int(iz0tlnd)
       call bcast_real(oml_hml0)
@@ -522,10 +522,10 @@
       call bcast_int(set_znt)
       call bcast_int(set_ust)
 
-      call bcast_real(cnst_shflx)
-      call bcast_real(cnst_lhflx)
-      call bcast_real(cnst_znt)
-      call bcast_real(cnst_ust)
+      call bcast_real(cnst_shflx,device=.true.)
+      call bcast_real(cnst_lhflx,device=.true.)
+      call bcast_real(cnst_znt,device=.true.)
+      call bcast_real(cnst_ust,device=.true.)
 
       call bcast_log(dodomaindiag)
       call bcast_real(diagfrq)
@@ -8680,6 +8680,7 @@
       wte3 = delta(2,0,2)
       var = wte1*sigmaf(nk)+wte2*sigmaf(nk-1)+wte3*sigmaf(nk-2)
     ENDIF
+    !$acc update device(dgs1,dgs2,dgs3,dgt1,dgt2,dgt3)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  ---------------------------------- '

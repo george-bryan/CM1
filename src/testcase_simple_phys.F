@@ -37,7 +37,9 @@
                    uavg,vavg,thavg,qavg,cavg,                        &
                    ua,va,tha,qa,uten1,vten1,thten1,qten,             &
                    frad,zir,ruh,ruf,rvh,rvf)
-      use input
+      use input, only:ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem, &
+          ibr,ier,jbr,jer,kbr,ker,numq,ni,nj,nk,rdz,hurr_rad,testcase, &
+          umove,vmove,imoist,nqv
       use constants
       implicit none
 
@@ -179,7 +181,7 @@
 
 
       subroutine get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,numq,ni,nj,nk,dx,dy,ierr,maxx,minx,maxy,miny
 #ifdef MPI
       use mpi
 #endif
@@ -251,7 +253,8 @@
 
 
       subroutine get_avg_uvtq(uavg,vavg,thavg,qavg,cavg,th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,numq,ibm,iem,jbm,jem,kbm,kem,ni,nj,nk, &
+          ierr,minx,maxx,miny,maxy,dx,dy
 #ifdef MPI
       use mpi
 #endif
@@ -341,7 +344,8 @@
 
 
       subroutine simplerad(rho0,zh,zf,dum1,dum2,qt  ,ql  ,qa,frad,zir)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem,numq, &
+          ibr,ier,jbr,jer,kbr,ker,ni,nj,nk,nql1,nql2,nqv
       use constants
       implicit none
 

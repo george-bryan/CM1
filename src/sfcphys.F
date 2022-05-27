@@ -21,7 +21,8 @@
 
 
       subroutine getcecd(xh,u1,v1,s1,za,u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
-      use input
+      use input, only: ib,ie,jb,je,ibl,iel,jbl,jel,ni,nj,use_avg_sfc,set_znt, &
+          set_ust,cecd,cnstcd,cnstce,cnst_ust,isfcflx,time_sfcphys,timestats,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -310,7 +311,8 @@
 
       subroutine sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail,   &
                          rho,rf,u1,v1,s1,ppi,tha,qva,qbsfc,psfc,u10,v10,s10,qsfc,znt,rtime)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ibm,iem,jbm,jem,kbm,kem,ni,nj, &
+          set_flx,cnst_shflx,imoist,cnst_lhflx,testcase,dx,dy,timestats,time_sfcphys,mytime          
       use constants
       use cm1libs , only : rslf
       implicit none

@@ -25,7 +25,9 @@
 
       subroutine getdiv(arh1,arh2,uh,vh,mh,u,v,w,dum1,dum2,dum3,div,  &
                         rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj,nk, &
+          axisymm,terrain_flag,rdx,rdy,rdz,zt,rzt,smeps,timestats,mytime, &
+          time_divx
       implicit none
 
       real, intent(in), dimension(ib:ie) :: arh1,arh2,uh
@@ -144,7 +146,10 @@
 
       subroutine getdivx(arh1,arh2,uh,vh,mh,rho0,rf0,rru,rrv,rrw,divx,  &
                          rds,rdsf,sigma,sigmaf,gz,rgzu,rgzv,dzdx,dzdy)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj,nk, &
+          axisymm,terrain_flag,rdx,rdy,rdz,zt,rzt,smeps,timestats,mytime, &
+          time_advs,time_divx
+
       implicit none
 
       real, intent(in), dimension(ib:ie) :: arh1,arh2,uh
@@ -310,7 +315,7 @@
 
       ! Generate random perturbations, add to tha (by default):
 
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,nx,ny,ngxy,ni,nj,nk
       implicit none
 
       real, intent(in), dimension(1-ngxy:nx+ngxy+1) :: xfref
@@ -356,7 +361,7 @@
 
 
       subroutine reinit_random_seed
-      use input
+      use input, only : myid
       implicit none
 
       integer :: k,n
@@ -470,7 +475,9 @@
 
 
       subroutine get_wnudge(mtime,dtin,xh,yh,zf,wa,wndgten)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,mytime, &
+          t1_wnudge,t2_wnudge,alpha_wnudge,xc_wnudge,yc_wnudge, &
+          zc_wnudge,rxrwnudge,ryrwnudge,rzrwnudge,wmax_wnudge
       use constants , only : pi
       implicit none
 
@@ -528,7 +535,9 @@
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
                           dorestart,dowriteout,dostat,doprclout,dotdwrite,doazimwrite,  &
                           hifrqtim,dohifrqwrite,doinit)
-      use input
+      use input, only : nx,ny,cm1setup,myid,cflmax,ksmax,dtl,tapfrq,rstfrq,statfrq, &
+          diagfrq,azimavgfrq,hifrqfrq,ierr,imoist,ptype,timestats,mytime,time_misc01, &
+          time_microphy,dodomaindiag,doazimavg,dohifrq
       use goddard_module, only : consat2
       use lfoice_module, only : lfoice_init
 #ifdef MPI
@@ -733,7 +742,8 @@
 
 
       subroutine dtsmall(dt,dbldt)
-      use input
+      use input, only : psolver,nsound,nx,ny,min_dx,min_dy,min_dz,csound, &
+          adapt_dt,myid,ierr
       use constants
 #ifdef MPI
       use mpi
@@ -842,7 +852,9 @@
 
 
       subroutine getqli(q,ql,qi)
-      use input
+      use input,only : ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem, &
+          numq,ni,nj,nk,nql1,nql2,nqs1,nqs2,iice,timestats,mytime, &
+          time_misc02
       implicit none
 
       real, dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: q
@@ -903,7 +915,9 @@
 
 
       subroutine getcvm(cvm,q)
-      use input
+      use input, only :ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem,numq, &
+          eqtset,imoist,ni,nj,nk,nqv,nql1,nql2,nqs1,nqs2,iice,timestats, &
+          time_misc03,mytime
       use constants
       implicit none
 
@@ -963,7 +977,9 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine getcvm_GPU(cvm,q)
-      use input
+      use input, only :ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem,numq, &
+          eqtset,imoist,ni,nj,nk,nqv,nql1,nql2,nqs1,nqs2,iice,timestats, &
+          time_misc03,mytime
       use constants
       implicit none
 
@@ -1041,7 +1057,8 @@
 
 
       subroutine pdefq(rmax,asq,ruh,rvh,rmh,rho,q3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk, &
+          dx,dy,dz,pdscheme,timestats,mytime,time_misc04
       implicit none
 
       real rmax
@@ -1123,7 +1140,8 @@
       end subroutine pdefq
 
       subroutine pdefq_GPU(rmax,asq,ruh,rvh,rmh,rho,q3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk, &
+          dx,dy,dz,pdscheme,timestats,mytime,time_misc23
       implicit none
 
       real rmax
@@ -1248,7 +1266,9 @@
       end subroutine pdefq_GPU
 
       subroutine pdefq2_GPU(rmax,asq,ruh,rvh,rmh,rho,q3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk, &
+          dx,dy,dz,pdscheme,timestats,mytime,time_misc23
+
       implicit none
 
       real rmax
@@ -1348,7 +1368,8 @@
 
 
       subroutine pdefqtest(rmax,asq,ruh,rvh,rmh,rho,q3d,dum2d1,dum2d2,dum2d3,dum2d4,dum2d5)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,dx,dy,dz,pdscheme, &
+          timestats,mytime,time_misc05
       implicit none
 
       real rmax
@@ -1499,7 +1520,8 @@
  
  
       subroutine calcprs(pi0,prs,pp3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,timestats, &
+          mytime,time_prsrho
       use constants
       implicit none
  
@@ -1533,7 +1555,9 @@
 
 
       subroutine calcrho(pi0,th0,rho,prs,pp3d,th3d,q3d)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem, &
+          kbm,kem,numq,ni,nj,nk,imoist,nqv,timestats,mytime, &
+          time_prsrho
       use constants
       implicit none
 
@@ -1587,7 +1611,8 @@
 
 
       subroutine calcdbz(rho,qr,qs,qg,dbz)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ptype,ni,nj,nk, &
+          timestats,mytime,time_write,dowr,outfile
       use constants
       use goddard_module, only : ROQR,ROQG,ROQS,TNW,TNG,TNSS
       implicit none
@@ -1679,7 +1704,8 @@
 
       subroutine calcuh(uf,vf,zh,zf,ua,va,wa,uh,zeta,dum1,dum2, &
                         zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj,nk, &
+          rdx,rdy,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,zt,terrain_flag
       implicit none
 
       ! Subroutine to calculate vertically integrated updraft helicity
@@ -1814,7 +1840,9 @@
                           zs,gz,gzu,gzv,rgz,rgzu,rgzv,gxu,gyv,rds,sigma,rdsf,sigmaf,       &
                           ua,va,wa,xvort,yvort,zvort,tem ,dum1,dum2,pv  ,th  ,th0,tha,rr,  &
                           ust,znt,u1,v1,s1)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ni,nj,nk, &
+          cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,axisymm,rdx,rdy,rdz,bbc,tbc,imove, &
+          umove,vmove,zt,dgs1,dgs2,dgs3,dgt1,dgt2,dgt3,output_pv,terrain_flag
       use constants
       implicit none
 
@@ -2453,7 +2481,8 @@
 
 
       subroutine calccpch(zh,zf,th0,qv0,cpc,cph,tha,qa)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,ibm,iem,jbm,jem,kbm,kem, &
+          ni,nj,nk, numq,nqs1,nqs2,nql1,nql2,nqv,iice,imoist
       use constants
       implicit none
 
@@ -2530,7 +2559,7 @@
 
 
       subroutine calccref(cref,dbz)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,timestats,mytime,time_write
       use constants
       implicit none
 
@@ -2576,7 +2605,8 @@
 
 
       subroutine calcthe(zh,pi0,th0,the,rh,prs,ppi,tha,qa)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,nqv, &
+          timestats,mytime,time_stat
       use constants
       implicit none
 
@@ -2621,7 +2651,8 @@
 
 
       subroutine cloud(nstat,rstat,zh,qci)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,stat_out,maxz, &
+          ierr,myid,timestats,time_stat,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -2704,7 +2735,9 @@
  
  
       subroutine vertvort(nstat,rstat,xh,xf,uf,vf,zh,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf,dum1,dum2,ua,va)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,stat_out, &
+          ni,nj,nk,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,axisymm,terrain_flag, &
+          ierr,myid,timestats,time_stat,mytime,ibw,ibe,ibs,ibn,rdx,rdy,zt
       use constants
 #ifdef MPI
       use mpi
@@ -2874,7 +2907,9 @@
 
  
       subroutine calccfl(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,writeit)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,rdx,rdy,rdz,nx,ny, &
+          stat_out,axisymm,myid,ierr,myi1,myj1,adapt_dt,stopit,timestats, &
+          time_stat,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -3049,7 +3084,10 @@
 
  
       subroutine calccfl_fold(nstat,rstat,dt,acfl,uh,vh,mh,ua,va,wa,writeit)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,rdx,rdy,rdz,nx,ny, &
+          stat_out,axisymm,myid,ierr,myi1,myj1,adapt_dt,stopit,timestats, &
+          time_stat,mytime
+
       use constants
 #ifdef MPI
       use mpi
@@ -3232,7 +3270,8 @@
 
 
       subroutine calccflquick(dt,uh,vh,mh,ua,va,wa,reqc)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nx,ny,ierr, &
+          rdx,rdy,rdz,axisymm,cflmax,stopit,timestats,time_cflq,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -3327,7 +3366,9 @@
 
 
       subroutine calcksquick(dt,uh,vh,mf,kmh,kmv,khh,khv,reqk)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec,&
+          ni,nj,nk,nx,ny,rdx,rdy,axisymm,ksmax,ierr,stopit,timestats, &
+          time_stat,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -3454,7 +3495,9 @@
 
 
       subroutine calcksmax(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec, &
+          ni,nj,nk,rdx,rdy,rdz,stat_out,cm1setup,horizturb,ipbl, &
+          myid,ierr,myi1,myj1,timestats,time_stat,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -3650,7 +3693,9 @@
 
 
       subroutine calcksmax_fold(nstat,rstat,dt,uh,vh,mf,kmh,kmv,khh,khv)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec, &
+          ni,nj,nk,rdx,rdy,rdz,stat_out,cm1setup,horizturb,ipbl, &
+          myid,ierr,myi1,myj1,timestats,time_stat,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -3856,7 +3901,8 @@
 
 
       subroutine getrmw(nstat,rstat,xh,zh,ua,va)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,stat_out, &
+          timestats,time_stat,mytime
       implicit none
 
       integer, intent(inout) :: nstat
@@ -3933,7 +3979,8 @@
 
 
       subroutine calcmass(nstat,rstat,ruh,rvh,rmh,rho)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,dx,dy,dz, &
+          myid,ierr,timestats,mytime,time_stat,stat_out
       use constants
 #ifdef MPI
       use mpi
@@ -4023,7 +4070,8 @@
  
  
       subroutine totmois(nstat,rstat,train,ruh,rvh,rmh,qv,ql,qi,rho)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,dx,dy,dz,ierr, &
+          myid,timestats,time_stat,mytime,stat_out
       use constants
 #ifdef MPI
       use mpi
@@ -4117,7 +4165,8 @@
  
  
       subroutine totq(nstat,rstat,ruh,rvh,rmh,q,rho,aname)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,dx,dy,dz, &
+          ierr,timestats,mytime,time_stat,myid,stat_out
       use constants
 #ifdef MPI
       use mpi
@@ -4210,7 +4259,8 @@
  
       subroutine calcener(nstat,rstat,ruh,rvh,zh,rmh,pi0,th0,rho,ua,va,wa,ppi,tha,   &
                           qv,ql,qi,vr)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,dx,dy,dz,umove,vmove, &
+          stat_out,timestats,mytime,time_stat,ierr,myid
       use constants
 #ifdef MPI
       use mpi
@@ -4352,7 +4402,8 @@
  
  
       subroutine calcmoe(nstat,rstat,ruh,rvh,rmh,rho,ua,va,wa,qv,ql,qi,vr)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,dx,dy,dz,vmove,umove, &
+          stat_out,myid,ierr,timestats,time_stat,mytime
       use constants
 #ifdef MPI
       use mpi
@@ -4481,7 +4532,8 @@
 
 
       subroutine tmf(nstat,rstat,ruh,rvh,rho,wa)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,dx,dy, &
+          myid,ierr,stat_out,timestats,mytime,time_stat
       use constants
 #ifdef MPI
       use mpi
@@ -4581,7 +4633,8 @@
 
 
       subroutine zinterp(sigma,zs,zh,dum1,dum2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk
+          
       use constants
       implicit none
 
@@ -4649,7 +4702,22 @@
 
 
       subroutine set_time_to_zero
-      use input
+      use input, only : time_sound,time_poiss,time_advs,time_phys_H2D,time_phys_D2H, &
+          time_H2D,time_D2H,time_advu,time_advv,time_advw,time_buoyan,time_turb, &
+          time_diffu,time_microphy,time_dbz,time_stat,time_cflq,time_bc,time_bcs, &
+          time_bcs2,time_bcst,time_misc,time_misc01,time_misc02,time_misc03,time_misc04, &
+          time_misc05,time_misc06,time_misc07,time_misc08,time_misc09,time_misc10, &
+          time_misc11,time_misc12,time_misc13,time_misc14,time_misc15,time_misc16, &
+          time_misc17,time_misc18,time_misc19,time_misc20,time_misc21,time_misc22, &
+          time_misc23,time_integ,time_rdamp,time_divx,time_write,time_nvtx,time_restart, &
+          time_ttend,time_cor,time_fall,time_satadj,time_sfcphys,time_parcels,time_parceli, &
+          time_droplet,time_droplet_reduce,time_parceli_reduce,time_rad,time_pbl,time_swath, &
+          time_pdef,time_prsrho,time_diag,time_azimavg,time_hifrq,time_ercyl,time_mpu1, &
+          time_mpv1,time_mpw1,time_mpp1,time_mpu2,time_mpv2,time_mpw2,time_mpp2,time_mps1, &
+          time_mps3,time_mpq1,time_mptk1,time_mptk2,time_mps2,time_mps4,time_mpq2,time_mpb, &
+          time_dpc
+
+
       implicit none
 
       time_sound=0.0

@@ -24,7 +24,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vinterp_weno5(stag,ix,jy,kz,c1,c2,rrw,dumz,a,pdef,pdefweno,weps)
-    use input
+    use input, only :ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -521,7 +521,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vinterp_flx5(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only :ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag
@@ -866,7 +866,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine vinterp_flx6(stag,ix,jy,kz,c1,c2,rrw,dumz,a)
-    use input
+    use input, only :ib,ie,jb,je,kb,ke,ngxy,ngz,ni,nj,nk,ibw,ibe,ibs,ibn
     implicit none
 
     integer, intent(in) :: stag

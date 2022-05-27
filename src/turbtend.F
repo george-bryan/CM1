@@ -19,7 +19,11 @@
                        rds,sigma,rdsf,sigmaf,mh,mf,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv, &
                        turbx,turby,turbz,dumx,dumy,dumz,rho,rr,rf,s,sten,khh,khv,dum7,dum8, &
                        dobud,ibd,ied,jbd,jed,kbd,ked,ndiag,diag,sd_hturb,sd_vturb,ivar)
-      use input
+      use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ibc,iec,jbc,jec, &
+          kbc,kec,ni,nj,nk,rdx,rdy,rdz,wbc,ebc,nbc,sbc,ibw,ibe,ibs,ibn,sc_num,pr_num,cm1setup, &
+          cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,viscosity,axisymm,timestats,time_ttend,mytime,bc_temp, &
+          ptc_bot,ptc_top,dohturb,dovturb,base_pbot,base_pibot,base_ptop,base_pitop,doimpl, &
+          bcturbs,terrain_flag
       use constants
       use cm1libs , only : rslf,rsif
       implicit none
@@ -771,7 +775,10 @@
       subroutine turbt(dt,xh,rxh,uh,xf,uf,vh,vf,mh,mf,rho,rr,rf,          &
                        rds,sigma,gz,rgz,gzu,rgzu,gzv,rgzv,                &
                        turbx,turby,turbz,dumx,dumy,dumz,t,tten,kmh,kmv)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ibt,iet,jbt, &
+          jet,kbt,ket,ibc,iec,jbc,jec,kbc,kec,ni,nj,nk,rdx,rdy,rdz, &
+          wbc,ebc,nbc,sbc,ibw,ibe,ibn,ibs,zt,rzt,doimpl,timestats,time_ttend, &
+          mytime,terrain_flag
       use constants
       implicit none
 
@@ -1148,7 +1155,12 @@
                        zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gxu,     &
                        turbx,turby,turbz,dum1,dum2,dum3,dum7,dum8,u,uten,w,t11,t12,t13,t22,kmv, &
                        kmw,u1b,u2pt,doubud,udiag)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ibc,iec, &
+          jbc,jec,kbc,kec,ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt,ibdv,iedv, &
+          jbdv,jedv,kbdv,kedv,nudiag,ni,nj,nk,rdx,rdy,rdz,wbc,ebc,nbc,sbc, &
+          ibw,ibe,ibs,ibn,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,zt,dovturb,dohturb, &
+          axisymm,doimpl,dot2p,ntwk,timestats,time_ttend,mytime,terrain_flag, &
+          ud_hturb,ud_vturb
       use constants
       implicit none
 
@@ -1901,7 +1913,12 @@
                        zs,gz,rgz,gzu,gzv,rds,sigma,rdsf,sigmaf,gyv,  &
                        turbx,turby,turbz,dum1,dum2,dum3,dum7,dum8,v,vten,w,t12,t22,t23,kmv, &
                        kmw,v1b,v2pt,dovbud,vdiag)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ibc,iec, &
+          jbc,jec,kbc,kec,ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt,ibdv,iedv, &
+          jbdv,jedv,kbdv,kedv,nvdiag,ni,nj,nk,rdx,rdy,rdz,wbc,ebc,nbc,sbc, &
+          ibw,ibe,ibs,ibn,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,zt,dovturb,dohturb, &
+          axisymm,doimpl,dot2p,ntwk,timestats,time_ttend,mytime,terrain_flag, &
+          vd_vturb,vd_hturb
       use constants
       implicit none
 
@@ -2614,7 +2631,12 @@
       subroutine turbw(dt,xh,rxh,arh1,arh2,uh,xf,vh,mh,mf,rho,rf,gz,rgzu,rgzv,rds,sigma,   &
                        turbx,turby,turbz,dum1,dum2,dum3,w,wten,t13,t23,t33,t22,kmh,  &
                        dowbud,wdiag)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ibc,iec, &
+          jbc,jec,kbc,kec,ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt,ibdv,iedv, &
+          jbdv,jedv,kbdv,kedv,nwdiag,ni,nj,nk,rdx,rdy,rdz,wbc,ebc,nbc,sbc, &
+          ibw,ibe,ibs,ibn,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,zt,dovturb,dohturb, &
+          axisymm,doimpl,dot2p,ntwk,timestats,time_ttend,mytime,terrain_flag, &
+          wd_vturb,wd_hturb
       use constants
       implicit none
 
