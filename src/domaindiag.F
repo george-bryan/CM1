@@ -2324,7 +2324,7 @@
           ! cape, cin, lfc, lcl:
 
           !$omp parallel do default(shared)  &
-          !$omp 
+          !$omp private(i,j,k,pfoo,tfoo,qfoo,zel,psource,tsource,qvsource)
           DO j=1,nj
           DO i=1,ni
 
@@ -2402,7 +2402,7 @@
 
       IF( imoist.eq.1 .and. th0(1,1,nk)*pi0(1,1,nk).lt.to )THEN
 
-        !$omp parallel do default(shared) 
+        !$omp parallel do default(shared) private(i,j,k,tx,tlast) 
         !$acc parallel loop gang vector collapse(2) default(present) 
         do j=1,nj
         do i=1,ni
@@ -10298,7 +10298,7 @@
 
   !----------------------
 
-      !$omp parallel default(shared) 
+      !$omp parallel default(shared) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
       !$acc parallel default(present) reduction(+:ufrt,ufdt)
       !$acc loop gang 
       do k=2,nk
@@ -10414,7 +10414,7 @@
 
   !----------------------
 
-      !$omp parallel do default(shared) 
+      !$omp parallel do default(shared) private(i,j,k,wbar) 
       !$acc parallel default(present) reduction(+:vfrt,vfdt)
       !$acc loop gang
       do k=2,nk
@@ -10438,7 +10438,7 @@
       if( cm1setup.ge.1 .or. ipbl.eq.2 )then
         if( sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
           ! use mij:
-          !$omp parallel do default(shared) 
+          !$omp parallel do default(shared) private(i,j,k) reduction(+:ufst,vfst)
           !$acc parallel default(present) reduction(+:ufst,vfst)
           !$acc loop gang
           do k=1,nk+1
@@ -10457,7 +10457,7 @@
           !$acc end parallel
         else
           ! use tij:
-          !$omp parallel do default(shared) 
+          !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel default(present) reduction(+:ufst,vfst)
           !$acc loop gang
           do k=1,nk+1
@@ -10476,7 +10476,7 @@
           !$acc end parallel
         endif
       else
-        !$omp parallel do default(shared) 
+        !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel default(present)
         !$acc loop gang vector 
         do k=1,nk+1
@@ -10647,7 +10647,7 @@
 
   !----------------------
 
-    !$omp parallel do default(shared) 
+    !$omp parallel do default(shared) private(i,j,k)
     !$acc parallel default(present) reduction(+:sfrt,sfdt)
     !$acc loop gang 
     do k=2,nk
@@ -10776,7 +10776,7 @@
 
       temd = 1.0d0/dble(nx*ny)
 
-      !$omp parallel do default(shared) 
+      !$omp parallel do default(shared) private(k)
       !$acc parallel default(present)
       !$acc loop gang vector 
       do k=1,nk+1
