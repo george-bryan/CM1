@@ -3,7 +3,8 @@
   CONTAINS
 
       subroutine maxmin(izz,jzz,kzz,f,nstat,rstat,kmin,kmax,amax,amin)
-      use input
+      use input, only : ni,nj,nk,ngxy,ngz,stat_out,myid,ierr,myi1,myj1, &
+          timestats,time_stat,mytime
 #ifdef MPI
       use mpi
 #endif
@@ -114,7 +115,8 @@
 
 
       subroutine maxmin2d(izz,jzz,f,nstat,rstat,amax,amin)
-      use input
+      use input, only : ni,nj,nk,ngxy,ngz,stat_out,myid,ierr,myi1,myj1, &
+          timestats,time_stat,mytime
 #ifdef MPI
       use mpi
 #endif
@@ -208,7 +210,8 @@
       end subroutine maxmin2d
 
       subroutine maxmin2dhalo(izz,jzz,f,amax,amin)
-      use input
+      use input, only : ni,nj,nk,ngxy,ngz,stat_out,myid,ierr,myi1,myj1, &
+          timestats,time_stat,mytime
 #ifdef MPI
       use mpi
 #endif

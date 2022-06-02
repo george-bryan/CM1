@@ -6,6 +6,7 @@
     logical :: do_ib
     integer :: ibib,ieib,jbib,jeib,kbib,keib
     integer :: kmaxib
+    !$acc declare create(kmaxib,ibib,ieib,jbib,jeib,kbib,keib)
 
   CONTAINS
 
@@ -27,8 +28,9 @@
     subroutine ib_init(xh,yh,xf,yf,sigma,sigmaf,zs,zh,bndy,kbdy,out3d,  &
                        west,newwest,east,neweast,                 &
                        south,newsouth,north,newnorth,reqs_p)
-
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d, &
+        rmp,cmp,jmp,imp,ni,nj,nk,nx,ny,nz,dx,testcase,miny,maxy,minx,maxx,ierr, &
+        myid,dowr,nf,nu,nv,nw,centerx,centery,dowr,outfile
     use constants
     use bc_module, only: bc2d_GPU, bcs2_2d_GPU
     use comm_module
@@ -234,6 +236,7 @@
 #ifdef MPI
       call MPI_ALLREDUCE(mpi_in_place,kmaxib,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
 #endif
+      !$acc update device(kmaxib)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '    kmaxib    = ',kmaxib
@@ -262,7 +265,7 @@
 
     subroutine zero_out_uv(bndy,kbdy,u3d,v3d)
 
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk
     use constants
 
       logical, intent(in), dimension(ibib:ieib,jbib:jeib,kbib:keib) :: bndy
@@ -314,7 +317,7 @@
 
     subroutine zero_out_w(bndy,kbdy,w3d)
 
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ni,nj
     use constants
 
       logical, intent(in), dimension(ibib:ieib,jbib:jeib,kbib:keib) :: bndy
@@ -325,7 +328,7 @@
       !$acc declare present(bndy,kbdy,w3d) 
 
         ! set gridpoints in/on immersed gridpoints to zero:
-        !$acc parallel loop gang vector private(i,j,k)
+        !$acc parallel loop gang vector default(present)
         do j=1,nj
         do i=1,ni
           do k = 1,kbdy(i,j)
@@ -340,7 +343,7 @@
 
     subroutine drag_obstacles(xh,yh,zh,zf,rho,rf,dum1,dum2,dum3,dum4,dum5,dum6,t11,t12,t13,t22,t23,t33,ua,va,wa,kbdy)
 
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk
     use constants
 
     real, intent(in), dimension(ib:ie) :: xh
@@ -711,7 +714,7 @@
                            uw31,uw32,ue31,ue32,us31,us32,un31,un32,    &
                            vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_u,reqs_v)
 
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,hadvordrs
     use constants
     use comm_module
 #ifdef MPI
@@ -786,7 +789,8 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine ib_side_flx(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a,hadvorder,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d, &
+        ni,nj,nk
     implicit none
 
     ! reduce order of horizontal advective fluxes near sides of obstacles:
@@ -1176,7 +1180,9 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine ib_side_weno(stag,ix,jy,kz,c1,c2,rru,rrv,dumx,dumy,a,hadvorder,bndy,hflxw,hflxe,hflxs,hflxn,weps,out3d)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d, &
+        ni,nj,nk
+
     implicit none
 
     ! reduce order of horizontal advective fluxes near sides of obstacles:
@@ -1566,7 +1572,9 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine ib_lwr_flx(stag,ix,jy,kz,c1,c2,rrw,dumz,a,kbdy,vadvorder)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ib3d,ie3d,jb3d,je3d, &
+        kb3d,ke3d,nout3d,ni,nj,nk,ibw,ibe,ibn,ibs
+
     implicit none
 
     ! reduce order of vertical advective fluxes near top of obstacles:
@@ -1744,7 +1752,8 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine ib_lwr_weno(stag,ix,jy,kz,c1,c2,rrw,dumz,a,kbdy,vadvorder,weps)
-    use input
+    use input, only : ib,ie,jb,je,kb,ke,ngxy,ngz,ib3d,ie3d,jb3d,je3d, &
+        kb3d,ke3d,nout3d,ni,nj,nk,ibw,ibe,ibn,ibs
     implicit none
 
     ! reduce order of vertical advective fluxes near top of obstacles (for weno):

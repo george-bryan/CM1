@@ -4292,7 +4292,7 @@
 #endif
         call stopcm1
       endif
-
+      !$acc update device(nnc1,nnc2)
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'iice      =',iice
       if(dowr) write(outfile,*) 'idm       =',idm
@@ -7097,8 +7097,8 @@
 
       minx = xfref(1)
       maxx = xfref(nx+1)
-      !$acc update device(minx,maxx)
       centerx  =  minx + 0.5*(maxx-minx)
+      !$acc update device(minx,maxx,centerx)
 
       do i = 1-ngxy , nx+ngxy
         xhref(i) = 0.5*(xfref(i)+xfref(i+1))
@@ -7429,8 +7429,8 @@
 
       miny = yfref(1)
       maxy = yfref(ny+1)
-      !$acc update device(miny,maxy)
       centery  =  miny + 0.5*(maxy-miny)
+      !$acc update device(miny,maxy,centery)
 
       do j = 1-ngxy , ny+ngxy
         yhref(j) = 0.5*(yfref(j)+yfref(j+1))

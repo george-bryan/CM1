@@ -26,7 +26,11 @@
 
       subroutine parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
+          kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
+          umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
+          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs, &
+          dx,dy,njp1,nkp1,maxz,minx,maxx,miny,maxy,timestats,mytime,ierr,time_parcels,myid
       use constants
       use comm_module
 #ifdef MPI
@@ -688,7 +692,16 @@
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ibm,iem,jbm,jem, &
+          kbm,kem,numq,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt,jet,kbt,ket,npt,ierr, &
+          ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibdq,iedq,jbdq,jedq,kbdq,kedq, &
+          nqdiag,jmp,imp,kmp,rmp,cmp,kmt,ibp,iep,jbp,jep,kbp,kep,nparcels,npvals,npvars, &
+          ni,nj,nk,nqv,nql1,nql2,nqs1,nqs2,nqv,imoist,timestats,mytime,time_phys_d2h, &
+          imoist,iice,time_parceli,bbc,tbc,rdz,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,imove, &
+          qd_dbz,rdx,rdy,nx,ny,myi,myj,nodex,nodey,myid,nip1,njp1,nkp1,axisymm,nnc1, &
+          umove,vmove,prth,prt,prqsl,prqsi,prvpg,prb,prprs,prrho,prpt1,prqv,prq1,prnc1, &
+          prkm,prkh,prtke,prdbz,przv,prx,pry,prz,prtime,prq2,prnc2,prznt,prust,pru,prv, &
+          prw,prsig,time_parceli_reduce,terrain_flag
       use constants
       use cm1libs , only : rslf,rsif
       use bc_module, only: bcu2_GPU, bcv2_GPU, bcw2_GPU
@@ -1763,7 +1776,8 @@
 
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-      use input
+      use input, only : maxq,maxvars,nparcels,npvals,output_format,myid,dowr, &
+          maxstring,string,outfile
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif
@@ -1831,7 +1845,7 @@
 
       real function tri_interp(iz,jz,kz,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,s)
       !$acc routine seq
-      use input
+      use input, only : ngxy,ngz
       implicit none
 
       integer :: iz,jz,kz,i,j,k
@@ -1860,7 +1874,7 @@
 
     real function get2d(i,j,x3d,y3d,xh,xf,yh,yf,xs,ys,is,js,s)
     !$acc routine seq
-    use input
+    use input, only : ib,ie,jb,je
     implicit none
 
     integer, intent(in) :: i,j
@@ -1935,7 +1949,9 @@
 
 
       subroutine getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-      use input
+      use input, only : ib,ie,jb,je,nparcels,npvals,ni,nj,nx,ny, &
+          myi,myj,axisymm,nodex,nodey,ierr, &
+          prx,pry,przs
       use constants
 #ifdef MPI
       use mpi
@@ -2039,7 +2055,9 @@
 
 
       subroutine setup_parcel_vars(name_prcl,desc_prcl,unit_prcl,qname)
-      use input
+      use input, only : maxq,maxvars,npt,nql1,nql2,iice,nqs1,nqs2,nnc1,nnc2, &
+          prcl_out,prcl_droplet,prth,prt,prprs,prpt1,prqv,prq1,prnc1,prkm,prkh, &
+          prtke,prdbz,prb,prvpg,przv,prrho,prqsl,prqsi,prznt,prust,przs,prsig
       implicit none
 
       character(len=40), intent(inout), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
@@ -2330,7 +2348,8 @@
 
 
       subroutine write_prclctl(name_prcl,desc_prcl,unit_prcl,prec)
-      use input
+      use input, only : maxvars,myid,string,maxstring,dowr,cm1version, &
+          nparcels,prcl_out,outfile
       use constants , only : grads_undef
       implicit none
 

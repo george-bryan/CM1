@@ -28,7 +28,11 @@
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
                                uten,vten,wten,thten,qten,pdata_locind)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
+          kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
+          umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
+          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs, &
+          timestats,time_droplet,mytime,ierr,time_droplet_reduce
       use constants
       use comm_module
       use misclibs
@@ -613,7 +617,9 @@
 
       subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
       !$acc routine seq
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
+          pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
       use constants
       use comm_module
       use misclibs
@@ -929,7 +935,9 @@
 
       subroutine BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
       !$acc routine seq
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
+          pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
       use constants
       use comm_module
       use misclibs
@@ -1136,7 +1144,10 @@
 
       subroutine interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
       !$acc routine seq
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
+          pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy,ni,nj,nz, &
+          ngxy,ngz,nip1,nk,nkp1,zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
       use constants
       use parcel_module
       use cm1libs , only : eslf
@@ -1539,7 +1550,6 @@
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
       !$acc routine seq
 
-      use input
       use constants
 
       implicit none
@@ -1623,7 +1633,6 @@
       subroutine find_vertical_location_index (loc_ind, loc, lb, ub, dsize, ind, is_ge)
       !$acc routine seq
 
-      use input
       use constants
 
       implicit none
@@ -1972,7 +1981,7 @@
       subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
       !$acc routine seq
       use constants
-      use input
+      use input, only : viscosity,pr_num,sc_num
       use cm1libs , only : eslf
       implicit none
 

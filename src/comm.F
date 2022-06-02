@@ -72,7 +72,8 @@
 
 #ifdef MPI
       subroutine getcorner(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
  
@@ -245,7 +246,8 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine getcorner_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -502,7 +504,8 @@
 
 
       subroutine getcornert(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -677,7 +680,8 @@
 
 
       subroutine getcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -923,7 +927,8 @@
 
 
       subroutine getcorneru(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -1113,7 +1118,8 @@
 
 
       subroutine getcorneru_GPU(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -1339,7 +1345,8 @@
 
 
       subroutine getcornerv(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -1529,7 +1536,8 @@
 
 
       subroutine getcornerv_GPU(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -1796,7 +1804,8 @@
 
 
       subroutine getcornerw(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -1986,7 +1995,8 @@
 
 
       subroutine getcornerw_GPU(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -2250,7 +2260,8 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine getcorner3(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          cmp,nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
  
@@ -2450,7 +2461,8 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine getcorner3_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          cmp,nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
       implicit none
 
@@ -2740,7 +2752,8 @@
 
 
       subroutine comm_2we_start_GPU(s,west,newwest,east,neweast,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          cs2we,nf,nkp1,myeast,mywest,ierr,timestats,time_mps3,mytime
       use mpi
       implicit none
 
@@ -2863,7 +2876,8 @@
 
 
       subroutine comm_2we_end_GPU(s,west,newwest,east,neweast,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          cs2we,nf,nkp1,myeast,mywest,ierr,timestats,time_mps4,mytime
       use mpi
       implicit none
 
@@ -2954,7 +2968,8 @@
 
 
       subroutine comm_2sn_start_GPU(s,south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nf,cs2sn,nkp1,mysouth,mynorth,ierr,timestats,time_mps3,mytime
       use mpi
       implicit none
 
@@ -3078,7 +3093,8 @@
 
 
       subroutine comm_2sn_end_GPU(s,south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
+          nf,cs2sn,nkp1,mysouth,mynorth,ierr,timestats,time_mps4,mytime
       use mpi
       implicit none
 
@@ -3167,7 +3183,9 @@
 
       subroutine comm_3s_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          myeast,mywest,mysouth,mynorth,nf,cs3we,cs3sn,timestats,time_mps1, &
+          mytime,ierr
       use mpi
       implicit none
  
@@ -3322,7 +3340,9 @@
 
       subroutine comm_3s_start_GPU(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          myeast,mywest,mysouth,mynorth,nf,cs3we,cs3sn,timestats,time_mps1, &
+          mytime,ierr
       use mpi
       implicit none
  
@@ -3543,7 +3563,10 @@
  
       subroutine comm_3s_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          wbc,ebc,nbc,sbc,myeast,mywest,mysouth,mynorth,nf,cs3we,cs3sn,timestats, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen, &
+          time_bc,time_mps2,mytime,ierr
       use mpi
       implicit none
  
@@ -3762,7 +3785,10 @@
  
       subroutine comm_3s_end_GPU(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          wbc,ebc,nbc,sbc,myeast,mywest,mysouth,mynorth,nf,cs3we,cs3sn,timestats, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen, &
+          time_bc,time_mps2, mytime,ierr
       use mpi
       implicit none
  
@@ -3996,7 +4022,9 @@
       ! tk1
       subroutine comm_3t_start(t,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          nf,ct3we,ct3sn,nkp1,timestats,time_mps1,mytime,ierr, &
+          myeast,mywest,mynorth,mysouth
       use mpi
       implicit none
 
@@ -4150,7 +4178,9 @@
       ! tk1
       subroutine comm_3t_start_GPU(t,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          nf,ct3we,ct3sn,nkp1,timestats,time_mps1,mytime,ierr, &
+          myeast,mywest,mynorth,mysouth
       use mpi
       implicit none
 
@@ -4369,7 +4399,9 @@
 
       subroutine comm_3t_end(t,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          ierr,nkp1,ebc,wbc,sbc,nbc,timestats,time_mps2,time_bc,mytime, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
 
@@ -4584,7 +4616,9 @@
 
       subroutine comm_3t_end_GPU(t,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
+          ierr,nkp1,ebc,wbc,sbc,nbc,timestats,time_mps2,time_bc,mytime, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
 
@@ -4818,7 +4852,8 @@
  
       subroutine comm_3u_start(u,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
+          timestats,mytime,nu,time_mpu1,cs3we,cu3sn,ierr,mynorth,mysouth,myeast,mywest
       use mpi
       implicit none
  
@@ -4971,7 +5006,8 @@
  
       subroutine comm_3u_start_GPU(u,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
+          timestats,mytime,nu,time_mpu1,cs3we,cu3sn,ierr,mynorth,mysouth,myeast,mywest
       use mpi
       implicit none
  
@@ -5191,7 +5227,9 @@
  
       subroutine comm_3u_end(u,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
+          ebc,wbc,sbc,nbc,ierr,timestats,time_mpu2,mytime,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -5409,7 +5447,9 @@
  
       subroutine comm_3u_end_GPU(u,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
+          ebc,wbc,sbc,nbc,ierr,timestats,time_mpu2,mytime,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -5641,7 +5681,9 @@
  
       subroutine comm_3v_start(v,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,timestats,mytime,nv,time_mpv1,cv3we,cs3sn,ierr, &
+          myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -5793,7 +5835,9 @@
  
       subroutine comm_3v_start_GPU(v,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,timestats,mytime,nv,time_mpv1,cv3we,cs3sn,ierr, &
+          myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -6010,7 +6054,9 @@
  
       subroutine comm_3v_end(v,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
+          ebc,wbc,sbc,nbc,ierr,timestats,time_mpv2,mytime,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -6232,7 +6278,9 @@
  
       subroutine comm_3v_end_GPU(v,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
+          ebc,wbc,sbc,nbc,ierr,timestats,time_mpv2,mytime,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -6465,7 +6513,9 @@
  
       subroutine comm_3w_start(w,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
+          ierr,timestats,mytime,nw,time_mpw1,cw3we,cw3sn,mywest,myeast, & 
+          mysouth,mynorth
       use mpi
       implicit none
  
@@ -6618,7 +6668,9 @@
  
       subroutine comm_3w_start_GPU(w,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
+          ierr,timestats,mytime,nw,time_mpw1,cw3we,cw3sn,mywest,myeast, &
+          mysouth,mynorth
       use mpi
       implicit none
  
@@ -6836,7 +6888,9 @@
  
       subroutine comm_3w_end(w,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,mytime,timestats,time_mpw2,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -7054,7 +7108,9 @@
  
       subroutine comm_3w_end_GPU(w,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,mytime,timestats,time_mpw2,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -7289,7 +7345,8 @@
 
       subroutine comm_1s2d_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
+          nf,ierr,timestats,time_mps1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -7427,7 +7484,8 @@
 
       subroutine comm_1s2d_start_GPU(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
+          nf,ierr,timestats,time_mps1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
 
@@ -7631,7 +7689,9 @@
  
       subroutine comm_1s2d_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
+          wbc,ebc,nbc,sbc,timestats,mytime,time_mps2,time_bc,ierr, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -7798,7 +7858,9 @@
 
       subroutine comm_1s2d_end_GPU(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
+          wbc,ebc,nbc,sbc,timestats,mytime,time_mps2,time_bc,ierr, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
 
@@ -7984,7 +8046,9 @@
 
       subroutine comm_1s_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,nf,cs1we,cs1sn,ierr,timestats,time_mps1,mytime, & 
+          myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -8125,7 +8189,9 @@
 
       subroutine comm_1s_start_GPU(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,nf,cs1we,cs1sn,ierr,timestats,time_mps1,mytime, & 
+          myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -8345,7 +8411,9 @@
  
       subroutine comm_1s_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          ebc,wbc,sbc,nbc,timestats,mytime,ierr,time_bc,time_mps2, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -8555,7 +8623,9 @@
 
       subroutine comm_1s_end_GPU(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          ebc,wbc,sbc,nbc,timestats,mytime,ierr,time_bc,time_mps2, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -8784,7 +8854,9 @@
 
       subroutine comm_1p_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,nf,ierr,timestats,time_mpp1,mytime, &
+          cs1we,cs1sn,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -8929,7 +9001,9 @@
 
       subroutine comm_1p_start_GPU(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,nf,ierr,timestats,time_mpp1,mytime, &
+          cs1we,cs1sn,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
 
@@ -9149,7 +9223,8 @@
 
       subroutine comm_1p_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          ebc,wbc,sbc,nbc,timestats,mytime,time_bc,time_mpp2,ierr
       use mpi
       implicit none
  
@@ -9260,7 +9335,8 @@
  
       subroutine comm_1p_end_GPU(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          ebc,wbc,sbc,nbc,timestats,mytime,time_bc,time_mpp2,ierr
       use mpi
       implicit none
  
@@ -9396,7 +9472,9 @@
 
       subroutine comm_1t_start(t,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,ct1we,ct1sn,nf,ierr,timestats,time_mps1,mytime, &
+          myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
 
@@ -9542,7 +9620,9 @@
 
       subroutine comm_1t_start_GPU(t,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,ct1we,ct1sn,nf,ierr,timestats,time_mps1,mytime, &
+          myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
 
@@ -9755,7 +9835,9 @@
 
       subroutine comm_1t_end(t,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,mytime,ierr,timestats,time_mps2,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
 
@@ -9965,7 +10047,9 @@
 
       subroutine comm_1t_end_GPU(t,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,mytime,ierr,timestats,time_mps2,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
 
@@ -10201,7 +10285,8 @@
 
       subroutine comm_1u_start(u,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
+          nu,cs1we,cu1sn,ierr,timestats,time_mpu1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -10346,7 +10431,9 @@
  
       subroutine comm_1u_end(u,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,ierr,timestats,mytime,time_bc,time_mpu2, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen     
       use mpi
       implicit none
  
@@ -10558,7 +10645,8 @@
 
       subroutine comm_1v_start(v,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
+          cv1we,cs1sn,nv,ierr,timestats,time_mps1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -10703,7 +10791,9 @@
  
       subroutine comm_1v_end(v,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,ierr,timestats,mytime,time_bc,time_mps2, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -10914,7 +11004,9 @@
  
       subroutine comm_1w_start(w,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,cw1we,cw1sn, &
+          nw,ierr,timestats,time_mpw1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -11052,7 +11144,9 @@
  
       subroutine comm_1w_start_GPU(w,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,cw1we,cw1sn, &
+          nw,ierr,timestats,time_mpw1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -11256,7 +11350,9 @@
  
       subroutine comm_1w_end(w,ww1,ww2,we1,we2,   &
                                ws1,ws2,wn1,wn2,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibn,ibs, &
+          wbc,ebc,sbc,nbc,timestats,mytime,ierr,time_bc,time_mpw2, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -11493,7 +11589,9 @@
  
       subroutine comm_1w_end_GPU(w,ww1,ww2,we1,we2,   &
                                ws1,ws2,wn1,wn2,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibn,ibs, &
+          wbc,ebc,sbc,nbc,timestats,mytime,ierr,time_bc,time_mpw2, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -11745,7 +11843,8 @@
 
       subroutine comm_2d_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
+          nf,ierr,timestats,time_mpq1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
 
@@ -11888,7 +11987,8 @@
 
       subroutine comm_2d_start_GPU(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
+          nf,ierr,timestats,time_mpq1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
 
@@ -12097,7 +12197,8 @@
 
 
       subroutine comm_2dew_end(s,west,newwest,east,neweast,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ierr, &
+          timestats,time_mpq2,mytime
       use mpi
       implicit none
 
@@ -12155,7 +12256,8 @@
 
 
       subroutine comm_2dew_end_GPU(s,west,newwest,east,neweast,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ierr, &
+          timestats,time_mpq2,mytime
       use mpi
       implicit none
 
@@ -12226,7 +12328,8 @@ if(Debug) print *, "comm_2dew_end_GPU: Im called"
 
 
       subroutine comm_2dns_end(s,south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,ierr,timestats,time_mpq2,mytime
       use mpi
       implicit none
 
@@ -12317,7 +12420,8 @@ if(Debug) print *, "comm_2dew_end_GPU: Im called"
 
 
       subroutine comm_2dns_end_GPU(s,south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,ierr,timestats,time_mpq2,mytime
       use mpi
       implicit none
 
@@ -12421,7 +12525,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
 
       subroutine comm_2d_corner(s)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
+          mynw,mysw,myne,myse,timestats,time_mptk1,mytime,ierr
       use mpi
       implicit none
 
@@ -12541,7 +12646,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
 
       subroutine comm_2d_corner_GPU(s)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
+          mynw,mysw,myne,myse,timestats,time_mptk1,mytime,ierr
       use mpi
       implicit none
 
@@ -12674,7 +12780,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine getcorner3_2d(s)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn, &
+          mynw,mysw,myne,myse,timestats,time_mptk1,mytime,ierr
       use mpi
       implicit none
  
@@ -12853,7 +12960,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       subroutine comm_3r_start(th,pp,west,newwest,east,neweast,   &
                                      south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
+          cs3we,cs3sn,nf,ierr,timestats,time_mps1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
 
@@ -13029,7 +13137,9 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       subroutine comm_3r_end(th,pp,west,newwest,east,neweast,   &
                                    south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
+          ebc,wbc,sbc,nbc,ierr,timestats,time_mps2,time_bc,myid,mytime, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
 
@@ -13281,7 +13391,10 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       subroutine comm_3q_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,cmp,ni,nj,nk,numq, &
+          ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc,cs3weq,cs3snq,nf, &
+          ierr,timestats,time_mps1, &
+          mytime,myeast,mywest,mysouth,mynorth
       use mpi
       implicit none
  
@@ -13443,7 +13556,10 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
  
       subroutine comm_3q_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,numq,cmp, &
+          ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc,myid,ierr, &
+          timestats,mytime,time_mps2,time_bc, &
+          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
       use mpi
       implicit none
  
@@ -13691,7 +13807,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       subroutine comm_all_s(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
       use bc_module, only: bcs2
       implicit none
 
@@ -13715,7 +13831,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
       subroutine comm_all_s_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
       use bc_module, only: bcs2_GPU
       implicit none
 
@@ -13747,7 +13863,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       subroutine prepcorners_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,comm)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
+          tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
       use bc_module, only: bcs_GPU,bcs2_GPU
       implicit none
 
@@ -13817,7 +13934,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       subroutine prepcorners3_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                                 n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,comm)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
+          tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
       use bc_module, only: bcs_GPU
       implicit none
 
@@ -13878,7 +13996,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
       subroutine prepcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,comm)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
+          tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
       use bc_module, only: bcw_GPU, bct2_GPU
       implicit none
 
@@ -13922,7 +14041,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine getcorneru3(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
       implicit none
 
@@ -14110,7 +14230,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine getcorneru3_GPU(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
       implicit none
 
@@ -14381,7 +14502,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine getcornerv3(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
       implicit none
 
@@ -14569,7 +14691,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine getcornerv3_GPU(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
       implicit none
 
@@ -14842,7 +14965,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine getcornerw3(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,cmp,ibw,ibe,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
       implicit none
 
@@ -15030,7 +15154,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine getcornerw3_GPU(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,cmp,ibw,ibe,ibn,ibs, &
+          wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
       implicit none
 
@@ -15300,7 +15425,9 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine comm_1s_tend_halo(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,nf,ierr,cs1we,cs1sn,timestats,time_mps2,mytime, &
+          mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth
       use mpi
       implicit none
  
@@ -15713,7 +15840,9 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
 
       subroutine comm_1s_tend_halo_GPU(s)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
+          wbc,ebc,sbc,nbc,nf,ierr,cs1we,cs1sn,timestats,time_mps2,mytime, &
+          mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth
       use mpi
       implicit none
  

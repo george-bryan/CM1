@@ -545,7 +545,8 @@
                           xland,psfc,qsfc,u10,v10,hfx,qfx,cda,znt,gz1oz0,  &
                           psim,psih,br,zol,mol,hpbl,dsxy,th2,t2,q2,fm,fh,  &
                           zs,za,pi0s,pi0,th0,ppi,tha,rho,rf,qa)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ni,nj,nk, &
+          timestats,time_sfcphys,mytime
       use constants
       use cm1libs , only : rslf
       implicit none
@@ -643,7 +644,8 @@
 
 
       subroutine gethpbl(zh,th0,tha,qa,hpbl)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ni,nj,nk, &
+          timestats,mytime,time_sfcphys
       use constants
       implicit none
 
@@ -695,7 +697,8 @@
 
 
       subroutine gethpbl2(psfc,qsfc,thflux,qvflux,ust,tsk,zh,th0,tha,qa,ua,va,thv1,thvsfc,govthv,brilast,hpbl,riout)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ni,nj,nk, &
+          timestats,mytime,imoist,time_sfcphys
       use constants
       use cm1libs , only : rslf
       implicit none
@@ -831,7 +834,9 @@
                          u10,v10,s10,xland,znt,rznt,ust,cd,ch,cq,   &
                          avgsfcu,avgsfcv,avgsfcs,avgsfct,rtime,     &
                          tsk,psfc,wspd,th0,tha)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ni,nj,nk, &
+          nx,ny,use_avg_sfc,testcase,imoist,smeps,ierr,timestats,nzeta, &
+          mytime,time_sfcphys
       use constants
 #ifdef MPI
       use mpi
@@ -1102,7 +1107,8 @@
 
 
       subroutine getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
-      use input
+      use input, only : ib,ie,jb,je,ni,nj,nx,ny,timestats,time_sfcphys, &
+          mytime,ierr
 #ifdef MPI
       use mpi
 #endif

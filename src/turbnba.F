@@ -30,7 +30,9 @@
                          ua ,va ,wa ,tkea ,nm,                     &
                          kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,reqs_s,   &
                          nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+      use input, only : ib,ie,jb,je,kb,ke,ibnba,ienba,jbnba,jenba,kbnba,kenba, &
+          ibt,iet,jbt,jet,kbt,ket,imp,jmp,rmp,kmt,cmp,ni,nj,nk,dx,dy,dz,myid, &
+          tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
       use bc_module, only: bc2d_GPU, bcs2_GPU, bct2_GPU, bcs2_2d_GPU
       use comm_module
@@ -467,7 +469,9 @@
                          ua ,va ,wa ,tkea ,nm,                     &
                          kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,reqs_s,   &
                          nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input
+     use input, only : ib,ie,jb,je,kb,ke,ibnba,ienba,jbnba,jenba,kbnba,kenba, &
+          ibt,iet,jbt,jet,kbt,ket,imp,jmp,rmp,kmt,cmp,ni,nj,nk,dx,dy,dz,myid, &
+          tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
       use bc_module, only: bcs2_GPU
       use comm_module

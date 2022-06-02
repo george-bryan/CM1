@@ -1508,6 +1508,7 @@
 
         amplitude = 0.10
 
+        !JMD-KLUDGE investigate if zh(1,1,k) is corrupt
         do k=1,nk
         if( zh(1,1,k).le.100.0 )then
           ! cm1r17: loop over entire domain
