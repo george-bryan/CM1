@@ -232,11 +232,11 @@
         kmaxib = max( kmaxib , kbdy(i,j) )
       enddo
       enddo
-      !$acc update device(kmaxib)
 
 #ifdef MPI
       call MPI_ALLREDUCE(mpi_in_place,kmaxib,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
 #endif
+      !$acc update device(kmaxib)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '    kmaxib    = ',kmaxib

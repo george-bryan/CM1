@@ -1550,7 +1550,6 @@
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
       !$acc routine seq
 
-      use input, only :
       use constants
 
       implicit none
@@ -1634,7 +1633,6 @@
       subroutine find_vertical_location_index (loc_ind, loc, lb, ub, dsize, ind, is_ge)
       !$acc routine seq
 
-      use input, only :
       use constants
 
       implicit none
