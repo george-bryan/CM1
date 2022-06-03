@@ -1756,10 +1756,9 @@
       IF( apmasscon.eq.1 .and. nrk.eq.nrkmax )THEN
         ! cm1r18:  adjust average pressure perturbation to ensure 
         !          conservation of total dry-air mass
-        !FIXME
-        !print *,'solve2: before dumk{1,2} loop: axisymm: ',axisymm
-        !$acc parallel reduction(+:tmp1,tmp2)
+
         IF( axisymm.eq.0 )THEN
+          !$acc parallel reduction(+:tmp1,tmp2)
           !$acc loop gang
           do k=1,nk
             tmp1=0
@@ -1775,7 +1774,9 @@
             dumk3(k) = tmp1
             dumk4(k) = tmp2
           enddo
+          !$acc end parallel
         ELSEIF( axisymm.eq.1 )THEN
+          !$acc parallel reduction(+:tmp1,tmp2)
           !$acc loop gang
           do k=1,nk
             tmp1=0
@@ -1791,8 +1792,8 @@
             dumk3(k) = tmp1
             dumk4(k) = tmp2
           enddo
+          !$acc end parallel
         ENDIF
-        !$acc end parallel
 
 #ifdef MPI
         !$acc update host(dumk3,dumk4)

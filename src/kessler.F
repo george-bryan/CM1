@@ -416,8 +416,7 @@
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k,n,tnew,pnew,esl,qvs,qvnew,qcnew,cvml,rm,lhv,   &
 !$omp tlast,dqv,t1,d1,tem,ql,qi,doit)
-      !$acc parallel default(present) reduction(+:bud1tmp,bud2tmp) reduction(max:nmax) &
-      !$acc private(i,j,k,n,tnew,pnew,esl,qvs,qvnew,qcnew,cvml,rm,lhv,tlast,dqv,t1,d1,tem,ql,qi,doit) 
+      !$acc parallel default(present) reduction(+:bud1tmp,bud2tmp) reduction(max:nmax)
       !$acc loop gang 
       do k=1,nk
         bud1tmp=0.0d0
@@ -519,7 +518,7 @@
       nmax=1
 
       !$omp parallel do default(shared) private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm)
-      !$acc parallel default(present) private(i,j,k,qvnew,qcnew,tnew,esl,qvs,lhv,dqv,tem,rm) reduction(+:bud1tmp,bud2tmp)
+      !$acc parallel default(present) reduction(+:bud1tmp,bud2tmp)
       !$acc loop gang
       do k=1,nk
         bud1tmp=0.0d0
@@ -562,16 +561,16 @@
 
     ENDIF
 
-    !$acc parallel
     IF(nrk.ge.nrkmax)THEN
       dum=dx*dy*dz
+      !$acc parallel default(present)
       !$acc loop gang vector reduction(+:tcond,tevac)
       do k=1,nk
         tcond=tcond+bud1(k)*dum
         tevac=tevac+bud2(k)*dum
       enddo
+      !$acc end parallel
     ENDIF
-    !$acc end parallel
 
 !!!#ifdef MPI
 !!!      omax=0
