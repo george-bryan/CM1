@@ -2680,44 +2680,56 @@
       real, dimension(ib:ie,jb:je+1,kb:ke) :: v3d
 
       integer i,j,k
-      double precision :: fluxout,fluxin,tem,u1,t3
+      double precision :: fluxout,fluxin,tem,u1,t3,tmp1,tmp2
       double precision, dimension(nk) :: temout,temin
-
-!$omp parallel do default(shared) private(k)
-      do k=1,nk
-        temout(k) = 0.0d0
-        temin(k)  = 0.0d0
-      enddo
 
       if(sbc.eq.2.and.ibs.eq.1)then
         j=1
-!$omp parallel do default(shared) private(i,k)
+!$omp parallel do default(shared) private(i,k,tmp1,tmp2)
+        !$acc parallel default(present) reduction(+:tmp1,tmp2)
+        !$acc loop gang
         do k=1,nk
+        tmp1 = 0.D0
+        tmp2 = 0.D0
+        !$acc loop vector reduction (+:tmp1,tmp2)
         do i=1,ni
-          temout(k)=temout(k)-min(0.0,rho0(i,1,k)*v3d(i,j,k)*ruh(i)*rmh(i,1,k))
-          temin(k) =temin(k) +max(0.0,rho0(i,1,k)*v3d(i,j,k)*ruh(i)*rmh(i,1,k))
+          tmp1=tmp1-min(0.0,rho0(i,1,k)*v3d(i,j,k)*ruh(i)*rmh(i,1,k))
+          tmp2=tmp2+max(0.0,rho0(i,1,k)*v3d(i,j,k)*ruh(i)*rmh(i,1,k))
         enddo
+        temout(k)=tmp1
+        temin(k)=tmp2
         enddo
+        !$acc end parallel
       endif
 
       if(nbc.eq.2.and.ibn.eq.1)then
         j=nj+1
-!$omp parallel do default(shared) private(i,k)
+!$omp parallel do default(shared) private(i,k,tmp1,tmp2)
+        !$acc parallel default(present) reduction(+:tmp1,tmp2)
+        !$acc loop gang
         do k=1,nk
+        tmp1 = 0.D0
+        tmp2 = 0.D0
+        !$acc loop vector reduction (+:tmp1,tmp2)
         do i=1,ni
-          temout(k)=temout(k)+max(0.0,rho0(i,nj,k)*v3d(i,j,k)*ruh(i)*rmh(i,nj,k))
-          temin(k) =temin(k) -min(0.0,rho0(i,nj,k)*v3d(i,j,k)*ruh(i)*rmh(i,nj,k))
+          tmp1=tmp1+max(0.0,rho0(i,nj,k)*v3d(i,j,k)*ruh(i)*rmh(i,nj,k))
+          tmp2=tmp2-min(0.0,rho0(i,nj,k)*v3d(i,j,k)*ruh(i)*rmh(i,nj,k))
         enddo
+        temout(k)=tmp1
+        temin(k)=tmp2
         enddo
+        !$acc end parallel
       endif
 
       fluxout = 0.0d0
       fluxin  = 0.0d0
 
+      !$acc parallel loop gang vector default(present) reduction(+:fluxout,fluxin)
       do k=1,nk
         fluxout = fluxout + temout(k)
         fluxin  = fluxin  + temin(k)
       enddo
+      !$acc end parallel
 
 #ifdef MPI
       tem=0.0d0
@@ -2735,6 +2747,8 @@
       if(sbc.eq.2.and.ibs.eq.1)then
         j=1
 !$omp parallel do default(shared) private(i,k,u1)
+        !$acc parallel default(present)
+        !$acc loop gang vector collapse(2)
         do k=1,nk
         do i=1,ni
           u1=rho0(i,1,k)*v3d(i,j,k)
@@ -2743,11 +2757,14 @@
           endif
         enddo
         enddo
+        !$acc end parallel
       endif
 
       if(nbc.eq.2.and.ibn.eq.1)then
         j=nj+1
 !$omp parallel do default(shared) private(i,k,u1)
+        !$acc parallel default(present)
+        !$acc loop gang vector collapse(2)
         do k=1,nk
         do i=1,ni
           u1=rho0(i,nj,k)*v3d(i,j,k)
@@ -2756,6 +2773,7 @@
           endif
         enddo
         enddo
+        !$acc end parallel
       endif
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
