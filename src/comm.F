@@ -40,6 +40,40 @@
   MODULE comm_module
 
   implicit none
+  private
+  public :: nabor
+
+  !GPU enabled routines 
+  public :: comm_2d_start_GPU,comm_2dns_end_GPU,comm_2dew_end_GPU
+  public :: comm_1s_start_GPU,comm_1s_end_GPU
+  public :: comm_1w_start_GPU,comm_1w_end_GPU
+  public :: comm_1p_start_GPU,comm_1p_end_GPU
+  public :: comm_1t_start_GPU,comm_1t_end_GPU
+  public :: comm_2sn_start_GPU,comm_2sn_end_GPU
+  public :: comm_3s_start_GPU,comm_3s_end_GPU
+  public :: comm_3t_start_GPU,comm_3t_end_GPU
+  public :: comm_3w_start_GPU,comm_3w_end_GPU
+  public :: comm_3u_start_GPU,comm_3u_end_GPU
+  public :: comm_3v_start_GPU,comm_3v_end_GPU
+  public :: comm_1s2d_start_GPU,comm_1s2d_end_GPU
+  public :: comm_2we_start_GPU,comm_2we_end_GPU
+  public :: comm_2d_corner_GPU
+  public :: comm_1s_tend_halo_GPU
+  public :: getcorneru_GPU,getcornerv_GPU,getcornert_GPU,getcornerw_GPU,getcorner_GPU
+  public :: getcorneru3_GPU,getcornerv3_GPU,getcornerw3_GPU
+  public :: prepcorners3_GPU,prepcornert_GPU,prepcorners_GPU
+
+  !CPU only routines
+  public :: comm_2d_start, comm_2dns_end,comm_2dew_end
+  public :: comm_2d_corner,comm_all_s
+  public :: comm_1s_start,comm_1s_end
+  public :: comm_3s_start,comm_3s_end
+  public :: comm_3t_start,comm_3t_end
+  public :: comm_3u_start,comm_3u_end
+  public :: comm_3v_start,comm_3v_end
+  public :: comm_3w_start,comm_3w_end
+  public :: comm_1s2d_start,comm_1s2d_end
+  public :: getcorneru3,getcornerv3,getcorner3_2d,getcorner
 
   CONTAINS
 
@@ -497,6 +531,7 @@
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
       end subroutine getcorner_GPU
 
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -673,6 +708,7 @@
 
       end subroutine getcornert
 
+#endif
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -921,6 +957,8 @@
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
       end subroutine getcornert_GPU
 
+#if 0
+
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1112,6 +1150,7 @@
 
       end subroutine getcorneru
 
+#endif 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1337,6 +1376,7 @@
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
       end subroutine getcorneru_GPU
 
+#if 0
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1530,6 +1570,7 @@
 
       end subroutine getcornerv
 
+#endif
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1797,6 +1838,7 @@
       end subroutine getcornerv_GPU
 
 
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1989,6 +2031,7 @@
 
       end subroutine getcornerw
 
+#endif
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2252,7 +2295,6 @@
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
       end subroutine getcornerw_GPU
-
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -8846,6 +8888,7 @@
  
       end subroutine comm_1s_end_GPU
 
+#if 0
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -8993,6 +9036,8 @@
       if(timestats.ge.1) time_mpp1=time_mpp1+mytime()
  
       end subroutine comm_1p_start
+
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -9217,6 +9262,7 @@
 
       end subroutine comm_1p_start_GPU
 
+#if 0
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -9332,6 +9378,7 @@
  
       end subroutine comm_1p_end
 
+#endif
  
       subroutine comm_1p_end_GPU(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
@@ -9464,6 +9511,7 @@
       end subroutine comm_1p_end_GPU
 
  
+#if 0
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -9612,6 +9660,7 @@
 
       end subroutine comm_1t_start
 
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -9828,6 +9877,8 @@
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
       end subroutine comm_1t_start_GPU
 
+#if 0
+
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10039,6 +10090,8 @@
 !----------
 
       end subroutine comm_1t_end
+
+#endif 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10277,6 +10330,7 @@
 !      !$acc update device(t)
       end subroutine comm_1t_end_GPU
 
+#if 0
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10424,6 +10478,8 @@
  
       end subroutine comm_1u_start
 
+#endif
+#if 0
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10637,6 +10693,8 @@
  
       end subroutine comm_1u_end
 
+#endif
+#if 0
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10784,6 +10842,8 @@
  
       end subroutine comm_1v_start
 
+#endif
+#if 0
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -10996,6 +11056,8 @@
  
       end subroutine comm_1v_end
 
+#endif
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -11137,6 +11199,7 @@
       if(timestats.ge.1) time_mpw1=time_mpw1+mytime()
  
       end subroutine comm_1w_start
+#endif
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -11343,6 +11406,7 @@
  
       end subroutine comm_1w_start_GPU
 
+#if 0
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -11582,6 +11646,7 @@
 
       end subroutine comm_1w_end
 
+#endif
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -12952,6 +13017,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       end subroutine getcorner3_2d
 
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -13129,6 +13195,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       end subroutine comm_3r_start
 
+#endif
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -13383,6 +13451,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       end subroutine comm_3r_end
 
+#endif
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -13548,6 +13618,8 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
 
       end subroutine comm_3q_start
 
+#endif
+#if 0
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -13798,6 +13870,7 @@ if(Debug) print *, "comm_2dns_end_GPU: Im called"
  
       end subroutine comm_3q_end
 
+#endif
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -15419,6 +15492,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
       end subroutine getcornerw3_GPU
 
+#if 0
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -15833,6 +15907,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
  
       end subroutine comm_1s_tend_halo
 
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
