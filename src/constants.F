@@ -9,11 +9,7 @@
             cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2,  &
             rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo,mw,ms,surften,ion,os,ru
 
-!$acc declare create(g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp,cpdcv,rovcp, &
-!$acc                rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1, &
-!$acc                cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi, &
-!$acc                lv1,lv2,ls1,ls2,rhow,c_e1,c_e2,c_s,rcs,govtwo, &
-!$acc                earth_radius,govtwo,surften,mw,ms,ion,os,ru)
+    !$acc declare create (ru,mw,surften,rhow,ion,os,ms,lv1,lv2,cpl,cp,eps)
 
       !----------------
 
@@ -179,11 +175,7 @@
       c_s = ( c_m * c_m * c_m / ( c_e1 + c_e2 ) )**0.25   ! Smagorinsky constant
       rcs = 1.0/c_s
 
-!$acc update device(g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp,cpdcv,rovcp, &
-!$acc               rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1, &
-!$acc               cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi, &
-!$acc               lv1,lv2,ls1,ls2,rhow,c_e1,c_e2,c_s,rcs,govtwo, &
-!$acc               earth_radius,govtwo,surften,ms,mw,ion,os,ru)
+      !$acc update device (ru,mw,surften,rhow,ion,os,ms,lv1,lv2,cpl,cp,eps)
 
       end subroutine set_constants
 
