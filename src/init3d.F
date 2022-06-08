@@ -417,7 +417,7 @@
           if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
           !endif
 
-          if (prcl_droplet.ge.1) then
+          if (prcl_droplet.eq.1) then
 
             pdata(n,prvpx) = 0.0
             pdata(n,prvpy) = 0.0
@@ -438,6 +438,15 @@
    
             !Is droplet alive?
             pdata(n,pract) = 1.0
+
+            !Initialize the interpolated quantities to zero
+            pdata(n,pru) = 0.0
+            pdata(n,prv) = 0.0
+            pdata(n,prw) = 0.0
+            pdata(n,prt) = 0.0
+            pdata(n,prqv) = 0.0
+            pdata(n,prprs) = 0.0
+            pdata(n,prrho) = 0.0
 
           endif
 

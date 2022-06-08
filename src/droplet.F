@@ -8,7 +8,7 @@
   implicit none
 
   private
-  public :: droplet_driver,rk2_integration
+  public :: droplet_driver,rk2_integration,droplet_diag
 
   ! If we already know that a parcel stays on the same process 
   !    in the previous time step and it is still here, we start 
@@ -17,6 +17,12 @@
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
   integer, parameter :: location_offset = 3
+
+
+
+  !Declare the droplet statistics here
+  integer :: tnumpart,tnumdrop,tnumaerosol
+  real :: radavg,radmsqr,Tpavg,Tpmsqr,Tfavg,qfavg,prsavg,rhoavg
 
   CONTAINS
 
@@ -31,7 +37,7 @@
       use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
           kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
-          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs, &
+          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce
       use constants
       use comm_module
@@ -619,7 +625,7 @@
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho
       use constants
       use comm_module
       use misclibs
@@ -679,6 +685,16 @@
       rkloop:  DO nrkp = 1,2
 
        call interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+
+      !Store interpolated quantities for the sake of statistics
+      pdata(np,pru) = uval
+      pdata(np,prv) = vval
+      pdata(np,prw) = wval
+      pdata(np,prt) = tval
+      pdata(np,prqv) = qval
+      pdata(np,prprs) = prsval
+      pdata(np,prrho) = rhoval
+
 
       estar = eslf(prsval,tval)  !Saturation vapor pressure based on interpolated temp,pressure
       lhv=lv1-lv2*tval
@@ -937,7 +953,7 @@
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho
       use constants
       use comm_module
       use misclibs
@@ -997,6 +1013,15 @@
 
 
        call interpolate_to_parcel(np,1,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+
+      !Store interpolated quantities for the sake of statistics
+      pdata(np,pru) = uval
+      pdata(np,prv) = vval
+      pdata(np,prw) = wval
+      pdata(np,prt) = tval
+      pdata(np,prqv) = qval
+      pdata(np,prprs) = prsval
+      pdata(np,prrho) = rhoval
 
        !qval = 0.008807098199749
        !tval = 282.3
@@ -1546,6 +1571,64 @@
 
       end subroutine interpolate_to_parcel
 
+      subroutine droplet_diag(rtime,pdata)
+
+      use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
+      implicit none
+
+      real, intent(in) :: rtime
+      real, intent(in), dimension(nparcels,npvals) :: pdata
+
+      integer :: np
+
+
+
+      !Compute the various types of droplet statistics
+
+
+      !! 0th order
+
+      tnumpart = 0
+      radavg = 0.0
+      radmsqr = 0.0
+      Tpavg = 0.0
+      Tpmsqr = 0.0
+      Tfavg = 0.0
+      qfavg = 0.0
+      prsavg = 0.0
+      rhoavg = 0.0
+
+      do np=1,nparcels
+         if (pdata(np,pract) .gt. 0.0) then
+            
+            tnumpart = tnumpart + 1
+            radavg = radavg + pdata(np,prrp)
+            radmsqr = radmsqr + pdata(np,prrp)**2
+            Tpavg = Tpavg + pdata(np,prtp)
+            Tpmsqr = Tpmsqr + pdata(np,prtp)**2 
+            Tfavg = Tfavg + pdata(np,prt)
+            qfavg = qfavg + pdata(np,prqv)
+            prsavg = prsavg + pdata(np,prprs)
+            rhoavg = rhoavg + pdata(np,prrho)
+
+
+         end if
+      end do
+
+      radavg = radavg/tnumpart
+      radmsqr = radmsqr/tnumpart
+      Tpavg = Tpavg/tnumpart
+      Tpmsqr = Tpmsqr/tnumpart
+      Tfavg = Tfavg/tnumpart
+      qfavg = qfavg/tnumpart
+      prsavg = prsavg/tnumpart
+      rhoavg = rhoavg/tnumpart
+      
+
+      write(*,'(a15,1e15.6,i,6e15.6)') 'DROPLET_DIAG:',rtime,tnumpart,radavg,Tpavg,Tfavg,qfavg,prsavg,rhoavg
+      
+
+      end subroutine droplet_diag
 
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
       !$acc routine seq
