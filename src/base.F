@@ -2820,7 +2820,6 @@
      
 !!!      hurr_rad = 40000.0      ! radius from center of hurricane (m) 
       hurr_rad = var2      ! radius from center of hurricane (m) 
-      !$acc update device(hurr_rad)
 
       wmin  =   -0.01    ! value of w at z = z1
 !!!      wmin  =   var1     ! value of w at z = z1

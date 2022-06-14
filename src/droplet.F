@@ -1144,10 +1144,9 @@
 
       subroutine interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
       !$acc routine seq
-      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
-          pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy,ni,nj,nz, &
-          ngxy,ngz,nip1,nk,nkp1,zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,nx,ny, &
+                        axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
+                        zt,rzt,imoist,nqv,bbc,imove,umove,vmove
       use constants
       use parcel_module
       use cm1libs , only : eslf
@@ -1267,11 +1266,6 @@
         w6 = (1.0-rx)*ry*rz
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
-        if(np==TROUBLE) then 
-          print *,'parcel: before uval: ',i,j,k
-          print *,'parcel: ngxy,ngz: ',ngxy,ngz
-          print *,'parcel: ni+1,nj,nk: ',nip1,nj,nk
-        endif
 
         uval = tri_interp(nip1,nj,nk,i,j,k,w1,w2,w3,w4,w5,w6,w7,w8,ua)
         ! uval = ua(i  ,j  ,k  )*w1 &
@@ -1550,7 +1544,7 @@
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
       !$acc routine seq
 
-      use constants
+      use constants, only : undefined_index
 
       implicit none
 
@@ -1561,7 +1555,6 @@
       integer,                      intent(in)    :: end_ind    ! end index of x/y dimension
       integer,                      intent(inout) :: ind        ! return the x/y location index closest to 
                                                                 ! the current parcel location
-
       ! local variable
       integer :: i
 #ifdef _VERIFY_FIND_LOC
@@ -1633,7 +1626,7 @@
       subroutine find_vertical_location_index (loc_ind, loc, lb, ub, dsize, ind, is_ge)
       !$acc routine seq
 
-      use constants
+      use constants, only : undefined_index 
 
       implicit none
 

@@ -228,10 +228,10 @@
 #endif
 
       call bcast_log(terrain_flag,device=.true.)
-      call bcast_real(dx,device=.true.)
-      call bcast_real(dy,device=.true.)
-      call bcast_real(dz,device=.true.)
-      call bcast_real(dtl,device=.true.)
+      call bcast_real(dx)
+      call bcast_real(dy)
+      call bcast_real(dz)
+      call bcast_real(dtl)
       call bcast_real(timax)
       call bcast_real(run_time)
       call bcast_real(tapfrq)
@@ -254,7 +254,7 @@
       call bcast_int(weno_order)
       call bcast_int(apmasscon)
       call bcast_int(idiff)
-      call bcast_int(mdiff,device=.true.)
+      call bcast_int(mdiff)
       call bcast_int(difforder)
       call bcast_int(imoist,device=.true.)
       call bcast_int(ipbl)
@@ -294,23 +294,23 @@
       call bcast_int(axisymm,device=.true.)
       call bcast_int(imove,device=.true.)
       call bcast_int(iptra)
-      call bcast_int(npt,device=.true.)
+      call bcast_int(npt)
       call bcast_int(pdtra)
       call bcast_int(iprcl)
       call bcast_int(nparcels,device=.true.)
-      call bcast_real(kdiff2,device=.true.)
-      call bcast_real(kdiff6,device=.true.)
-      call bcast_real(fcor,device=.true.)
-      call bcast_real(kdiv,device=.true.)
-      call bcast_real(alph,device=.true.)
-      call bcast_real(rdalpha,device=.true.)
+      call bcast_real(kdiff2)
+      call bcast_real(kdiff6)
+      call bcast_real(fcor)
+      call bcast_real(kdiv)
+      call bcast_real(alph)
+      call bcast_real(rdalpha)
       call bcast_real(zd)
       call bcast_real(xhd)
       call bcast_real(alphobc)
       call bcast_real(umove,device=.true.)
       call bcast_real(vmove,device=.true.)
       call bcast_real(v_t)
-      call bcast_real(l_h,device=.true.)
+      call bcast_real(l_h)
       call bcast_real(lhref1)
       call bcast_real(lhref2)
       call bcast_real(l_inf)
@@ -332,8 +332,8 @@
       call bcast_real(dz_bot)
       call bcast_real(dz_top)
       call bcast_int(bc_temp)
-      call bcast_real(ptc_top,device=.true.)
-      call bcast_real(ptc_bot,device=.true.)
+      call bcast_real(ptc_top)
+      call bcast_real(ptc_bot)
       call bcast_real(viscosity,device=.true.)
       call bcast_real(pr_num,device=.true.)
       call bcast_real(sc_num,device=.true.)
@@ -512,8 +512,8 @@
       call bcast_int(season)
       call bcast_int(cecd)
       call bcast_int(pertflx)
-      call bcast_real(cnstce,device=.true.)
-      call bcast_real(cnstcd,device=.true.)
+      call bcast_real(cnstce)
+      call bcast_real(cnstcd)
       call bcast_int(isftcflx)
       call bcast_int(iz0tlnd)
       call bcast_real(oml_hml0)
@@ -522,10 +522,10 @@
       call bcast_int(set_znt)
       call bcast_int(set_ust)
 
-      call bcast_real(cnst_shflx,device=.true.)
-      call bcast_real(cnst_lhflx,device=.true.)
-      call bcast_real(cnst_znt,device=.true.)
-      call bcast_real(cnst_ust,device=.true.)
+      call bcast_real(cnst_shflx)
+      call bcast_real(cnst_lhflx)
+      call bcast_real(cnst_znt)
+      call bcast_real(cnst_ust)
 
       call bcast_log(dodomaindiag)
       call bcast_real(diagfrq)
@@ -592,14 +592,16 @@
           imove = 0
         endif
       endif
-      !$acc update device(umove,vmove)
+
+      !$acc update device (axisymm,imove,umove,vmove)
+
       irst = max( irst , 0 )
       irst = min( irst , 1 )
       if( cm1setup.eq.2 ) tconfig = 2
       if( psolver.eq.4 .or. psolver.eq.5 ) roflux = 1
 
       if( irdamp.eq.0 .and. hrdamp.eq.0 ) rdalpha = 0.0
-      !$acc update device(rdalpha)
+
       if( irdamp.ge.1 .and. hrdamp.ge.1 ) hrdamp = irdamp
 
       pdcomp = .false.
@@ -1816,7 +1818,7 @@
       ENDIF
       !-----
       IF( icor.eq.0 ) fcor = 0.0
-      !$acc update device(fcor)
+
       !-----
       IF( (axisymm.eq.1) .and. (wbc.ne.3) )THEN
         if(myid.eq.0)then
@@ -2413,7 +2415,6 @@
       else
         npt      = 1
       endif
-      !$acc update device(npt)
 
       ! for parcels:
       nparcels = max(1,nparcels)
@@ -2422,7 +2423,6 @@
 
       if(stretch_z.lt.1) ztop = dz*float(nk)
       IF ( stretch_z == 2 ) dz = ztop/float(nk) ! nk is the number of scalar levels
-      !$acc update device(dz)
 
       IF( advwenos.lt.0 .or. advwenos.gt.2 )THEN
         print *
@@ -4236,7 +4236,8 @@
         ENDIF    ! endif for ptype
 
       ENDIF    ! endif for imoist=1
-      !$acc update device(numq,nql1,nql2,nqs1,nqs2)
+
+      !$acc update device (numq)
 
 !-----------------------------------------------------------------------
 !-------   END:  modify stuff above here -------------------------------
@@ -4276,7 +4277,6 @@
         if( qname(n).eq.'nci' ) nnci = n
         if( qname(n).eq.'ncc' ) nncc = n
       enddo
-      !$acc update device(nqc,nqr,nqi,nqs,nqg,nnci,nncc)
 
       if( ptype.eq.55 ) nqi = 4
 
@@ -4292,7 +4292,7 @@
 #endif
         call stopcm1
       endif
-      !$acc update device(nnc1,nnc2)
+
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'iice      =',iice
       if(dowr) write(outfile,*) 'idm       =',idm
@@ -4398,7 +4398,6 @@
 
       nrain = 1
       if(imove.eq.1) nrain = 2
-      !$acc update device(nrain)
 
       if(dowr) write(outfile,*) 'nrain     =',nrain
       if(dowr) write(outfile,*)
@@ -4743,7 +4742,6 @@
         jbl=1
         jel=1
       endif
-      !$acc update device(ibl,iel,jbl,jel)
 
       if( cm1setup.eq.1 .or. cm1setup.eq.2 .or. ipbl.ge.1 .or. cm1setup.eq.3 )then
         iusekm = 1
@@ -5049,9 +5047,6 @@
           td_frz = ntdiag
         endif
       ENDIF
-      !$acc update device(td_hadv,td_vadv,td_hturb,td_vturb,td_hidiff,td_vidiff, &
-      !$acc   td_hediff,td_vediff,td_mp,td_rdamp,td_nudge,td_rad,td_div,td_diss, &
-      !$acc   td_pbl,td_lsw,td_efall,td_cond,td_evac,td_dep,td_subl,td_melt,td_frz)
 
       nqdiag   = 0
       qd_dbz   = 0
@@ -5204,9 +5199,6 @@
           qd_subl = nqdiag
         endif
       ENDIF
-      !$acc update device(qd_dbz,qd_vtc,qd_vtr,qd_vts,qd_vtg,qd_vti,qd_hadv,qd_vadv, &
-      !$acc   qd_hturb,qd_vturb,qd_hidiff,qd_vidiff,qd_hediff,qd_vediff,qd_mp,qd_nudge, &
-      !$acc   qd_pbl,qd_lsw,qd_cond,qd_evac,qd_dep,qd_subl)
 
       nudiag     = 0
       ud_hadv    = 0
@@ -5304,8 +5296,6 @@
         endif
 
       ENDIF
-      !$acc update device(ud_hadv,ud_vadv,ud_hturb,ud_vturb,ud_hidiff,ud_vidiff, &
-      !$acc   ud_hediff,ud_vediff,ud_pgrad,ud_rdamp,ud_cor,ud_cent,ud_pbl,ud_lsw,nutk)
 
       nvdiag     = 0
       vd_hadv    = 0
@@ -5403,9 +5393,6 @@
         endif
 
       ENDIF
-      !$acc update device(vd_hadv,vd_vadv,vd_hturb,vd_vturb,vd_hidiff,vd_vidiff,vd_vediff, &
-      !$acc   vd_pgrad,vd_rdamp,vd_cor,vd_cent,vd_pbl,vd_lsw,nvtk)
-
 
       nwdiag     = 0
       wd_hadv    = 0
@@ -5482,8 +5469,6 @@
         endif
 
       ENDIF
-      !$acc update device(wd_hadv,wd_vadv,wd_hturb,wd_vturb,wd_hidiff,wd_vidiff,wd_hediff, &
-      !$acc   wd_vediff,wd_pgrad,wd_rdamp,wd_buoy,nwtk)
 
       !-----
 
@@ -5515,7 +5500,6 @@
         kd_turb = nkdiag
 
       ENDIF
-      !$acc update device(kd_adv,kd_turb)
 
       !-----
 
@@ -5543,11 +5527,6 @@
         if( icor.eq.1 ) npdiag = npdiag+1
 
       ENDIF
-      !$acc update device(ibdt,iedt,jbdt,jedt,kbdt,kedt, &
-      !$acc               ibdq,iedq,jbdq,jedq,kbdq,kedq, &
-      !$acc               ibdv,iedv,jbdv,jedv,kbdv,kedv, &
-      !$acc               ibdk,iedk,jbdk,jedk,kbdk,kedk, &
-      !$acc               ibdp,iedp,jbdp,jedp,kbdp,kedp )
 
       !-----
 
@@ -5558,7 +5537,6 @@
       nwdiag = max( nwdiag , 1 )
       nkdiag = max( nkdiag , 1 )
       npdiag = max( npdiag , 1 )
-      !$acc update device(ntdiag,nqdiag,nudiag,nvdiag,nwdiag,nkdiag,npdiag)
 
       !-------------------------------------------------------------!
 
@@ -5575,7 +5553,6 @@
       ENDIF
 
       nout2d = max( nout2d , 1 )
-      !$acc update device(ib2d,ie2d,jb2d,ie2d,nout2d)
 
       !-------------------------------------------------------------!
 
@@ -5969,7 +5946,6 @@
       rdx=1.0/dx
       rdy=1.0/dy
       rdz=1.0/dz
-      !$acc update device(rdx,rdy,rdz)
       rdx2=1.0/(2.0*dx)
       rdy2=1.0/(2.0*dy)
       rdz2=1.0/(2.0*dz)
@@ -6203,7 +6179,9 @@
         nparcels = 1
 
       endif
-      !$acc update device(nparcels)
+
+      !$acc update device(nparcels,npvals)
+
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  nparcels = ',nparcels
       if(dowr) write(outfile,*) '  npvals   = ',npvals
@@ -6249,13 +6227,8 @@
       if(dowr) write(outfile,*) '    pract    = ',pract
       if(dowr) write(outfile,*)
 
-      !$acc update device (npvals,npvars,prx,pry,prz,pru, &
-      !$acc                prv,prw,prtime,prth,prt,prprs,prpt1, &
-      !$acc                prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm, &
-      !$acc                prkh,prtke,prdbz,prb,prvpg,przv,prrho, &
-      !$acc                prqsl,prqsi,prznt,prust,przs,prsig, &
-      !$acc                prvpx,prvpy,prvpz,prrp,prms,prtp, &
-      !$acc                prmult,pract)
+      !$acc update device (prvpx,prvpy,prvpz,prrp,prms,prtp,prx, &
+      !$acc                pry,prz,prsig)
 
 !--------------------------------------------------------------
 !  Get identity
@@ -6430,8 +6403,6 @@
       endif
 #endif
 
-      !$acc update device (ibw,ibe,ibs,ibn)
-
 !--------------------------------------------------------------
 
       if(dowr) write(outfile,*)
@@ -6486,7 +6457,6 @@
         if(dowr) write(outfile,*) 'csound=',csound
         if(dowr) write(outfile,*)
       endif
-      !$acc update device(csound)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'timeformat   =',timeformat
@@ -7098,7 +7068,8 @@
       minx = xfref(1)
       maxx = xfref(nx+1)
       centerx  =  minx + 0.5*(maxx-minx)
-      !$acc update device(minx,maxx,centerx)
+
+      !$acc update device (minx,maxx)
 
       do i = 1-ngxy , nx+ngxy
         xhref(i) = 0.5*(xfref(i)+xfref(i+1))
@@ -7430,7 +7401,8 @@
       miny = yfref(1)
       maxy = yfref(ny+1)
       centery  =  miny + 0.5*(maxy-miny)
-      !$acc update device(miny,maxy,centery)
+
+      !$acc update device (miny,maxy)
 
       do j = 1-ngxy , ny+ngxy
         yhref(j) = 0.5*(yfref(j)+yfref(j+1))
@@ -7874,7 +7846,8 @@
       enddo
 
       maxz = sigmaf(nk+1)
-!$acc update device(maxz)
+
+      !$acc update device(maxz)
 
       do k=kb,ke
       do j=jb,je
@@ -7962,7 +7935,6 @@
       if(dowr) write(outfile,*) '  p2tchnwn =',p2tchnwn
       if(dowr) write(outfile,*) '  p2tchnen =',p2tchnen
       if(dowr) write(outfile,*)
-      !$acc update device(p2tchsws,p2tchsww,p2tchses,p2tchsee,p2tchnwn,p2tchnww,p2tchnen,p2tchnee)
 #endif
 
 !CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -8554,7 +8526,6 @@
           if(dowr) write(outfile,*)
 
         ENDIF
-!$acc update device(ntwk)
 
 !--------------------------------------------------------------
 !  170803:
@@ -8680,7 +8651,6 @@
       wte3 = delta(2,0,2)
       var = wte1*sigmaf(nk)+wte2*sigmaf(nk-1)+wte3*sigmaf(nk-2)
     ENDIF
-    !$acc update device(dgs1,dgs2,dgs3,dgt1,dgt2,dgt3)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  ---------------------------------- '
@@ -8723,8 +8693,6 @@
       if(dowr) write(outfile,*) '  ---------------------------------- '
 
   ENDDO
-
-  !$acc update device (cgs1,cgs2,cgs3,cgt1,cgt2,cgt3)
 
 !--------------------------------------------------------------
 !  cm1r18:  Set ghost points for zh
@@ -9109,6 +9077,7 @@
 !--------------------------------------------------------------
 
     !$acc update device(imoist)
+
     IF( myid.eq.0 )THEN
       open(unit=21,file='cm1_config.txt')
       write(21,*)
