@@ -3494,7 +3494,11 @@
                           ua,va,wa,ppi,tha,qa,qten,kmh,kmv,khh,khv,tkea,qke,  &
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
+
 !#endif
+        !Also compute the droplet diagnostics at the same frequency as statpack
+        if(myid == 0) call droplet_diag(rtime,nrec,pdata)
+
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
@@ -3696,29 +3700,21 @@
       IF( doprclout )THEN
       
 
-        if (prcl_droplet .ne. 1) then !Treat as the original parcels
-           call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
-                                  zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
-                                  zs,sigma,sigmaf,rds,gz,                 &
-                                  pi0,th0,thv0,qv0,qc0,qi0,rth0,          &
-                                  dum1,dum2,dum3,dum4,dum5,dum6,prs,rho,  &
-                                  dum7,dum8,wten,wten1,                   &
-                                  u3d,v3d,w3d,pp3d,thten,thten1,th3d,q3d, &
-                                  kmh,kmv,khh,khv,tke3d,pt3d,pdata,       &
-                                  tdiag,qdiag,                            &
-                                  pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
-                                  nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
-                                  tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+        call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
+                               zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
+                               zs,sigma,sigmaf,rds,gz,                 &
+                               pi0,th0,thv0,qv0,qc0,qi0,rth0,          &
+                               dum1,dum2,dum3,dum4,dum5,dum6,prs,rho,  &
+                               dum7,dum8,wten,wten1,                   &
+                               u3d,v3d,w3d,pp3d,thten,thten1,th3d,q3d, &
+                               kmh,kmv,khh,khv,tke3d,pt3d,pdata,       &
+                               tdiag,qdiag,                            &
+                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
+                               tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
 
 
-           call  parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-
-        else  !Treat as droplet
-
-        
-           if(myid == 0) call droplet_diag(rtime,pdata)
-
-        end if
+        call  parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
 
         prec = prec+1
         if(prclfrq.gt.0.0)then

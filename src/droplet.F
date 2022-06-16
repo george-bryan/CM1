@@ -22,7 +22,7 @@
 
   !Declare the droplet statistics here
   integer :: tnumpart,tnumdrop,tnumaerosol
-  real :: radavg,radmsqr,Tpavg,Tpmsqr,Tfavg,qfavg,prsavg,rhoavg
+  real :: radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
 
   CONTAINS
 
@@ -1571,11 +1571,15 @@
 
       end subroutine interpolate_to_parcel
 
-      subroutine droplet_diag(rtime,pdata)
+      subroutine droplet_diag(rtime,nrec,pdata)
 
       use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
+#ifdef NETCDF
+      use writeout_nc_module, only : writedropdiag_nc
+#endif
       implicit none
 
+      integer, intent(inout) :: nrec
       real, intent(in) :: rtime
       real, intent(in), dimension(nparcels,npvals) :: pdata
 
@@ -1590,9 +1594,9 @@
 
       tnumpart = 0
       radavg = 0.0
-      radmsqr = 0.0
+      radsqr = 0.0
       Tpavg = 0.0
-      Tpmsqr = 0.0
+      Tpsqr = 0.0
       Tfavg = 0.0
       qfavg = 0.0
       prsavg = 0.0
@@ -1603,9 +1607,9 @@
             
             tnumpart = tnumpart + 1
             radavg = radavg + pdata(np,prrp)
-            radmsqr = radmsqr + pdata(np,prrp)**2
+            radsqr = radsqr + pdata(np,prrp)**2
             Tpavg = Tpavg + pdata(np,prtp)
-            Tpmsqr = Tpmsqr + pdata(np,prtp)**2 
+            Tpsqr = Tpsqr + pdata(np,prtp)**2 
             Tfavg = Tfavg + pdata(np,prt)
             qfavg = qfavg + pdata(np,prqv)
             prsavg = prsavg + pdata(np,prprs)
@@ -1616,16 +1620,21 @@
       end do
 
       radavg = radavg/tnumpart
-      radmsqr = radmsqr/tnumpart
+      radsqr = radsqr/tnumpart
       Tpavg = Tpavg/tnumpart
-      Tpmsqr = Tpmsqr/tnumpart
+      Tpsqr = Tpsqr/tnumpart
       Tfavg = Tfavg/tnumpart
       qfavg = qfavg/tnumpart
       prsavg = prsavg/tnumpart
       rhoavg = rhoavg/tnumpart
       
 
+     !WRITE IT OUT:
+
+      !Dump to screen for debugging purposes
       write(*,'(a15,1e15.6,i,6e15.6)') 'DROPLET_DIAG:',rtime,tnumpart,radavg,Tpavg,Tfavg,qfavg,prsavg,rhoavg
+
+      call writedropdiag_nc(nrec,rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg)
       
 
       end subroutine droplet_diag
