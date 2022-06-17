@@ -20,9 +20,6 @@
 
 
 
-  !Declare the droplet statistics here
-  integer :: tnumpart,tnumdrop,tnumaerosol
-  real :: radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
 
   CONTAINS
 
@@ -351,6 +348,16 @@
       drpdt    = pdata(np,prrp)
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
+
+      !!!!!!! PROBLEM !!!!!!
+      !find_vertical_location seems to find the kflag index based on zf, but then below zh is used when doing the two-way coupling.
+      !Need to sort this out...
+      !It might be working fine -- the particle always is between zf(kflag) and zf(kflag+1)
+      !But need to make sure I'm good with how that relates to the two-way coupling volumes
+      !Side note: what's pdata_locind, and how is this different than kflag?
+      !write(*,*) 'DHR1:',pdata(np,prz),zh(iflag,jflag,kflag),zh(iflag,jflag,kflag+1)
+      !write(*,*) 'DHR2:',pdata(np,prz),zf(iflag,jflag,kflag),zf(iflag,jflag,kflag+1)
+
       !idropmethod = 0 !RK2 for droplet time integration
       idropmethod = 1 !Implicit backward Euler for droplet time integration
 
@@ -449,6 +456,7 @@
 !        ENDIF
 !#endif
 
+
       !--------
       !PORTME
       !Recall that the "old" values are stored in the "d/dt" variables
@@ -509,6 +517,7 @@
       enddo
       enddo
       enddo
+
 
     ENDIF dropalive2
 
@@ -1571,9 +1580,10 @@
 
       end subroutine interpolate_to_parcel
 
-      subroutine droplet_diag(rtime,nrec,pdata)
+      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
 
-      use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
+      use input
+      !use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
 #ifdef NETCDF
       use writeout_nc_module, only : writedropdiag_nc
 #endif
@@ -1582,15 +1592,24 @@
       integer, intent(inout) :: nrec
       real, intent(in) :: rtime
       real, intent(in), dimension(nparcels,npvals) :: pdata
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind    ! x/y/z location index of each parcel
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
 
-      integer :: np
+      integer :: np,iz
+      integer :: kflag
+      real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
+
+      integer :: tnumpart,tnumdrop,tnumaerosol
+      real :: radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
+      real :: partnum(nk),numconc(nk)
 
 
 
       !Compute the various types of droplet statistics
 
 
-      !! 0th order
+      !!!!!!! 0th order  !!!!!!!!
 
       tnumpart = 0
       radavg = 0.0
@@ -1629,12 +1648,52 @@
       rhoavg = rhoavg/tnumpart
       
 
+      !!!!!!! 1st order  !!!!!!!!
+      do iz=kb,ke
+         dumzh(iz) = zh(1,1,iz)
+      enddo
+      do iz=kb,ke+1
+         dumzf(iz) = zf(1,1,iz)
+      enddo
+
+      partnum = 0.0
+      numconc = 0.0
+      do np=1,nparcels
+         if (pdata(np,pract) .gt. 0.0) then
+            
+            kflag = 1
+            call find_vertical_location_index (pdata_locind(np,3),pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
+            partnum(pdata_locind(np,3)) = partnum(pdata_locind(np,3)) + 1.0
+
+         end if
+      end do
+
+     if (stretch_x .eq. 0) then
+        xl = dx*nx
+     else
+        xl = tot_x_len
+     endif
+     if (stretch_y .eq. 0) then
+        yl = dy*nx
+     else
+        yl = tot_y_len
+     endif
+
+     do iz=1,nk
+        dzf = dumzf(iz+1)-dumzf(iz)
+        numconc(iz) = partnum(iz)/dzf/xl/yl
+        write(*,'(a15,2e15.6)') 'DROPLET_DIAG1:',dumzh(iz),numconc(iz)
+     end do
+
+
      !WRITE IT OUT:
 
       !Dump to screen for debugging purposes
       write(*,'(a15,1e15.6,i,6e15.6)') 'DROPLET_DIAG:',rtime,tnumpart,radavg,Tpavg,Tfavg,qfavg,prsavg,rhoavg
 
-      call writedropdiag_nc(nrec,rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg)
+      call writedropdiag_nc(nrec, &
+           rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg, &
+           dumzh,numconc)
       
 
       end subroutine droplet_diag

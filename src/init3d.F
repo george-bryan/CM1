@@ -410,8 +410,8 @@
           call random_number(rand)
           pdata(n,pry) = rand*maxy
           call random_number(rand)
-          !pdata(n,prz) = rand*maxz
-          pdata(n,prz) = 40.0
+          pdata(n,prz) = rand*maxz
+          !pdata(n,prz) = 40.0
 
           !if(MODULO(n,100)==0) then 
           if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)

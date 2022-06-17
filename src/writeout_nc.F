@@ -1643,7 +1643,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine writedropdiag_nc(nrec,rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg)
+      subroutine writedropdiag_nc(nrec,rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,zhvec,numconc)
       use input
       use constants
       use netcdf
@@ -1651,9 +1651,10 @@
 
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
+      real,    intent(in)    :: zhvec(nk),numconc(nk)
       integer, intent(in)    :: tnumpart
 
-      integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile
+      integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid
       logical :: allinfo
 
       if( myid.eq.0 ) print *,'  Entering writedropdiag_nc '
@@ -1706,15 +1707,23 @@
 #endif
 
     call disp_err( nf90_def_dim(ncid,"time",nf90_unlimited,timeid) , .true. )
+    call disp_err( nf90_def_dim(ncid,"zh",nk,zhid) , .true. )
 
     call disp_err( nf90_def_var(ncid,"time",nf90_float,(/timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","time") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","seconds") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"axis","T") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"zh",nf90_float,(/zhid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","height of scalar levels") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"axis","Z") , .true. )
+
+
 
     !Unlike statpack and other nc writes, doing these manually since they aren't all the same size
 
+    !!0th order
     call disp_err( nf90_def_var(ncid,"tnumpart",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Total number of computational droplets in domain") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
@@ -1751,6 +1760,12 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average air density seen by droplet for all droplets") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","kg/m^3") , .true. )
 
+    !!1st order (horizontal averages)
+    call disp_err( nf90_def_var(ncid,"numconc",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged number concentration of droplets") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#/m^3") , .true. )
+    
+
 
 
     call disp_err( nf90_put_att(ncid,NF90_GLOBAL,'CM1 version',trim(cm1version)) , .true. )
@@ -1766,7 +1781,11 @@
     call disp_err( nf90_inq_varid(ncid,'time',timeid) , .true. )
     call disp_err( nf90_put_var(ncid,timeid,rtime,(/time_index/)) , .true. )
 
+    call disp_err( nf90_inq_varid(ncid,'zh',zhid) , .true. )
+    call disp_err( nf90_put_var(ncid,zhid,zhvec,(/1/)) , .true. )
+
     
+    !!0th order
     call disp_err( nf90_inq_varid(ncid,"tnumpart",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,real(tnumpart),(/time_index/)) , .true. )
 
@@ -1796,6 +1815,10 @@
 
     call disp_err( nf90_inq_varid(ncid,"rhoavg",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,rhoavg,(/time_index/)) , .true. )
+
+    !!1st order
+    call disp_err( nf90_inq_varid(ncid,"numconc",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,numconc,(/1,time_index/)) , .true. )
 
 
     ! close file

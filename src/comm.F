@@ -1553,7 +1553,7 @@
 
 !-----
 
-#ifndef _GPUDIRECT03
+#ifdef _GPUDIRECT03
       if(Debug) print *,'getcornerv_GPU:'
 #endif
       nr = 0

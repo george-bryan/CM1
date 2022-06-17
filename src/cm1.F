@@ -3497,7 +3497,7 @@
 
 !#endif
         !Also compute the droplet diagnostics at the same frequency as statpack
-        if(myid == 0) call droplet_diag(rtime,nrec,pdata)
+        if(myid == 0) call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
 
         nrec = nrec + 1
         nstatout = nstatout + 1
