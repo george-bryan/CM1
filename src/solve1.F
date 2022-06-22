@@ -399,7 +399,8 @@
       !$acc present(qa,qten) &
       !$acc present(kmh,kmv,khh,khv,tkea,tketen,nm,dissten,epst) &
       !$acc present(pta,ptten,u2pt,v2pt) &
-      !$acc present(tdiag,qdiag,udiag,vdiag,wdiag,kdiag)
+      !$acc present(tdiag,qdiag,udiag,vdiag,wdiag,kdiag) &
+      !$acc present(uavg,vavg,thavg,qavg,cavg)
 
 !--------------------------------------------------------------------
 
@@ -881,7 +882,7 @@
         IF( nql1.ge.1 )THEN
 
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector default(present) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -893,6 +894,7 @@
           do n=nql1+1,nql2
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -900,12 +902,14 @@
             enddo
             enddo
             enddo
+            !$acc end parallel
           enddo
 
         ELSE
 
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -921,6 +925,7 @@
         !JMD missing OpenACC
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -933,6 +938,7 @@
         !JMD missing OpenACC
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k)
+            !$acc parallel loop gang vector collapse(3) default(present)
             do k=1,nk
             do j=1,nj
             do i=1,ni
@@ -940,6 +946,7 @@
             enddo
             enddo
             enddo
+            !$acc end parallel
           enddo
 
         ELSE
@@ -947,6 +954,7 @@
         !JMD missing OpenACC
           !$omp parallel do default(shared)  &
           !$omp private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -960,6 +968,7 @@
         !JMD missing OpenACC
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         DO k=1,nk
         do j=1,nj
         do i=1,ni
@@ -1072,7 +1081,8 @@
 #ifndef _B4B03R
         !$acc end parallel
 #endif
-        qbudget(9) = qtmp;
+        qbudget(9) = qtmp
+
         !$acc end data
         if(timestats.ge.1) time_misc09=time_misc09+mytime()
       endif
@@ -1139,7 +1149,7 @@
           if( bbc.eq.3 )then
             k = 1
             !$omp parallel do default(shared) private(i,j,dz1,epsd,dheat)
-            !$acc parallel loop gang vector default(present) private(i,j,dz1,epsd,dheat)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j,dz1,epsd,dheat)
             do j=1,nj
             do i=1,ni
               dz1 = zf(i,j,2)-zf(i,j,1)
@@ -1185,7 +1195,7 @@
         !$acc loop gang
         do k=1,nk
           budtmp=0.0d0
-          !$acc loop vector reduction(+:budtmp)
+          !$acc loop vector collapse(2) reduction(+:budtmp)
           do j=1,nj
           do i=1,ni
             ! NOTE:  thrad is a POTENTIAL TEMPERATURE tendency
@@ -1206,11 +1216,14 @@
         !$acc end parallel
         !FIXME
         budtmp=qbudget(10)
+
         !$acc parallel loop gang vector default(present) private(k) reduction(+:budtmp)
         do k=1,nk
           budtmp = budtmp + tem0*bud(k)
         enddo
+
         qbudget(10)=budtmp
+
         if( dotbud .and. td_rad.ge.1 )then
           !$omp parallel do default(shared) private(i,j,k)
           !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)

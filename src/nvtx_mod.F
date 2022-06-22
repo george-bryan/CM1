@@ -1,3 +1,4 @@
+#ifdef _OPENACC
 module nvtx_mod
 
 use iso_c_binding
@@ -74,3 +75,4 @@ subroutine nvtxEndRange
 end subroutine
 
 end module nvtx_mod
+#endif
