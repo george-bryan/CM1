@@ -337,7 +337,6 @@
       iusetke = .false.
       ramp_up_turb = .false.
       do_adapt_move = .false.
-      !$acc update device(tsmall,qsmall,smeps)
 
       dorestart = .false.
       dowriteout = .false.
@@ -487,8 +486,7 @@
       read(20,nml=param8)
       close(unit=20)
 
-      !OpenACC data movement directives
-      !$acc update device(nx,ny,nz)
+      !$acc update device(nx,ny)
 
       ! note:  read remainder of namelist sections in param.F !
 
@@ -581,11 +579,6 @@
       njp1 = nj+1
       nkp1 = nk+1
       nkm1 = nk-1
-      !$acc update device(nip1,njp1,nkp1,nkm1,ni,nj,nk, &
-      !$acc               npvals,numq, &
-      !$acc               pr_num,sc_num,prvpx,prvpy,prvpz,prrp, &
-      !$acc               prms,prtp,prx,pry,prsig,prz,pract, &
-      !$acc               nodex,nodey)
 
       nimax = ni
       njmax = nj
@@ -756,8 +749,6 @@
 !-----------------------------------------------
 #endif
 
-      !$acc update device (myi,myj)
-
       call wenocheck
 
       ! number of 'ghost' points in the horizontal directions:
@@ -777,8 +768,6 @@
       ! number of 'ghost' points in the vertical direction:
       ngz   = 1
 
-      !$acc update device (ngxy,ngz)
-
 !---------------------------------------------------------------------
 !      For ZVD:
 !      ngz   = 3
@@ -794,7 +783,8 @@
       je = nj + ngxy
       kb =  1 - ngz
       ke = nk + ngz
-      !$acc update device(ib,ie,jb,je,kb,ke)
+
+      !$acc update device(ib,ie,jb,je,kb,ke,ni,nj,nip1,nk,nkp1,ngxy,ngz)
 
       allocate(    xh(ib:ie) )
       xh = 0.0
@@ -975,7 +965,6 @@
       rmp = 1
       cmp = 1
 #endif
-      !$acc update device (imp,jmp,kmp,kmt,rmp,cmp)
 
       allocate( reqs_u(rmp) )
       reqs_u = 0

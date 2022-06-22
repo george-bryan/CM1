@@ -35,7 +35,8 @@
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
       use bc_module, only: bc2d_GPU, bcs2_GPU, bct2_GPU, bcs2_2d_GPU
-      use comm_module
+      use comm_module, only : comm_1s_start_GPU,comm_1s_end_GPU,comm_2d_start_GPU, &
+          comm_2dew_end_GPU,comm_2dns_end_GPU,comm_2d_corner_GPU,getcorner_GPU,getcornert_GPU
       implicit none
 
 !-----------------------------------------------------------------------
@@ -474,7 +475,7 @@
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
       use bc_module, only: bcs2_GPU
-      use comm_module
+      use comm_module, only : comm_1s_start_GPU,comm_1s_end_GPU,getcorner_GPU,getcornert_GPU
       implicit none
 
 !-----------------------------------------------------------------------
