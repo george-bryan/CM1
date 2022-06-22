@@ -5494,6 +5494,7 @@
   !                 needed to determine kmw,ufw,vfw on the current level (k)
   !
 
+      !$acc parallel default(present) private(k,d2pm1,d2pm2,d2pm3,dsdz,tem)
       ! Initial condition: two-part wall fluxes are zero at the surface
       ufw = 0.0
       vfw = 0.0
@@ -5502,7 +5503,7 @@
 !!!  GHB, 220309: commented out open-acc commands. This will be difficult to
 !!!               parallelize, because of the "marching" mentioned above.  But
 !!!               it's a small calculation, so probably not a big deal...?
-      !$acc serial default(present)
+      !$acc loop seq
       kloop2:  &
       DO k=1,(ntwk-1)
 
@@ -5529,7 +5530,7 @@
         t2pm3(k+1) = -d2pm3*tem
 
       ENDDO  kloop2
-      !$acc end serial 
+      !$acc end parallel
 
       !$acc parallel default(present)
       ! diagnostic only:
@@ -5642,11 +5643,11 @@
         uavg(k) = 0.0
         vavg(k) = 0.0
       enddo
-      !$acc end parallel
 
-      !$acc parallel default(present)
       !$acc loop gang
       do k=1,nk
+        cavg(k,1) = 0.0
+        cavg(k,2) = 0.0
         ! GHB, 220302: need to initialize cavg1,cavg2
         cavg1 = 0.0
         cavg2 = 0.0
@@ -5745,9 +5746,9 @@
     !$acc end parallel
 
 
-    !$acc serial default(present)
+    !$acc parallel
     gamk(1) = gamk(2)
-    !$acc end serial 
+    !$acc end parallel 
  
     endif  doinggamk
 

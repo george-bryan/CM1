@@ -208,7 +208,7 @@
 
       !$acc parallel default(present) reduction(+:tmp1,tmp2,tmp3)
       ! Get domain-averages:
-      !$acc loop gang
+      !$acc loop gang reduction(+:tmp1,tmp2,tmp3)
       do k=1,nk
          tmp1=0.0
          tmp2=0.0
@@ -371,7 +371,6 @@
         kzi(i,j) = 0  ! initilize this to zero 
       enddo
       enddo
-      !$acc end parallel
 
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
       do k=1,nk
@@ -385,10 +384,10 @@
         enddo
         !----
       enddo
-      !$acc end parallel
+      !$acc parallel default(present) private(i,j,k)
+      !print *,'nql{1,2}: ',nql1,nql2
 
       do n=nql1,nql2
-      !$acc parallel default(present)
       !$acc loop gang vector collapse(3)
       do k=1,nk
         do j=1,nj
@@ -396,14 +395,12 @@
           ql(i,j,k) = ql(i,j,k)+qa(i,j,k,n)
         enddo
         enddo
+        enddo
       enddo
       !$acc end parallel
-      enddo
-
       !----
-
+      !$acc parallel default(present) private(i,j,k)
       do k=1,nk
-        !$acc parallel default(present)
         !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
@@ -412,10 +409,10 @@
           dum2(i,j,k+1) = dum2(i,j,k) + kappa*rho0(i,j,k)*ql(i,j,k)*(zf(i,j,k+1)-zf(i,j,k))
         enddo
         enddo
-        !$acc end parallel
       enddo
-
+      !$acc end parallel
       !----
+
 
       ! interpolate:
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k)
@@ -438,8 +435,8 @@
 !!!        print *
 !!!      endif
 
+      !$acc parallel default(present) private(i,j,k,fr1,fr2,fr3)
       do k=nk+1,1,-1
-      !$acc parallel default(present)
       !$acc loop gang vector collapse(2)
       do j=1,nj
       do i=1,ni
@@ -456,9 +453,8 @@
         frad(i,j,k) = fr1+fr2+fr3
       enddo
       enddo
-      !$acc end parallel
       enddo
-
+      !$acc end parallel
       stop 'simplerad: at the end of the subroutine'
       end subroutine simplerad
 

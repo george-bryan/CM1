@@ -875,8 +875,8 @@
     ENDDO
 
     IF( nql1.gt.0 )THEN
+    !$acc parallel default(present) private(i,j,k,n)
     DO n=nql1,nql2
-      !$acc parallel default(present)
       !$acc loop gang vector collapse(3)
       do k=1,nk
         do j=1,nj
@@ -885,13 +885,13 @@
         enddo
         enddo
       enddo
-      !$acc end parallel
     ENDDO
+    !$acc end parallel
     ENDIF
 
       IF(iice.eq.1)THEN
+      !$acc parallel default(present) private(i,j,k,n)
       DO n=nqs1,nqs2
-        !$acc parallel default(present)
         !$acc loop gang vector collapse(3)
         do k=1,nk
           do j=1,nj
@@ -900,8 +900,8 @@
           enddo
           enddo
         enddo
-        !$acc end parallel
       ENDDO
+      !$acc end parallel
       ENDIF
 
       if(timestats.ge.1) time_misc02=time_misc02+mytime()
@@ -1014,8 +1014,8 @@
       ENDDO
       IF( nql1.gt.0 )THEN
         !$omp parallel do default(shared) private(i,j,k,n)
+        !$acc parallel default(present) private(i,j,k,n)
         do n=nql1,nql2
-        !$acc parallel default(present)
         !$acc loop gang vector collapse(3)
         DO k=1,nk
           do j=1,nj
@@ -1024,13 +1024,13 @@
           enddo
           enddo
         ENDDO
-        !$acc end parallel
         enddo
+        !$acc end parallel
       ENDIF
       IF(iice.eq.1)THEN
+        !$acc parallel default(present) private(i,j,k,n)
         !$omp parallel do default(shared) private(i,j,k,n)
         do n=nqs1,nqs2
-        !$acc parallel default(present)
         !$acc loop gang vector collapse(3)
         DO k=1,nk
           do j=1,nj
@@ -1039,8 +1039,8 @@
           enddo
           enddo
         ENDDO
-        !$acc end parallel
         enddo
+        !$acc end parallel
       ENDIF
 
     ENDIF
@@ -3930,9 +3930,8 @@
       !FIXME
 !$omp parallel do default(shared)  &
 !$omp private(i,k,wspd)
-!$acc parallel loop gang vector default(present)
+!$acc parallel loop gang vector collapse(2) default(present) private(i,k)
       do k=1,nk
-        !$acc loop seq
         do i=1,ni
           wspd = sqrt( (0.5*(ua(i,1,k)+ua(i+1,1,k)))**2 + va(i,1,k)**2 )
           IF( wspd.ge.vmaxt(k) )THEN
@@ -3944,11 +3943,8 @@
           ENDIF
         enddo
       enddo
-!$acc end parallel
 
       vmax = 0.0
-
-!$acc serial default(present)
       do k=1,nk
         IF( vmaxt(k).ge.vmax )THEN
           vmax = vmaxt(k)
@@ -3958,7 +3954,6 @@
           kmax = kmaxt(k)
         ENDIF
       enddo
-!$acc end serial
 
       jmax = 1
 

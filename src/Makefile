@@ -43,7 +43,6 @@ DM            =
 OMP           =
 DP            =
 OPTS          =
-OPTS_M        =
 CPP           =
 OUTPUTINC     =
 OUTPUTLIB     =
@@ -76,33 +75,26 @@ endif
 #-----------------------------------------------------------------------------
 ifeq (${FC},nvfortran)
     OPTS         += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee -Mnofma
-    OPTS_M       += -Mfree -Ktrap=none -Mautoinline -Minline=reshape -Kieee -Mnofma
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${DEBUG_L},true)
          OPTS    += -g -O0
-         OPTS_M  += -g -O0
          DM      += -D_B4B
     else
          OPTS    += -g -O2
-         OPTS_M  += -g -O2
     endif
     ifeq (${USE_DOUBLE_L},true)
          OPTS    += -r8
-         OPTS_M  += -r8
          DP      += -DDP
     endif
     ifeq (${USE_OPENMP_L},true)
          OPTS    += -mp
-         OPTS_M  += -mp
          OMP     += -DOPENMP
     endif
     ifeq (${USE_OPENACC_L},true)
         ifeq (${DEBUG_L},true)
             OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
-            OPTS_M += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
         else
             OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
-            OPTS_M += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
         endif
         DM       += -D_OPENACC
     endif
@@ -193,7 +185,6 @@ $(info $$DEBUG_L is [${DEBUG_L}])
 $(info $$USE_MPI_L is [${USE_MPI_L}])
 $(info $$FC is [${FC}])
 $(info $$OPTS is [${OPTS}])
-$(info $$OPTS_M is [${OPTS_M}])
 $(info $$CPP is [${CPP}])
 $(info $$OMP is [${OMP}])
 $(info $$DM is [${DM}])
@@ -210,6 +201,7 @@ SRC   = constants.F \
 	azimavg.F \
 	base.F \
 	bc.F \
+	cm1.F \
 	cm1libs.F \
 	comm.F \
         bcast.F \
@@ -285,17 +277,13 @@ SRC   = constants.F \
 	module_bl_myjpbl.F \
 	module_sf_myjsfc.F
 
-SRC_M = cm1.F
-
 #SRC_NVTX = nvtx_mod.F
 SRC_NVTX = 
 
 OBJS = $(addsuffix .o, $(basename $(SRC)))
-OBJS_M = $(addsuffix .o, $(basename $(SRC_M)))
 OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_NVTX)))
 
-FFLAGS  = $(OPTS)
-FFLAGS_M  = $(OPTS_M)
+FFLAGS  =  $(OPTS)
 AR      = ar cru
 
 .SUFFIXES:
@@ -304,19 +292,14 @@ AR      = ar cru
 all : cm1
 
 #			$(FC) $(OBJS) $(FFLAGS) $(OUTPUTINC) $(OUTPUTLIB) $(LINKOPTS) -o ../run/cm1.exe
-cm1:			$(OBJS) $(OBJS_M)
-			$(FC) $(LINKOPTS) $(FFLAGS) $(FFLAGS_M) $(OBJS) ${OBJS_M} $(OUTPUTINC) $(OUTPUTLIB) -o ../run/cm1.exe
-			$(AR) onefile.F $(SRC) $(SRC_M)
+cm1:			$(OBJS)
+			$(FC) $(LINKOPTS) $(FFLAGS) $(OBJS) $(OBJS_OPENACC) $(OUTPUTINC) $(OUTPUTLIB) -o ../run/cm1.exe
+			$(AR) onefile.F $(SRC)
 			mv onefile.F ../run
 
-%.f90: %.F
-			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $< > $@
-
-$(OBJS): %.o: %.f90
-			$(FC) $(FFLAGS) $(OUTPUTINC) -c $<
-
-$(OBJS_M): %.o: %.f90
-			$(FC) $(FFLAGS_M) $(OUTPUTINC) -c $<
+.F.o:
+			$(CPP) $(DM) $(DP) $(ADV) $(OUTPUTOPT) $*.F > $*.f90
+			$(FC) $(FFLAGS) $(OUTPUTINC) -c $*.f90
 
 code:
 			$(AR) onefile.F $(SRC)
