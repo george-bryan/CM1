@@ -1685,10 +1685,11 @@
       !Dump to screen for debugging purposes
       write(*,'(a15,1e15.6,i,6e15.6)') 'DROPLET_DIAG:',rtime,tnumpart,radavg,Tpavg,Tfavg,qfavg,prsavg,rhoavg
 
+#ifdef NETCDF
       call writedropdiag_nc(nrec, &
            rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg, &
            dumzh,numconc)
-      
+#endif
 
       end subroutine droplet_diag
 
