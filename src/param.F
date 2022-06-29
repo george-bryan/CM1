@@ -6199,7 +6199,7 @@
 
       endif
 
-      !$acc update device(nparcels,npvals)
+      !$acc update device(nparcels,npvals,pru,prv,prw,prt,prqv,prprs,prrho)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  nparcels = ',nparcels

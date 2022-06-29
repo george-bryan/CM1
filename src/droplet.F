@@ -1590,7 +1590,7 @@
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
       real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
 
-      integer :: np,iz
+      integer :: np,iz,k
       integer :: kflag
       real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
 
@@ -1598,10 +1598,9 @@
       real :: radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
       real :: partnum(nk),numconc(nk)
 
-
-
       !Compute the various types of droplet statistics
 
+      !$acc data create (dumzh,dumzf,partnum,numconc)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -1615,9 +1614,10 @@
       prsavg = 0.0
       rhoavg = 0.0
 
+      !$acc parallel loop gang vector default(present) &
+      !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg)
       do np=1,nparcels
          if (pdata(np,pract) .gt. 0.0) then
-            
             tnumpart = tnumpart + 1
             radavg = radavg + pdata(np,prrp)
             radsqr = radsqr + pdata(np,prrp)**2
@@ -1627,10 +1627,9 @@
             qfavg = qfavg + pdata(np,prqv)
             prsavg = prsavg + pdata(np,prprs)
             rhoavg = rhoavg + pdata(np,prrho)
-
-
          end if
       end do
+      !$acc end parallel
 
       radavg = radavg/tnumpart
       radsqr = radsqr/tnumpart
@@ -1640,27 +1639,36 @@
       qfavg = qfavg/tnumpart
       prsavg = prsavg/tnumpart
       rhoavg = rhoavg/tnumpart
-      
 
       !!!!!!! 1st order  !!!!!!!!
+      !$acc parallel loop gang vector default(present)
       do iz=kb,ke
          dumzh(iz) = zh(1,1,iz)
       enddo
+      !$acc end parallel
+
+      !$acc parallel loop gang vector default(present)
       do iz=kb,ke+1
          dumzf(iz) = zf(1,1,iz)
       enddo
+      !$acc end parallel
 
-      partnum = 0.0
-      numconc = 0.0
+      !$acc parallel loop gang vector default(present)
+      do k = 1, nk
+         partnum(k) = 0.0
+         numconc(k) = 0.0
+      end do
+      !$acc end parallel
+
+      !$acc parallel loop gang vector default(present)
       do np=1,nparcels
          if (pdata(np,pract) .gt. 0.0) then
-            
             kflag = 1
             call find_vertical_location_index (pdata_locind(np,3),pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
             partnum(pdata_locind(np,3)) = partnum(pdata_locind(np,3)) + 1.0
-
          end if
       end do
+      !$acc end parallel
 
      if (stretch_x .eq. 0) then
         xl = dx*nx
@@ -1673,12 +1681,12 @@
         yl = tot_y_len
      endif
 
+     !$acc update host (dumzh,dumzf,partnum,numconc)
      do iz=1,nk
         dzf = dumzf(iz+1)-dumzf(iz)
         numconc(iz) = partnum(iz)/dzf/xl/yl
         write(*,'(a15,2e15.6)') 'DROPLET_DIAG1:',dumzh(iz),numconc(iz)
      end do
-
 
      !WRITE IT OUT:
 
@@ -1690,6 +1698,8 @@
            rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg, &
            dumzh,numconc)
 #endif
+
+      !$acc end data
 
       end subroutine droplet_diag
 
