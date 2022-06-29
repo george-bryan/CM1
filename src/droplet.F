@@ -1690,7 +1690,8 @@
         yl = tot_y_len
      endif
 
-     !$acc update host (dumzh,dumzf,partnum,numconc)
+     !$acc update host (dumzf,dumzh,numconc,partnum)
+
      do iz=1,nk
         dzf = dumzf(iz+1)-dumzf(iz)
         numconc(iz) = partnum(iz)/dzf/xl/yl
@@ -1702,7 +1703,7 @@
 
       !Dump to screen for debugging purposes
       write(6,200) 'rtime', rtime
-      write(6,200) 'tnumpart', tnumpart
+      write(6,200) 'tnumpart', dble(tnumpart)
       write(6,200) 'radavg',radavg
       write(6,200) 'radmin',radmin
       write(6,200) 'radmax',radmax
@@ -1723,7 +1724,7 @@
 100     format(2x,'DROPLET_DIAG1:: ',a12,':',1x,e13.6,1x,'iz = ',I6)
 200     format(2x,'DROPLET_DIAG:: ',a10,':',1x,e13.6)
 
-      !$acc end data
+     !$acc end data
 
       end subroutine droplet_diag
 
