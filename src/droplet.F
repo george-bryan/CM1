@@ -1685,19 +1685,30 @@
      do iz=1,nk
         dzf = dumzf(iz+1)-dumzf(iz)
         numconc(iz) = partnum(iz)/dzf/xl/yl
-        write(*,'(a15,2e15.6)') 'DROPLET_DIAG1:',dumzh(iz),numconc(iz)
+        write(6,100) 'dumzh(iz)',dumzh(iz),iz
+        write(6,100) 'numconc(iz)',numconc(iz),iz
      end do
 
      !WRITE IT OUT:
 
       !Dump to screen for debugging purposes
-      write(*,'(a15,1e15.6,i,6e15.6)') 'DROPLET_DIAG:',rtime,tnumpart,radavg,Tpavg,Tfavg,qfavg,prsavg,rhoavg
+      write(6,200) 'rtime', rtime
+      write(6,200) 'tnumpart', tnumpart
+      write(6,200) 'radavg',radavg
+      write(6,200) 'Tpavg',Tpavg
+      write(6,200) 'Tfavg',Tfavg
+      write(6,200) 'qfavg',qfavg
+      write(6,200) 'prsavg',prsavg
+      write(6,200) 'rhoavg',rhoavg
 
 #ifdef NETCDF
       call writedropdiag_nc(nrec, &
            rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg, &
            dumzh,numconc)
 #endif
+
+100     format(2x,'DROPLET_DIAG1:: ',a12,':',1x,e13.6,1x,'iz = ',I6)
+200     format(2x,'DROPLET_DIAG:: ',a10,':',1x,e13.6)
 
       !$acc end data
 
