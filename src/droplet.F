@@ -1595,7 +1595,7 @@
       real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
 
       integer :: tnumpart,tnumdrop,tnumaerosol
-      real :: radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
+      real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
       real :: partnum(nk),numconc(nk)
 
       !Compute the various types of droplet statistics
@@ -1613,6 +1613,10 @@
       qfavg = 0.0
       prsavg = 0.0
       rhoavg = 0.0
+      radmin = 1000.0
+      radmax = -1000.0
+      Tpmin = 1000.0
+      Tpmax = -1000.0
 
       !$acc parallel loop gang vector default(present) &
       !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg)
@@ -1627,6 +1631,11 @@
             qfavg = qfavg + pdata(np,prqv)
             prsavg = prsavg + pdata(np,prprs)
             rhoavg = rhoavg + pdata(np,prrho)
+
+            if (pdata(np,prrp) .lt. radmin) radmin = pdata(np,prrp)
+            if (pdata(np,prrp) .gt. radmax) radmax = pdata(np,prrp)
+            if (pdata(np,prtp) .lt. Tpmin) Tpmin = pdata(np,prtp)
+            if (pdata(np,prrp) .gt. Tpmax) Tpmax = pdata(np,prtp)
          end if
       end do
       !$acc end parallel
@@ -1695,7 +1704,11 @@
       write(6,200) 'rtime', rtime
       write(6,200) 'tnumpart', tnumpart
       write(6,200) 'radavg',radavg
+      write(6,200) 'radmin',radmin
+      write(6,200) 'radmax',radmax
       write(6,200) 'Tpavg',Tpavg
+      write(6,200) 'Tpmin',Tpmin
+      write(6,200) 'Tpmax',Tpmax
       write(6,200) 'Tfavg',Tfavg
       write(6,200) 'qfavg',qfavg
       write(6,200) 'prsavg',prsavg
@@ -1703,7 +1716,7 @@
 
 #ifdef NETCDF
       call writedropdiag_nc(nrec, &
-           rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg, &
+           rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
            dumzh,numconc)
 #endif
 

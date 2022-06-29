@@ -1643,14 +1643,14 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine writedropdiag_nc(nrec,rtime,tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,zhvec,numconc)
+      subroutine writedropdiag_nc(nrec,rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,zhvec,numconc)
       use input
       use constants
       use netcdf
       implicit none
 
       integer, intent(inout) :: nrec
-      real,    intent(in)    :: rtime,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
+      real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg
       real,    intent(in)    :: zhvec(nk),numconc(nk)
       integer, intent(in)    :: tnumpart
 
@@ -1736,6 +1736,14 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average square droplet radius for all droplets") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","m^2") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"radmin",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Minimum droplet radius for all droplets") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"radmax",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Maximum droplet radius for all droplets") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
+
     call disp_err( nf90_def_var(ncid,"Tpavg",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average droplet temperature for all droplets") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","K") , .true. )
@@ -1743,6 +1751,14 @@
     call disp_err( nf90_def_var(ncid,"Tpsqr",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average square droplet temperature for all droplets") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","K^2") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"Tpmin",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Minimum droplet temperature for all droplets") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","K") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"Tpmax",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Maximum droplet temperature for all droplets") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","K") , .true. )
 
     call disp_err( nf90_def_var(ncid,"Tfavg",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average air temperature seen by droplet for all droplets") , .true. )
@@ -1798,11 +1814,23 @@
     call disp_err( nf90_inq_varid(ncid,"radsqr",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,radsqr,(/time_index/)) , .true. )
 
+    call disp_err( nf90_inq_varid(ncid,"radmin",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,radmin,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"radmax",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,radmax,(/time_index/)) , .true. )
+
     call disp_err( nf90_inq_varid(ncid,"Tpavg",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,Tpavg,(/time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"Tpsqr",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,Tpsqr,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"Tpmin",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,Tpmin,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"Tpmax",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,Tpmax,(/time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"Tfavg",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,Tfavg,(/time_index/)) , .true. )
