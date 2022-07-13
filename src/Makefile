@@ -383,7 +383,7 @@ solve2.o: constants.o input.o bc.o comm.o adv.o adv_routines.o sound.o sounde.o 
 solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o pdcomp.o lsnudge.o ib_module.o droplet.o
 sorad3d.o: radlib3d.o
 sound.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
-sounde.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
+sounde.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o maxmin.o
 soundcb.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
 soundns.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
 statpack.o: constants.o input.o maxmin.o misclibs.o cm1libs.o writeout_nc.o

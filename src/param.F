@@ -6049,15 +6049,34 @@
           npvars = npvars+1
           pract  = npvals  !Is droplet alive? > 0 if yes, < 0 if 
 
+          npvals = npvals+1
+          npvars = npvars+1
+          prt = npvals    !Air temp at droplet
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prqv = npvals   !qv at droplet
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prprs = npvals   !pressure at droplet
+
+          npvals = npvals+1
+          npvars = npvars+1
+          prrho = npvals   !density at droplet
+
         end if
 
         npvals = npvals+1
+        npvars = npvars+1
         pru = npvals
 
         npvals = npvals+1
+        npvars = npvars+1
         prv = npvals
 
         npvals = npvals+1
+        npvars = npvars+1
         prw = npvals
 
         npvals = npvals+1
@@ -6067,11 +6086,11 @@
           npvals = npvals+1
           prth = npvals
         endif
-        if( prcl_t.eq.1 )then
+        if( prcl_t.eq.1 .and. prcl_droplet.ne.1)then
           npvals = npvals+1
           prt = npvals
         endif
-        if( prcl_prs.eq.1 )then
+        if( prcl_prs.eq.1 .and. prcl_droplet.ne.1)then
           npvals = npvals+1
           prprs = npvals
         endif
@@ -6087,7 +6106,7 @@
 
         !If you have water vapor but no microphysics
         if (ptype .eq. 0) then
-          if( prcl_q.eq.1 )then
+          if( prcl_q.eq.1 .and. prcl_droplet.ne.1)then
             npvals = npvals+1
             prqv = npvals
           end if
@@ -6148,7 +6167,7 @@
           przv = npvals
         endif
         endif
-        if( prcl_rho.eq.1 )then
+        if( prcl_rho.eq.1 .and. prcl_droplet.ne.1)then
           npvals = npvals+1
           prrho = npvals
         endif
@@ -6180,7 +6199,7 @@
 
       endif
 
-      !$acc update device(nparcels,npvals)
+      !$acc update device(nparcels,npvals,pru,prv,prw,prt,prqv,prprs,prrho)
 
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) '  nparcels = ',nparcels

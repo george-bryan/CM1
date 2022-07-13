@@ -8,7 +8,7 @@
   implicit none
 
   private
-  public :: droplet_driver,rk2_integration
+  public :: droplet_driver,rk2_integration,droplet_diag
 
   ! If we already know that a parcel stays on the same process 
   !    in the previous time step and it is still here, we start 
@@ -17,6 +17,9 @@
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
   integer, parameter :: location_offset = 3
+
+
+
 
   CONTAINS
 
@@ -31,7 +34,7 @@
       use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
           kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
-          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs, &
+          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce
       use constants
       use comm_module
@@ -345,6 +348,16 @@
       drpdt    = pdata(np,prrp)
       dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
+
+      !!!!!!! PROBLEM !!!!!!
+      !find_vertical_location seems to find the kflag index based on zf, but then below zh is used when doing the two-way coupling.
+      !Need to sort this out...
+      !It might be working fine -- the particle always is between zf(kflag) and zf(kflag+1)
+      !But need to make sure I'm good with how that relates to the two-way coupling volumes
+      !Side note: what's pdata_locind, and how is this different than kflag?
+      !write(*,*) 'DHR1:',pdata(np,prz),zh(iflag,jflag,kflag),zh(iflag,jflag,kflag+1)
+      !write(*,*) 'DHR2:',pdata(np,prz),zf(iflag,jflag,kflag),zf(iflag,jflag,kflag+1)
+
       !idropmethod = 0 !RK2 for droplet time integration
       idropmethod = 1 !Implicit backward Euler for droplet time integration
 
@@ -443,6 +456,7 @@
 !        ENDIF
 !#endif
 
+
       !--------
       !PORTME
       !Recall that the "old" values are stored in the "d/dt" variables
@@ -503,6 +517,7 @@
       enddo
       enddo
       enddo
+
 
     ENDIF dropalive2
 
@@ -619,7 +634,7 @@
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho
       use constants
       use comm_module
       use misclibs
@@ -679,6 +694,16 @@
       rkloop:  DO nrkp = 1,2
 
        call interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+
+      !Store interpolated quantities for the sake of statistics
+      pdata(np,pru) = uval
+      pdata(np,prv) = vval
+      pdata(np,prw) = wval
+      pdata(np,prt) = tval
+      pdata(np,prqv) = qval
+      pdata(np,prprs) = prsval
+      pdata(np,prrho) = rhoval
+
 
       estar = eslf(prsval,tval)  !Saturation vapor pressure based on interpolated temp,pressure
       lhv=lv1-lv2*tval
@@ -937,7 +962,7 @@
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho
       use constants
       use comm_module
       use misclibs
@@ -997,6 +1022,15 @@
 
 
        call interpolate_to_parcel(np,1,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+
+      !Store interpolated quantities for the sake of statistics
+      pdata(np,pru) = uval
+      pdata(np,prv) = vval
+      pdata(np,prw) = wval
+      pdata(np,prt) = tval
+      pdata(np,prqv) = qval
+      pdata(np,prprs) = prsval
+      pdata(np,prrho) = rhoval
 
        !qval = 0.008807098199749
        !tval = 282.3
@@ -1540,6 +1574,161 @@
 
       end subroutine interpolate_to_parcel
 
+      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
+
+      use input
+      !use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
+#ifdef NETCDF
+      use writeout_nc_module, only : writedropdiag_nc
+#endif
+      implicit none
+
+      integer, intent(inout) :: nrec
+      real, intent(in) :: rtime
+      real, intent(in), dimension(nparcels,npvals) :: pdata
+      integer, intent(inout), dimension(nparcels,3) :: pdata_locind    ! x/y/z location index of each parcel
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
+
+      integer :: np,iz,k
+      integer :: kflag
+      real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
+
+      integer :: tnumpart,tnumdrop,tnumaerosol
+      real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
+      real :: partnum(nk),numconc(nk)
+
+      !Compute the various types of droplet statistics
+
+      !$acc data create (dumzh,dumzf,partnum,numconc)
+
+      !!!!!!! 0th order  !!!!!!!!
+
+      tnumpart = 0
+      radavg = 0.0
+      radsqr = 0.0
+      Tpavg = 0.0
+      Tpsqr = 0.0
+      Tfavg = 0.0
+      qfavg = 0.0
+      prsavg = 0.0
+      rhoavg = 0.0
+      radmin = 1000.0
+      radmax = -1000.0
+      Tpmin = 1000.0
+      Tpmax = -1000.0
+
+      !$acc parallel loop gang vector default(present) &
+      !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
+      !$acc          reduction(max:radmax,Tpmax) &
+      !$acc          reduction(min:radmin,Tpmin)
+      do np=1,nparcels
+         if (pdata(np,pract) .gt. 0.0) then
+            tnumpart = tnumpart + 1
+            radavg = radavg + pdata(np,prrp)
+            radsqr = radsqr + pdata(np,prrp)**2
+            Tpavg = Tpavg + pdata(np,prtp)
+            Tpsqr = Tpsqr + pdata(np,prtp)**2 
+            Tfavg = Tfavg + pdata(np,prt)
+            qfavg = qfavg + pdata(np,prqv)
+            prsavg = prsavg + pdata(np,prprs)
+            rhoavg = rhoavg + pdata(np,prrho)
+
+            radmin = min(radmin, pdata(np,prrp))
+            radmax = max(radmax, pdata(np,prrp))
+            Tpmin = min(Tpmin, pdata(np,prtp))
+            Tpmax = max(Tpmax, pdata(np,prtp))
+         end if
+      end do
+      !$acc end parallel
+
+      radavg = radavg/tnumpart
+      radsqr = radsqr/tnumpart
+      Tpavg = Tpavg/tnumpart
+      Tpsqr = Tpsqr/tnumpart
+      Tfavg = Tfavg/tnumpart
+      qfavg = qfavg/tnumpart
+      prsavg = prsavg/tnumpart
+      rhoavg = rhoavg/tnumpart
+
+      !!!!!!! 1st order  !!!!!!!!
+      !$acc parallel loop gang vector default(present)
+      do iz=kb,ke
+         dumzh(iz) = zh(1,1,iz)
+      enddo
+      !$acc end parallel
+
+      !$acc parallel loop gang vector default(present)
+      do iz=kb,ke+1
+         dumzf(iz) = zf(1,1,iz)
+      enddo
+      !$acc end parallel
+
+      !$acc parallel loop gang vector default(present)
+      do k = 1, nk
+         partnum(k) = 0.0
+         numconc(k) = 0.0
+      end do
+      !$acc end parallel
+
+      !$acc parallel loop gang vector default(present)
+      do np=1,nparcels
+         if (pdata(np,pract) .gt. 0.0) then
+            kflag = 1
+            call find_vertical_location_index (pdata_locind(np,3),pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
+            partnum(pdata_locind(np,3)) = partnum(pdata_locind(np,3)) + 1.0
+         end if
+      end do
+      !$acc end parallel
+
+     if (stretch_x .eq. 0) then
+        xl = dx*nx
+     else
+        xl = tot_x_len
+     endif
+     if (stretch_y .eq. 0) then
+        yl = dy*nx
+     else
+        yl = tot_y_len
+     endif
+
+     !$acc update host (dumzf,dumzh,numconc,partnum)
+
+     do iz=1,nk
+        dzf = dumzf(iz+1)-dumzf(iz)
+        numconc(iz) = partnum(iz)/dzf/xl/yl
+        write(6,100) 'dumzh(',iz,'):',dumzh(iz)
+        write(6,100) 'numconc(',iz,'):',numconc(iz)
+     end do
+
+     !WRITE IT OUT:
+
+      !Dump to screen for debugging purposes
+      write(6,200) 'rtime', rtime
+      write(6,200) 'tnumpart', dble(tnumpart)
+      write(6,200) 'radavg',radavg
+      write(6,200) 'radmin',radmin
+      write(6,200) 'radmax',radmax
+      write(6,200) 'Tpavg',Tpavg
+      write(6,200) 'Tpmin',Tpmin
+      write(6,200) 'Tpmax',Tpmax
+      write(6,200) 'Tfavg',Tfavg
+      write(6,200) 'qfavg',qfavg
+      write(6,200) 'prsavg',prsavg
+      write(6,200) 'rhoavg',rhoavg
+
+#ifdef NETCDF
+      call writedropdiag_nc(nrec, &
+           rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
+           dumzh,numconc)
+#endif
+
+100     format(2x,'DROPLET_DIAG1:: ',A,I0,A,1x,e13.6,1x)
+200     format(2x,'DROPLET_DIAG:: ',A10,':',1x,e13.6)
+
+     !$acc end data
+
+      end subroutine droplet_diag
 
       subroutine find_horizontal_location_index (loc_ind, loc, lb, ub, dsize, end_ind, ind)
       !$acc routine seq

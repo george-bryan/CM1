@@ -41,6 +41,7 @@
       use azimavg_module
       use hifrq_module, only : writeout_hifrq
       use parcel_module
+      use droplet_module
       use init_physics_module
       use init_surface_module
       use ib_module
@@ -3482,7 +3483,11 @@
                           ua,va,wa,ppi,tha,qa,qten,kmh,kmv,khh,khv,tkea,qke,  &
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
+
 !#endif
+        !Also compute the droplet diagnostics at the same frequency as statpack
+        if(myid == 0) call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
+
         nrec = nrec + 1
         nstatout = nstatout + 1
         if( statfrq.gt.0.0 .and. ( .not. restarted ) )then
@@ -3683,6 +3688,7 @@
       if(iprcl.eq.1)then
       IF( doprclout )THEN
       
+
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
                                zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
                                zs,sigma,sigmaf,rds,gz,                 &
@@ -3697,7 +3703,8 @@
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
 
 
-        call     parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
+        call  parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
+
         prec = prec+1
         if(prclfrq.gt.0.0)then
           doit = .true.

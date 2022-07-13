@@ -163,7 +163,8 @@
       !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,   &
       !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist, &
       !$acc                 nqv,bbc,imove,prvpx,prvpy,prvpz,prrp,prms,prtp, &
-      !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype)
+      !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,   &
+      !$acc                 prt,prqv,prprs,prrho)
 
 !-----------------------------------------------------------------------
 

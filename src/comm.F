@@ -1023,7 +1023,7 @@
       integer reqs(8)
       integer tag,count
       integer, dimension(mpi_status_size,8) :: status1
-      logical, parameter :: Debug =.TRUE.
+      logical, parameter :: Debug =.FALSE.
 
 !-----
 
