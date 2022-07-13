@@ -203,6 +203,7 @@ $(info $$DM is [${DM}])
 #-----------------------------------------------------------------------------
 
 SRC   = constants.F \
+	mersennetwister_mod.F \
 	input.F \
 	adv.F \
 	adv_routines.F \
@@ -343,7 +344,7 @@ eddy_recycle.o: constants.o input.o
 goddard.o: constants.o input.o cm1libs.o
 hifrq.o: input.o constants.o cm1libs.o adv_routines.o ib_module.o writeout_nc.o adv.o comm.o
 ib_module.o: input.o constants.o bc.o comm.o
-init3d.o:  constants.o input.o misclibs.o cm1libs.o bc.o comm.o module_mp_nssl_2mom.o poiss.o parcel.o ib_module.o turb.o
+init3d.o:  constants.o input.o misclibs.o cm1libs.o bc.o comm.o module_mp_nssl_2mom.o poiss.o parcel.o ib_module.o turb.o mersennetwister_mod.o
 init_physics.o: constants.o input.o sfclay.o sfclayrev.o slab.o radtrns3d.o irrad3d.o goddard.o module_ra_rrtmg_lw.o module_ra_rrtmg_sw.o module_sf_gfdl.o module_sf_mynn.o module_bl_mynn.o module_sf_myjsfc.o
 init_surface.o: constants.o input.o oml.o 
 init_terrain.o: constants.o input.o bc.o comm.o adv_routines.o
