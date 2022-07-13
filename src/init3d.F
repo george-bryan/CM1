@@ -84,8 +84,11 @@
 #ifdef MPI
       use mpi
 #endif
+      use MersenneTwister_mod
 
       implicit none
+
+      type(randomNumberSequence) :: randomNumbers
  
       real, dimension(ib:ie) :: xh,rxh,uh,ruh
       real, dimension(ib:ie+1) :: xf,rxf,uf,ruf
@@ -403,15 +406,19 @@
         if(dowr) write(outfile,*) '  npvals,nparcels = ',npvals,nparcels
         if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
 
+        ! Use the deterministic random number generator from CESM:
+        !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
+        !
+        ! The generated random number is independent of compilers and MPI ranks
+        randomNumbers = new_RandomNumberSequence(seed = nparcels)
 
         do n=1,nparcels
-          call random_number(rand)
+          rand = getRandomReal(randomNumbers)
           pdata(n,prx) = rand*maxx
-          call random_number(rand)
+          rand = getRandomReal(randomNumbers)
           pdata(n,pry) = rand*maxy
-          call random_number(rand)
+          rand = getRandomReal(randomNumbers)
           pdata(n,prz) = rand*maxz
-          !pdata(n,prz) = 40.0
 
           !if(MODULO(n,100)==0) then 
           if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
@@ -1517,10 +1524,15 @@
         do k=1,nk
         if( zh(1,1,k).le.100.0 )then
           ! cm1r17: loop over entire domain
+          !
+          ! Use the deterministic random number generator from CESM:
+          !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
+          !
+          ! The generated random number is independent of compilers and MPI ranks
+          randomNumbers = new_RandomNumberSequence(seed = (nx+1)*(ny+1))
           do jj = 0,ny+1
           do ii = 0,nx+1
-            call random_number(rand)
-            call random_number(rand2)
+            rand = getRandomReal(randomNumbers)
             i = ii - myi1 + 1
             j = jj - myj1 + 1
             ! check to see if this processor has this gridpoint:
