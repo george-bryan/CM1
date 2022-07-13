@@ -1619,7 +1619,9 @@
       Tpmax = -1000.0
 
       !$acc parallel loop gang vector default(present) &
-      !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg)
+      !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
+      !$acc          reduction(max:radmax,Tpmax) &
+      !$acc          reduction(min:radmin,Tpmin)
       do np=1,nparcels
          if (pdata(np,pract) .gt. 0.0) then
             tnumpart = tnumpart + 1
@@ -1632,10 +1634,10 @@
             prsavg = prsavg + pdata(np,prprs)
             rhoavg = rhoavg + pdata(np,prrho)
 
-            if (pdata(np,prrp) .lt. radmin) radmin = pdata(np,prrp)
-            if (pdata(np,prrp) .gt. radmax) radmax = pdata(np,prrp)
-            if (pdata(np,prtp) .lt. Tpmin) Tpmin = pdata(np,prtp)
-            if (pdata(np,prrp) .gt. Tpmax) Tpmax = pdata(np,prtp)
+            radmin = min(radmin, pdata(np,prrp))
+            radmax = max(radmax, pdata(np,prrp))
+            Tpmin = min(Tpmin, pdata(np,prtp))
+            Tpmax = max(Tpmax, pdata(np,prtp))
          end if
       end do
       !$acc end parallel
@@ -1695,8 +1697,8 @@
      do iz=1,nk
         dzf = dumzf(iz+1)-dumzf(iz)
         numconc(iz) = partnum(iz)/dzf/xl/yl
-        write(6,100) 'dumzh(iz)',dumzh(iz),iz
-        write(6,100) 'numconc(iz)',numconc(iz),iz
+        write(6,100) 'dumzh(',iz,'):',dumzh(iz)
+        write(6,100) 'numconc(',iz,'):',numconc(iz)
      end do
 
      !WRITE IT OUT:
@@ -1721,8 +1723,8 @@
            dumzh,numconc)
 #endif
 
-100     format(2x,'DROPLET_DIAG1:: ',a12,':',1x,e13.6,1x,'iz = ',I6)
-200     format(2x,'DROPLET_DIAG:: ',a10,':',1x,e13.6)
+100     format(2x,'DROPLET_DIAG1:: ',A,I0,A,1x,e13.6,1x)
+200     format(2x,'DROPLET_DIAG:: ',A10,':',1x,e13.6)
 
      !$acc end data
 
