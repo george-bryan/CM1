@@ -1671,7 +1671,7 @@
       end do
       !$acc end parallel
 
-      !$acc parallel loop gang vector default(present)
+      !$acc parallel loop gang vector default(present) reduction(partnum)
       do np=1,nparcels
          if (pdata(np,pract) .gt. 0.0) then
             kflag = 1
