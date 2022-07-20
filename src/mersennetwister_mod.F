@@ -113,6 +113,7 @@ contains
   end function mixbits
   ! ---------------------------
   function twist(u, v)
+    !$acc routine seq
     integer, intent( in) :: u, v
     integer              :: twist
 
@@ -124,6 +125,7 @@ contains
   end function twist
   ! ---------------------------
   subroutine nextState(twister)
+    !$acc routine seq
     type(randomNumberSequence), intent(inout) :: twister
 
     ! Local variables
@@ -144,6 +146,7 @@ contains
   end subroutine nextState
   ! ---------------------------
   elemental function temper(y)
+    !$acc routine seq
     integer, intent(in) :: y
     integer             :: temper
 
@@ -233,6 +236,7 @@ contains
   ! Public functions
   ! --------------------
   function getRandomInt(twister)
+    !$acc routine seq
     type(randomNumberSequence), intent(inout) :: twister
     integer                      :: getRandomInt
     ! Generate a random integer on the interval [0,0xffffffff]
@@ -265,7 +269,7 @@ contains
   end function getRandomPositiveInt
   ! --------------------
   function getRandomReal(twister)
-
+    !$acc routine seq
     type(randomNumberSequence), intent(inout) :: twister
     double precision             :: getRandomReal
     ! Generate a random number on [0,1]
