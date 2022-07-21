@@ -268,7 +268,7 @@
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
-    !$acc loop gang vector
+    !$acc loop gang vector private(zf_tmp)
 #endif
     nploop:  &
     DO np=1,nparcels
