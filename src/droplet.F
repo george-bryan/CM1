@@ -104,7 +104,6 @@
 
       logical, parameter :: debug = .false.
       
-      real, dimension(kb:ke+1) :: zf_tmp
       type(randomNumberSequence) :: randomNumbers
 
 #ifdef _VERIFY_FIND_LOC
@@ -120,7 +119,7 @@
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
-      !$acc data create(ta,zf_tmp) &
+      !$acc data create (ta) &
       !$acc      copyin (randomNumbers,randomNumbers%state)
 
     IF(bbc.eq.1)THEN
@@ -268,7 +267,7 @@
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
-    !$acc loop gang vector private(zf_tmp)
+    !$acc loop gang vector
 #endif
     nploop:  &
     DO np=1,nparcels
@@ -322,14 +321,7 @@
 
       kflag = 1
       if( .not. terrain_flag )then
-        !JS-KLUDGE: Somehow I have to use the zf_tmp variable 
-        !           for the find_vertical* subroutine,
-        !           otherwise the GPU code breaks for nparcels > ~2000
-        !$acc loop seq
-        do k = kb, ke+1
-           zf_tmp(k) = zf(iflag,jflag,k)
-        end do
-        call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
+        call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf(iflag,jflag,:), kflag, .TRUE.)
       else
         call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
       endif
