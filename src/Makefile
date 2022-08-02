@@ -296,7 +296,11 @@ OBJS_M = $(addsuffix .o, $(basename $(SRC_M)))
 OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_NVTX)))
 
 FFLAGS  = $(OPTS)
-FFLAGS_M  = $(OPTS_M)
+ifeq (${USE_OPENACC_L},true)
+FFLAGS_M = $(OPTS_M) # -L/glade/u/apps/opt/nvhpc/22.2/Linux_x86_64/22.2/cuda/11.6/lib64 -lcudart
+else
+FFLAGS_M = $(OPTS)
+endif
 AR      = ar cru
 
 .SUFFIXES:
@@ -371,7 +375,7 @@ module_mp_jensen_ishmael.o: input.o module_ra_etc.o
 mp_driver.o: constants.o input.o misclibs.o kessler.o goddard.o thompson.o lfoice.o morrison.o module_mp_nssl_2mom.o module_mp_p3.o module_mp_jensen_ishmael.o
 param.o: constants.o input.o init_terrain.o bc.o comm.o bcast.o thompson.o morrison.o module_mp_nssl_2mom.o goddard.o lfoice.o module_mp_p3.o module_mp_jensen_ishmael.o ib_module.o eddy_recycle.o lsnudge.o
 parcel.o: constants.o input.o cm1libs.o misclibs.o bc.o comm.o writeout_nc.o
-droplet.o: constants.o input.o cm1libs.o bc.o comm.o parcel.o
+droplet.o: constants.o input.o cm1libs.o bc.o comm.o parcel.o mersennetwister_mod.o
 pdef.o: input.o bc.o comm.o
 pdcomp.o: constants.o input.o adv.o poiss.o ib_module.o
 poiss.o: input.o singleton.o

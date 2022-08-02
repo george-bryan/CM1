@@ -35,7 +35,7 @@
           kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
-          timestats,time_droplet,mytime,ierr,time_droplet_reduce
+          timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz
       use constants
       use comm_module
       use misclibs
@@ -44,6 +44,8 @@
 #ifdef MPI
       use mpi
 #endif
+      use MersenneTwister_mod
+
       implicit none
 
 !-----------------------------------------------------------------------
@@ -101,6 +103,8 @@
       integer :: idropmethod
 
       logical, parameter :: debug = .false.
+      
+      type(randomNumberSequence) :: randomNumbers
 
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
@@ -108,12 +112,15 @@
 
       call reinit_random_seed
 
+      randomNumbers = new_RandomNumberSequence(seed = nparcels)
+
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
-      !$acc data create(ta)
+      !$acc data create (ta) &
+      !$acc      copyin (randomNumbers,randomNumbers%state)
 
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
@@ -260,7 +267,7 @@
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
-    !$acc loop gang vector 
+    !$acc loop gang vector
 #endif
     nploop:  &
     DO np=1,nparcels
@@ -529,15 +536,12 @@
       !have fallen out the bottom:
       if (pdata(np,pract).lt.0.0) then
             !Replace with a new droplet at random location
-#if 0
-              !JMD-KLUDGE 
-              call random_number(rand)
+              rand = getRandomReal(randomNumbers)
               pdata(np,prx) = rand*maxx
-              call random_number(rand)
+              rand = getRandomReal(randomNumbers)
               pdata(np,pry) = rand*maxy
-              call random_number(rand)
+              rand = getRandomReal(randomNumbers)
               pdata(np,prz) = rand*maxz
-#endif
               pdata(np,prvpx) = 0.0
               pdata(np,prvpy) = 0.0
               pdata(np,prvpz) = 0.0
