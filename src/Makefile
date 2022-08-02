@@ -297,7 +297,7 @@ OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_NVTX)))
 
 FFLAGS  = $(OPTS)
 ifeq (${USE_OPENACC_L},true)
-FFLAGS_M = $(OPTS_M) -L/glade/u/apps/opt/nvhpc/22.2/Linux_x86_64/22.2/cuda/11.6/lib64 -lcudart
+FFLAGS_M = $(OPTS_M) # -L/glade/u/apps/opt/nvhpc/22.2/Linux_x86_64/22.2/cuda/11.6/lib64 -lcudart
 else
 FFLAGS_M = $(OPTS)
 endif
