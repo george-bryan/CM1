@@ -331,7 +331,7 @@
 
       integer :: i,j
       real :: pisfc,qvsat,tem,shf
-      double precision, dimension(nj) :: bud1
+      !double precision, dimension(nj) :: bud1
       double precision :: budtmp
       real :: thmag,qvmag,trat1,trat2
       real :: thtmp,qvtmp
@@ -492,7 +492,6 @@
     IF(imoist.eq.1)THEN
       tem = dt*dx*dy
       ! some budget calculations:
-      !!$acc data create(bud1)
       !$omp parallel do default(shared) private(i,j)
       !$acc parallel default(present) private(i,j) reduction(+:budtmp,qbsfc) 
       !$acc loop gang
@@ -504,12 +503,7 @@
         enddo
         qbsfc=qbsfc+budtmp*dt*dx*dy
       enddo
-      !!$acc loop vector reduction(+:qbsfc)
-      !do j=1,nj
-      !  qbsfc=qbsfc+bud1(j)*dt*dx*dy
-      !enddo
       !$acc end parallel
-      !!$acc end data
     ENDIF
 
 !-----------------------------------------------------------------------
