@@ -1,8 +1,3 @@
-#ifdef _B4B
-
-#define _B4B06R
-#define _B4B08R
-#endif
   MODULE sfcphys_module
 
   implicit none
@@ -497,36 +492,24 @@
     IF(imoist.eq.1)THEN
       tem = dt*dx*dy
       ! some budget calculations:
-#ifdef _B4B06R
-      !$acc update host(qvflux,ruh,rvh,rf) 
-#else
-      !$acc data create(bud1)
+      !!$acc data create(bud1)
+      !$omp parallel do default(shared) private(i,j)
       !$acc parallel default(present) private(i,j) reduction(+:budtmp,qbsfc) 
       !$acc loop gang
-#endif
-      !$omp parallel do default(shared) private(i,j)
       do j=1,nj
         budtmp=0.0d0
-#ifndef _B4B06R
         !$acc loop vector reduction(+:budtmp)
-#endif
         do i=1,ni
           budtmp=budtmp+qvflux(i,j)*ruh(i)*rvh(j)*rf(i,j,1)
         enddo
-        bud1(j)=budtmp
+        qbsfc=qbsfc+budtmp*dt*dx*dy
       enddo
-#ifndef _B4B06R
-      !$acc loop vector reduction(+:qbsfc)
-#endif
-      do j=1,nj
-        qbsfc=qbsfc+bud1(j)*dt*dx*dy
-      enddo
-#ifdef _B4B06R
-      !$acc update device(qbsfc)
-#else
+      !!$acc loop vector reduction(+:qbsfc)
+      !do j=1,nj
+      !  qbsfc=qbsfc+bud1(j)*dt*dx*dy
+      !enddo
       !$acc end parallel
-      !$acc end data
-#endif
+      !!$acc end data
     ENDIF
 
 !-----------------------------------------------------------------------

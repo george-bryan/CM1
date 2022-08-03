@@ -1,10 +1,7 @@
 #ifdef _B4B
 
 !JMD-changes answers
-#define _B4B07R
 #define _B4B09R
-#define _B4B10R
-#define _B4B11R
 
 #endif
   MODULE turb_module
