@@ -397,9 +397,9 @@
 
         ! initialize to really small number (so we can use the allreduce command below)
         do n=1,nparcels_mpi
-          pdata(n,prx) = -1.0e30
-          pdata(n,pry) = -1.0e30
-          pdata(n,prz) = -1.0e30
+          pdata(n,prx) = neg_huge
+          pdata(n,pry) = neg_huge
+          pdata(n,prz) = neg_huge
         enddo
 
 
@@ -428,7 +428,7 @@
                tmpy .ge. yfref(myj1) .and. tmpy .le. yfref(myj2) ) then
 
              do i = 1, nparcels_mpi
-                if ( pdata(i,prx) .eq. -1.0e30 ) then
+                if ( pdata(i,prx) .eq. neg_huge ) then
                    pdata(i,prx) = tmpx
                    pdata(i,pry) = tmpy
                    pdata(i,prz) = tmpz

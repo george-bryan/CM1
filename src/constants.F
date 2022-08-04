@@ -66,6 +66,8 @@
       integer, parameter :: pdata_buffer = 100    ! additional storage space for pdata from
                                                   ! each MPI rank to account for the droplet
                                                   ! communication between MPI ranks
+       
+      real, parameter :: neg_huge = -1.0e30       ! define a large negative number
 
   CONTAINS
 
