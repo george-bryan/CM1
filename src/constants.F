@@ -63,6 +63,10 @@
 
       integer, parameter :: undefined_index = -100
 
+      integer, parameter :: pdata_buffer = 100    ! additional storage space for pdata from
+                                                  ! each MPI rank to account for the droplet
+                                                  ! communication between MPI ranks
+
   CONTAINS
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

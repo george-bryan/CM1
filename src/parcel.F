@@ -1752,6 +1752,8 @@
 
 !----------------------------------------------------------------------
 !  communicate data
+
+! JS: the section below needs to be revised for the new MPI implementation
 #ifdef MPI
   !$acc update host(pdata)
   do n=npvars+1,npvals
@@ -1949,7 +1951,7 @@
 
 
       subroutine getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-      use input, only : ib,ie,jb,je,nparcels,npvals,ni,nj,nx,ny, &
+      use input, only : ib,ie,jb,je,nparcels_mpi,npvals,ni,nj,nx,ny, &
           myi,myj,axisymm,nodex,nodey,ierr, &
           prx,pry,przs
       use constants
@@ -1963,13 +1965,13 @@
       real, intent(in), dimension(jb:je) :: yh,vh,rvh
       real, intent(in), dimension(jb:je+1) :: yf
       real, intent(in), dimension(ib:ie,jb:je) :: zs
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
 
       integer :: i,j,iflag,jflag,np
       real :: x3d,y3d
 
     zsnploop:  &
-    DO np=1,nparcels
+    DO np=1,nparcels_mpi
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -2042,9 +2044,10 @@
 
     ENDDO  zsnploop
 
-#ifdef MPI
-    call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,przs) ,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-#endif
+! JS: comment out the section below with the new MPI implementation for droplets
+!#ifdef MPI
+!    call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,przs) ,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+!#endif
 
       end subroutine getparcelzs
 

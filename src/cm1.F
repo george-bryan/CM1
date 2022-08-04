@@ -2230,12 +2230,14 @@
       allocate( reqt(d3t) )
       reqt = 0
 
+      nparcels_mpi = ceiling(nparcels/numprocs)+pdata_buffer
+      !$acc update device (nparcels_mpi)
 
-      allocate(  pdata(nparcels,npvals) )
+      allocate(  pdata(nparcels_mpi,npvals) )
       pdata = 0.0
       allocate(   ploc(nparcels,  3   ) )
       ploc = 0.0
-      allocate(  pdata_locind(nparcels,3) )
+      allocate(  pdata_locind(nparcels_mpi,3) )
       pdata_locind = undefined_index
 
       allocate( dpten(ib:ie,jb:je,kb:ke,2) )
