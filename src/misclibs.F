@@ -1153,7 +1153,7 @@
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
         !$acc parallel default(present) private(i,j,k) &
         !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:budt,asq)
-        !$acc loop gang
+        !$acc loop gang reduction(+:asq)
         do j=1,nj
           budt = 0.0d0
           !$acc loop vector reduction(+:budt)
@@ -1399,7 +1399,7 @@
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
         !$acc parallel default(present) private(k) reduction(+:budt,asq) 
-        !$acc loop gang 
+        !$acc loop gang reduction(+:asq)
         do k=1,nk
           budt = 0.0d0
           !$acc loop vector collapse(2) private(i,j,a1,a2) reduction(+:budt)
@@ -3893,7 +3893,7 @@
       tmass=0.0d0 
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
-      !$acc loop gang
+      !$acc loop gang reduction(+:tmass)
       do k=1,nk
         foot=0.0d0
         !$acc loop vector collapse(2) reduction(+:foot)
@@ -3961,7 +3961,7 @@
       tmass=0.0d0
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
-      !$acc loop gang
+      !$acc loop gang reduction(+:tmass)
       do k=1,nk
         foot = 0.0d0   
         !$acc loop vector collapse(2) reduction(+:foot)
@@ -4032,7 +4032,7 @@
       tmass=0.0d0
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
-      !$acc loop gang
+      !$acc loop gang reduction(+:tmass)
       do k=1,nk
         foot=0.0d0
         !$acc loop vector collapse(2) reduction(+:foot)
@@ -4098,17 +4098,21 @@
  
       integer i,j,k
       double precision :: u,v,w,tmp,qtot,ek,ei,ep,et,le,var,tem
+      double precision, dimension(nk) :: foo1,foo2,foo3,foo4
       double precision :: foo1t,foo2t,foo3t,foo4t
 
       ek=0.0d0
       ei=0.0d0
       ep=0.0d0
       le=0.0d0
+      !$acc data create(foo1,foo2,foo3,foo4)
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k,u,v,w,tmp,qtot,tem)
       !$acc parallel default(present) private(i,j,k,u,v,w,tmp,qtot,tem) &
       !$acc reduction(+:foo1t,foo2t,foo3t,foo4t,ek,ei,ep,le)
-      !$acc loop gang 
+      !JMD internal compiler error
+      !!$acc loop gang reduction(+:ek,ei,ep,le)
+      !$acc loop gang
       do k=1,nk
         foo1t=0.0d0      ! = ek
         foo2t=0.0d0      ! = ei
@@ -4134,12 +4138,20 @@
                          +rho(i,j,k)*tem*qi(i,j,k)*(cpi*tmp-ls1)
         enddo
         enddo
-        ek=ek+foo1t
-        ei=ei+foo2t
-        ep=ep+foo3t
-        le=le+foo4t
+        foo1(k) = foo1t
+        foo2(k) = foo2t
+        foo3(k) = foo3t
+        foo4(k) = foo4t
+      enddo
+      !$acc loop vector reduction(+:ek,ei,ep,le)
+      do k=1,nk
+        ek=ek+foo1(k)
+        ei=ei+foo2(k)
+        ep=ep+foo3(k)
+        le=le+foo4(k)
       enddo
       !$acc end parallel
+      !$acc end data
  
       ek=ek*(dx*dy*dz)
       ei=ei*(dx*dy*dz)
@@ -4333,14 +4345,16 @@
 
       integer i,j,k
       double precision :: tmfu,tmfd,mf,var
+      double precision, dimension(nk) :: foo1,foo2
       double precision :: foo1t,foo2t
 
 
-      tmfu=0.0d0
-      tmfd=0.0d0
+      !$acc data create(foo1,foo2)
       !$omp parallel do default(shared) private(i,j,k,mf)
       !$acc parallel default(present)  private(i,j,k,mf) reduction(+:foo1t,foo2t) &
       !$acc reduction(+:tmfu,tmfd)
+      !JMD internal compiler error
+      !!$acc loop gang reduction(+:tmfu,tmfd)
       !$acc loop gang 
       do k=1,nk
         foo1t = 0.0d0
@@ -4353,8 +4367,15 @@
           foo2t=foo2t+min(mf,0.0d0)
         enddo
         enddo
-        tmfu=tmfu+foo1t
-        tmfd=tmfd+foo2t
+        foo1(k) = foo1t
+        foo2(k) = foo2t
+      enddo
+      tmfu=0.0d0
+      tmfd=0.0d0
+      !$acc loop vector reduction(+:tmfu,tmfd)
+      do k=1,nk
+        tmfu=tmfu+foo1(k)
+        tmfd=tmfd+foo2(k)
       enddo
       !$acc end parallel
 
@@ -4384,6 +4405,7 @@
 #ifdef MPI
       endif
 #endif
+      !$acc end data
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
 

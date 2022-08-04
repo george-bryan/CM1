@@ -493,7 +493,7 @@
       ! some budget calculations:
       !$omp parallel do default(shared) private(i,j)
       !$acc parallel default(present) private(i,j) reduction(+:budtmp,qbsfc) 
-      !$acc loop gang
+      !$acc loop gang reduction(+:qbsfc)
       do j=1,nj
         budtmp=0.0d0
         !$acc loop vector reduction(+:budtmp)
