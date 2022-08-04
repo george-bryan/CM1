@@ -261,7 +261,7 @@
       real, intent(inout), dimension(ibl:iel,jbl:jel,num_soil_layers) :: tslb
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d,ptten
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
       double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke,2) :: dpten
       real, intent(in), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: cfb
       real, intent(in), dimension(kpb:kpe) :: cfa,cfc,ad1,ad2
@@ -325,7 +325,7 @@
       integer, intent(in), dimension(ibib:ieib,jbib:jeib,kmaxib) :: hflxw,hflxe,hflxs,hflxn
       logical, intent(in) :: dowriteout,dorad,dotdwrite,doazimwrite,dorestart
       logical, intent(inout) :: getdbz,getvt,dotbud,doqbud,doubud,dovbud,dowbud,donudge
-      integer, intent(inout), dimension(nparcels,3) :: pdata_locind
+      integer, intent(inout), dimension(nparcels_mpi,3) :: pdata_locind
 
 !-----------------------------------------------------------------------
 ! Arrays and variables defined inside solve
