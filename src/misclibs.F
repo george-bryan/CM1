@@ -4144,13 +4144,14 @@
         foo4(k) = foo4t
       enddo
       !$acc end parallel
-      !$acc parallel loop vector default(present) reduction(+:ek,ei,ep,le)
+      !$acc parallel loop gang vector default(present) reduction(+:ek,ei,ep,le)
       do k=1,nk
         ek=ek+foo1(k)
         ei=ei+foo2(k)
         ep=ep+foo3(k)
         le=le+foo4(k)
       enddo
+      !$acc end parallel
       !$acc end data
  
       ek=ek*(dx*dy*dz)
@@ -4372,7 +4373,7 @@
       !$acc end parallel
       tmfu=0.0d0
       tmfd=0.0d0
-      !$acc parallel loop vector default(present) reduction(+:tmfu,tmfd)
+      !$acc parallel loop vector gang default(present) reduction(+:tmfu,tmfd)
       do k=1,nk
         tmfu=tmfu+foo1(k)
         tmfd=tmfd+foo2(k)
