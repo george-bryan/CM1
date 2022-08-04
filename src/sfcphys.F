@@ -331,7 +331,6 @@
 
       integer :: i,j
       real :: pisfc,qvsat,tem,shf
-      !double precision, dimension(nj) :: bud1
       double precision :: budtmp
       real :: thmag,qvmag,trat1,trat2
       real :: thtmp,qvtmp

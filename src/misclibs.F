@@ -1419,7 +1419,6 @@
       ENDIF
 
 !----------------------------------------------------------------------
-      !!$acc end data
       if(timestats.ge.1) time_misc05=time_misc05+mytime()
 
       end subroutine pdefqtest
@@ -3999,7 +3998,6 @@
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
-!!$acc end data
  
       end subroutine totmois
 
@@ -4028,7 +4026,6 @@
 
       integer i,j,k
       double precision :: tmass,var
-      !double precision, dimension(nk) :: foo
       double precision :: foot
 
 
@@ -4069,8 +4066,6 @@
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
-
-!!$acc end data
 
       end subroutine totq
 
@@ -4223,7 +4218,6 @@
  
       integer i,j,k
       double precision :: tmu,tmv,tmw,qtot,var,tem
-      ! double precision, dimension(nk) :: foo1,foo2,foo3
       double precision :: foot1,foot2,foot3
       double precision :: qltmp,vrtmp
 
@@ -4390,7 +4384,6 @@
 #ifdef MPI
       endif
 #endif
-!      !$acc end data
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
 
