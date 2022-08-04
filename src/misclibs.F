@@ -4109,7 +4109,7 @@
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k,u,v,w,tmp,qtot,tem)
       !$acc parallel default(present) private(i,j,k,u,v,w,tmp,qtot,tem) &
-      !$acc reduction(+:foo1t,foo2t,foo3t,foo4t,ek,ei,ep,le)
+      !$acc reduction(+:foo1t,foo2t,foo3t,foo4t)
       !JMD internal compiler error
       !!$acc loop gang reduction(+:ek,ei,ep,le)
       !$acc loop gang
@@ -4143,14 +4143,14 @@
         foo3(k) = foo3t
         foo4(k) = foo4t
       enddo
-      !$acc loop vector reduction(+:ek,ei,ep,le)
+      !$acc end parallel
+      !$acc parallel loop vector default(present) reduction(+:ek,ei,ep,le)
       do k=1,nk
         ek=ek+foo1(k)
         ei=ei+foo2(k)
         ep=ep+foo3(k)
         le=le+foo4(k)
       enddo
-      !$acc end parallel
       !$acc end data
  
       ek=ek*(dx*dy*dz)
@@ -4351,8 +4351,7 @@
 
       !$acc data create(foo1,foo2)
       !$omp parallel do default(shared) private(i,j,k,mf)
-      !$acc parallel default(present)  private(i,j,k,mf) reduction(+:foo1t,foo2t) &
-      !$acc reduction(+:tmfu,tmfd)
+      !$acc parallel default(present)  private(i,j,k,mf) reduction(+:foo1t,foo2t)
       !JMD internal compiler error
       !!$acc loop gang reduction(+:tmfu,tmfd)
       !$acc loop gang 
@@ -4370,9 +4369,10 @@
         foo1(k) = foo1t
         foo2(k) = foo2t
       enddo
+      !$acc end parallel
       tmfu=0.0d0
       tmfd=0.0d0
-      !$acc loop vector reduction(+:tmfu,tmfd)
+      !$acc parallel loop vector default(present) reduction(+:tmfu,tmfd)
       do k=1,nk
         tmfu=tmfu+foo1(k)
         tmfd=tmfd+foo2(k)
