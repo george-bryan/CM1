@@ -565,10 +565,6 @@
                            ws31,ws32,wn31,wn32,reqs_w)
 #endif
 
-      !print *,'solve3: point #7'
-      !text1='slv3.6'
-      !text2='slv3.6'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 #ifdef MPI
       if(   sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
         call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
@@ -579,10 +575,6 @@
         call bcw2_GPU(w3d)
       endif
 #endif
-      !print *,'solve3: point #8'
-      !text1='slv3.7'
-      !text2='slv3.7'
-      !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
       if(terrain_flag)then
         call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
@@ -668,9 +660,6 @@
         ENDIF
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
         ! bc/comms:
-      !text1='slv3.8'
-      !text2='slv3.8'
-      !call maxmin2dhalo(ni,nj,rrw(ib,jb,13),text1,text2)
         call bcu_GPU(rru)
 #ifdef MPI
         call comm_3u_start_GPU(rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
@@ -684,11 +673,6 @@
         call comm_3w_start_GPU(rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
 #endif
       ENDIF
-      !print *,'solve3: point #9'
-      !text1='slv3.9'
-      !text2='slv3.9'
-      !call maxmin2dhalo(ni,nj,rrw(ib,jb,13),text1,text2)
-
 
 !----------
 !  Diagnostics (infrequent):
