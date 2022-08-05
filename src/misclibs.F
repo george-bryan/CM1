@@ -1,17 +1,3 @@
-#ifdef _B4B
-
-#undef _B4B01R
-
-!JMD-expensive
-#define _B4B02R
-#define _B4B04R
-#define _B4B05R
-#define _B4B06R
-#define _B4B07R
-#define _B4B08R
-#define _B4B09R
-#define _B4B10R
-#endif
   MODULE misclibs
 
   implicit none
@@ -1155,41 +1141,27 @@
       integer i,j,k
       double precision :: t1,t2,t3
       double precision :: a1,a2,tem
-      double precision, dimension(nj) :: budj
-      double precision, dimension(nk) :: budk
       double precision :: budt
       !$acc declare present(ruh,rvh,rmh,rho,q3d)
 
 !----------------------------------------------------------------------
 
       !print *,'pdefq_GPU: pdscheme: ',pdscheme
-#ifndef _B4B01R
-      !$acc data create(budj,budk)
-#endif
       !tem = dx*dy*dz
       IF(pdscheme.eq.1)THEN
 
-#ifdef _B4B01R
-        !$acc update host(asq,ruh,rvh,rmh,rho,q3d)
-#else
-        !!$acc parallel loop gang vector default(present) private(i,j,k)
-        !$acc parallel default(present) private(i,j,k) &
-        !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:budt)
-        !$acc loop gang
-#endif
         !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
+        !$acc parallel default(present) private(i,j,k) &
+        !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:budt,asq)
+        !$acc loop gang reduction(+:asq)
         do j=1,nj
           budt = 0.0d0
-#ifndef _B4B01R
           !$acc loop vector reduction(+:budt)
-#endif
           do i=1,ni
             t1=0.0d0
             t2=0.0d0
             a1=0.0d0
-#ifndef _B4B01R
             !$acc loop vector reduction(+:a1,t1,t2)
-#endif
             do k=1,nk
               t1=t1+rho(i,j,k)*q3d(i,j,k)
               a1=a1+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
@@ -1200,33 +1172,22 @@
             t3=(t1+1.0d-20)/(t2+1.0d-20)
             if(t3.lt.0.0) t3=1.0d0
             a2=0.0d0
-#ifndef _B4B01R
             !$acc loop vector reduction(+:a2)
-#endif
             do k=1,nk
               q3d(i,j,k)=t3*q3d(i,j,k)
               a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
             enddo
             budt = budt+a2-a1
           enddo
-          budj(j)=budt
+          asq=asq+budt*dx*dy*dz
         enddo
-
-#ifndef _B4B01R
         !$acc end parallel
-        !$acc parallel loop vector reduction(+:asq)
-#endif
-        do j=1,nj
-          asq=asq+budj(j)*dx*dy*dz
-        enddo
 
       ELSE
 
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
-#ifndef _B4B01R
         !$acc parallel default(present) private(i,j,k,a1,a2) reduction(+:budt,asq)
         !$acc loop gang
-#endif
         do k=1,nk
           budt=0.0d0
           !$acc loop vector collapse(2) reduction(+:budt)
@@ -1239,25 +1200,11 @@
             budt=budt+a2-a1
           enddo
           enddo
-         budk(k)=budt 
+          asq=asq+budt*dx*dy*dz
         enddo
-
-#ifndef _B4B01R
-        !$acc loop vector reduction(+:asq)
-#endif
-        do k=1,nk
-          asq=asq+budk(k)*dx*dy*dz
-        enddo
-#ifndef _B4B01R
       !$acc end parallel
-#endif
 
       ENDIF
-#ifdef _B4B01R
-      !$acc update device(asq,q3d)
-#else
-      !$acc end data
-#endif
 
 !----------------------------------------------------------------------
 
@@ -1290,7 +1237,6 @@
 !----------------------------------------------------------------------
 
       !print *,'pdefq2_GPU: pdscheme: ',pdscheme
-!      !$acc data create(budj,budk)
       !tem = dx*dy*dz
       IF(pdscheme.eq.1)THEN
 
@@ -1319,7 +1265,6 @@
               q3d(i,j,k)=t3*q3d(i,j,k)
               a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
             enddo
-            !budt = budt+a2-a1
             asq=asq+(a2-a1)*dx*dy*dz
           enddo
         enddo
@@ -1342,18 +1287,11 @@
             budt=budt+a2-a1
           enddo
           enddo
-          !budk(k)=budt 
           asq=asq+budt*dx*dy*dz
         enddo
-
-        !!$acc loop vector reduction(+:asq)
-        !do k=1,nk
-        !  asq=asq+budk(k)*dx*dy*dz
-        !enddo
         !$acc end parallel
 
       ENDIF
-!      !$acc end data
 
 !----------------------------------------------------------------------
 
@@ -1383,13 +1321,10 @@
       integer i,j,k
       double precision :: t1,t2,t3
       double precision :: a1,a2,tem
-      double precision, dimension(nj) :: budj
-      double precision, dimension(nk) :: budk
       double precision :: budt
       !$acc declare &
       !$acc present(ruh,rvh,rmh,rho,q3d) &
       !$acc present( dum2d1,dum2d2,dum2d3,dum2d4,dum2d5)
-      !$acc data create(budk)
 
 !----------------------------------------------------------------------
 
@@ -1453,30 +1388,18 @@
         enddo
         !$acc end parallel
 
-#ifdef _B4B02R
-        !$acc update host(dum2d5,dum2d2) 
-#else
         !$acc parallel loop vector collapse(2) default(present) private(i,j) reduction(+:asq)
-#endif
         do j=1,nj
         do i=1,ni
           asq=asq+(dum2d5(i,j)-dum2d2(i,j))*tem
         enddo
         enddo
-#ifdef _B4B02R
-        !$acc update device(asq)
-#endif
 
       ELSE
 
-        !FIXME
         !$omp parallel do default(shared) private(i,j,k,a1,a2)
-#ifdef _B4B05R
-        !$acc update host(rho,q3d,ruh,rvh,rmh)
-#else
-        !$acc parallel default(present) private(k) reduction(+:budt) 
-        !$acc loop gang 
-#endif
+        !$acc parallel default(present) private(k) reduction(+:budt,asq) 
+        !$acc loop gang reduction(+:asq)
         do k=1,nk
           budt = 0.0d0
           !$acc loop vector collapse(2) private(i,j,a1,a2) reduction(+:budt)
@@ -1490,25 +1413,12 @@
           budt=budt+(a2-a1)
           enddo
           enddo
-          budk(k)=budt
+          asq=asq+budt*tem
         enddo
-#ifdef _B4B05R
-        !$acc update host(budk)
-#else
         !$acc end parallel
-        !$acc parallel loop vector default(present) private(k) reduction(+:asq)
-#endif
-        do k=1,nk
-          asq=asq+budk(k)*tem
-        enddo
-#ifdef _B4B05R
-        !$acc update device(asq)     
-#endif
-
       ENDIF
 
 !----------------------------------------------------------------------
-      !$acc end data
       if(timestats.ge.1) time_misc05=time_misc05+mytime()
 
       end subroutine pdefqtest
@@ -3396,20 +3306,12 @@
       if(nx.gt.1.and.ny.gt.1)then
         ! 3d:
         !$omp parallel do default(shared) private(i,j,k,tem1,tem2,tem3)
-#ifdef _B4B04R
-        !$acc update host(uh,vh,kmh,kmv,khh,khv)
-#else
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
-#endif
         ks(1)=0.0
-#ifndef _B4B04R
         !$acc loop gang 
-#endif
         do k=2,nk
            kstmp = 0.0
-#ifndef _B4B04R
            !$acc loop vector collapse(2) reduction(max:kstmp)
-#endif
            do j=1,nj
            do i=1,ni
              tem1 = sqrt( (kmh(i,j,k)*dtdx*uh(i)*uh(i))**2 &
@@ -3423,28 +3325,16 @@
           enddo
           ks(k) = kstmp
         enddo
-#ifdef _B4B04R
-        !$acc update device(ks)
-#else
         !$acc end parallel
-#endif
       elseif(nx.gt.1)then
         ! 2d (including axisymm):
         !$omp parallel do default(shared) private(i,j,tem1,tem2,tem3)
-#ifdef _B4B04R
-        !$acc update host(uh,vh,kmh,kmv,khh,khv)
-#else
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
-#endif
         ks(1)=0.0
-#ifndef _B4B04R
         !$acc loop gang
-#endif
         do k=2,nk
           kstmp = 0.0
-#ifndef _B4B04R
           !$acc loop vector collapse(2) reduction(max:kstmp)
-#endif
           do j=1,nj
           do i=1,ni
             tem1 = kmh(i,j,k)*dtdx*uh(i)*uh(i)
@@ -3455,11 +3345,7 @@
           enddo
           ks(k) = kstmp
         enddo
-#ifdef _B4B04R
-        !$acc update device(ks)
-#else
         !$acc end parallel
-#endif
       elseif(axisymm.eq.0.and.ny.gt.1)then
         stop 1112
       endif
@@ -4001,47 +3887,24 @@
  
       integer i,j,k
       double precision :: tmass,var
-      double precision, dimension(nk) :: foo
       double precision :: foot
 
-      !$acc data create(foo)
 
+      tmass=0.0d0 
       !$omp parallel do default(shared) private(i,j,k)
-#ifdef _B4B06R
-      !$acc update host(rho,ruh,rvh,rmh)
-#else
-      !$acc parallel default(present) private(i,j,k) reduction(+:foot)
-      !$acc loop gang
-#endif
+      !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
+      !$acc loop gang reduction(+:tmass)
       do k=1,nk
         foot=0.0d0
-#ifndef _B4B06R
         !$acc loop vector collapse(2) reduction(+:foot)
-#endif
         do j=1,nj
         do i=1,ni
           foot=foot+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
         enddo
         enddo
-        foo(k)=foot
+        tmass=tmass+foot
       enddo
-#ifndef _B4B06R
       !$acc end parallel
-#endif
-
-      tmass=0.0d0 
-#ifndef _B4B06R
-      !$acc parallel default(present) private(k) reduction(+:tmass)
-      !$acc loop gang vector reduction(+:tmass)
-#endif
-      do k=1,nk
-        tmass=tmass+foo(k)
-      enddo
-#ifndef _B4B06R
-      !$acc end parallel
-#endif
-
-      !$acc end data
 
 #ifdef MPI
       var=0.0d0
@@ -4093,46 +3956,24 @@
  
       integer i,j,k
       double precision :: tmass,var
-      double precision, dimension(nk) :: foo
       double precision :: foot
 
-#ifdef _B4B07R
-      !$acc update host(rho,qv,ql,qi,ruh,rvh,rmh)
-#else
-      !$acc data create(foo)
-
+      tmass=0.0d0
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel default(present) private(i,j,k) reduction(+:foot)
-      !$acc loop gang
-#endif
+      !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
+      !$acc loop gang reduction(+:tmass)
       do k=1,nk
         foot = 0.0d0   
-#ifndef _B4B07R
         !$acc loop vector collapse(2) reduction(+:foot)
-#endif
         do j=1,nj
         do i=1,ni
           foot=foot + rho(i,j,k)*(qv(i,j,k)+ql(i,j,k)+qi(i,j,k))*ruh(i)*rvh(j)*rmh(i,j,k)
         enddo
         enddo
-        foo(k) = foot
+        tmass=tmass+foot
       enddo
-#ifndef _B4B07R
       !$acc end parallel
-#endif
  
-      tmass=0.0d0
-#ifndef _B4B07R
-      !$acc parallel default(present) reduction(+:tmass)
-      !$acc loop gang vector reduction(+:tmass)
-#endif
-      do k=1,nk
-        tmass=tmass+foo(k)
-      enddo
-#ifndef _B4B07R
-      !$acc end parallel
-#endif
-
 
 #ifdef MPI
       var=0.0d0
@@ -4157,9 +3998,6 @@
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
-#ifndef _B4B07R
-!$acc end data
-#endif
  
       end subroutine totmois
 
@@ -4188,45 +4026,24 @@
 
       integer i,j,k
       double precision :: tmass,var
-      double precision, dimension(nk) :: foo
       double precision :: foot
 
-#ifdef _B4B08R
-      !$acc update host(rho,q,ruh,rvh,rmh)
-#else
-      !$acc data create(foo)
 
+      tmass=0.0d0
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel default(present) private(i,j,k) reduction(+:foot)
-      !$acc loop gang
-#endif
+      !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
+      !$acc loop gang reduction(+:tmass)
       do k=1,nk
         foot=0.0d0
-#ifndef _B4B08R
         !$acc loop vector collapse(2) reduction(+:foot)
-#endif
         do j=1,nj
         do i=1,ni
           foot=foot+rho(i,j,k)*q(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
         enddo
         enddo
-        foo(k)=foot
+        tmass=tmass+foot
       enddo
-#ifndef _B4B08R
       !$acc end parallel
-#endif
-
-      tmass=0.0d0
-#ifndef _B4B08R
-      !$acc parallel default(present) reduction(+:tmass)
-      !$acc loop vector reduction(+:tmass)
-#endif
-      do k=1,nk
-        tmass=tmass+foo(k)
-      enddo
-#ifndef _B4B08R
-      !$acc end parallel
-#endif
 
 #ifdef MPI
       var=0.0d0
@@ -4249,10 +4066,6 @@
 #endif
 
       if(timestats.ge.1) time_stat=time_stat+mytime()
-
-#ifndef _B4B08R
-!$acc end data
-#endif
 
       end subroutine totq
 
@@ -4293,25 +4106,19 @@
       ep=0.0d0
       le=0.0d0
       !$acc data create(foo1,foo2,foo3,foo4)
-#ifdef _B4B
-      !$acc update host(ruh,rvh,rmh,ua,va,wa,qv,ql,qi,rho,vr,pi0,ppi)
-#else
-      !$acc parallel default(present) private(i,j,k,u,v,w,tmp,qtot,tem) &
-      !$acc reduction(+:foo1t,foo2t,foo3t,foo4t,ek,ei,ep,le)
-#endif
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k,u,v,w,tmp,qtot,tem)
-#ifndef _B4B
-      !$acc loop gang 
-#endif
+      !$acc parallel default(present) private(i,j,k,u,v,w,tmp,qtot,tem) &
+      !$acc reduction(+:foo1t,foo2t,foo3t,foo4t)
+      !JMD internal compiler error
+      !!$acc loop gang reduction(+:ek,ei,ep,le)
+      !$acc loop gang
       do k=1,nk
         foo1t=0.0d0      ! = ek
         foo2t=0.0d0      ! = ei
         foo3t=0.0d0      ! = ep
         foo4t=0.0d0      ! = le
-#ifndef _B4B
         !$acc loop vector collapse(2) reduction(+:foo1t,foo2t,foo3t,foo4t)
-#endif
         do j=1,nj
         do i=1,ni
           tem=ruh(i)*rvh(j)*rmh(i,j,k)
@@ -4336,21 +4143,17 @@
         foo3(k) = foo3t
         foo4(k) = foo4t
       enddo
- 
-#ifndef _B4B
-      !$acc loop vector reduction(+:ek,ei,ep,le)
-#endif
+      !$acc end parallel
+      !$acc parallel loop gang vector default(present) reduction(+:ek,ei,ep,le)
       do k=1,nk
         ek=ek+foo1(k)
         ei=ei+foo2(k)
         ep=ep+foo3(k)
         le=le+foo4(k)
       enddo
-#ifndef _B4B
       !$acc end parallel
-#endif
       !$acc end data
-
+ 
       ek=ek*(dx*dy*dz)
       ei=ei*(dx*dy*dz)
       ep=ep*(dx*dy*dz)
@@ -4428,7 +4231,6 @@
  
       integer i,j,k
       double precision :: tmu,tmv,tmw,qtot,var,tem
-      double precision, dimension(nk) :: foo1,foo2,foo3
       double precision :: foot1,foot2,foot3
       double precision :: qltmp,vrtmp
 
@@ -4438,15 +4240,9 @@
       qltmp=0.0d0
       vrtmp=0.0d0
 
-#ifdef _B4B09R
-      !$acc update host(qv,ql,qi,ruh,rvh,rmh,ua,va,wa,vr,rho)
-#else
-      !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw,qltmp,vrtmp)
-#endif
       !$omp parallel do default(shared) private(i,j,k,qtot,tem)
-#ifndef _B4B09R
+      !$acc parallel default(present) private(i,j,k,qtot,tem) reduction(+:tmu,tmv,tmw,qltmp,vrtmp)
       !$acc loop vector collapse(3) reduction(+:tmu,tmv,tmw,qltmp,vrtmp)
-#endif
       do k=1,nk
         do j=1,nj
         do i=1,ni
@@ -4464,11 +4260,7 @@
         enddo
         enddo
       enddo
-#ifdef _B4B09R
-      !!$acc update device(tmu,tmv,tmw)
-#else
       !$acc end parallel
-#endif
 
       tmu=tmu*(dx*dy*dz)
       tmv=tmv*(dx*dy*dz)
@@ -4557,22 +4349,17 @@
       double precision, dimension(nk) :: foo1,foo2
       double precision :: foo1t,foo2t
 
-     !$acc data create(foo1,foo2)
 
-     !$omp parallel do default(shared) private(i,j,k,mf)
-#ifdef _B4B10R
-     !$acc update host(wa,ruh,rvh)
-#else
-     !$acc parallel default(present)  private(i,j,k,mf) reduction(+:foo1t,foo2t) &
-     !$acc reduction(+:tmfu,tmfd)
-     !$acc loop gang 
-#endif
+      !$acc data create(foo1,foo2)
+      !$omp parallel do default(shared) private(i,j,k,mf)
+      !$acc parallel default(present)  private(i,j,k,mf) reduction(+:foo1t,foo2t)
+      !JMD internal compiler error
+      !!$acc loop gang reduction(+:tmfu,tmfd)
+      !$acc loop gang 
       do k=1,nk
         foo1t = 0.0d0
         foo2t = 0.0d0
-#ifndef _B4B10R
         !$acc loop vector collapse(2) reduction(+:foo1t,foo2t)
-#endif
         do j=1,nj
         do i=1,ni
           mf=rho(i,j,k)*0.5*(wa(i,j,k)+wa(i,j,k+1))*ruh(i)*rvh(j)
@@ -4583,21 +4370,15 @@
         foo1(k) = foo1t
         foo2(k) = foo2t
       enddo
-
+      !$acc end parallel
       tmfu=0.0d0
       tmfd=0.0d0
-#ifndef _B4B10R
-      !$acc loop vector reduction(+:tmfu,tmfd)
-#endif
+      !$acc parallel loop vector gang default(present) reduction(+:tmfu,tmfd)
       do k=1,nk
         tmfu=tmfu+foo1(k)
         tmfd=tmfd+foo2(k)
       enddo
-#ifdef _B4B10R
-      !$acc update device(tmfu,tmfd)
-#else
       !$acc end parallel
-#endif
 
 #ifdef MPI
       var=0.0d0

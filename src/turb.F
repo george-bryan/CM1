@@ -1,12 +1,3 @@
-#ifdef _B4B
-
-!JMD-changes answers
-#define _B4B07R
-#define _B4B09R
-#define _B4B10R
-#define _B4B11R
-
-#endif
   MODULE turb_module
 
   implicit none
@@ -5433,14 +5424,10 @@
   !
 
         !print *,'t2pcode: point #4'
-#ifdef _B4B09R
-      !$acc update host(rf,u2pt,v2pt,rr)
-#else
       !$acc parallel default(present) private(i,j) &
       !$acc reduction(+:t13avgt,t23avgt,rfavgt)
 
       !$acc loop gang
-#endif
       kloop1:  &
       DO k=1,(ntwk-1)
 
@@ -5448,10 +5435,8 @@
         t23avgt = 0.0
         rfavgt = 0.0
 
-#ifndef _B4B09R
         !$acc loop vector collapse(2) &
         !$acc     reduction(+:t13avgt,t23avgt,rfavgt)
-#endif
         do j=1,nj
         do i=1,ni
           ! 220308: simplified the two-part code
@@ -5466,12 +5451,7 @@
         rfavg(k)  = rfavgt
 
       ENDDO  kloop1
-
-#ifdef _B4B09R
-      !$acc update device(t13avg,t23avg,rfavg)
-#else
       !$acc end parallel
-#endif
 
         !print *,'t2pcode: point #5'
 #ifdef MPI
