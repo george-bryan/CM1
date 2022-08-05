@@ -1831,7 +1831,7 @@
             ! use diabatic tendencies from last timestep as a good estimate:
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
-            !$acc parallel loop gang vector collapse(3) private(i,j,k)
+            !$acc parallel loop gang vector default(present) collapse(3)
             do k=1,nk
             do j=1,nj
             do i=1,ni

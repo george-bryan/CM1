@@ -39,7 +39,7 @@
         IF(axisymm.eq.0)THEN
           ! Cartesian without terrain:
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector default(present) collapse(3)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -53,7 +53,7 @@
         ELSE
           ! axisymmetric:
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector default(present) collapse(3)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -67,7 +67,7 @@
       ELSE
           ! Cartesian with terrain:
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           DO k=1,nk
             do j=1,nj
             do i=1,ni+1
@@ -81,7 +81,7 @@
             enddo
           ENDDO
           !$omp parallel do default(shared) private(i,j,k,r1,r2)
-          !$acc parallel loop gang vector private(i,j,k,r1,r2)
+          !$acc parallel loop gang vector default(present) private(i,j,k,r1,r2)
           DO k=1,nk
             IF(k.eq.1)THEN
               do j=1,nj
@@ -108,7 +108,7 @@
             ENDIF
           ENDDO
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector private(i,j,k)
+          !$acc parallel loop gang vector default(present) private(i,j,k)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -159,7 +159,7 @@
     IF(.not.terrain_flag)THEN
       ! without terrain:
 
-      !$acc parallel loop gang vector collapse(2) private(i,j)
+      !$acc parallel loop gang vector default(present) collapse(2)
       do j=1,nj
       do i=1,ni
         rrw(i,j,   1) = 0.0
@@ -167,7 +167,7 @@
       enddo
       enddo
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$acc parallel loop gang vector default(present) collapse(3)
       DO k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -176,7 +176,7 @@
         enddo
       ENDDO
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$acc parallel loop gang vector default(present) collapse(3)
       DO k=1,nk
         do j=1,nj+1
         do i=1,ni
@@ -185,7 +185,7 @@
         enddo
       ENDDO
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector collapse(3) private(i,j,k)
+      !$acc parallel loop gang vector default(present) collapse(3)
       DO k=1,nk
         do j=1,nj
         do i=1,ni
@@ -198,7 +198,7 @@
       ! with terrain:
 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop gang vector private(i,j,k)
+      !$acc parallel loop gang vector default(present)
       DO k=1,nk
         do j=1,nj
         do i=1,ni+1
@@ -213,7 +213,7 @@
       ENDDO
 
       !$omp parallel do default(shared) private(i,j,k,r1,r2)
-      !$acc parallel loop gang vector private(i,j,k,r1,r2)
+      !$acc parallel loop gang vector default(present) private(i,j,k,r1,r2)
       DO k=1,nk
         IF(k.eq.1)THEN
           do j=1,nj
@@ -247,7 +247,7 @@
         IF(axisymm.eq.0)THEN
           ! Cartesian without terrain:
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector default(present) collapse(3)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -261,7 +261,7 @@
         ELSE
           ! axisymmetric:
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector default(present) collapse(3)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -275,7 +275,7 @@
       ELSE
           ! Cartesian with terrain:
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector default(present) collapse(3)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -394,7 +394,7 @@
 
 !!!      if(myid.eq.0) print *,'    convinitu '
       !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,umo)
-      !$acc parallel loop gang vector private(i,j,k,term1,term2,term3,term4,umo)
+      !$acc parallel loop gang vector default(present) private(i,j,k,term1,term2,term3,term4,umo)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -436,7 +436,7 @@
 
 !!!      if(myid.eq.0) print *,'    convinitv '
       !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,vmo)
-      !$acc parallel loop gang vector private(i,j,k,term1,term2,term3,term4,vmo)
+      !$acc parallel loop gang vector default(present) private(i,j,k,term1,term2,term3,term4,vmo)
       do k=1,nk
       do j=1,nj+1
       do i=1,ni
@@ -492,7 +492,7 @@
       tem = alpha_wnudge * gamm
 
       !$omp parallel do default(shared) private(i,j,k,beta,wmag)
-      !$acc parallel loop gang vector private(i,j,k,beta,wmag)
+      !$acc parallel loop gang vector default(present) private(i,j,k,beta,wmag)
       do k=2,nk
       do j=1,nj
       do i=1,ni
@@ -3109,7 +3109,7 @@
       RANGE=(ni*nj+1)/2       !! Round up.
       do while ( RANGE > 1 )
 !! Now fold the 2-d array with half the threads each time.
-!$acc parallel loop gang vector private(i)
+!$acc parallel loop gang vector default(present) private(i)
         do i=1,PAIRS
           if ( cfl(i) .le. cfl(RANGE)) then
              cfl(i)=cfl(RANGE+i)
@@ -3205,7 +3205,7 @@
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
 
-      !$acc parallel private(i,j,k,wsp) reduction(max:fmax)
+      !$acc parallel default(present) private(i,j,k,wsp) reduction(max:fmax)
       fmax=-99999999.
       if(nx.gt.1.and.ny.gt.1)then
         !print *,'calcflquick: point #1'
@@ -3690,7 +3690,7 @@
       RANGE=(ni*nj+1)/2       !! Round up.
       do while ( RANGE > 1 )
 !! Now fold the 2-d array with half the threads each time.
-!$acc parallel loop gang vector private(i)
+!$acc parallel loop gang vector default(present) private(i)
         do i=1,PAIRS
           if( ksh(i) .le. ksh(RANGE)) then
              ksh(i) = ksh(RANGE+1)

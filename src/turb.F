@@ -279,7 +279,7 @@
       IF( cm1setup.ge.1 .or. ipbl.ge.1 .or. horizturb.eq.1 .or. idiss.eq.1 .or. output_dissten.eq.1 )THEN
         ! cm1r17:  dissten is defined on w (full) levels:
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk+1
         do j=1,nj
         do i=1,ni
@@ -290,7 +290,7 @@
 
       ENDIF
 
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       do i=1,ni
         psfc(i,j) = cgs1*prs(i,j,1)+cgs2*prs(i,j,2)+cgs3*prs(i,j,3)
@@ -299,7 +299,7 @@
 
       IF( imove.eq.1 )THEN
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk
         do j=jb,je
         do i=ib,ie
@@ -312,7 +312,7 @@
       ELSE
         IF( pertflx.eq.1 )THEN
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=jb,je
           do i=ib,ie
@@ -323,7 +323,7 @@
           enddo
         ELSE
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+          !$acc parallel loop gang vector collapse(3) default(present)
           do k=1,nk
           do j=jb,je
           do i=ib,ie
@@ -348,7 +348,7 @@
         endif
 
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         DO j=1,nj
           do k=1,k2
           do i=1,ni
@@ -365,7 +365,7 @@
           if( sfcmodel.eq.6 )then
           if( imoist.eq.1 )then
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do j=1,nj
             do k=1,k2
             do i=1,ni
@@ -375,7 +375,7 @@
         ENDDO
           else
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do j=1,nj
             do k=1,k2
             do i=1,ni
@@ -386,7 +386,7 @@
           endif
           endif
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector default(present) private(i,j,k)
+        !$acc parallel loop gang vector default(present)
         do j=1,nj
           do k=1,2
           do i=1,ni
@@ -426,7 +426,7 @@
         ! note:  for RRTMG (radopt=2) gsw and glw arrays are already filled !
         IF( radopt.eq.1 )THEN
           !$omp parallel do default(shared) private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
           do i=1,ni
             gsw(i,j)=radswnet(i,j)
@@ -435,7 +435,7 @@
           enddo
         ELSEIF( radopt.eq.0 )THEN
           !$omp parallel do default(shared) private(i,j)
-          !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+          !$acc parallel loop gang vector collapse(2) default(present)
           do j=1,nj
           do i=1,ni
             gsw(i,j)=0.0
@@ -454,7 +454,7 @@
       ! GHB, 210521: copied from gpu-opt:
       IF(imoist.eq.1)THEN
         !$omp parallel do default(shared) private(i,j,k)
-        !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         DO k=1,nk
           do j=1,nj
           do i=1,ni
@@ -495,7 +495,7 @@
         ENDIF
       ELSE
           !$omp parallel do default(shared) private(i,j,k,n)
-          !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
+          !$acc parallel loop gang vector collapse(3) default(present)
           DO k=1,nk
             do j=1,nj
             do i=1,ni
@@ -797,7 +797,7 @@
           !$acc fm,fh,chs2,cpmm,cqs2,flhc,flqc,gz1oz0,hfx,lh,psim,psih, &
           !$acc qfx,qgh,qsfc,ust,znt,mznt,swspd,taux,tauy,u10,v10)
 
-          !$acc parallel loop gang vector collapse(2) private(i,j)
+          !$acc parallel loop gang vector default(present) collapse(2)
           do j=1,nj
           do i=1,ni
             ust(i,j) = max(ust(i,j),1.0e-8)
@@ -1228,7 +1228,7 @@
         ! squared Brunt-Vaisala frequency:
 
 
-        !$acc parallel loop gang vector collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector collapse(3) default(present)
         do k=kb,ke
         do j=jb,je
         do i=ib,ie
@@ -4759,7 +4759,7 @@
             (n.ge.nql1.and.n.le.nql2) .or.                  &
             (n.ge.nqs1.and.n.le.nqs2.and.iice.eq.1) )THEN
           !$omp parallel do default(shared) private(i,j,k)
-          !$acc parallel loop gang vector collapse(3) private(i,j,k)
+          !$acc parallel loop gang vector default(present) collapse(3)
           do k=1,nk
           do j=1,nj
           do i=1,ni
@@ -4773,7 +4773,7 @@
       k = 1
 
       !$omp parallel do default(shared) private(i,j)
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj
       do i=1,ni
         t(i,j,k)=(th0(i,j,k)+th(i,j,k))*(pi0(i,j,k)+pp(i,j,k))
@@ -4785,7 +4785,7 @@
     icecheck:  &
     IF( iice.eq.1 )THEN
 
-      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=2,nk
       do j=1,nj
       do i=1,ni
