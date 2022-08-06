@@ -3488,7 +3488,18 @@
 
 !#endif
         !Also compute the droplet diagnostics at the same frequency as statpack
-        if(myid == 0) call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
+
+        ! JS: with the new MPI implementation, we can:
+        !     1) use MPI_GATHER to collect the droplet information from different
+        !        MPI ranks first and only the root rank calculates the diagnostic
+        !     2) let all the MPI ranks call the diagnostic and use MPI_REDUCE
+        !        to collect the results from different MPI ranks and
+        !        output them from the root rank
+        !
+        !     The second method is expected to avoid the creation of an
+        !     array with size "nparcels*npvals" (saving memory space) 
+        !     and thus implemented below 
+        call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
 
         nrec = nrec + 1
         nstatout = nstatout + 1
