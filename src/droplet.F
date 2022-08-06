@@ -2088,6 +2088,12 @@
       integer :: tnumpart,tnumdrop,tnumaerosol
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
       real :: partnum(nk),numconc(nk)
+#ifdef MPI
+      real, dimension(11) :: droplet_diag0     ! temporary array for MPI reduce operation
+                                               ! for the 0th-order diagnostic except rtime 
+      real, dimension(nk) :: droplet_diag1     ! temporary array for MPI reduce operation
+                                               ! for the 1st-order diagnostic 
+#endif
 
       !Compute the various types of droplet statistics
 
@@ -2133,6 +2139,32 @@
       end do
       !$acc end parallel
 
+#ifdef MPI
+      ! The root rank will collect the diagnostic from different MPI ranks
+      call mpi_reduce(tnumpart,droplet_diag0(1),1,MPI_INT, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(radavg,droplet_diag0(2),1,MPI_REAL, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(radmin,droplet_diag0(3),1,MPI_REAL, &
+                      MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(radmax,droplet_diag0(4),1,MPI_REAL, &
+                      MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(Tpavg,droplet_diag0(5),1,MPI_REAL, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(Tpmin,droplet_diag0(6),1,MPI_REAL, &
+                      MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(Tpmax,droplet_diag0(7),1,MPI_REAL, &
+                      MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(Tfavg,droplet_diag0(8),1,MPI_REAL, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(qfavg,droplet_diag0(9),1,MPI_REAL, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(prsavg,droplet_diag0(10),1,MPI_REAL, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      call mpi_reduce(rhoavg,droplet_diag0(11),1,MPI_REAL, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      if ( myid == 0 ) then 
+#endif
       radavg = radavg/tnumpart
       radsqr = radsqr/tnumpart
       Tpavg = Tpavg/tnumpart
@@ -2141,6 +2173,9 @@
       qfavg = qfavg/tnumpart
       prsavg = prsavg/tnumpart
       rhoavg = rhoavg/tnumpart
+#ifdef MPI
+      end if
+#endif
 
       !!!!!!! 1st order  !!!!!!!!
       !$acc parallel loop gang vector default(present)
@@ -2172,27 +2207,35 @@
       end do
       !$acc end parallel
 
-     if (stretch_x .eq. 0) then
-        xl = dx*nx
-     else
-        xl = tot_x_len
-     endif
-     if (stretch_y .eq. 0) then
-        yl = dy*nx
-     else
-        yl = tot_y_len
-     endif
+      if (stretch_x .eq. 0) then
+         xl = dx*nx
+      else
+         xl = tot_x_len
+      endif
+      if (stretch_y .eq. 0) then
+         yl = dy*nx
+      else
+         yl = tot_y_len
+      endif
 
-     !$acc update host (dumzf,dumzh,numconc,partnum)
+      !$acc update host (dumzf,dumzh,numconc,partnum)
 
-     do iz=1,nk
-        dzf = dumzf(iz+1)-dumzf(iz)
-        numconc(iz) = partnum(iz)/dzf/xl/yl
-        write(6,100) 'dumzh(',iz,'):',dumzh(iz)
-        write(6,100) 'numconc(',iz,'):',numconc(iz)
-     end do
-
-     !WRITE IT OUT:
+#ifdef MPI
+      ! The root rank will collect the diagnostic from different MPI ranks
+      call mpi_reduce(MPI_IN_PLACE,partnum,nk,MPI_REAL, &
+                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      if ( myid == 0 ) then 
+#endif
+      do iz=1,nk
+         dzf = dumzf(iz+1)-dumzf(iz)
+         numconc(iz) = partnum(iz)/dzf/xl/yl
+         write(6,100) 'dumzh(',iz,'):',dumzh(iz)
+         write(6,100) 'numconc(',iz,'):',numconc(iz)
+      end do
+#ifdef MPI
+      end if
+#endif
+      !WRITE IT OUT:
 
       !Dump to screen for debugging purposes
       write(6,200) 'rtime', rtime
@@ -2209,6 +2252,8 @@
       write(6,200) 'rhoavg',rhoavg
 
 #ifdef NETCDF
+      ! JS: this subroutine is not updated with the new MPI
+      !     interface for the droplets yet
       call writedropdiag_nc(nrec, &
            rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
            dumzh,numconc)
@@ -2217,7 +2262,7 @@
 100     format(2x,'DROPLET_DIAG1:: ',A,I0,A,1x,e13.6,1x)
 200     format(2x,'DROPLET_DIAG:: ',A10,':',1x,e13.6)
 
-     !$acc end data
+      !$acc end data
 
       end subroutine droplet_diag
 
