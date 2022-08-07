@@ -2095,8 +2095,6 @@
 #ifdef MPI
       real, dimension(11) :: droplet_diag0     ! temporary array for MPI reduce operation
                                                ! for the 0th-order diagnostic except rtime 
-      real, dimension(nk) :: droplet_diag1     ! temporary array for MPI reduce operation
-                                               ! for the 1st-order diagnostic 
 #endif
 
       !Compute the various types of droplet statistics
@@ -2247,6 +2245,22 @@
       !WRITE IT OUT:
 
       !Dump to screen for debugging purposes
+#ifdef MPI
+      if ( myid == 0 ) then
+         write(6,200) 'rtime', rtime
+         write(6,200) 'tnumpart', dble(droplet_diag0(1))
+         write(6,200) 'radavg',droplet_diag0(2)
+         write(6,200) 'radmin',droplet_diag0(3)
+         write(6,200) 'radmax',droplet_diag0(4)
+         write(6,200) 'Tpavg',droplet_diag0(5)
+         write(6,200) 'Tpmin',droplet_diag0(6)
+         write(6,200) 'Tpmax',droplet_diag0(7)
+         write(6,200) 'Tfavg',droplet_diag0(8)
+         write(6,200) 'qfavg',droplet_diag0(9)
+         write(6,200) 'prsavg',droplet_diag0(10)
+         write(6,200) 'rhoavg',droplet_diag0(11)
+      end if
+#else
       write(6,200) 'rtime', rtime
       write(6,200) 'tnumpart', dble(tnumpart)
       write(6,200) 'radavg',radavg
@@ -2259,13 +2273,20 @@
       write(6,200) 'qfavg',qfavg
       write(6,200) 'prsavg',prsavg
       write(6,200) 'rhoavg',rhoavg
+#endif
 
 #ifdef NETCDF
       ! JS: this subroutine is not updated with the new MPI
       !     interface for the droplets yet
+#ifdef MPI
+      if ( myid == 0 ) then
+#endif
       call writedropdiag_nc(nrec, &
            rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
            dumzh,numconc)
+#ifdef MPI
+      end if
+#endif
 #endif
 
 100     format(2x,'DROPLET_DIAG1:: ',A,I0,A,1x,e13.6,1x)
