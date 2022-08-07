@@ -119,7 +119,7 @@
                  num_nw1, num_sw1, num_se1                          ! nearest neighbor at different directions
       integer :: num_n2, num_s2, num_w2, num_e2, num_ne2, &         ! number of droplets that will enter the current MPI region
                  num_nw2, num_sw2, num_se2                          ! from each nearest neighbor at different directions
-      integer :: jn,js,jw,je,jne,jnw,jsw,jse
+      integer :: n_idx,s_idx,w_idx,e_idx,ne_idx,nw_idx,sw_idx,se_idx
       integer :: neighbor                                           ! indicate which MPI region a droplet stays after this time step 
       integer, dimension(nparcels_mpi) :: pdata_neighbor            ! array to store the new MPI region info for all the droplets
       integer :: n_recv,n_send,index_nw,index_sw,index_ne, &
@@ -659,8 +659,8 @@
     !            number of droplets leaving this MPI region at this time step
     num_holes = 0
     do np = 1, nparcels_mpi
-       if ( pdata_loc(np,1) .eq. undefined_index .and. &
-            pdata_loc(np,2) .eq. undefined_index ) then
+       if ( pdata_locind(np,1) .eq. undefined_index .and. &
+            pdata_locind(np,2) .eq. undefined_index ) then
           num_holes = num_holes + 1
        end if
     end do
@@ -680,8 +680,8 @@
     num_sw1 = 0 
     num_se1 = 0
     do np = 1, nparcels_mpi
-       if ( pdata_loc(np,1) .eq. undefined_index .and. &
-            pdata_loc(np,2) .eq. undefined_index ) then
+       if ( pdata_locind(np,1) .eq. undefined_index .and. &
+            pdata_locind(np,2) .eq. undefined_index ) then
           ! record the location index that can be used to store the new droplet
           ! information after the old drolpet leaves the current MPI region
           holes_ind(i) = np
@@ -809,46 +809,46 @@
                    reqs(n_send),ierr)
 
     ! extract the information of droplets that will leave the current MPI region 
-    jn = 1
-    js = 1
-    jw = 1
-    je = 1
-    jne = 1
-    jse = 1
-    jnw = 1
-    jsw = 1
+    n_idx = 1
+    s_idx = 1
+    w_idx = 1
+    e_idx = 1
+    ne_idx = 1
+    se_idx = 1
+    nw_idx = 1
+    sw_idx = 1
     do np = 1, nparcels_mpi
        if ( pdata_neighbor(np) .eq. mywest ) then
-          droplet_w1(jw,:) = pdata(np,:)
-          jw = jw + 1
+          droplet_w1(w_idx,:) = pdata(np,:)
+          w_idx = w_idx + 1
           pdata(np,:) = neg_huge
        else if ( pdata_neighbor(np) .eq. mysw ) then
-          droplet_sw1(jsw,:) = pdata(np,:)
-          jsw = jsw + 1
+          droplet_sw1(sw_idx,:) = pdata(np,:)
+          sw_idx = sw_idx + 1
           pdata(np,:) = neg_huge
        else if ( pdata_neighbor(np) .eq. mynw ) then
-          droplet_nw1(jnw,:) = pdata(np,:)
-          jnw = jnw + 1
+          droplet_nw1(nw_idx,:) = pdata(np,:)
+          nw_idx = nw_idx + 1
           pdata(np,:) = neg_huge
        else if ( pdata_neighbor(np) .eq. myeast ) then
-          droplet_e1(je,:) = pdata(np,:)
-          je = je + 1
+          droplet_e1(e_idx,:) = pdata(np,:)
+          e_idx = e_idx + 1
           pdata(np,:) = neg_huge
        else if ( pdata_neighbor(np) .eq. myne ) then
-          droplet_ne1(jne,:) = pdata(np,:)
-          jne = jne + 1
+          droplet_ne1(ne_idx,:) = pdata(np,:)
+          ne_idx = ne_idx + 1
           pdata(np,:) = neg_huge
        else if ( pdata_neighbor(np) .eq. myse ) then
-          droplet_se1(jse,:) = pdata(np,:)
-          jse = jse + 1
+          droplet_se1(se_idx,:) = pdata(np,:)
+          se_idx = se_idx + 1
           pdata(np,:) = neg_huge
        else if ( pdata_neighbor(np) .eq. mynorth ) then
-          droplet_n1(jn,:) = pdata(np,:)
-          jn = jn + 1
+          droplet_n1(n_idx,:) = pdata(np,:)
+          n_idx = n_idx + 1
           pdata(np,:) = neg_huge
        else if ( pdata_neighbor(np) .eq. mysouth ) then
-          droplet_s1(js,:) = pdata(np,:)
-          js = js + 1
+          droplet_s1(s_idx,:) = pdata(np,:)
+          s_idx = s_idx + 1
           pdata(np,:) = neg_huge
        end if
     end do
@@ -999,42 +999,42 @@
        if ( indx .eq. index_n ) then
           do i = 1, num_n2
              pdata(holes_ind(k),:) = droplet_n2(i,:)
-             k + 1
+             k = k + 1
           end do
        else if ( indx .eq. index_s ) then
           do i = 1, num_s2
              pdata(holes_ind(k),:) = droplet_s2(i,:)
-             k + 1
+             k = k + 1
           end do
        else if ( indx .eq. index_w ) then
           do i = 1, num_w2
              pdata(holes_ind(k),:) = droplet_w2(i,:)
-             k + 1
+             k = k + 1
           end do
        else if ( indx .eq. index_e ) then
           do i = 1, num_e2
              pdata(holes_ind(k),:) = droplet_e2(i,:)
-             k + 1
+             k = k + 1
           end do
        else if ( indx .eq. index_ne ) then
           do i = 1, num_ne2
              pdata(holes_ind(k),:) = droplet_ne2(i,:)
-             k + 1
+             k = k + 1
           end do
        else if ( indx .eq. index_nw ) then
           do i = 1, num_nw2
              pdata(holes_ind(k),:) = droplet_nw2(i,:)
-             k + 1
+             k = k + 1
           end do
        else if ( indx .eq. index_se ) then
           do i = 1, num_se2
              pdata(holes_ind(k),:) = droplet_se2(i,:)
-             k + 1
+             k = k + 1
           end do
        else if ( indx .eq. index_sw ) then
           do i = 1, num_sw2
              pdata(holes_ind(k),:) = droplet_sw2(i,:)
-             k + 1
+             k = k + 1
           end do
        end if
        n = n + 1
@@ -1049,7 +1049,7 @@
     !$acc update device(pdata)
 
     ! free up the memory for temporary variables
-    deallocate(holes_ind(num_holes))
+    deallocate(holes_ind)
     if (allocated(droplet_n1))  deallocate(droplet_n1)
     if (allocated(droplet_n2))  deallocate(droplet_n2)
     if (allocated(droplet_s1))  deallocate(droplet_s1)
@@ -1093,7 +1093,7 @@
 
       subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
       !$acc routine seq
-      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels_mpi,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
           prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho
       use constants
@@ -1423,7 +1423,8 @@
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho, &
+          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcels_mpi
       use constants
       use comm_module
       use misclibs
@@ -1669,7 +1670,7 @@
 
       subroutine interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
       !$acc routine seq
-      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,nx,ny, &
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels_mpi,nx,ny, &
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove
       use constants
@@ -2069,6 +2070,9 @@
 
       use input
       !use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
+#ifdef MPI
+      use mpi
+#endif
 #ifdef NETCDF
       use writeout_nc_module, only : writedropdiag_nc
 #endif
@@ -2222,8 +2226,14 @@
 
 #ifdef MPI
       ! The root rank will collect the diagnostic from different MPI ranks
-      call mpi_reduce(MPI_IN_PLACE,partnum,nk,MPI_REAL, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      ! Example usage: https://stackoverflow.com/questions/17741574/in-place-mpi-reduce-crashes-with-openmpi
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,partnum,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(partnum,partnum,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      end if
       if ( myid == 0 ) then 
 #endif
       do iz=1,nk
