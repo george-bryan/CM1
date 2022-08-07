@@ -744,7 +744,7 @@
       real, intent(inout), dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
       real, intent(inout), dimension(ibt:iet,jbt:jet,kbt:ket) :: tke3d
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pt3d
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
       real, intent(inout) , dimension(ibdt:iedt,jbdt:jedt,kbdt:kedt,ntdiag) :: tdiag
       real, intent(inout) , dimension(ibdq:iedq,jbdq:jedq,kbdq:kedq,nqdiag) :: qdiag
       real, intent(inout), dimension(jmp,kmp) :: pw1,pw2,pe1,pe2
@@ -1219,7 +1219,7 @@
     !PORTME
     !$acc parallel loop gang vector default(present)
     nploop2:  &
-    DO np=1,nparcels
+    DO np=1,nparcels_mpi
 
       pdata(np,prtime) = mtime
 
@@ -1750,22 +1750,9 @@
     ENDDO  nploop2
     if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
-!----------------------------------------------------------------------
-!  communicate data
+    ! JS: no need to use MPI_REDUCE since different MPI ranks work on
+    !     different parcels now in the new MPI implementation
 
-! JS: the section below needs to be revised for the new MPI implementation
-#ifdef MPI
-  !$acc update host(pdata)
-  do n=npvars+1,npvals
-    if( myid.eq.0 )then
-      call MPI_REDUCE(MPI_IN_PLACE,pdata(1,n),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-    else
-      call MPI_REDUCE( pdata(1,n),pdata(1,n),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-    endif
-  enddo
-  !$acc update device(pdata)
-  if(timestats.ge.1) time_parceli_reduce=time_parceli_reduce+mytime()
-#endif
 !----------------------------------------------------------------------
 
 
@@ -1779,7 +1766,7 @@
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
       use input, only : maxq,maxvars,nparcels,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile
+          maxstring,string,outfile,nparcels_mpi,numprocs
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif
@@ -1789,10 +1776,11 @@
       real, intent(in) :: rtime
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
-      real, intent(in), dimension(nparcels,npvals) :: pdata
+      real, intent(in), dimension(nparcels_mpi,npvals) :: pdata
       real, intent(inout), dimension(nparcels,3) :: ploc
 
       integer :: i,n,np
+      real, dimension(:,:),allocatable :: rbuf
 
 !----------------------------------------------------------------------
 !  write out data
@@ -1816,14 +1804,24 @@
 
         if(dowr) write(outfile,*) string
         open(unit=61,file=string,form='unformatted',access='direct',   &
-             recl=4*npvals*nparcels,status='unknown')
+             recl=4*npvals*nparcels_mpi*numprocs,status='unknown')
 
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  pdata prec = ',prec
 
-        write(61,rec=prec) ((pdata(np,n),np=1,nparcels),n=1,npvals)
+        ! JS: use MPI_GATHER to collect all the droplet information
+        !     from different MPI ranks;
+        !     write out the "holes" with garbage information as well
+        allocate(rbuf(nparcels_mpi*numprocs,npvals))
+        call mpi_gather(pdata,npvals*nparcels_mpi,MPI_REAL, &
+                        rbuf,npvals*nparcels_mpi,MPI_REAL, &
+                        0,MPI_COMM_WORLD,ierr)
 
+        write(61,rec=prec) ((rbuf(np,n),np=1,nparcels_mpi*numprocs),n=1,npvals)
+        
         close(unit=61)
+     
+        deallocate(rbuf)
 
 #ifdef NETCDF
       ELSEIF(output_format.eq.2)THEN
