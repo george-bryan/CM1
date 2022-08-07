@@ -701,7 +701,7 @@
           qd_dbz,rdx,rdy,nx,ny,myi,myj,nodex,nodey,myid,nip1,njp1,nkp1,axisymm,nnc1, &
           umove,vmove,prth,prt,prqsl,prqsi,prvpg,prb,prprs,prrho,prpt1,prqv,prq1,prnc1, &
           prkm,prkh,prtke,prdbz,przv,prx,pry,prz,prtime,prq2,prnc2,prznt,prust,pru,prv, &
-          prw,prsig,time_parceli_reduce,terrain_flag
+          prw,prsig,time_parceli_reduce,terrain_flag,nparcels_mpi
       use constants
       use cm1libs , only : rslf,rsif
       use bc_module, only: bcu2_GPU, bcv2_GPU, bcw2_GPU
@@ -1766,7 +1766,10 @@
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
       use input, only : maxq,maxvars,nparcels,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile,nparcels_mpi,numprocs
+          maxstring,string,outfile,nparcels_mpi,numprocs,ierr
+#ifdef MPI
+      use mpi
+#endif
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif

@@ -2226,7 +2226,6 @@
 
 #ifdef MPI
       ! The root rank will collect the diagnostic from different MPI ranks
-      ! Example usage: https://stackoverflow.com/questions/17741574/in-place-mpi-reduce-crashes-with-openmpi
       if ( myid == 0 ) then
          call mpi_reduce(MPI_IN_PLACE,partnum,nk,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
