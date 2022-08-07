@@ -1787,7 +1787,17 @@
 
 !----------------------------------------------------------------------
 !  write out data
+
     !$acc update host(pdata)
+
+    ! JS: use MPI_GATHER to collect all the droplet information
+    !     from different MPI ranks;
+    !     write out the "holes" with garbage information as well
+    if ( myid .eq. 0 ) allocate(rbuf(nparcels_mpi*numprocs,npvals))
+    call mpi_gather(pdata,npvals*nparcels_mpi,MPI_REAL, &
+                    rbuf,npvals*nparcels_mpi,MPI_REAL, &
+                    0,MPI_COMM_WORLD,ierr)
+
     IF(myid.eq.0)THEN
 
       IF(output_format.eq.1)THEN
@@ -1811,14 +1821,6 @@
 
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  pdata prec = ',prec
-
-        ! JS: use MPI_GATHER to collect all the droplet information
-        !     from different MPI ranks;
-        !     write out the "holes" with garbage information as well
-        allocate(rbuf(nparcels_mpi*numprocs,npvals))
-        call mpi_gather(pdata,npvals*nparcels_mpi,MPI_REAL, &
-                        rbuf,npvals*nparcels_mpi,MPI_REAL, &
-                        0,MPI_COMM_WORLD,ierr)
 
         write(61,rec=prec) ((rbuf(np,n),np=1,nparcels_mpi*numprocs),n=1,npvals)
         
