@@ -1,8 +1,3 @@
-#ifdef _B4B
-
-#define _B4B06R
-
-#endif
   MODULE solve2_module
 
         ! solve2: RK loop and pressure solver

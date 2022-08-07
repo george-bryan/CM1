@@ -1504,7 +1504,7 @@
 
       if(ibw.eq.1.and.wbc.eq.2)then
        !$omp parallel do default(shared) private(j,k,foo,avgw,cbcw)
-       !$acc parallel loop gang vector private(j,k,foo,avgw,cbcw)
+       !$acc parallel loop gang vector default(present) private(j,k,foo,avgw,cbcw)
         do j=1,nj
           avgw=0.
           do k=1,nk
@@ -1523,7 +1523,7 @@
 
       if(ibe.eq.1.and.ebc.eq.2)then
         !$omp parallel do default(shared) private(j,k,foo,avge,cbce)
-        !$acc parallel loop gang vector private(j,k,foo,avge,cbce)
+        !$acc parallel loop gang vector default(present) private(j,k,foo,avge,cbce)
         do j=1,nj
           avge=0.
           do k=1,nk
@@ -1570,7 +1570,7 @@
 
       if(ibs.eq.1.and.sbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgs,foo,cbcs)
-        !$acc parallel loop gang vector private(i,k,avgs,foo,cbcs)
+        !$acc parallel loop gang vector default(present) private(i,k,avgs,foo,cbcs)
         do i=1,ni
           avgs=0.
           do k=1,nk
@@ -1590,7 +1590,7 @@
 
       if(ibn.eq.1.and.nbc.eq.2)then
         !$omp parallel do default(shared) private(i,k,avgn,foo,cbcn)
-        !$acc parallel loop gang vector private(i,k,avgn,foo,cbcn)
+        !$acc parallel loop gang vector default(present) private(i,k,avgn,foo,cbcn)
         do i=1,ni
           avgn=0.
           do k=1,nk

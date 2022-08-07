@@ -1,21 +1,3 @@
-#ifdef _B4B
-
-#define _B4B16R
-#define _B4B19R
-#define _B4B21R
-#define _B4B22R
-#define _B4B23R
-#define _B4B24R
-#define _B4B25R
-#define _B4B26R
-#define _B4B27RF
-#define _B4B28R
-#define _B4B29R
-#define _B4B30
-#else
-!Appears to be a bug in the B4B28 loop
-#undef _B4B28R
-#endif
   MODULE domaindiag_module
 
   implicit none

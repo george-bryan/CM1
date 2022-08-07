@@ -1,6 +1,3 @@
-#ifdef _B4B
-#define _B4B03R
-#endif
   MODULE solve1_module
 
         ! solve1: pre-RK terms
@@ -1036,17 +1033,13 @@
                  + g*zh(i,j,1)*delqv   )
 
           if( nql1.ge.1 )then
-#ifndef _B4B03R
             !$acc loop seq
-#endif
             do n=nql1,nql2
               budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpl*qa(i,j,1,n)*delt
             enddo
           endif
           if(iice.eq.1)then
-#ifndef _B4B03R
             !$acc loop seq
-#endif
             do n=nqs1,nqs2
               !bud2(j) = bud2(j) + dum2(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)*cpi*qa(i,j,k,n)*delt
               budarray(i,j) = budarray(i,j) + dum2(i,j,1)*ruh(i)*rvh(j)*rmh(i,j,1)*cpi*qa(i,j,1,n)*delt
@@ -1054,29 +1047,19 @@
           endif
         enddo
         enddo
-#ifdef _B4B03R
-        !$acc update host(budarray)
-#else
-        !$acc parallel default(present) reduction(+:budtmp,qtmp)
-#endif
 
-#ifndef _B4B03R
+        !$acc parallel default(present) reduction(+:budtmp,qtmp)
         !$acc loop gang reduction(+:budtmp) reduction(+:qtmp)
-#endif
         do j=1,nj
           budtmp=0.0
-#ifndef _B4B03R
           !$acc loop vector reduction(+:budtmp)
-#endif
           do i=1,ni
             budtmp = budtmp + budarray(i,j) 
           enddo
           bud2(j)=budtmp
           qtmp = qtmp + dt*dx*dy*dz*bud2(j)
         enddo
-#ifndef _B4B03R
         !$acc end parallel
-#endif
         qbudget(9) = qtmp
 
         !$acc end data
@@ -1848,7 +1831,7 @@
             ! use diabatic tendencies from last timestep as a good estimate:
             !$omp parallel do default(shared)  &
             !$omp private(i,j,k,tnew,pnew,pinew,thnew,qvnew)
-            !$acc parallel loop gang vector collapse(3) private(i,j,k)
+            !$acc parallel loop gang vector default(present) collapse(3)
             do k=1,nk
             do j=1,nj
             do i=1,ni
