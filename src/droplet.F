@@ -2200,7 +2200,7 @@
       !$acc end parallel
 
       !$acc parallel loop gang vector default(present) reduction(partnum)
-      do np=1,nparcels
+      do np=1,nparcels_mpi
          if (pdata(np,pract) .gt. 0.0) then
             kflag = 1
             call find_vertical_location_index (pdata_locind(np,3),pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
