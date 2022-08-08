@@ -171,7 +171,7 @@
           qd_lsw,qd_hidiff,qd_vidiff,vd_cor,ud_cent,vd_cent,vd_hadv,wd_buoy,ud_pgrad,vd_pgrad, &
           wd_pgrad,td_div,kd_adv
       use constants
-      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
+      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc_GPU, &
                            radbcew4, radbcns4, bcs2_gpu 
       use comm_module
       use adv_module
@@ -629,7 +629,7 @@
                                ws31,ws32,wn31,wn32,reqs_w)
 #endif
           if(terrain_flag)then
-            call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+            call bcwsfc_GPU(gz,dzdx,dzdy,u3d,v3d,w3d)
             call bc2d_GPU(w3d(ib,jb,1))
           endif
         ENDIF
@@ -1822,7 +1822,7 @@
 #endif
       call bcw_GPU(w3d,1)
       if(terrain_flag) then 
-        call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+        call bcwsfc_GPU(gz,dzdx,dzdy,u3d,v3d,w3d)
       endif
 #ifdef MPI
       call comm_3w_start_GPU(w3d,ww31,ww32,we31,we32,   &

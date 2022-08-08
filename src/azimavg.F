@@ -2605,7 +2605,7 @@
 
       use input
       use constants
-      use bc_module, only: bc2d_GPU, bcs2_2d
+      use bc_module, only: bc2d, bcs2_2d
 #ifdef MPI
       use comm_module
       use mpi
@@ -2644,9 +2644,7 @@
       ! by default, run del^2 diffusion 100 times:
       do n=1,100
 
-        !$acc data copy(dum1)
-        call bc2d_GPU(dum1(ib,jb,1))
-        !$acc end data
+        call bc2d(dum1(ib,jb,1))
 #ifdef MPI
         call comm_2d_start(dum1(ib,jb,1),west,newwest,east,neweast,   &
                                          south,newsouth,north,newnorth,reqs)
@@ -2675,9 +2673,7 @@
 
       enddo
 
-        !$acc data copy(dum1)
-        call bc2d_GPU(dum1(ib,jb,1))
-        !$acc end data
+        call bc2d(dum1(ib,jb,1))
 #ifdef MPI
         call comm_2d_start(dum1(ib,jb,1),west,newwest,east,neweast,   &
                                          south,newsouth,north,newnorth,reqs)

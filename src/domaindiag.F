@@ -8605,8 +8605,6 @@
       !c-c-c-c-c-c-c-c-c-c
       ! get u,v,w perts for rtke calcs:
 
-        !!$acc data copyin(udiag,vdiag,wdiag,utk,vtk,wtk) create(savg) &
-        !!$acc copy(dum1,dum2,dum3) copyout(uavg,vavg,wavg,tavg,ravg)
         !$acc parallel loop gang vector collapse(3) default(present) 
         do k=1,nk
         do j=1,nj+1

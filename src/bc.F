@@ -4,16 +4,21 @@
   private
 
   !GPU enabled
-  public :: bc2d_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcs_GPU, bcp, bcwsfc
-  public :: radbcew, radbcns, radbcew4, radbcns4, extrapbcs
+  public :: bc2d_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcs_GPU, bcp, bcwsfc_GPU
+  public :: radbcew, radbcns, radbcew4, radbcns4
   public :: restrict_openbc_sn, restrict_openbc_we
   public :: ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn, bcs_tend_halo
 
   !CPU only 
-  public :: bcs, bcs2
+  public :: bcs, bcs2, extrapbcs
+  !JMD 
+  !JMD added back in so as to eliminate the use of _GPU subroutines
+  !JMD in the initialization
+  !JMD 
+  public :: bcu, bcv, bcw, bc2d, bct2, bcu2, bcv2, bcwsfc
 
   !MPI + GPU enabled
-  public :: bcs2_GPU, bct2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_gpu
+  public :: bcs2_GPU, bct2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_GPU
 
   !MPI CPU only 
   public :: bcs2_2d
@@ -361,8 +366,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-
-      subroutine bcwsfc(gz,dzdx,dzdy,u,v,w)
+      subroutine bcwsfc_GPU(gz,dzdx,dzdy,u,v,w)
       use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj, &
           timestats,time_bc,mytime
 
@@ -393,7 +397,39 @@
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
 
+      end subroutine bcwsfc_GPU
+
+
+      subroutine bcwsfc(gz,dzdx,dzdy,u,v,w)
+      use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ni,nj, &
+          timestats,time_bc,mytime
+
+      implicit none
+
+      real, intent(in), dimension(itb:ite,jtb:jte) :: gz
+      real, intent(in), dimension(itb:ite,jtb:jte) :: dzdx,dzdy
+      real, intent(in), dimension(ib:ie+1,jb:je,kb:ke) :: u
+      real, intent(in), dimension(ib:ie,jb:je+1,kb:ke) :: v
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: w
+
+      integer :: i,j
+
+!-----------------------------------------------------------------------
+
+      !$omp parallel do default(shared) private(i,j)
+      do j=0,nj+1
+      do i=0,ni+1
+        w(i,j,1) = 0.5*( ( u(i,j,1)+u(i+1,j,1) )*dzdx(i,j) &
+                        +( v(i,j,1)+v(i,j+1,1) )*dzdy(i,j) )*gz(i,j)
+      enddo
+      enddo
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
       end subroutine bcwsfc
+
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -489,7 +525,6 @@
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
-      !$acc declare present(s)
 
       integer :: i,j
 
@@ -497,7 +532,6 @@
       ! assumes zh(0) is same as zf(1), and zh(nk+1) is same as zf(nk+1)
 
       !$omp parallel do default(shared) private(i,j)
-      !$acc parallel loop gang vector collapse(2) default(present)
       do j=jb,je
       do i=ib,ie
         s(i,j,0)    = cgs1*s(i,j,1)+cgs2*s(i,j,2)+cgs3*s(i,j,3)
@@ -768,7 +802,6 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-
       subroutine bcu2_GPU(u)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
           ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
@@ -892,11 +925,124 @@
       end subroutine bcu2_GPU
 
 
+      subroutine bcu2(u)
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
+      implicit none
+
+      real u(ib:ie+1,jb:je,kb:ke)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            u(i,j,k)=u(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+1
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            u(i,j,k)=u(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=ni+2,ni+1+ngxy
+            u(i,j,k)=u(ni+1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+1
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=ni+2,ni+1+ngxy
+            u(i,j,k)=u(ni+1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            u(i,j,k)=u(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+2
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            u(i,j,k)=u(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            u(i,j,k)=u(i,nj,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+2
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=nj+1,nj+ngxy
+            u(i,j,k)=u(i,nj,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcu2
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
 
       subroutine bcv2_GPU(v)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
@@ -1020,7 +1166,119 @@
 
       end subroutine bcv2_GPU
 
+      subroutine bcv2(v)
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ngxy, &
+          ibw,ibe,ibs,ibn,patchsww,patchnww,patchsee,patchnee, &
+          patchsws,patchses,patchnwn,patchnen,timestats,time_bc,mytime
+      implicit none
 
+      real v(ib:ie,jb:je+1,kb:ke)
+
+      integer i,j,k
+
+!---------------------------------------------------------
+!  This subroutine sets the corner points
+!---------------------------------------------------------
+
+      if(ibw.eq.1)then
+
+        if(patchsww)then
+          j=0
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            v(i,j,k)=v(1,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnww)then
+          j=nj+2
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=1-ngxy,0
+            v(i,j,k)=v(1,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibe.eq.1)then
+
+        if(patchsee)then
+          j=0
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            v(i,j,k)=v(ni,j,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnee)then
+          j=nj+2
+!$omp parallel do default(shared) private(i,k)
+          do k=1,nk
+          do i=ni+1,ni+ngxy
+            v(i,j,k)=v(ni,j,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibs.eq.1)then
+
+        if(patchsws)then
+          i=0
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            v(i,j,k)=v(i,1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchses)then
+          i=ni+1
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=1-ngxy,0
+            v(i,j,k)=v(i,1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(ibn.eq.1)then
+
+        if(patchnwn)then
+          i=0
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=nj+2,nj+1+ngxy
+            v(i,j,k)=v(i,nj+1,k)
+          enddo
+          enddo
+        endif
+
+        if(patchnen)then
+          i=ni+1
+!$omp parallel do default(shared) private(j,k)
+          do k=1,nk
+          do j=nj+2,nj+1+ngxy
+            v(i,j,k)=v(i,nj+1,k)
+          enddo
+          enddo
+        endif
+
+      endif
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bcv2
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -2378,6 +2636,157 @@
 
       end subroutine bc2d_GPU
 
+      subroutine bc2d(s)
+      use input, only : ib,ie,jb,je,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime 
+      implicit none
+
+      real, dimension(ib:ie,jb:je) :: s
+
+      integer i,j
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+#ifndef MPI
+      if(wbc.eq.1)then
+        !$omp parallel do default(shared) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(1-i,j)=s(ni+1-i,j)
+        enddo
+        enddo
+      elseif(wbc.eq.2)then
+#else
+      if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=jb,je
+        do i=1-ngxy,0
+          s(i,j)=s(1,j)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+      elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(1-i,j)=s(i,j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+      if(ebc.eq.1)then
+        !$omp parallel do default(shared) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(ni+i,j)=s(i,j)
+        enddo
+        enddo
+      elseif(ebc.eq.2)then
+#else
+      if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=jb,je
+        do i=ni+1,ni+ngxy
+          s(i,j)=s(ni,j)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+      elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=jb,je
+        do i=1,ngxy
+          s(ni+i,j)=s(ni+1-i,j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+#ifndef MPI
+      if(sbc.eq.1)then
+        !$omp parallel do default(shared) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,1-j)=s(i,nj+1-j)
+        enddo
+        enddo
+      elseif(sbc.eq.2)then
+#else
+      if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=1-ngxy,0
+        do i=ib,ie
+          s(i,j)=s(i,1)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+      elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,1-j)=s(i,j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+#ifndef MPI
+      if(nbc.eq.1)then
+        !$omp parallel do default(shared) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,nj+j)=s(i,j)
+        enddo
+        enddo
+      elseif(nbc.eq.2)then
+#else
+      if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=nj+1,nj+ngxy
+        do i=ib,ie
+          s(i,j)=s(i,nj)
+        enddo
+        enddo
+#ifdef MPI
+      elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+      elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+        !$omp parallel do default(shared) private(i,j)
+        do j=1,ngxy
+        do i=ib,ie
+          s(i,nj+j)=s(i,nj+1-j)
+        enddo
+        enddo
+      endif
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+
+      end subroutine bc2d
+
       subroutine bcs(s)
       use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
           ibw,ibe,ibs,ibn,timestats,time_bc,mytime
@@ -2989,6 +3398,185 @@
  
       end subroutine bcu_GPU
 
+      subroutine bcu(u)
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime
+      implicit none
+
+      real, dimension(ib:ie+1,jb:je,kb:ke) :: u
+
+      integer i,j,k  
+
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+#ifndef MPI
+    if(wbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=jb,je
+            do i=1,ngxy
+               u(1-i,j,k)=u(ni+1-i,j,k)
+            end do
+         end do
+      end do
+    elseif(wbc.eq.2)then
+#else
+    if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=0,nj+1
+            do i=1-ngxy,0
+               u(i,j,k)=u(1,j,k)
+            end do
+         end do
+      end do
+#ifdef MPI
+    elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+    elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=0,nj+1
+            u(1,j,k)=0.
+            do i=1,ngxy
+               u(1-i,j,k)=-u(1+i,j,k)
+            end do
+         end do
+      end do
+    endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+    if(ebc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=jb,je
+            do i=1,ngxy
+               u(ni+1+i,j,k)=u(1+i,j,k)
+            end do
+         end do
+      end do
+    elseif(ebc.eq.2)then
+#else
+    if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=0,nj+1
+            do i=ni+2,ni+1+ngxy
+               u(i,j,k)=u(ni+1,j,k)
+            end do
+         end do
+      end do
+#ifdef MPI
+    elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+    elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=0,nj+1
+            u(ni+1,j,k)=0.0
+            do i=1,ngxy
+               u(ni+1+i,j,k)=-u(ni+1-i,j,k)
+            end do
+        end do
+      end do
+    endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+#ifndef MPI
+    if(sbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=1,ngxy
+            do i=ib,ie+1
+               u(i,1-j,k)=u(i,nj+1-j,k)
+            end do
+         end do
+      end do
+    elseif(sbc.eq.2)then
+#else
+    if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=1-ngxy,0
+            do i=0,ni+2
+               u(i,j,k)=u(i,1,k)
+            end do
+         end do
+      end do
+#ifdef MPI
+    elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+    elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=1,ngxy
+            do i=0,ni+2
+               u(i,1-j,k)=u(i,j,k)
+            end do
+         end do
+      end do
+    endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+#ifndef MPI
+    if(nbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=1,ngxy
+            do i=ib,ie+1
+               u(i,nj+j,k)=u(i,j,k)
+            end do
+        end do
+      end do
+    elseif(nbc.eq.2)then
+#else
+    if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=nj+1,nj+ngxy
+            do i=0,ni+2
+               u(i,j,k)=u(i,nj,k)
+            end do
+         end do
+      end do
+#ifdef MPI
+    elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+    elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+         do j=1,ngxy
+            do i=0,ni+2
+               u(i,nj+j,k)=u(i,nj+1-j,k)
+            end do
+         end do
+      end do
+    endif
+
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+ 
+      end subroutine bcu
+
       subroutine bcv_GPU(v)
       use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
           ibw,ibe,ibs,ibn,timestats,time_bc,mytime,axisymm
@@ -3213,6 +3801,213 @@
  
       end subroutine bcv_GPU
 
+      subroutine bcv(v)
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime,axisymm
+      implicit none
+
+      real, dimension(ib:ie,jb:je+1,kb:ke) :: v
+ 
+      integer i,j,k
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+
+#ifndef MPI
+    if(sbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          v(i,1-j,k)=v(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(sbc.eq.2)then
+#else
+    if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=1-ngxy,0
+        do i=0,ni+1
+          v(i,j,k)=v(i,1,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+    elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          v(i,1-j,k)=-v(i,j+1,k)
+        enddo
+        enddo
+      ENDDO
+      DO k=1,nk
+        do i=0,ni+1
+          v(i,   1,k)=0.
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+    IF(axisymm.eq.1)THEN
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do i=ib,ie
+          v(i,2,k)=v(i,1,k)
+        enddo
+      ENDDO
+    ENDIF
+
+#ifndef MPI
+    if(nbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=ib,ie
+          v(i,nj+1+j,k)=v(i,1+j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(nbc.eq.2)then
+#else
+    if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=nj+2,nj+1+ngxy
+        do i=0,ni+1
+          v(i,j,k)=v(i,nj+1,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+    elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          v(i,nj+1+j,k)=-v(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+      DO k=1,nk
+        do i=0,ni+1
+          v(i,nj+1,k)=0.
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+#ifndef MPI
+    if(wbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=jb,je+1
+        do i=1,ngxy
+          v(1-i,j,k)=v(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(wbc.eq.2)then
+#else
+    if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1-ngxy,0
+          v(i,j,k)=v(1,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+    elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1,ngxy
+          v(1-i,j,k)=v(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+    IF(axisymm.eq.1)THEN
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1,ngxy
+          v(1-i,j,k) = -v(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    ENDIF
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+    if(ebc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=jb,je+1
+        do i=1,ngxy
+          v(ni+i,j,k)=v(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(ebc.eq.2)then
+#else
+    if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=ni+1,ni+ngxy
+          v(i,j,k)=v(ni,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+    elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=1,nk
+        do j=0,nj+2
+        do i=1,ngxy
+          v(ni+i,j,k)=v(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+
+!-----------------------------------------------------------------------
+
+    if(timestats.ge.1) time_bc=time_bc+mytime()
+ 
+      end subroutine bcv
+
       subroutine bcw_GPU(w,flag)
       use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
           ibw,ibe,ibs,ibn,timestats,time_bc,mytime
@@ -3419,6 +4214,201 @@
       if(timestats.ge.1) time_bc=time_bc+mytime()
  
       end subroutine bcw_GPU
+
+#if 0
+      subroutine bcw(w,flag)
+      use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
+          ibw,ibe,ibs,ibn,timestats,time_bc,mytime
+      implicit none
+
+      real, dimension(ib:ie,jb:je,kb:ke+1) :: w
+      integer flag
+ 
+      integer i,j,k
+
+!-----------------------------------------------------------------------
+!  west boundary condition
+
+ 
+#ifndef MPI
+    if(wbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=jb,je
+        do i=1,ngxy
+          w(1-i,j,k)=w(ni+1-i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(wbc.eq.2)then
+#else
+    if(ibw.eq.1.and.wbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=1-ngxy,0
+          w(i,j,k)=w(1,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibw.eq.1.and.(wbc.eq.3.or.wbc.eq.4))then
+#else
+    elseif(wbc.eq.3.or.wbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          w(1-i,j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  east boundary condition
+
+#ifndef MPI
+    if(ebc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=jb,je
+        do i=1,ngxy
+          w(ni+i,j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(ebc.eq.2)then
+#else
+    if(ibe.eq.1.and.ebc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=ni+1,ni+ngxy
+          w(i,j,k)=w(ni,j,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibe.eq.1.and.(ebc.eq.3.or.ebc.eq.4))then
+#else
+    elseif(ebc.eq.3.or.ebc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=0,nj+1
+        do i=1,ngxy
+          w(ni+i,j,k)=w(ni+1-i,j,k)
+        enddo
+        enddo 
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  south boundary condition
+
+#ifndef MPI
+    if(sbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=ib,ie
+          w(i,1-j,k)=w(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(sbc.eq.2)then
+#else
+    if(ibs.eq.1.and.sbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=1-ngxy,0
+        do i=0,ni+1
+          w(i,j,k)=w(i,1,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibs.eq.1.and.(sbc.eq.3.or.sbc.eq.4))then
+#else
+    elseif(sbc.eq.3.or.sbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          w(i,1-j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+!-----------------------------------------------------------------------
+!  north boundary condition
+
+#ifndef MPI
+    if(nbc.eq.1)then
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=ib,ie
+          w(i,nj+j,k)=w(i,j,k)
+        enddo
+        enddo
+      ENDDO
+    elseif(nbc.eq.2)then
+#else
+    if(ibn.eq.1.and.nbc.eq.2)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=nj+1,nj+ngxy
+        do i=0,ni+1
+          w(i,j,k)=w(i,nj,k)
+        enddo
+        enddo
+      ENDDO
+#ifdef MPI
+    elseif(ibn.eq.1.and.(nbc.eq.3.or.nbc.eq.4))then
+#else
+    elseif(nbc.eq.3.or.nbc.eq.4)then
+#endif
+      !$omp parallel do default(shared) private(i,j,k)
+      DO k=2,nk
+        do j=1,ngxy
+        do i=0,ni+1
+          w(i,nj+j,k)=w(i,nj+1-j,k)
+        enddo
+        enddo
+      ENDDO
+    endif
+
+
+!-----------------------------------------------------------------------
+!  top/bottom boundary condition
+
+    IF(flag.eq.1)THEN
+
+      !$omp parallel do default(shared) private(i,j)
+      do j=0,nj+1
+      do i=0,ni+1
+        w(i,j, 1)=0.0
+        w(i,j,nk+1)=0.0
+      enddo
+      enddo
+
+    ENDIF
+
+!-----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_bc=time_bc+mytime()
+ 
+      end subroutine bcw
+#endif
 
 
    subroutine bcs2(s)

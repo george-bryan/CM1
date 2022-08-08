@@ -28,7 +28,7 @@
           zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,alph
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
-      use bc_module, only: bcs_GPU, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
+      use bc_module, only: bcs_GPU, bcwsfc_GPU, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
       use comm_module, only : comm_1s_start_GPU,comm_1p_end_GPU
       use ib_module
@@ -635,7 +635,7 @@
 
       IF(terrain_flag)THEN
         ! Cartesian grid with terrain:
-        call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+        call bcwsfc_GPU(gz,dzdx,dzdy,u3d,v3d,w3d)
         ! Cartesian grid with terrain:
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector default(present)

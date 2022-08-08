@@ -29,7 +29,7 @@
           zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
-      use bc_module, only : bcp, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
+      use bc_module, only : bcp, bcwsfc_GPU, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
       use comm_module, only : comm_1p_start_GPU,comm_1p_end_GPU
       use maxmin_module
@@ -594,8 +594,7 @@
         enddo
         if(timestats.ge.1) time_sound=time_sound+mytime()
 
-        print *,'WARNING: check on status of bcwsfc'
-        call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+        call bcwsfc_GPU(gz,dzdx,dzdy,u3d,v3d,w3d)
 
       ENDIF
 
@@ -636,7 +635,7 @@
         enddo
         if(timestats.ge.1) time_sound=time_sound+mytime()
 
-        call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+        call bcwsfc_GPU(gz,dzdx,dzdy,u3d,v3d,w3d)
 
       ENDIF
 

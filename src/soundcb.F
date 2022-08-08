@@ -29,7 +29,7 @@
           wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge,getdiv
-      use bc_module, only : bcs_GPU, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
+      use bc_module, only : bcs_GPU, bcwsfc_GPU, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
       use comm_module, only : comm_1p_end_GPU,comm_1s_start_GPU,comm_1s_end_GPU
       use ib_module
@@ -456,8 +456,7 @@
         enddo
         if(timestats.ge.1) time_sound=time_sound+mytime()
 
-        print *,'WARNING: need to check bcwsfc'
-        call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+        call bcwsfc_GPU(gz,dzdx,dzdy,u3d,v3d,w3d)
 
       ENDIF
 

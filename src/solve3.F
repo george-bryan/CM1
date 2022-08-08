@@ -165,7 +165,7 @@
           output_rain,output_sws,output_svs,output_sps,output_srs,output_sgs,output_sus,output_shs
 
       use constants
-      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
+      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc_GPU, &
           bcs_tend_halo, bcs2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU
       use comm_module
       use maxmin_module
@@ -577,7 +577,7 @@
 #endif
 
       if(terrain_flag)then
-        call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
+        call bcwsfc_GPU(gz,dzdx,dzdy,u3d,v3d,w3d)
         call bc2d_GPU(w3d(ib,jb,1))
       endif
 
