@@ -124,7 +124,7 @@
       integer, dimension(nparcels_mpi) :: pdata_neighbor            ! array to store the new MPI region info for all the droplets
       integer :: n_recv,n_send,index_nw,index_sw,index_ne, &
                  index_se,index_n,index_s,index_w,index_e
-      integer :: reqs(16)
+      integer :: reqs1(16),reqs2(16)
       integer :: tag_n,tag_s,tag_w,tag_e,tag_nw,tag_ne,tag_sw,tag_se,indx
       integer, dimension(mpi_status_size,16) :: status1
 
@@ -141,8 +141,11 @@
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
+      pdata_neighbor = undefined_index
+
       !$acc data create (ta,zf_tmp) &
-      !$acc      copyin (randomNumbers,randomNumbers%state)
+      !$acc      copyin (randomNumbers,randomNumbers%state, &
+      !$acc              pdata_neighbor)
 
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
@@ -281,7 +284,6 @@
 
     num100 = 0
     num1000 = 0
-    pdata_neighbor = undefined_index
 
 #ifdef _B4B01F
     !$acc update &
@@ -631,7 +633,7 @@
 
 #ifdef MPI
 
-    !$acc update host(pdata,pdata_loc)
+    !$acc update host(pdata,pdata_loc,pdata_neighbor)
      
     ! JS: send/receive the droplet information through MPI;
     !     all the calculations below are done on CPU
@@ -736,77 +738,77 @@
     !             know how many droplets from the nearest neighbors
     n_recv = 1 
     call mpi_irecv(num_n2,1,MPI_INT,mynorth,tag_n,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_n = n_recv
    
     n_recv = n_recv + 1
     call mpi_irecv(num_s2,1,MPI_INT,mysouth,tag_s,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_s = n_recv
 
     n_recv = n_recv + 1
     call mpi_irecv(num_w2,1,MPI_INT,mywest,tag_w,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_w = n_recv
 
     n_recv = n_recv + 1
     call mpi_irecv(num_e2,1,MPI_INT,myeast,tag_e,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_e = n_recv
 
     n_recv = n_recv + 1
     call mpi_irecv(num_ne2,1,MPI_INT,myne,tag_ne,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_ne = n_recv
 
     n_recv = n_recv + 1
     call mpi_irecv(num_nw2,1,MPI_INT,mynw,tag_nw,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_nw = n_recv
  
     n_recv = n_recv + 1
     call mpi_irecv(num_se2,1,MPI_INT,myse,tag_se,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_se = n_recv
 
     n_recv = n_recv + 1
     call mpi_irecv(num_sw2,1,MPI_INT,mysw,tag_sw,MPI_COMM_WORLD, &
-                   reqs(n_recv),ierr)
+                   reqs1(n_recv),ierr)
     index_sw = n_recv
 
     ! MPI Step 2: initiate the MPI non-blocking send interface to 
     !             send how many droplets entering the nearest neighbor 
     n_send = 9 
     call mpi_isend(num_n1,1,MPI_INT,mynorth,tag_s,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     n_send = n_send + 1
     call mpi_isend(num_s1,1,MPI_INT,mysouth,tag_n,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     n_send = n_send + 1
     call mpi_isend(num_w1,1,MPI_INT,mywest,tag_e,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     n_send = n_send + 1
     call mpi_isend(num_e1,1,MPI_INT,myeast,tag_w,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     n_send = n_send + 1
     call mpi_isend(num_ne1,1,MPI_INT,myne,tag_sw,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     n_send = n_send + 1
     call mpi_isend(num_nw1,1,MPI_INT,mynw,tag_se,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     n_send = n_send + 1
     call mpi_isend(num_se1,1,MPI_INT,myse,tag_nw,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     n_send = n_send + 1
     call mpi_isend(num_sw1,1,MPI_INT,mysw,tag_ne,MPI_COMM_WORLD, &
-                   reqs(n_send),ierr)
+                   reqs1(n_send),ierr)
 
     ! extract the information of droplets that will leave the current MPI region 
     n_idx = 1
@@ -857,7 +859,7 @@
     !             new droplets from the nearest neighbor
     n = 1
     do while( n .le. n_recv )
-       call mpi_waitany(n_recv,reqs(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
+       call mpi_waitany(n_recv,reqs1(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
        if ( indx .eq. index_n ) then
           if ( num_n2 .ne. 0 ) allocate(droplet_n2(num_n2,npvals))
        else if ( indx .eq. index_s ) then
@@ -887,61 +889,96 @@
        stop "Stop the program ..."
     end if
 
+#if 0
+    ! Diagnostic only 
+    write(*,*) "JS: myid = ", myid, ", new droplets = ", num_n2 + num_s2 + &
+               num_w2 + num_e2 + num_ne2 + num_nw2 + num_se2 + num_sw2
+    write(*,*) "JS: myid = ", myid, ", leaving droplets = ", num_n1 + num_s1 + &
+               num_w1 + num_e1 + num_ne1 + num_nw1 + num_se1 + num_sw1
+#endif
+
     ! make sure that all the non-blocking MPI send operations are complete
     n_send = n_send - 8
     if ( n_send .ge. 1 ) then
-       call mpi_waitall (n_send,reqs(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
+       call mpi_waitall (n_send,reqs1(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
     endif
 
     ! MPI step 4: initiate the MPI non-blocking receive interface to 
     !             obtain new droplet information from the nearest neighbors
-    n_recv = 0
+
+    index_n  = undefined_index
+    index_s  = undefined_index
+    index_w  = undefined_index
+    index_e  = undefined_index
+    index_nw = undefined_index
+    index_sw = undefined_index
+    index_ne = undefined_index
+    index_se = undefined_index
+
+    tag_n    = undefined_index 
+    tag_s    = undefined_index 
+    tag_w    = undefined_index 
+    tag_e    = undefined_index 
+    tag_nw   = undefined_index 
+    tag_sw   = undefined_index 
+    tag_ne   = undefined_index 
+    tag_se   = undefined_index 
+
+    n_recv   = 0
     if ( num_n2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_n  = 1000 + num_n2 
        call mpi_irecv(droplet_n2,num_n2*npvals,MPI_REAL,mynorth,tag_n,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_n = n_recv
     end if
     if ( num_s2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_s  = 1000 + num_s2
        call mpi_irecv(droplet_s2,num_s2*npvals,MPI_REAL,mysouth,tag_s,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_s = n_recv
     end if
     if ( num_w2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_w  = 1000 + num_w2
        call mpi_irecv(droplet_w2,num_w2*npvals,MPI_REAL,mywest,tag_w,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_w = n_recv
     end if
     if ( num_e2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_e  = 1000 + num_e2 
        call mpi_irecv(droplet_e2,num_e2*npvals,MPI_REAL,myeast,tag_e,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_e = n_recv
     end if
     if ( num_ne2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_ne = 1000 + num_ne2
        call mpi_irecv(droplet_ne2,num_ne2*npvals,MPI_REAL,myne,tag_ne,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_ne = n_recv
     end if
     if ( num_nw2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_nw = 1000 + num_nw2
        call mpi_irecv(droplet_nw2,num_nw2*npvals,MPI_REAL,mynw,tag_nw,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_nw = n_recv
     end if
     if ( num_se2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_se = 1000 + num_se2
        call mpi_irecv(droplet_se2,num_se2*npvals,MPI_REAL,myse,tag_se,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_se = n_recv
     end if
     if ( num_sw2 .ne. 0 ) then
        n_recv = n_recv + 1
+       tag_sw = 1000 + num_sw2 
        call mpi_irecv(droplet_sw2,num_sw2*npvals,MPI_REAL,mysw,tag_sw,MPI_COMM_WORLD, &
-                      reqs(n_recv),ierr)
+                      reqs2(n_recv),ierr)
        index_sw = n_recv
     end if
 
@@ -951,43 +988,51 @@
     n_send = 8
     if ( num_n1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_s = 1000 + num_n1
        call mpi_isend(droplet_n1,num_n1*npvals,MPI_REAL,mynorth,tag_s,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
     if ( num_s1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_n = 1000 + num_s1
        call mpi_isend(droplet_s1,num_s1*npvals,MPI_REAL,mysouth,tag_n,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
     if ( num_w1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_e = 1000 + num_w1
        call mpi_isend(droplet_w1,num_w1*npvals,MPI_REAL,mywest,tag_e,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
     if ( num_e1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_w = 1000 + num_e1
        call mpi_isend(droplet_e1,num_e1*npvals,MPI_REAL,myeast,tag_w,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
     if ( num_ne1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_sw = 1000 + num_ne1
        call mpi_isend(droplet_ne1,num_ne1*npvals,MPI_REAL,myne,tag_sw,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
     if ( num_nw1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_se = 1000 + num_nw1
        call mpi_isend(droplet_nw1,num_nw1*npvals,MPI_REAL,mynw,tag_se,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
     if ( num_se1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_nw = 1000 + num_se1
        call mpi_isend(droplet_se1,num_se1*npvals,MPI_REAL,myse,tag_nw,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
     if ( num_sw1 .ne. 0 ) then
        n_send = n_send + 1
+       tag_ne = 1000 + num_sw1
        call mpi_isend(droplet_sw1,num_sw1*npvals,MPI_REAL,mysw,tag_ne,MPI_COMM_WORLD, &
-                      reqs(n_send),ierr)
+                      reqs2(n_send),ierr)
     end if
 
     ! MPI step 6: update the "holes" in "pdata" with the new droplets entering 
@@ -995,7 +1040,7 @@
     n = 1
     k = 1
     do while( n .le. n_recv )
-       call mpi_waitany(n_recv,reqs(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
+       call mpi_waitany(n_recv,reqs2(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
        if ( indx .eq. index_n ) then
           do i = 1, num_n2
              pdata(holes_ind(k),:) = droplet_n2(i,:)
@@ -1043,7 +1088,7 @@
     ! make sure that all the non-blocking MPI send operations are complete
     n_send = n_send - 8
     if ( n_send .ge. 1 ) then
-       call mpi_waitall (n_send,reqs(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
+       call mpi_waitall (n_send,reqs2(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
     endif
 
     !$acc update device(pdata)
@@ -1424,7 +1469,7 @@
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
           prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho, &
-          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcels_mpi
+          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcels_mpi,myid
       use constants
       use comm_module
       use misclibs
@@ -1607,8 +1652,8 @@
       ! just assume periodic lateral boundary conditions
       ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
 
-      ! determine which new MPI region this droplet 
-      ! enters or stays for the next time step
+      ! JS: determine which new MPI region this droplet 
+      !     enters or stays for the next time step
       if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and.  &
            y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
            neighbor = undefined_index   ! undefined_index means this droplet
@@ -1633,6 +1678,12 @@
       else if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. &
                 y3d .gt. yf(nj+1) ) then
            neighbor = mynorth
+      end if
+
+      if ( neighbor .ne. undefined_index ) then
+         pdata_locind(np,1) = undefined_index
+         pdata_locind(np,2) = undefined_index
+         pdata_locind(np,3) = undefined_index
       end if
 
       if ( x3d .lt. minx ) then
@@ -2094,7 +2145,7 @@
       real :: partnum(nk),numconc(nk)
 #ifdef MPI
       real, dimension(11) :: droplet_diag0     ! temporary array for MPI reduce operation
-                                               ! for the 0th-order diagnostic except rtime 
+                                               ! for the 0th-order diagnostic except rtime
 #endif
 
       !Compute the various types of droplet statistics
@@ -2121,7 +2172,7 @@
       !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
-      do np=1,nparcels
+      do np=1,nparcels_mpi
          if (pdata(np,pract) .gt. 0.0) then
             tnumpart = tnumpart + 1
             radavg = radavg + pdata(np,prrp)
@@ -2142,30 +2193,52 @@
       !$acc end parallel
 
 #ifdef MPI
+      droplet_diag0(1) = real(tnumpart)
+      droplet_diag0(2) = radavg
+      droplet_diag0(3) = Tpavg
+      droplet_diag0(4) = Tfavg
+      droplet_diag0(5) = qfavg
+      droplet_diag0(6) = prsavg
+      droplet_diag0(7) = rhoavg
+      droplet_diag0(8) = radmin
+      droplet_diag0(9) = Tpmin
+      droplet_diag0(10) = radmax
+      droplet_diag0(11) = Tpmax
+
       ! The root rank will collect the diagnostic from different MPI ranks
-      call mpi_reduce(tnumpart,droplet_diag0(1),1,MPI_INT, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(radavg,droplet_diag0(2),1,MPI_REAL, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(radmin,droplet_diag0(3),1,MPI_REAL, &
-                      MPI_MIN,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(radmax,droplet_diag0(4),1,MPI_REAL, &
-                      MPI_MAX,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(Tpavg,droplet_diag0(5),1,MPI_REAL, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(Tpmin,droplet_diag0(6),1,MPI_REAL, &
-                      MPI_MIN,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(Tpmax,droplet_diag0(7),1,MPI_REAL, &
-                      MPI_MAX,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(Tfavg,droplet_diag0(8),1,MPI_REAL, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(qfavg,droplet_diag0(9),1,MPI_REAL, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(prsavg,droplet_diag0(10),1,MPI_REAL, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      call mpi_reduce(rhoavg,droplet_diag0(11),1,MPI_REAL, &
-                      MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),7,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),7,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      end if
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(8),2,MPI_REAL, &
+                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(droplet_diag0(8),droplet_diag0(8),2,MPI_REAL, &
+                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      end if
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(10),2,MPI_REAL, &
+                         MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(droplet_diag0(10),droplet_diag0(10),2,MPI_REAL, &
+                         MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      end if
       if ( myid == 0 ) then 
+         tnumpart = droplet_diag0(1)
+         radavg = droplet_diag0(2)
+         Tpavg = droplet_diag0(3)
+         Tfavg = droplet_diag0(4)
+         qfavg = droplet_diag0(5)
+         prsavg = droplet_diag0(6)
+         rhoavg = droplet_diag0(7)
+         radmin = droplet_diag0(8)
+         Tpmin = droplet_diag0(9)
+         radmax = droplet_diag0(10)
+         Tpmax = droplet_diag0(11)
 #endif
       radavg = radavg/tnumpart
       radsqr = radsqr/tnumpart
@@ -2247,20 +2320,7 @@
       !Dump to screen for debugging purposes
 #ifdef MPI
       if ( myid == 0 ) then
-         write(6,200) 'rtime', rtime
-         write(6,200) 'tnumpart', dble(droplet_diag0(1))
-         write(6,200) 'radavg',droplet_diag0(2)
-         write(6,200) 'radmin',droplet_diag0(3)
-         write(6,200) 'radmax',droplet_diag0(4)
-         write(6,200) 'Tpavg',droplet_diag0(5)
-         write(6,200) 'Tpmin',droplet_diag0(6)
-         write(6,200) 'Tpmax',droplet_diag0(7)
-         write(6,200) 'Tfavg',droplet_diag0(8)
-         write(6,200) 'qfavg',droplet_diag0(9)
-         write(6,200) 'prsavg',droplet_diag0(10)
-         write(6,200) 'rhoavg',droplet_diag0(11)
-      end if
-#else
+#endif
       write(6,200) 'rtime', rtime
       write(6,200) 'tnumpart', dble(tnumpart)
       write(6,200) 'radavg',radavg
@@ -2273,6 +2333,8 @@
       write(6,200) 'qfavg',qfavg
       write(6,200) 'prsavg',prsavg
       write(6,200) 'rhoavg',rhoavg
+#ifdef MPI
+      end if
 #endif
 
 #ifdef NETCDF

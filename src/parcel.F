@@ -1741,7 +1741,7 @@
 
         ! set to really small number (so we can use the allreduce command below)
         do n=npvars+1,npvals
-          pdata(np,n) = -1.0e30
+          pdata(np,n) = neg_huge 
         enddo
 #endif
 

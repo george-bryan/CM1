@@ -414,6 +414,8 @@
         ! The generated random number is independent of compilers and MPI ranks
         randomNumbers = new_RandomNumberSequence(seed = nparcels)
 
+        i = 1
+
         do n=1,nparcels
 
           rand = getRandomReal(randomNumbers)
@@ -424,17 +426,12 @@
           tmpz = rand*maxz
 
           ! check if this parcel falls into this MPI region
-          if ( tmpx .ge. xfref(myi1) .and. tmpx .le. xfref(myi2) .and. &
-               tmpy .ge. yfref(myj1) .and. tmpy .le. yfref(myj2) ) then
+          if ( tmpx .ge. xf(1) .and. tmpx .le. xf(ni+1) .and. &
+               tmpy .ge. yf(1) .and. tmpy .le. yf(nj+1) ) then
 
-             do i = 1, nparcels_mpi
-                if ( pdata(i,prx) .eq. neg_huge ) then
-                   pdata(i,prx) = tmpx
-                   pdata(i,pry) = tmpy
-                   pdata(i,prz) = tmpz
-                   exit
-                end if
-             end do
+             pdata(i,prx) = tmpx
+             pdata(i,pry) = tmpy
+             pdata(i,prz) = tmpz
 
              !if(MODULO(n,100)==0) then 
              if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
@@ -472,6 +469,8 @@
                 pdata(i,prrho) = 0.0
     
              end if ! end of if statement for prcl_droplet == 1
+
+             i = i + 1
 
           end if    ! end of if statement for xfref/yfref check
 
