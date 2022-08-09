@@ -1665,12 +1665,12 @@
            neighbor = mysw
       else if ( x3d .lt. xf(1) .and. y3d .gt. yf(nj+1) ) then
            neighbor = mynw
-      else if ( x3d .gt. xf(nj+1) .and.  &
+      else if ( x3d .gt. xf(ni+1) .and.  &
                 y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
            neighbor = myeast
-      else if ( x3d .gt. xf(nj+1) .and. y3d .lt. yf(1) ) then
+      else if ( x3d .gt. xf(ni+1) .and. y3d .lt. yf(1) ) then
            neighbor = myse
-      else if ( x3d .gt. xf(nj+1) .and. y3d .gt. yf(nj+1) ) then
+      else if ( x3d .gt. xf(ni+1) .and. y3d .gt. yf(nj+1) ) then
            neighbor = myne
       else if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. &
                 y3d .lt. yf(1) ) then
