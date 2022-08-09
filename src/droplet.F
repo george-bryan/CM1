@@ -865,7 +865,7 @@
        else if ( indx .eq. index_s ) then
           if ( num_s2 .ne. 0 ) allocate(droplet_s2(num_s2,npvals))
        else if ( indx .eq. index_w ) then
-          if ( num_w2 .ne. 0 ) allocate(droplet_s2(num_w2,npvals))
+          if ( num_w2 .ne. 0 ) allocate(droplet_w2(num_w2,npvals))
        else if ( indx .eq. index_e ) then
           if ( num_e2 .ne. 0 ) allocate(droplet_e2(num_e2,npvals))
        else if ( indx .eq. index_ne ) then
@@ -889,7 +889,7 @@
        stop "Stop the program ..."
     end if
 
-#if 0
+#if 1 
     ! Diagnostic only 
     write(*,*) "JS: myid = ", myid, ", new droplets = ", num_n2 + num_s2 + &
                num_w2 + num_e2 + num_ne2 + num_nw2 + num_se2 + num_sw2
