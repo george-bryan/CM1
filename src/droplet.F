@@ -889,7 +889,7 @@
        stop "Stop the program ..."
     end if
 
-#if 1 
+#if 0 
     ! Diagnostic only 
     write(*,*) "JS: myid = ", myid, ", new droplets = ", num_n2 + num_s2 + &
                num_w2 + num_e2 + num_ne2 + num_nw2 + num_se2 + num_sw2

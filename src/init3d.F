@@ -499,12 +499,6 @@
 
         if(dowr) write(outfile,*)
 
-!JS: comment the section below with the new MPI implementation for droplets
-!#ifdef MPI
-!        ! this ensures that every processor has all parcel locations:
-!        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),3*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-!#endif
-
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           ! 170719,  for 2d setup (x,z), fix all y values:
           DO n=1,nparcels_mpi
