@@ -106,27 +106,18 @@
       logical, parameter :: debug = .false.
 
       type(randomNumberSequence) :: randomNumbers
-      real, dimension(kb:ke+1) :: zf_tmp 
-      integer :: num_holes                                          ! how many new droplets could be added to "pdata"
-      integer, dimension(:), allocatable :: holes_ind               ! location index in "pdata" that can add a new droplet
-      real, dimension(:,:), allocatable :: droplet_n1, droplet_s1, droplet_w1,   &   ! information of droplets that will leave the 
-                                           droplet_e1, droplet_ne1, droplet_nw1, &   ! current MPI region and enter the nearest neighbor 
-                                           droplet_se1, droplet_sw1, &               ! at different directions;
-                                           droplet_n2, droplet_s2, droplet_w2,   &   ! 1 means sending array and
-                                           droplet_e2, droplet_ne2, droplet_nw2, &   ! 2 means receiving array
-                                           droplet_se2, droplet_sw2
-      integer :: num_n1, num_s1, num_w1, num_e1, num_ne1, &         ! number of droplets that will enter each 
-                 num_nw1, num_sw1, num_se1                          ! nearest neighbor at different directions
-      integer :: num_n2, num_s2, num_w2, num_e2, num_ne2, &         ! number of droplets that will enter the current MPI region
-                 num_nw2, num_sw2, num_se2                          ! from each nearest neighbor at different directions
-      integer :: n_idx,s_idx,w_idx,e_idx,ne_idx,nw_idx,sw_idx,se_idx
-      integer :: neighbor                                           ! indicate which MPI region a droplet stays after this time step 
-      integer, dimension(nparcels_mpi) :: pdata_neighbor            ! array to store the new MPI region info for all the droplets
-      integer :: n_recv,n_send,index_nw,index_sw,index_ne, &
-                 index_se,index_n,index_s,index_w,index_e
-      integer :: reqs1(16),reqs2(16)
-      integer :: tag_n,tag_s,tag_w,tag_e,tag_nw,tag_ne,tag_sw,tag_se,indx
-      integer, dimension(mpi_status_size,16) :: status1
+      real, dimension(kb:ke+1) :: zf_tmp
+
+#ifdef MPI 
+      integer :: num_holes                                 ! how many new droplets could be added to "pdata"
+      integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
+      integer :: num1(num_nn)                              ! Number of droplets that will enter each nearest 
+                                                           ! neighbor at different directions
+      integer :: num2(num_nn)                              ! Number of droplets that will enter the current
+                                                           ! MPI region from each nearest neighbor
+      integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
+      integer, dimension(nparcels_mpi) :: pdata_neighbor   ! array to store the new MPI region info for all the droplets
+#endif
 
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
@@ -141,11 +132,16 @@
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
+#ifdef MPI
       pdata_neighbor = undefined_index
 
       !$acc data create (ta,zf_tmp) &
       !$acc      copyin (randomNumbers,randomNumbers%state, &
       !$acc              pdata_neighbor)
+#else
+      !$acc data create (ta,zf_tmp) &
+      !$acc      copyin (randomNumbers,randomNumbers%state)
+#endif
 
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
@@ -406,10 +402,13 @@
 
       ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
 
+#ifdef MPI
       call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
 
       pdata_neighbor(np) = neighbor 
-
+#else
+      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
+#endif
       ENDIF dropmethod
 
 
@@ -633,32 +632,17 @@
 
 #ifdef MPI
 
-    !$acc update host(pdata,pdata_loc,pdata_neighbor)
-     
     ! JS: send/receive the droplet information through MPI;
     !     all the calculations below are done on CPU
 
-    ! initiate some MPI index and tag values
-    index_n  = undefined_index
-    index_s  = undefined_index
-    index_w  = undefined_index
-    index_e  = undefined_index
-    index_nw = undefined_index
-    index_sw = undefined_index
-    index_ne = undefined_index
-    index_se = undefined_index
+    !$acc update host(pdata,pdata_locind,pdata_neighbor)
 
-    tag_n  = 1001
-    tag_s  = 1002
-    tag_w  = 1003
-    tag_e  = 1004
-    tag_nw = 1005
-    tag_sw = 1006
-    tag_ne = 1007
-    tag_se = 1008
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Step 1: Count the "num_holes", which is the number of "holes" in "pdata" !
+    !         at the beginning of this time step + the number of droplets      !
+    !         leaving this MPI region at this time step                        !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    ! num_holes: number of "holes" in pdata at the beginning of this time step + 
-    !            number of droplets leaving this MPI region at this time step
     num_holes = 0
     do np = 1, nparcels_mpi
        if ( pdata_locind(np,1) .eq. undefined_index .and. &
@@ -667,450 +651,34 @@
        end if
     end do
 
-    ! allocate "hole" index array and initialize it with a negative value
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Step 2: Allocate "hole" index array and initialize it ! 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     allocate(holes_ind(num_holes))
-    holes_ind = undefined_index
-
-    ! find out how many droplets will leave the current MPI region and to which neighbor
-    i = 1
-    num_n1 = 0
-    num_s1 = 0 
-    num_w1 = 0 
-    num_e1 = 0 
-    num_ne1 = 0
-    num_nw1 = 0
-    num_sw1 = 0 
-    num_se1 = 0
-    do np = 1, nparcels_mpi
-       if ( pdata_locind(np,1) .eq. undefined_index .and. &
-            pdata_locind(np,2) .eq. undefined_index ) then
-          ! record the location index that can be used to store the new droplet
-          ! information after the old drolpet leaves the current MPI region
-          holes_ind(i) = np
-          i = i + 1
-          if ( pdata_neighbor(np) .eq. mywest ) then
-             num_w1 = num_w1 + 1
-          else if ( pdata_neighbor(np) .eq. mysw ) then 
-             num_sw1 = num_sw1 + 1
-          else if ( pdata_neighbor(np) .eq. mynw ) then  
-             num_nw1 = num_nw1 + 1
-          else if ( pdata_neighbor(np) .eq. myeast ) then  
-             num_e1 = num_e1 + 1
-          else if ( pdata_neighbor(np) .eq. myne ) then  
-             num_ne1 = num_ne1 + 1
-          else if ( pdata_neighbor(np) .eq. myse ) then  
-             num_se1 = num_se1 + 1
-          else if ( pdata_neighbor(np) .eq. mynorth ) then  
-             num_n1 = num_n1 + 1
-          else if ( pdata_neighbor(np) .eq. mysouth ) then  
-             num_s1 = num_s1 + 1
-          end if
-       end if
+    do np = 1, num_holes
+       holes_ind(np) = undefined_index
     end do
 
-    ! allocate spaces to store the droplets that will leave the current MPI region
-    if ( num_n1 .ne. 0 ) then
-       allocate(droplet_n1(num_n1,npvals))
-    end if
-    if ( num_s1 .ne. 0 ) then
-       allocate(droplet_s1(num_s1,npvals))
-    end if
-    if ( num_w1 .ne. 0 ) then
-       allocate(droplet_w1(num_w1,npvals))
-    end if
-    if ( num_e1 .ne. 0 ) then
-       allocate(droplet_e1(num_e1,npvals))
-    end if
-    if ( num_ne1 .ne. 0 ) then
-       allocate(droplet_ne1(num_ne1,npvals))
-    end if
-    if ( num_nw1 .ne. 0 ) then
-       allocate(droplet_nw1(num_nw1,npvals))
-    end if
-    if ( num_se1 .ne. 0 ) then
-       allocate(droplet_se1(num_se1,npvals))
-    end if
-    if ( num_sw1 .ne. 0 ) then
-       allocate(droplet_sw1(num_sw1,npvals))
-    end if
-   
-    ! MPI Step 1: initiate the MPI non-blocking receive interface to 
-    !             know how many droplets from the nearest neighbors
-    n_recv = 1 
-    call mpi_irecv(num_n2,1,MPI_INT,mynorth,tag_n,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_n = n_recv
-   
-    n_recv = n_recv + 1
-    call mpi_irecv(num_s2,1,MPI_INT,mysouth,tag_s,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_s = n_recv
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Step 3: Exchange the number of droplets that will enter/leave !
+    !         the current MPI region with its nearest neighbor      !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    n_recv = n_recv + 1
-    call mpi_irecv(num_w2,1,MPI_INT,mywest,tag_w,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_w = n_recv
+    call comm_droplet_number(holes_ind,num1,num2,pdata, &
+                             pdata_locind,pdata_neighbor)
 
-    n_recv = n_recv + 1
-    call mpi_irecv(num_e2,1,MPI_INT,myeast,tag_e,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_e = n_recv
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Step 4: Exchange the detailed information of the droplets that will  !
+    !         enter/leave the current MPI region with its nearest neighbor !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    n_recv = n_recv + 1
-    call mpi_irecv(num_ne2,1,MPI_INT,myne,tag_ne,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_ne = n_recv
-
-    n_recv = n_recv + 1
-    call mpi_irecv(num_nw2,1,MPI_INT,mynw,tag_nw,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_nw = n_recv
- 
-    n_recv = n_recv + 1
-    call mpi_irecv(num_se2,1,MPI_INT,myse,tag_se,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_se = n_recv
-
-    n_recv = n_recv + 1
-    call mpi_irecv(num_sw2,1,MPI_INT,mysw,tag_sw,MPI_COMM_WORLD, &
-                   reqs1(n_recv),ierr)
-    index_sw = n_recv
-
-    ! MPI Step 2: initiate the MPI non-blocking send interface to 
-    !             send how many droplets entering the nearest neighbor 
-    n_send = 9 
-    call mpi_isend(num_n1,1,MPI_INT,mynorth,tag_s,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    n_send = n_send + 1
-    call mpi_isend(num_s1,1,MPI_INT,mysouth,tag_n,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    n_send = n_send + 1
-    call mpi_isend(num_w1,1,MPI_INT,mywest,tag_e,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    n_send = n_send + 1
-    call mpi_isend(num_e1,1,MPI_INT,myeast,tag_w,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    n_send = n_send + 1
-    call mpi_isend(num_ne1,1,MPI_INT,myne,tag_sw,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    n_send = n_send + 1
-    call mpi_isend(num_nw1,1,MPI_INT,mynw,tag_se,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    n_send = n_send + 1
-    call mpi_isend(num_se1,1,MPI_INT,myse,tag_nw,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    n_send = n_send + 1
-    call mpi_isend(num_sw1,1,MPI_INT,mysw,tag_ne,MPI_COMM_WORLD, &
-                   reqs1(n_send),ierr)
-
-    ! extract the information of droplets that will leave the current MPI region 
-    n_idx = 1
-    s_idx = 1
-    w_idx = 1
-    e_idx = 1
-    ne_idx = 1
-    se_idx = 1
-    nw_idx = 1
-    sw_idx = 1
-    do np = 1, nparcels_mpi
-       if ( pdata_neighbor(np) .eq. mywest ) then
-          droplet_w1(w_idx,:) = pdata(np,:)
-          w_idx = w_idx + 1
-          pdata(np,:) = neg_huge
-       else if ( pdata_neighbor(np) .eq. mysw ) then
-          droplet_sw1(sw_idx,:) = pdata(np,:)
-          sw_idx = sw_idx + 1
-          pdata(np,:) = neg_huge
-       else if ( pdata_neighbor(np) .eq. mynw ) then
-          droplet_nw1(nw_idx,:) = pdata(np,:)
-          nw_idx = nw_idx + 1
-          pdata(np,:) = neg_huge
-       else if ( pdata_neighbor(np) .eq. myeast ) then
-          droplet_e1(e_idx,:) = pdata(np,:)
-          e_idx = e_idx + 1
-          pdata(np,:) = neg_huge
-       else if ( pdata_neighbor(np) .eq. myne ) then
-          droplet_ne1(ne_idx,:) = pdata(np,:)
-          ne_idx = ne_idx + 1
-          pdata(np,:) = neg_huge
-       else if ( pdata_neighbor(np) .eq. myse ) then
-          droplet_se1(se_idx,:) = pdata(np,:)
-          se_idx = se_idx + 1
-          pdata(np,:) = neg_huge
-       else if ( pdata_neighbor(np) .eq. mynorth ) then
-          droplet_n1(n_idx,:) = pdata(np,:)
-          n_idx = n_idx + 1
-          pdata(np,:) = neg_huge
-       else if ( pdata_neighbor(np) .eq. mysouth ) then
-          droplet_s1(s_idx,:) = pdata(np,:)
-          s_idx = s_idx + 1
-          pdata(np,:) = neg_huge
-       end if
-    end do
-
-    ! MPI step 3: allocate temporary arrays if there are 
-    !             new droplets from the nearest neighbor
-    n = 1
-    do while( n .le. n_recv )
-       call mpi_waitany(n_recv,reqs1(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
-       if ( indx .eq. index_n ) then
-          if ( num_n2 .ne. 0 ) allocate(droplet_n2(num_n2,npvals))
-       else if ( indx .eq. index_s ) then
-          if ( num_s2 .ne. 0 ) allocate(droplet_s2(num_s2,npvals))
-       else if ( indx .eq. index_w ) then
-          if ( num_w2 .ne. 0 ) allocate(droplet_w2(num_w2,npvals))
-       else if ( indx .eq. index_e ) then
-          if ( num_e2 .ne. 0 ) allocate(droplet_e2(num_e2,npvals))
-       else if ( indx .eq. index_ne ) then
-          if ( num_ne2 .ne. 0 ) allocate(droplet_ne2(num_ne2,npvals))
-       else if ( indx .eq. index_nw ) then
-          if ( num_nw2 .ne. 0 ) allocate(droplet_nw2(num_nw2,npvals))
-       else if ( indx .eq. index_se ) then
-          if ( num_se2 .ne. 0 ) allocate(droplet_se2(num_se2,npvals))
-       else if ( indx .eq. index_sw ) then
-          if ( num_sw2 .ne. 0 ) allocate(droplet_sw2(num_sw2,npvals))
-       end if
-       n = n + 1
-    end do
-
-    ! sanity check: if too many droplets enter the current MPI region
-    !               and exceed the number of "holes", stop the program
-    !               with an error message
-    if ( ( num_n2 + num_s2 + num_w2 + num_e2 + num_ne2 + &
-           num_nw2 + num_se2 + num_sw2 ) .gt. num_holes ) then
-       write(*,*) "Too many new droplets will enter the MPI rank: ", myid 
-       stop "Stop the program ..."
-    end if
-
-#if 0 
-    ! Diagnostic only 
-    write(*,*) "JS: myid = ", myid, ", new droplets = ", num_n2 + num_s2 + &
-               num_w2 + num_e2 + num_ne2 + num_nw2 + num_se2 + num_sw2
-    write(*,*) "JS: myid = ", myid, ", leaving droplets = ", num_n1 + num_s1 + &
-               num_w1 + num_e1 + num_ne1 + num_nw1 + num_se1 + num_sw1
-#endif
-
-    ! make sure that all the non-blocking MPI send operations are complete
-    n_send = n_send - 8
-    if ( n_send .ge. 1 ) then
-       call mpi_waitall (n_send,reqs1(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
-    endif
-
-    ! MPI step 4: initiate the MPI non-blocking receive interface to 
-    !             obtain new droplet information from the nearest neighbors
-
-    index_n  = undefined_index
-    index_s  = undefined_index
-    index_w  = undefined_index
-    index_e  = undefined_index
-    index_nw = undefined_index
-    index_sw = undefined_index
-    index_ne = undefined_index
-    index_se = undefined_index
-
-    tag_n    = undefined_index 
-    tag_s    = undefined_index 
-    tag_w    = undefined_index 
-    tag_e    = undefined_index 
-    tag_nw   = undefined_index 
-    tag_sw   = undefined_index 
-    tag_ne   = undefined_index 
-    tag_se   = undefined_index 
-
-    n_recv   = 0
-    if ( num_n2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_n  = 1000 + num_n2 
-       call mpi_irecv(droplet_n2,num_n2*npvals,MPI_REAL,mynorth,tag_n,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_n = n_recv
-    end if
-    if ( num_s2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_s  = 1000 + num_s2
-       call mpi_irecv(droplet_s2,num_s2*npvals,MPI_REAL,mysouth,tag_s,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_s = n_recv
-    end if
-    if ( num_w2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_w  = 1000 + num_w2
-       call mpi_irecv(droplet_w2,num_w2*npvals,MPI_REAL,mywest,tag_w,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_w = n_recv
-    end if
-    if ( num_e2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_e  = 1000 + num_e2 
-       call mpi_irecv(droplet_e2,num_e2*npvals,MPI_REAL,myeast,tag_e,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_e = n_recv
-    end if
-    if ( num_ne2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_ne = 1000 + num_ne2
-       call mpi_irecv(droplet_ne2,num_ne2*npvals,MPI_REAL,myne,tag_ne,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_ne = n_recv
-    end if
-    if ( num_nw2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_nw = 1000 + num_nw2
-       call mpi_irecv(droplet_nw2,num_nw2*npvals,MPI_REAL,mynw,tag_nw,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_nw = n_recv
-    end if
-    if ( num_se2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_se = 1000 + num_se2
-       call mpi_irecv(droplet_se2,num_se2*npvals,MPI_REAL,myse,tag_se,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_se = n_recv
-    end if
-    if ( num_sw2 .ne. 0 ) then
-       n_recv = n_recv + 1
-       tag_sw = 1000 + num_sw2 
-       call mpi_irecv(droplet_sw2,num_sw2*npvals,MPI_REAL,mysw,tag_sw,MPI_COMM_WORLD, &
-                      reqs2(n_recv),ierr)
-       index_sw = n_recv
-    end if
-
-    ! MPI step 5: initiate the MPI non-blocking send interface to 
-    !             send the information of droplets that leave the 
-    !             current MPI region to the nearest neighbors 
-    n_send = 8
-    if ( num_n1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_s = 1000 + num_n1
-       call mpi_isend(droplet_n1,num_n1*npvals,MPI_REAL,mynorth,tag_s,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-    if ( num_s1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_n = 1000 + num_s1
-       call mpi_isend(droplet_s1,num_s1*npvals,MPI_REAL,mysouth,tag_n,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-    if ( num_w1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_e = 1000 + num_w1
-       call mpi_isend(droplet_w1,num_w1*npvals,MPI_REAL,mywest,tag_e,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-    if ( num_e1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_w = 1000 + num_e1
-       call mpi_isend(droplet_e1,num_e1*npvals,MPI_REAL,myeast,tag_w,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-    if ( num_ne1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_sw = 1000 + num_ne1
-       call mpi_isend(droplet_ne1,num_ne1*npvals,MPI_REAL,myne,tag_sw,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-    if ( num_nw1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_se = 1000 + num_nw1
-       call mpi_isend(droplet_nw1,num_nw1*npvals,MPI_REAL,mynw,tag_se,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-    if ( num_se1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_nw = 1000 + num_se1
-       call mpi_isend(droplet_se1,num_se1*npvals,MPI_REAL,myse,tag_nw,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-    if ( num_sw1 .ne. 0 ) then
-       n_send = n_send + 1
-       tag_ne = 1000 + num_sw1
-       call mpi_isend(droplet_sw1,num_sw1*npvals,MPI_REAL,mysw,tag_ne,MPI_COMM_WORLD, &
-                      reqs2(n_send),ierr)
-    end if
-
-    ! MPI step 6: update the "holes" in "pdata" with the new droplets entering 
-    !             the current MPI region from the nearest neighbor
-    n = 1
-    k = 1
-    do while( n .le. n_recv )
-       call mpi_waitany(n_recv,reqs2(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
-       if ( indx .eq. index_n ) then
-          do i = 1, num_n2
-             pdata(holes_ind(k),:) = droplet_n2(i,:)
-             k = k + 1
-          end do
-       else if ( indx .eq. index_s ) then
-          do i = 1, num_s2
-             pdata(holes_ind(k),:) = droplet_s2(i,:)
-             k = k + 1
-          end do
-       else if ( indx .eq. index_w ) then
-          do i = 1, num_w2
-             pdata(holes_ind(k),:) = droplet_w2(i,:)
-             k = k + 1
-          end do
-       else if ( indx .eq. index_e ) then
-          do i = 1, num_e2
-             pdata(holes_ind(k),:) = droplet_e2(i,:)
-             k = k + 1
-          end do
-       else if ( indx .eq. index_ne ) then
-          do i = 1, num_ne2
-             pdata(holes_ind(k),:) = droplet_ne2(i,:)
-             k = k + 1
-          end do
-       else if ( indx .eq. index_nw ) then
-          do i = 1, num_nw2
-             pdata(holes_ind(k),:) = droplet_nw2(i,:)
-             k = k + 1
-          end do
-       else if ( indx .eq. index_se ) then
-          do i = 1, num_se2
-             pdata(holes_ind(k),:) = droplet_se2(i,:)
-             k = k + 1
-          end do
-       else if ( indx .eq. index_sw ) then
-          do i = 1, num_sw2
-             pdata(holes_ind(k),:) = droplet_sw2(i,:)
-             k = k + 1
-          end do
-       end if
-       n = n + 1
-    end do
-
-    ! make sure that all the non-blocking MPI send operations are complete
-    n_send = n_send - 8
-    if ( n_send .ge. 1 ) then
-       call mpi_waitall (n_send,reqs2(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
-    endif
+    call comm_droplet_value(holes_ind,num1,num2,pdata,pdata_neighbor)
 
     !$acc update device(pdata)
 
     ! free up the memory for temporary variables
     deallocate(holes_ind)
-    if (allocated(droplet_n1))  deallocate(droplet_n1)
-    if (allocated(droplet_n2))  deallocate(droplet_n2)
-    if (allocated(droplet_s1))  deallocate(droplet_s1)
-    if (allocated(droplet_s2))  deallocate(droplet_s2)
-    if (allocated(droplet_w1))  deallocate(droplet_w1)
-    if (allocated(droplet_w2))  deallocate(droplet_w2)
-    if (allocated(droplet_e1))  deallocate(droplet_e1)
-    if (allocated(droplet_e2))  deallocate(droplet_e2)
-    if (allocated(droplet_ne1)) deallocate(droplet_ne1)
-    if (allocated(droplet_ne2)) deallocate(droplet_ne2)
-    if (allocated(droplet_nw1)) deallocate(droplet_nw1)
-    if (allocated(droplet_nw2)) deallocate(droplet_nw2)
-    if (allocated(droplet_se1)) deallocate(droplet_se1)
-    if (allocated(droplet_se2)) deallocate(droplet_se2)
-    if (allocated(droplet_sw1)) deallocate(droplet_sw1)
-    if (allocated(droplet_sw2)) deallocate(droplet_sw2)
 
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif
@@ -1501,10 +1069,10 @@
       real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval,tval
       real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
       integer, intent(inout), dimension(nparcels_mpi,3) :: pdata_locind
-      integer, intent(out) :: neighbor  ! indicate which MPI region a droplet 
-                                        ! stays after this time step 
       real, intent(out) :: Nup,rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
+      integer, intent(out), optional :: neighbor  ! indicate which MPI region a droplet 
+                                                  ! stays after this time step 
 
       integer :: nrkp
 
@@ -1652,8 +1220,11 @@
       ! just assume periodic lateral boundary conditions
       ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
 
-      ! JS: determine which new MPI region this droplet 
-      !     enters or stays for the next time step
+#ifdef MPI
+
+      ! determine which new MPI region this droplet 
+      ! enters or stays for the next time step
+
       if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and.  &
            y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
            neighbor = undefined_index   ! undefined_index means this droplet
@@ -1678,6 +1249,8 @@
       else if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. &
                 y3d .gt. yf(nj+1) ) then
            neighbor = mynorth
+      else
+           stop "This section should be never entered!"
       end if
 
       if ( neighbor .ne. undefined_index ) then
@@ -1685,6 +1258,8 @@
          pdata_locind(np,2) = undefined_index
          pdata_locind(np,3) = undefined_index
       end if
+
+#endif
 
       if ( x3d .lt. minx ) then
          x3d = x3d + ( maxx - minx )
