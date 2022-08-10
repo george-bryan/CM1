@@ -2230,7 +2230,8 @@
       allocate( reqt(d3t) )
       reqt = 0
 
-      nparcels_mpi = ceiling(nparcels*1.0/numprocs)+pdata_buffer
+      nparcels_mpi = ceiling(nparcels*1.0/numprocs+pdata_buffer*nparcels)
+
       !$acc update device (nparcels_mpi)
 
       allocate(  pdata(nparcels_mpi,npvals) )

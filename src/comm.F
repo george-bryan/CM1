@@ -12889,6 +12889,39 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
           stop "Stop the program ..."
       end if
 
+#if 1 
+      ! sanity check: if the total number of leaving droplets matches
+      !               the total number of entering droploets across 
+      !               all the MPI ranks
+
+      n_send = sum(num1)
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,n_send,1,MPI_INT, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(n_send,n_send,1,MPI_INT, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      end if
+
+      n_recv = sum(num2)
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,n_recv,1,MPI_INT, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(n_recv,n_recv,1,MPI_INT, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      end if
+
+      if ( myid == 0 ) then
+         if ( n_send .ne. n_recv ) then
+            write(*,*) "Unmatched total leaving droplets vs. total entering droplets..."
+            write(*,*) "Total leaving droplets: ", n_send
+            write(*,*) "Total entering droplets: ", n_recv
+            stop "Stop the program ..."
+         end if
+      end if
+#endif
+
     end subroutine comm_droplet_number
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
