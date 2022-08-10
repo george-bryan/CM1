@@ -1897,7 +1897,7 @@
       if ( myid == 0 ) then
 #endif
       write(6,200) 'rtime', rtime
-      write(6,200) 'tnumpart', dble(tnumpart)
+      write(6,200) 'tnumpart', real(tnumpart)
       write(6,200) 'radavg',radavg
       write(6,200) 'radmin',radmin
       write(6,200) 'radmax',radmax

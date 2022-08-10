@@ -471,6 +471,12 @@
              end if ! end of if statement for prcl_droplet == 1
 
              i = i + 1
+   
+             if ( i .gt. nparcels_mpi ) then
+                write(*,*) "Not enough space to initialize the droplets on myid = ", myid 
+                write(*,*) 'Please increase the value of "pdata_buffer" in the constants.F'
+                stop "Stop the program..."
+             end if
 
           end if    ! end of if statement for xfref/yfref check
 
