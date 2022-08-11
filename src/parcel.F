@@ -695,13 +695,13 @@
       use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ibm,iem,jbm,jem, &
           kbm,kem,numq,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt,jet,kbt,ket,npt,ierr, &
           ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibdq,iedq,jbdq,jedq,kbdq,kedq, &
-          nqdiag,jmp,imp,kmp,rmp,cmp,kmt,ibp,iep,jbp,jep,kbp,kep,nparcels,npvals,npvars, &
+          nqdiag,jmp,imp,kmp,rmp,cmp,kmt,ibp,iep,jbp,jep,kbp,kep,nparcels_mpi,npvals,npvars, &
           ni,nj,nk,nqv,nql1,nql2,nqs1,nqs2,nqv,imoist,timestats,mytime,time_phys_d2h, &
           imoist,iice,time_parceli,bbc,tbc,rdz,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,imove, &
           qd_dbz,rdx,rdy,nx,ny,myi,myj,nodex,nodey,myid,nip1,njp1,nkp1,axisymm,nnc1, &
           umove,vmove,prth,prt,prqsl,prqsi,prvpg,prb,prprs,prrho,prpt1,prqv,prq1,prnc1, &
           prkm,prkh,prtke,prdbz,przv,prx,pry,prz,prtime,prq2,prnc2,prznt,prust,pru,prv, &
-          prw,prsig,time_parceli_reduce,terrain_flag,nparcels_mpi
+          prw,prsig,time_parceli_reduce,terrain_flag
       use constants
       use cm1libs , only : rslf,rsif
       use bc_module, only: bcu2_GPU, bcv2_GPU, bcw2_GPU
@@ -1750,9 +1750,6 @@
     ENDDO  nploop2
     if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
-    ! JS: no need to use MPI_REDUCE since different MPI ranks work on
-    !     different parcels now in the new MPI implementation
-
 !----------------------------------------------------------------------
 
 
@@ -1766,7 +1763,7 @@
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
       use input, only : maxq,maxvars,nparcels,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile,nparcels_mpi,numprocs,ierr
+          maxstring,string,outfile,numprocs,ierr,nparcels_mpi
 #ifdef MPI
       use mpi
 #endif
@@ -2046,11 +2043,6 @@
       ENDIF  zsmyparcel
 
     ENDDO  zsnploop
-
-! JS: comment out the section below with the new MPI implementation for droplets
-!#ifdef MPI
-!    call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,przs) ,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-!#endif
 
       end subroutine getparcelzs
 

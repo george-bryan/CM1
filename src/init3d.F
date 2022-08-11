@@ -478,7 +478,7 @@
                 stop "Stop the program..."
              end if
 
-          end if    ! end of if statement for xfref/yfref check
+          end if    ! end of if statement for xf/yf check
 
         end do      ! end of loop for nparcels
 

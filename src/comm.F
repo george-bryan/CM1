@@ -12777,8 +12777,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
       i = 1
       do n = 1, nparcels_mpi
-         if ( pdata_locind(n,1) .eq. undefined_index .and. &
-              pdata_locind(n,2) .eq. undefined_index ) then
+         if ( (pdata_locind(n,1) .eq. undefined_index) .and. &
+              (pdata_locind(n,2) .eq. undefined_index) ) then
             ! record the location index that can be used to store the new droplet
             ! information after the old drolpet leaves the current MPI region
             holes_ind(i) = n
@@ -12800,7 +12800,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
             else if ( pdata_neighbor(n) .eq. myse ) then
                num1(ise) = num1(ise) + 1
             else
-               cycle  ! this is a "hole" of "pdata"
+               cycle  ! this is an existing "hole" of "pdata"
                       ! no action is needed
             end if
          end if
@@ -12889,7 +12889,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
           stop "Stop the program ..."
       end if
 
-#if 1 
+#if 0 
       ! sanity check: if the total number of leaving droplets matches
       !               the total number of entering droploets across 
       !               all the MPI ranks
@@ -12931,7 +12931,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
     subroutine comm_droplet_value(holes_ind,num1,num2,pdata,pdata_neighbor)
 
       use input, only : myid,nparcels_mpi,npvals,mynw,mysw,myne, &
-                        myse,myeast,mywest,mynorth,mysouth,ierr
+                        myse,myeast,mywest,mynorth,mysouth,ierr,pract
       use constants, only: undefined_index,neg_huge,num_nn,inorth, &
                            isouth,iwest,ieast,inw,ine,isw,ise
       use mpi
@@ -12960,9 +12960,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
                                            droplet_e2, droplet_nw2, droplet_ne2, &
                                            droplet_sw2, droplet_se2
       integer :: n_idx,s_idx,w_idx,e_idx,nw_idx,ne_idx,sw_idx,se_idx
-      integer :: reqs(16)
-      integer :: tag_n,tag_s,tag_w,tag_e,tag_nw,tag_ne,tag_sw,tag_se, &
-                 index_n,index_s,index_w,index_e,index_nw,index_ne, &
+      integer :: reqs(16),tag(num_nn,2)
+      integer :: index_n,index_s,index_w,index_e,index_nw,index_ne, &
                  index_sw,index_se,n_recv,n_send
       integer, dimension(mpi_status_size,16) :: status1
       integer :: i,k,n,indx
@@ -12978,14 +12977,10 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       index_ne = undefined_index
       index_se = undefined_index
 
-      tag_n    = undefined_index
-      tag_s    = undefined_index
-      tag_w    = undefined_index
-      tag_e    = undefined_index
-      tag_nw   = undefined_index
-      tag_sw   = undefined_index
-      tag_ne   = undefined_index
-      tag_se   = undefined_index
+      do i = 1, num_nn
+         tag(i,1) = undefined_index
+         tag(i,2) = undefined_index
+      end do 
 
       ! allocate spaces to store the droplets that will leave the current MPI region
 
@@ -13044,7 +13039,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
             se_idx = se_idx + 1
             pdata(n,:) = neg_huge
          else
-            cycle   ! this droplet stays at the same MPI region;
+            cycle   ! this droplet stays at the same MPI region or this is a "hole";
                     ! no action is needed
          end if
       end do
@@ -13066,58 +13061,58 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       n_recv   = 0
       if ( num2(inorth) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_n  = 1000 + num2(inorth)
+         tag(inorth,2)  = 1000 + num2(inorth)
          call mpi_irecv(droplet_n2,num2(inorth)*npvals,MPI_REAL, &
-                        mynorth,tag_n,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        mynorth,tag(inorth,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_n = n_recv
       end if
       if ( num2(isouth) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_s  = 1000 + num2(isouth)
+         tag(isouth,2)  = 1000 + num2(isouth)
          call mpi_irecv(droplet_s2,num2(isouth)*npvals,MPI_REAL, &
-                        mysouth,tag_s,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        mysouth,tag(isouth,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_s = n_recv
       end if
       if ( num2(iwest) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_w  = 1000 + num2(iwest)
+         tag(iwest,2)  = 1000 + num2(iwest)
          call mpi_irecv(droplet_w2,num2(iwest)*npvals,MPI_REAL, &
-                        mywest,tag_w,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        mywest,tag(iwest,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_w = n_recv
       end if
       if ( num2(ieast) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_e  = 1000 + num2(ieast)
+         tag(ieast,2)  = 1000 + num2(ieast)
          call mpi_irecv(droplet_e2,num2(ieast)*npvals,MPI_REAL, &
-                        myeast,tag_e,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        myeast,tag(ieast,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_e = n_recv
       end if
       if ( num2(inw) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_nw = 1000 + num2(inw)
+         tag(inw,2) = 1000 + num2(inw)
          call mpi_irecv(droplet_nw2,num2(inw)*npvals,MPI_REAL, &
-                        mynw,tag_nw,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        mynw,tag(inw,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_nw = n_recv
       end if
       if ( num2(ine) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_ne = 1000 + num2(ine)
+         tag(ine,2) = 1000 + num2(ine)
          call mpi_irecv(droplet_ne2,num2(ine)*npvals,MPI_REAL, &
-                        myne,tag_ne,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        myne,tag(ine,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_ne = n_recv
       end if
       if ( num2(isw) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_sw = 1000 + num2(isw)
+         tag(isw,2) = 1000 + num2(isw)
          call mpi_irecv(droplet_sw2,num2(isw)*npvals,MPI_REAL, &
-                        mysw,tag_sw,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        mysw,tag(isw,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_sw = n_recv
       end if
       if ( num2(ise) .ne. 0 ) then
          n_recv = n_recv + 1
-         tag_se = 1000 + num2(ise)
+         tag(ise,2) = 1000 + num2(ise)
          call mpi_irecv(droplet_se2,num2(ise)*npvals,MPI_REAL, &
-                        myse,tag_se,MPI_COMM_WORLD,reqs(n_recv),ierr)
+                        myse,tag(ise,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
          index_se = n_recv
       end if
 
@@ -13127,51 +13122,51 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       n_send = 8
       if ( num1(inorth) .ne. 0 ) then
          n_send = n_send + 1
-         tag_s = 1000 + num1(inorth)
+         tag(isouth,1) = 1000 + num1(inorth)
          call mpi_isend(droplet_n1,num1(inorth)*npvals,MPI_REAL, &
-                        mynorth,tag_s,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        mynorth,tag(isouth,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
       if ( num1(isouth) .ne. 0 ) then
          n_send = n_send + 1
-         tag_n = 1000 + num1(isouth)
+         tag(inorth,1) = 1000 + num1(isouth)
          call mpi_isend(droplet_s1,num1(isouth)*npvals,MPI_REAL, &
-                        mysouth,tag_n,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        mysouth,tag(inorth,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
       if ( num1(iwest) .ne. 0 ) then
          n_send = n_send + 1
-         tag_e = 1000 + num1(iwest)
+         tag(ieast,1) = 1000 + num1(iwest)
          call mpi_isend(droplet_w1,num1(iwest)*npvals,MPI_REAL, &
-                        mywest,tag_e,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        mywest,tag(ieast,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
       if ( num1(ieast) .ne. 0 ) then
          n_send = n_send + 1
-         tag_w = 1000 + num1(ieast)
+         tag(iwest,1) = 1000 + num1(ieast)
          call mpi_isend(droplet_e1,num1(ieast)*npvals,MPI_REAL, &
-                        myeast,tag_w,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        myeast,tag(iwest,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
       if ( num1(inw) .ne. 0 ) then
          n_send = n_send + 1
-         tag_se = 1000 + num1(inw)
+         tag(ise,1) = 1000 + num1(inw)
          call mpi_isend(droplet_nw1,num1(inw)*npvals,MPI_REAL, &
-                        mynw,tag_se,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        mynw,tag(ise,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
       if ( num1(ine) .ne. 0 ) then
          n_send = n_send + 1
-         tag_sw = 1000 + num1(ine)
+         tag(isw,1) = 1000 + num1(ine)
          call mpi_isend(droplet_ne1,num1(ine)*npvals,MPI_REAL, &
-                        myne,tag_sw,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        myne,tag(isw,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
       if ( num1(isw) .ne. 0 ) then
          n_send = n_send + 1
-         tag_ne = 1000 + num1(isw)
+         tag(ine,1) = 1000 + num1(isw)
          call mpi_isend(droplet_sw1,num1(isw)*npvals,MPI_REAL, &
-                        mysw,tag_ne,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        mysw,tag(ine,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
       if ( num1(ise) .ne. 0 ) then
          n_send = n_send + 1
-         tag_nw = 1000 + num1(ise)
+         tag(inw,1) = 1000 + num1(ise)
          call mpi_isend(droplet_se1,num1(ise)*npvals,MPI_REAL, &
-                        myse,tag_nw,MPI_COMM_WORLD,reqs(n_send),ierr)
+                        myse,tag(inw,1),MPI_COMM_WORLD,reqs(n_send),ierr)
       end if
 
       ! update the "holes" in "pdata" with the new droplets that

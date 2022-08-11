@@ -36,7 +36,7 @@
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          nparcels_mpi,ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcels_mpi
       use constants
       use comm_module
       use misclibs
@@ -133,7 +133,9 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      pdata_neighbor = undefined_index
+      do np = 1, nparcels_mpi
+         pdata_neighbor(np) = undefined_index
+      end do
 
       !$acc data create (ta,zf_tmp) &
       !$acc      copyin (randomNumbers,randomNumbers%state, &
@@ -329,12 +331,15 @@
   ENDIF  haveit1
 
 #ifdef MPI
-      ! check for conflict:
-    IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
-        (jflag.ge.1.and.jflag.le.nj) )THEN
-      IF( iflag.eq.ni .and. pdata(np,prx).eq.xf(iflag+1) .and. nodex.gt.1 .and.  myi.ne.nodex ) iflag = -1
-      IF( jflag.eq.nj .and. pdata(np,pry).eq.yf(jflag+1) .and. nodey.gt.1 .and.  myj.ne.nodey ) jflag = -1
-    ENDIF
+! JS: comment out this conflict check for the new MPI interface;
+!     otherwise there will be a droplet leak
+
+!      ! check for conflict:
+!    IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
+!        (jflag.ge.1.and.jflag.le.nj) )THEN
+!      IF( iflag.eq.ni .and. pdata(np,prx).eq.xf(iflag+1) .and. nodex.gt.1 .and.  myi.ne.nodex ) iflag = -1
+!      IF( jflag.eq.nj .and. pdata(np,pry).eq.yf(jflag+1) .and. nodey.gt.1 .and.  myj.ne.nodey ) jflag = -1
+!    ENDIF
 #endif
 
       myparcel:  IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
@@ -404,11 +409,11 @@
 
 #ifdef MPI
       call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
-
       pdata_neighbor(np) = neighbor 
 #else
       call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
 #endif
+
       ENDIF dropmethod
 
 
@@ -645,8 +650,8 @@
 
     num_holes = 0
     do np = 1, nparcels_mpi
-       if ( pdata_locind(np,1) .eq. undefined_index .and. &
-            pdata_locind(np,2) .eq. undefined_index ) then
+       if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
+            (pdata_locind(np,2) .eq. undefined_index) ) then
           num_holes = num_holes + 1
        end if
     end do
@@ -1209,11 +1214,13 @@
       if ( z3d .gt. top ) then
          z3d = top - (z3d - top)
          pdata(np,prvpz) = -pdata(np,prvpz)
+         pdata_locind(np,3) = undefined_index
       elseif ( z3d .lt. bot ) then
          !z3d = 1.0e-6  !Just temporary 
          !pdata(np,pract) = -1.0  !Signal this as no longer alive
          z3d = bot + (bot-z3d)
          pdata(np,prvpz) = -pdata(np,prvpz)
+         pdata_locind(np,3) = undefined_index
       endif
 
       ! New for cm1r17:  if parcel exits domain,
@@ -1225,46 +1232,46 @@
       ! determine which new MPI region this droplet 
       ! enters or stays for the next time step
 
-      if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and.  &
-           y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
+      if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and.  &
+           (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
            neighbor = undefined_index   ! undefined_index means this droplet
                                         ! stays within the same MPI region
-      else if ( x3d .lt. xf(1) .and. y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
+      else if ( (x3d .lt. xf(1)) .and. (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
            if ( x3d .lt. xf(1)-dx*ni ) then
               stop "Jump over the west nearest neighbor"
            end if
            neighbor = mywest
-      else if ( x3d .lt. xf(1) .and. y3d .lt. yf(1) ) then
+      else if ( (x3d .lt. xf(1)) .and. (y3d .lt. yf(1)) ) then
            if ( (x3d .lt. xf(1)-dx*ni) .or. (y3d .lt. yf(1)-dy*nj) ) then
               stop "Jump over the southwest nearest neighbor"
            end if
            neighbor = mysw
-      else if ( x3d .lt. xf(1) .and. y3d .gt. yf(nj+1) ) then
+      else if ( (x3d .lt. xf(1)) .and. (y3d .gt. yf(nj+1)) ) then
            if ( (x3d .lt. xf(1)-dx*ni) .or. (y3d .gt. yf(nj+1)+dy*nj) ) then
               stop "Jump over the northwest nearest neighbor"
            end if
            neighbor = mynw
-      else if ( x3d .gt. xf(ni+1) .and. y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
+      else if ( (x3d .gt. xf(ni+1)) .and. (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
            if ( x3d .gt. xf(ni+1)+dx*ni ) then
               stop "Jump over the east nearest neighbor"
            end if
            neighbor = myeast
-      else if ( x3d .gt. xf(ni+1) .and. y3d .lt. yf(1) ) then
+      else if ( (x3d .gt. xf(ni+1)) .and. (y3d .lt. yf(1)) ) then
            if ( (x3d .gt. xf(ni+1)+dx*ni) .or. (y3d .lt. yf(1)-dy*nj) ) then
               stop "Jump over the southeast nearest neighbor"
            end if
            neighbor = myse
-      else if ( x3d .gt. xf(ni+1) .and. y3d .gt. yf(nj+1) ) then
+      else if ( (x3d .gt. xf(ni+1)) .and. (y3d .gt. yf(nj+1)) ) then
            if ( (x3d .gt. xf(ni+1)+dx*ni) .or. (y3d .gt. yf(nj+1)+dy*nj) ) then
               stop "Jump over the northeast nearest neighbor"
            end if
            neighbor = myne
-      else if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. y3d .lt. yf(1) ) then
+      else if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and. (y3d .lt. yf(1)) ) then
            if ( y3d .lt. yf(1)-dy*nj ) then
               stop "Jump over the south nearest neighbor"
            end if
            neighbor = mysouth
-      else if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. y3d .gt. yf(nj+1) ) then
+      else if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and. (y3d .gt. yf(nj+1)) ) then
            if ( y3d .gt. yf(nj+1)+dy*nj ) then
               stop "Jump over the north nearest neighbor"
            end if
@@ -1917,7 +1924,7 @@
       if ( myid == 0 ) then
 #endif
       write(6,200) 'rtime', rtime
-      write(6,200) 'tnumpart', real(tnumpart)
+      write(6,200) 'tnumpart',real(tnumpart)
       write(6,200) 'radavg',radavg
       write(6,200) 'radmin',radmin
       write(6,200) 'radmax',radmax
