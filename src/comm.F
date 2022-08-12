@@ -13053,7 +13053,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if ( num2(inw) .ne. 0 ) allocate(droplet_nw2(num2(inw),npvals))
       if ( num2(ine) .ne. 0 ) allocate(droplet_ne2(num2(ine),npvals))
       if ( num2(isw) .ne. 0 ) allocate(droplet_sw2(num2(isw),npvals))
-      if ( num2(ise) .ne. 0 ) allocate(droplet_ne2(num2(ise),npvals))
+      if ( num2(ise) .ne. 0 ) allocate(droplet_se2(num2(ise),npvals))
 
       ! initiate the MPI non-blocking receive interface to 
       ! obtain new droplet information from the nearest neighbors
