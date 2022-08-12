@@ -1762,8 +1762,8 @@
 
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-      use input, only : maxq,maxvars,nparcels,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile,numprocs,ierr,nparcels_mpi
+      use input, only : maxq,maxvars,nparcels_mpi,npvals,output_format,myid,dowr, &
+          maxstring,string,outfile,numprocs,ierr
 #ifdef MPI
       use mpi
 #endif
@@ -1777,10 +1777,13 @@
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
       real, intent(in), dimension(nparcels_mpi,npvals) :: pdata
-      real, intent(inout), dimension(nparcels,3) :: ploc
+      real, intent(inout), dimension(nparcels_mpi,3) :: ploc
 
       integer :: i,n,np
+
+#ifdef MPI
       real, dimension(:,:),allocatable :: rbuf
+#endif
 
 !----------------------------------------------------------------------
 !  write out data
@@ -1790,6 +1793,7 @@
     ! JS: use MPI_GATHER to collect all the droplet information
     !     from different MPI ranks;
     !     write out the "holes" with garbage information as well
+
 #ifdef MPI
     if ( myid .eq. 0 ) allocate(rbuf(nparcels_mpi*numprocs,npvals))
     call mpi_gather(pdata,npvals*nparcels_mpi,MPI_REAL, &
@@ -1821,11 +1825,17 @@
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  pdata prec = ',prec
 
+#ifdef MPI
         write(61,rec=prec) ((rbuf(np,n),np=1,nparcels_mpi*numprocs),n=1,npvals)
-        
+#else
+        write(61,rec=prec) ((pdata(np,n),np=1,nparcels_mpi*numprocs),n=1,npvals)
+#endif
+
         close(unit=61)
-     
+
+#ifdef MPI     
         deallocate(rbuf)
+#endif
 
 #ifdef NETCDF
       ELSEIF(output_format.eq.2)THEN

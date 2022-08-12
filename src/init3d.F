@@ -471,13 +471,13 @@
              end if ! end of if statement for prcl_droplet == 1
 
              i = i + 1
-   
+#ifdef MPI   
              if ( i .gt. nparcels_mpi ) then
                 write(*,*) "Not enough space to initialize the droplets on myid = ", myid 
                 write(*,*) 'Please increase the value of "pdata_buffer" in the constants.F'
                 stop "Stop the program..."
              end if
-
+#endif
           end if    ! end of if statement for xf/yf check
 
         end do      ! end of loop for nparcels
