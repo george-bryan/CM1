@@ -1,4 +1,4 @@
-#ifdef _OPENACC
+#ifdef _CUDAMEM
 module cuda_rt
 
   use iso_c_binding
@@ -70,6 +70,8 @@ end module cuda_rt
 #endif
 #ifdef _OPENACC
       use openacc
+#endif
+#ifdef _CUDAMEM
       use iso_c_binding
       use cuda_rt
 #endif
@@ -289,7 +291,7 @@ end module cuda_rt
 
       integer, dimension(:,:), allocatable :: pdata_locind  ! 2-D array to store parcel x/y/z location index
 
-#ifdef _OPENACC
+#ifdef _CUDAMEM
       type(c_ptr) :: cpfre, cptot
       integer*8, target :: freemem, totmem
       integer*4   :: stat
@@ -4613,7 +4615,7 @@ end module cuda_rt
       print *,'Program terminated normally'
 #endif
 
-#ifdef _OPENACC
+#ifdef _CUDAMEM
       cpfre = c_loc(freemem)
       cptot = c_loc(totmem)
       stat = cudaMemGetInfo(cpfre, cptot)
