@@ -1,3 +1,21 @@
+#ifdef _CUDAMEM
+module cuda_rt
+
+  use iso_c_binding
+
+  interface
+     !
+     integer (c_int) function cudaMemGetInfo(fre, tot) bind(C, name="cudaMemGetInfo")
+       use iso_c_binding
+       implicit none
+       type(c_ptr),value :: fre
+       type(c_ptr),value :: tot
+     end function cudaMemGetInfo
+     !
+  end interface
+
+end module cuda_rt
+#endif
 
       program cm1
 
@@ -52,6 +70,10 @@
 #endif
 #ifdef _OPENACC
       use openacc
+#endif
+#ifdef _CUDAMEM
+      use iso_c_binding
+      use cuda_rt
 #endif
 #ifdef _NVTX
       use nvtx_mod
@@ -268,6 +290,12 @@
 #endif
 
       integer, dimension(:,:), allocatable :: pdata_locind  ! 2-D array to store parcel x/y/z location index
+
+#ifdef _CUDAMEM
+      type(c_ptr) :: cpfre, cptot
+      integer*8, target :: freemem, totmem
+      integer*4   :: stat
+#endif
 
 !----------------------------------------------------------------------
 
@@ -4585,6 +4613,22 @@
       endif
 #else
       print *,'Program terminated normally'
+#endif
+
+#ifdef _CUDAMEM
+      cpfre = c_loc(freemem)
+      cptot = c_loc(totmem)
+      stat = cudaMemGetInfo(cpfre, cptot)
+      if (stat .ne. 0 ) then
+         write (*,*)
+         write (*, '(A15, I2)') " CUDA error: ", stat
+         write (*,*)
+         stop
+      end if
+
+      write (*, '(A, F6.2, A)') "  free: ", dble(freemem)/1024.0/1024.0/1024.0, " GB"
+      write (*, '(A, F6.2, A)') " total: ", dble(totmem)/1024.0/1024.0/1024.0, " GB"
+      write (*, '(A, F6.2, A)') "  used: ", dble(totmem)/1024.0/1024.0/1024.0 - dble(freemem)/1024.0/1024.0/1024.0, " GB"
 #endif
 
       stop

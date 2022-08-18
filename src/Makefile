@@ -35,6 +35,7 @@ USE_DOUBLE_L  = $(shell echo $(USE_DOUBLE) | tr A-Z a-z)
 USE_OPENACC_L = $(shell echo $(USE_OPENACC) | tr A-Z a-z)
 USE_NETCDF_L  = $(shell echo $(USE_NETCDF) | tr A-Z a-z)
 DEBUG_L       = $(shell echo $(DEBUG) | tr A-Z a-z)
+USE_CUDAMEM_L = $(shell echo $(USE_CUDAMEM) | tr A-Z a-z)
 
 #-----------------------------------------------------------------------------
 #  initialize some options as empty
@@ -105,6 +106,9 @@ ifeq (${FC},nvfortran)
             OPTS_M += -acc -gpu=cc70,lineinfo,nofma,math_uniform,managed -Mpcast -Minfo=accel
         endif
         DM       += -D_OPENACC
+    endif
+    ifeq (${USE_CUDAMEM_L},true)
+        DM       += -D_CUDAMEM
     endif
 endif
 
@@ -297,7 +301,11 @@ OBJS_OPENACC = $(addsuffix .o, $(basename $(SRC_NVTX)))
 
 FFLAGS  = $(OPTS)
 ifeq (${USE_OPENACC_L},true)
-FFLAGS_M = $(OPTS_M) # -L/glade/u/apps/opt/nvhpc/22.2/Linux_x86_64/22.2/cuda/11.6/lib64 -lcudart
+ifeq (${USE_CUDAMEM_L},true)
+FFLAGS_M = $(OPTS_M) -L/glade/u/apps/opt/nvhpc/22.2/Linux_x86_64/22.2/cuda/11.6/lib64 -lcudart
+else
+FFLAGS_M = $(OPTS_M)
+endif
 else
 FFLAGS_M = $(OPTS)
 endif
