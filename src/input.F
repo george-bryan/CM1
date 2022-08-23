@@ -158,13 +158,13 @@
               bl_mynn_mixlength,bl_mynn_edmf,                                 &
               bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,           &
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
-              nutk,nvtk,nwtk,nparcels_mpi
+              nutk,nvtk,nwtk,nparcelsLocal
 
       !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,   &
       !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist, &
       !$acc                 nqv,bbc,imove,prvpx,prvpy,prvpz,prrp,prms,prtp, &
       !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,   &
-      !$acc                 prt,prqv,prprs,prrho,nparcels_mpi)
+      !$acc                 prt,prqv,prprs,prrho,nparcelsLocal)
 
 !-----------------------------------------------------------------------
 

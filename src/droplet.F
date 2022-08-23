@@ -36,7 +36,7 @@
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcels_mpi
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal
       use constants
       use comm_module
       use misclibs
@@ -72,7 +72,7 @@
       real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua,uten
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va,vten
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa,wten
-      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
 
       real, intent(inout), dimension(jmp,kmp) :: pw1,pw2,pe1,pe2
       real, intent(inout), dimension(imp,kmp) :: ps1,ps2,pn1,pn2
@@ -83,7 +83,7 @@
       real, intent(inout), dimension(imp,cmp,kmp)   :: ss31,ss32,sn31,sn32
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
-      integer, intent(inout), dimension(nparcels_mpi,3) :: pdata_locind    ! x/y/z location index of each parcel
+      integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -106,7 +106,7 @@
       logical, parameter :: debug = .false.
 
       type(randomNumberSequence) :: randomNumbers
-      real, dimension(kb:ke+1) :: zf_tmp
+!      real, dimension(kb:ke+1) :: zf_tmp
 
 #ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
@@ -116,7 +116,7 @@
       integer :: num2(num_nn)                              ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
-      integer, dimension(nparcels_mpi) :: pdata_neighbor   ! array to store the new MPI region info for all the droplets
+      integer, dimension(nparcelsLocal) :: pdata_neighbor   ! array to store the new MPI region info for all the droplets
 #endif
 
 #ifdef _VERIFY_FIND_LOC
@@ -133,11 +133,11 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      do np = 1, nparcels_mpi
+      do np = 1, nparcelsLocal
          pdata_neighbor(np) = undefined_index
       end do
 
-      !$acc data create (ta,zf_tmp) &
+      !$acc data create (ta) &
       !$acc      copyin (randomNumbers,randomNumbers%state, &
       !$acc              pdata_neighbor)
 #else
@@ -290,10 +290,10 @@
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
-    !$acc loop gang vector private(zf_tmp)
+    !$acc loop gang vector
 #endif
     nploop:  &
-    DO np=1,nparcels_mpi
+    DO np=1,nparcelsLocal
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -350,11 +350,16 @@
         !JS-KLUDGE: Somehow I have to use the zf_tmp variable 
         !           for the find_vertical* subroutine,
         !           otherwise the GPU code breaks for nparcels > ~2000
-        !$acc loop seq
-        do k = kb, ke+1
-           zf_tmp(k) = zf(iflag,jflag,k)
+!        !$acc loop seq
+!        do k = kb, ke+1
+!           zf_tmp(k) = zf(iflag,jflag,k)
+!        end do
+        kflag = 1
+        do while ( z3d .ge. zf(iflag,jflag,kflag+1) )
+           kflag = kflag + 1
         end do
-        call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
+        pdata_locind(np,3) = kflag
+!        call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
       else
         call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
       endif
@@ -649,7 +654,7 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     num_holes = 0
-    do np = 1, nparcels_mpi
+    do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
           num_holes = num_holes + 1
@@ -694,7 +699,7 @@
 
       if( terrain_flag )then
             call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcels_mpi
+            DO np=1,nparcelsLocal
               ! get z from sigma:
               ! (see Section 3 of "The governing equations for CM1", 
               !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
@@ -711,7 +716,7 @@
 
       subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
       !$acc routine seq
-      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels_mpi,npvals,nx,ny,viscosity, &
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcelsLocal,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
           prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho
       use constants
@@ -741,8 +746,8 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(in), dimension(ib:ie,jb:je) :: znt
       real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval,tval
-      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
-      integer, intent(inout), dimension(nparcels_mpi,3) :: pdata_locind
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
+      integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind
 
       real, intent(out) :: Nup,rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
@@ -1042,7 +1047,7 @@
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
           prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho, &
-          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcels_mpi,myid,dx,dy
+          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal,myid,dx,dy
       use constants
       use comm_module
       use misclibs
@@ -1072,8 +1077,8 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(in), dimension(ib:ie,jb:je) :: znt
       real, intent(inout) :: x3d,y3d,z3d,sig3d,rhoval,tval
-      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
-      integer, intent(inout), dimension(nparcels_mpi,3) :: pdata_locind
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
+      integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind
       real, intent(out) :: Nup,rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
       integer, intent(out), optional :: neighbor  ! indicate which MPI region a droplet 
@@ -1323,7 +1328,7 @@
 
       subroutine interpolate_to_parcel(np,nrkp,pdata_locind,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
       !$acc routine seq
-      use input, only : ib,ie,jb,je,kb,ke,numq,nparcels_mpi,nx,ny, &
+      use input, only : ib,ie,jb,je,kb,ke,numq,nparcelsLocal,nx,ny, &
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove
       use constants
@@ -1347,7 +1352,7 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(in), dimension(ib:ie,jb:je) :: znt
-      integer, intent(inout), dimension(nparcels_mpi,3) :: pdata_locind    ! x/y/z location index of each parcel
+      integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
 
       integer, intent(in) :: np,nrkp
       integer, intent(inout) :: iflag,jflag,kflag
@@ -1733,8 +1738,8 @@
 
       integer, intent(inout) :: nrec
       real, intent(in) :: rtime
-      real, intent(in), dimension(nparcels_mpi,npvals) :: pdata
-      integer, intent(inout), dimension(nparcels_mpi,3) :: pdata_locind    ! x/y/z location index of each parcel
+      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
+      integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
       real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
 
@@ -1774,7 +1779,7 @@
       !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
-      do np=1,nparcels_mpi
+      do np=1,nparcelsLocal
          if (pdata(np,pract) .gt. 0.0) then
             tnumpart = tnumpart + 1
             radavg = radavg + pdata(np,prrp)
@@ -1875,7 +1880,7 @@
       !$acc end parallel
 
       !$acc parallel loop gang vector default(present) reduction(partnum)
-      do np=1,nparcels_mpi
+      do np=1,nparcelsLocal
          if (pdata(np,pract) .gt. 0.0) then
             kflag = 1
             call find_vertical_location_index (pdata_locind(np,3),pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)

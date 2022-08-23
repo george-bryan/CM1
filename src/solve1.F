@@ -148,7 +148,7 @@
           kbb2,kbe2,ibph,ieph,jbph,jeph,kbph,keph,ibnba,ienba,jbnba,jenba,kbnba,kenba, &
           nx,ny,nz,ni,nj,nk,ibm,iem,jbm,jem,kbm,kem,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt, &
           jet,kbt,ket,ibb,ieb,jbb,jeb,kbb,keb,ibr,ier,jbr,jer,kbr,ker,maxq,nbudget,numq,ngxy, &
-          nrain,npt,nparcels_mpi,npvals,ibl,iel,jbl,jel,ibp,iep,jbp,jep,kbp,kep,ib2pt,ie2pt, &
+          nrain,npt,nparcelsLocal,npvals,ibl,iel,jbl,jel,ibp,iep,jbp,jep,kbp,kep,ib2pt,ie2pt, &
           jb2pt,je2pt,kb2pt,ke2pt,ipb,ipe,jpb,jpe,kpb,kpe,rmp,cmp,kmt,imp,jmp,kmp,d3i,d3j, &
           d3t,d3n,d2i,d2j,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibdq,iedq,jbdq,jedq,kbdq, &
           kedq,nqdiag,ibdv,iedv,jbdv,jedv,kbdv,kedv,nudiag,nvdiag,nwdiag,ibdk,iedk,jbdk, &
@@ -263,7 +263,7 @@
       real, intent(inout), dimension(ibl:iel,jbl:jel,num_soil_layers) :: tslb
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d,ptten
-      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(in), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: cfb
       real, intent(in), dimension(kpb:kpe) :: cfa,cfc,ad1,ad2
       complex, intent(inout), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: pdt,lgbth,lgbph

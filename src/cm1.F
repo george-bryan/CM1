@@ -2259,18 +2259,18 @@ end module cuda_rt
       reqt = 0
 
 #ifdef MPI
-      nparcels_mpi = ceiling(nparcels*1.0/numprocs+pdata_buffer*nparcels)
+      nparcelsLocal = ceiling(nparcels*1.0/numprocs+pdata_buffer*nparcels)
 #else
-      nparcels_mpi = nparcels
+      nparcelsLocal = nparcels
 #endif
 
-      !$acc update device (nparcels_mpi)
+      !$acc update device (nparcelsLocal)
 
-      allocate(  pdata(nparcels_mpi,npvals) )
+      allocate(  pdata(nparcelsLocal,npvals) )
       pdata = 0.0
-      allocate(   ploc(nparcels_mpi,  3   ) )
+      allocate(   ploc(nparcelsLocal,  3   ) )
       ploc = 0.0
-      allocate(  pdata_locind(nparcels_mpi,3) )
+      allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
       allocate( dpten(ib:ie,jb:je,kb:ke,2) )

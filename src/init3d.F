@@ -119,7 +119,7 @@
       real, dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
       real, dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea,tke3d,tketen
       real, dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d,ptten
-      real, dimension(nparcels_mpi,npvals) :: pdata
+      real, dimension(nparcelsLocal,npvals) :: pdata
       real, dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: cfb
       real, dimension(kpb:kpe) :: cfa,cfc,ad1,ad2
       complex, dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: pdt,lgbth,lgbph
@@ -396,7 +396,7 @@
         !   pdata(*,prz) = z location (m ASL)
 
         ! initialize to really small number (so we can use the allreduce command below)
-        do n=1,nparcels_mpi
+        do n=1,nparcelsLocal
           pdata(n,prx) = neg_huge
           pdata(n,pry) = neg_huge
           pdata(n,prz) = neg_huge
@@ -405,7 +405,7 @@
 
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  Parcels ! '
-        if(dowr) write(outfile,*) '  npvals,nparcels_mpi = ',npvals,nparcels_mpi
+        if(dowr) write(outfile,*) '  npvals,nparcelsLocal = ',npvals,nparcelsLocal
         if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
 
         ! Use the deterministic random number generator from CESM:
@@ -472,7 +472,7 @@
 
              i = i + 1
 #ifdef MPI   
-             if ( i .gt. nparcels_mpi ) then
+             if ( i .gt. nparcelsLocal ) then
                 write(*,*) "Not enough space to initialize the droplets on myid = ", myid 
                 write(*,*) 'Please increase the value of "pdata_buffer" in the constants.F'
                 stop "Stop the program..."
@@ -507,13 +507,13 @@
 
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           ! 170719,  for 2d setup (x,z), fix all y values:
-          DO n=1,nparcels_mpi
+          DO n=1,nparcelsLocal
             pdata(n,pry) = 0.0
           ENDDO
         ENDIF
         IF(nx.eq.1)THEN
           ! 170719,  for 2d setup (y,z), fix all x values:
-          DO n=1,nparcels_mpi
+          DO n=1,nparcelsLocal
             pdata(n,prx) = 0.0
           ENDDO
         ENDIF
@@ -2145,7 +2145,7 @@
       real, dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: qa,q3d
       real, dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea,tke3d
       real, dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d
-      real, intent(inout), dimension(nparcels_mpi,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       logical, intent(in), dimension(ibib:ieib,jbib:jeib,kbib:keib) :: bndy
       integer, intent(in), dimension(ibib:ieib,jbib:jeib) :: kbdy
       integer, dimension(rmp) :: reqs_u,reqs_v,reqs_w,reqs_s,reqs_p,reqs_tk
@@ -2622,7 +2622,7 @@
         endif
         if( .not. restarted )then
           ! 181022:  not a restart ... initialize sigma
-          do n=1,nparcels_mpi
+          do n=1,nparcelsLocal
             ! get sigma from z:
             ! (see Section 3 of "The governing equations for CM1", 
             !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
@@ -2630,7 +2630,7 @@
           enddo
         else
           ! 181022:  this is a restart ... get z
-          do n=1,nparcels_mpi
+          do n=1,nparcelsLocal
             ! get z from sigma:
             ! (see Section 3 of "The governing equations for CM1", 
             !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
