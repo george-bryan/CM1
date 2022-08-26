@@ -119,7 +119,7 @@
       real, dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
       real, dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea,tke3d,tketen
       real, dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d,ptten
-      real, dimension(nparcels,npvals) :: pdata
+      real, dimension(nparcelsLocal,npvals) :: pdata
       real, dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: cfb
       real, dimension(kpb:kpe) :: cfa,cfc,ad1,ad2
       complex, dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: pdt,lgbth,lgbph
@@ -173,6 +173,8 @@
       !        (ie, different sets of random perturbations every time CM1 
       !        is used), then change this varliable to .true.
       logical, parameter :: use_truly_random_pert  =  .false.
+
+      real :: tmpx, tmpy, tmpz
 
 !--------------------------
 
@@ -394,16 +396,16 @@
         !   pdata(*,prz) = z location (m ASL)
 
         ! initialize to really small number (so we can use the allreduce command below)
-        do n=1,nparcels
-          pdata(n,prx) = -1.0e30
-          pdata(n,pry) = -1.0e30
-          pdata(n,prz) = -1.0e30
+        do n=1,nparcelsLocal
+          pdata(n,prx) = neg_huge
+          pdata(n,pry) = neg_huge
+          pdata(n,prz) = neg_huge
         enddo
 
 
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  Parcels ! '
-        if(dowr) write(outfile,*) '  npvals,nparcels = ',npvals,nparcels
+        if(dowr) write(outfile,*) '  npvals,nparcelsLocal = ',npvals,nparcelsLocal
         if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
 
         ! Use the deterministic random number generator from CESM:
@@ -412,54 +414,73 @@
         ! The generated random number is independent of compilers and MPI ranks
         randomNumbers = new_RandomNumberSequence(seed = nparcels)
 
+        i = 1
+
         do n=1,nparcels
+
           rand = getRandomReal(randomNumbers)
-          pdata(n,prx) = rand*maxx
+          tmpx = rand*maxx
           rand = getRandomReal(randomNumbers)
-          pdata(n,pry) = rand*maxy
+          tmpy = rand*maxy
           rand = getRandomReal(randomNumbers)
-          pdata(n,prz) = rand*maxz
+          tmpz = rand*maxz
 
-          !if(MODULO(n,100)==0) then 
-          if(dowr) write(outfile,*) n,pdata(n,prx),pdata(n,pry),pdata(n,prz)
-          !endif
+          ! check if this parcel falls into this MPI region
+          if ( tmpx .ge. xf(1) .and. tmpx .le. xf(ni+1) .and. &
+               tmpy .ge. yf(1) .and. tmpy .le. yf(nj+1) ) then
 
-          if (prcl_droplet.eq.1) then
+             pdata(i,prx) = tmpx
+             pdata(i,pry) = tmpy
+             pdata(i,prz) = tmpz
 
-            pdata(n,prvpx) = 0.0
-            pdata(n,prvpy) = 0.0
-            pdata(n,prvpz) = 0.0
+             !if(MODULO(n,100)==0) then 
+             if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
+             !endif
 
-            !Droplet size (radius)
-            pdata(n,prrp) = 20.0e-6
+             if (prcl_droplet.eq.1) then
+    
+                pdata(i,prvpx) = 0.0
+                pdata(i,prvpy) = 0.0
+                pdata(i,prvpz) = 0.0
+     
+                !Droplet size (radius)
+                pdata(i,prrp) = 20.0e-6
+     
+                !Droplet solute mass
+                salinity = 0.034
+                pdata(i,prms) = salinity*rhow*4.0/3.0*pi*pdata(i,prrp)**3
+     
+                !Droplet temperature
+                pdata(i,prtp) = 302.0
+     
+                !Droplet multiplicity
+                pdata(i,prmult) = 1.0e6
+        
+                !Is droplet alive?
+                pdata(i,pract) = 1.0
+     
+                !Initialize the interpolated quantities to zero
+                pdata(i,pru) = 0.0
+                pdata(i,prv) = 0.0
+                pdata(i,prw) = 0.0
+                pdata(i,prt) = 0.0
+                pdata(i,prqv) = 0.0
+                pdata(i,prprs) = 0.0
+                pdata(i,prrho) = 0.0
+    
+             end if ! end of if statement for prcl_droplet == 1
 
-            !Droplet solute mass
-            salinity = 0.034
-            pdata(n,prms) = salinity*rhow*4.0/3.0*pi*pdata(n,prrp)**3
+             i = i + 1
+#ifdef MPI   
+             if ( i .gt. nparcelsLocal ) then
+                write(*,*) "Not enough space to initialize the droplets on myid = ", myid 
+                write(*,*) 'Please increase the value of "pdata_buffer" in the constants.F'
+                stop "Stop the program..."
+             end if
+#endif
+          end if    ! end of if statement for xf/yf check
 
-            !Droplet temperature
-            pdata(n,prtp) = 302.0
-
-            !Droplet multiplicity
-            pdata(n,prmult) = 1.0e6
-   
-            !Is droplet alive?
-            pdata(n,pract) = 1.0
-
-            !Initialize the interpolated quantities to zero
-            pdata(n,pru) = 0.0
-            pdata(n,prv) = 0.0
-            pdata(n,prw) = 0.0
-            pdata(n,prt) = 0.0
-            pdata(n,prqv) = 0.0
-            pdata(n,prprs) = 0.0
-            pdata(n,prrho) = 0.0
-
-          endif
-
-        end do
-
-
+        end do      ! end of loop for nparcels
 
 ! Original stuff:
 !        n = 0
@@ -484,20 +505,15 @@
 
         if(dowr) write(outfile,*)
 
-#ifdef MPI
-        ! this ensures that every processor has all parcel locations:
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),3*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-#endif
-
         IF(axisymm.eq.1.or.ny.eq.1)THEN
           ! 170719,  for 2d setup (x,z), fix all y values:
-          DO n=1,nparcels
+          DO n=1,nparcelsLocal
             pdata(n,pry) = 0.0
           ENDDO
         ENDIF
         IF(nx.eq.1)THEN
           ! 170719,  for 2d setup (y,z), fix all x values:
-          DO n=1,nparcels
+          DO n=1,nparcelsLocal
             pdata(n,prx) = 0.0
           ENDDO
         ENDIF
@@ -2129,7 +2145,7 @@
       real, dimension(ibm:iem,jbm:jem,kbm:kem,numq) :: qa,q3d
       real, dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea,tke3d
       real, dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       logical, intent(in), dimension(ibib:ieib,jbib:jeib,kbib:keib) :: bndy
       integer, intent(in), dimension(ibib:ieib,jbib:jeib) :: kbdy
       integer, dimension(rmp) :: reqs_u,reqs_v,reqs_w,reqs_s,reqs_p,reqs_tk
@@ -2606,7 +2622,7 @@
         endif
         if( .not. restarted )then
           ! 181022:  not a restart ... initialize sigma
-          do n=1,nparcels
+          do n=1,nparcelsLocal
             ! get sigma from z:
             ! (see Section 3 of "The governing equations for CM1", 
             !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
@@ -2614,7 +2630,7 @@
           enddo
         else
           ! 181022:  this is a restart ... get z
-          do n=1,nparcels
+          do n=1,nparcelsLocal
             ! get z from sigma:
             ! (see Section 3 of "The governing equations for CM1", 
             !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)

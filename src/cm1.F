@@ -2258,12 +2258,19 @@ end module cuda_rt
       allocate( reqt(d3t) )
       reqt = 0
 
+#ifdef MPI
+      nparcelsLocal = ceiling(nparcels*1.0/numprocs+pdata_buffer*nparcels)
+#else
+      nparcelsLocal = nparcels
+#endif
 
-      allocate(  pdata(nparcels,npvals) )
+      !$acc update device (nparcelsLocal)
+
+      allocate(  pdata(nparcelsLocal,npvals) )
       pdata = 0.0
-      allocate(   ploc(nparcels,  3   ) )
+      allocate(   ploc(nparcelsLocal,  3   ) )
       ploc = 0.0
-      allocate(  pdata_locind(nparcels,3) )
+      allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
       allocate( dpten(ib:ie,jb:je,kb:ke,2) )
@@ -3514,7 +3521,18 @@ end module cuda_rt
 
 !#endif
         !Also compute the droplet diagnostics at the same frequency as statpack
-        if(myid == 0) call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
+
+        ! JS: with the new MPI implementation, we can:
+        !     1) use MPI_GATHER to collect the droplet information from different
+        !        MPI ranks first and only the root rank calculates the diagnostic
+        !     2) let all the MPI ranks call the diagnostic and use MPI_REDUCE
+        !        to collect the results from different MPI ranks and
+        !        output them from the root rank
+        !
+        !     The second method is expected to avoid the creation of an
+        !     array with size "nparcels*npvals" (saving memory space) 
+        !     and thus implemented below 
+        call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
 
         nrec = nrec + 1
         nstatout = nstatout + 1

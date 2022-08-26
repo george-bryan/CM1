@@ -63,6 +63,23 @@
 
       integer, parameter :: undefined_index = -100
 
+      real, parameter :: pdata_buffer = 0.01      ! additional storage space for pdata from
+                                                  ! each MPI rank to account for the droplet
+                                                  ! communication between MPI ranks;
+                                                  ! this is a percent of "nparcels" value
+       
+      real, parameter :: neg_huge = -1.0e30       ! define a large negative number
+
+      integer, parameter :: num_nn = 8,  &        ! Number of nearest neighbor
+                            inorth = 1,  &        ! north neighbor index 
+                            isouth = 2,  &        ! south neighbor index 
+                             iwest = 3,  &        ! west neighbor index 
+                             ieast = 4,  &        ! east neighbor index 
+                               inw = 5,  &        ! northwest neighbor index 
+                               ine = 6,  &        ! northeast neighbor index 
+                               isw = 7,  &        ! southwest neighbor index 
+                               ise = 8            ! southeast neighbor index 
+
   CONTAINS
 
     !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

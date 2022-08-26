@@ -695,7 +695,7 @@
       use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ibm,iem,jbm,jem, &
           kbm,kem,numq,ibc,iec,jbc,jec,kbc,kec,ibt,iet,jbt,jet,kbt,ket,npt,ierr, &
           ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,ibdq,iedq,jbdq,jedq,kbdq,kedq, &
-          nqdiag,jmp,imp,kmp,rmp,cmp,kmt,ibp,iep,jbp,jep,kbp,kep,nparcels,npvals,npvars, &
+          nqdiag,jmp,imp,kmp,rmp,cmp,kmt,ibp,iep,jbp,jep,kbp,kep,nparcelsLocal,npvals,npvars, &
           ni,nj,nk,nqv,nql1,nql2,nqs1,nqs2,nqv,imoist,timestats,mytime,time_phys_d2h, &
           imoist,iice,time_parceli,bbc,tbc,rdz,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,imove, &
           qd_dbz,rdx,rdy,nx,ny,myi,myj,nodex,nodey,myid,nip1,njp1,nkp1,axisymm,nnc1, &
@@ -744,7 +744,7 @@
       real, intent(inout), dimension(ibc:iec,jbc:jec,kbc:kec) :: kmh,kmv,khh,khv
       real, intent(inout), dimension(ibt:iet,jbt:jet,kbt:ket) :: tke3d
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pt3d
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(inout) , dimension(ibdt:iedt,jbdt:jedt,kbdt:kedt,ntdiag) :: tdiag
       real, intent(inout) , dimension(ibdq:iedq,jbdq:jedq,kbdq:kedq,nqdiag) :: qdiag
       real, intent(inout), dimension(jmp,kmp) :: pw1,pw2,pe1,pe2
@@ -1219,7 +1219,7 @@
     !PORTME
     !$acc parallel loop gang vector default(present)
     nploop2:  &
-    DO np=1,nparcels
+    DO np=1,nparcelsLocal
 
       pdata(np,prtime) = mtime
 
@@ -1741,7 +1741,7 @@
 
         ! set to really small number (so we can use the allreduce command below)
         do n=npvars+1,npvals
-          pdata(np,n) = -1.0e30
+          pdata(np,n) = neg_huge 
         enddo
 #endif
 
@@ -1750,20 +1750,6 @@
     ENDDO  nploop2
     if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
-!----------------------------------------------------------------------
-!  communicate data
-#ifdef MPI
-  !$acc update host(pdata)
-  do n=npvars+1,npvals
-    if( myid.eq.0 )then
-      call MPI_REDUCE(MPI_IN_PLACE,pdata(1,n),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-    else
-      call MPI_REDUCE( pdata(1,n),pdata(1,n),nparcels,MPI_REAL,MPI_MAX,0,MPI_COMM_WORLD,ierr)
-    endif
-  enddo
-  !$acc update device(pdata)
-  if(timestats.ge.1) time_parceli_reduce=time_parceli_reduce+mytime()
-#endif
 !----------------------------------------------------------------------
 
 
@@ -1776,8 +1762,11 @@
 
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-      use input, only : maxq,maxvars,nparcels,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile
+      use input, only : maxq,maxvars,nparcelsLocal,npvals,output_format,myid,dowr, &
+          maxstring,string,outfile,numprocs,ierr
+#ifdef MPI
+      use mpi
+#endif
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif
@@ -1787,14 +1776,31 @@
       real, intent(in) :: rtime
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
-      real, intent(in), dimension(nparcels,npvals) :: pdata
-      real, intent(inout), dimension(nparcels,3) :: ploc
+      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,3) :: ploc
 
       integer :: i,n,np
 
+#ifdef MPI
+      real, dimension(:,:),allocatable :: rbuf
+#endif
+
 !----------------------------------------------------------------------
 !  write out data
+
     !$acc update host(pdata)
+
+    ! JS: use MPI_GATHER to collect all the droplet information
+    !     from different MPI ranks;
+    !     write out the "holes" with garbage information as well
+
+!#ifdef MPI
+!    if ( myid .eq. 0 ) allocate(rbuf(nparcelsLocal*numprocs,npvals))
+!    call mpi_gather(pdata,npvals*nparcelsLocal,MPI_REAL, &
+!                    rbuf,npvals*nparcelsLocal,MPI_REAL, &
+!                    0,MPI_COMM_WORLD,ierr)
+!#endif
+
     IF(myid.eq.0)THEN
 
       IF(output_format.eq.1)THEN
@@ -1807,21 +1813,29 @@
           string(i:i) = ' '
         enddo
 
-        string = 'cm1out_pdata.dat'
-
-!!!        write(string(15:20),101) prec
-!!!101     format(i6.6)
-
-        if(dowr) write(outfile,*) string
-        open(unit=61,file=string,form='unformatted',access='direct',   &
-             recl=4*npvals*nparcels,status='unknown')
-
-        if(dowr) write(outfile,*)
-        if(dowr) write(outfile,*) '  pdata prec = ',prec
-
-        write(61,rec=prec) ((pdata(np,n),np=1,nparcels),n=1,npvals)
-
-        close(unit=61)
+!        string = 'cm1out_pdata.dat'
+!
+!!!!        write(string(15:20),101) prec
+!!!!101     format(i6.6)
+!
+!        if(dowr) write(outfile,*) string
+!        open(unit=61,file=string,form='unformatted',access='direct',   &
+!             recl=4*npvals*nparcelsLocal*numprocs,status='unknown')
+!
+!        if(dowr) write(outfile,*)
+!        if(dowr) write(outfile,*) '  pdata prec = ',prec
+!
+!#ifdef MPI
+!        write(61,rec=prec) ((rbuf(np,n),np=1,nparcelsLocal*numprocs),n=1,npvals)
+!#else
+!        write(61,rec=prec) ((pdata(np,n),np=1,nparcelsLocal*numprocs),n=1,npvals)
+!#endif
+!
+!        close(unit=61)
+!
+!#ifdef MPI     
+!        deallocate(rbuf)
+!#endif
 
 #ifdef NETCDF
       ELSEIF(output_format.eq.2)THEN
@@ -1949,7 +1963,7 @@
 
 
       subroutine getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-      use input, only : ib,ie,jb,je,nparcels,npvals,ni,nj,nx,ny, &
+      use input, only : ib,ie,jb,je,nparcelsLocal,npvals,ni,nj,nx,ny, &
           myi,myj,axisymm,nodex,nodey,ierr, &
           prx,pry,przs
       use constants
@@ -1963,13 +1977,13 @@
       real, intent(in), dimension(jb:je) :: yh,vh,rvh
       real, intent(in), dimension(jb:je+1) :: yf
       real, intent(in), dimension(ib:ie,jb:je) :: zs
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
 
       integer :: i,j,iflag,jflag,np
       real :: x3d,y3d
 
     zsnploop:  &
-    DO np=1,nparcels
+    DO np=1,nparcelsLocal
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -2041,10 +2055,6 @@
       ENDIF  zsmyparcel
 
     ENDDO  zsnploop
-
-#ifdef MPI
-    call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,przs) ,nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-#endif
 
       end subroutine getparcelzs
 
