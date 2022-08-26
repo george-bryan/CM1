@@ -1,7 +1,7 @@
 
  &param0
- nx           =    256,
- ny           =    256,
+ nx           =    512,
+ ny           =    512,
  nz           =    1024,
  ppnode       =      36,
  timeformat   =       2,
@@ -11,8 +11,8 @@
  /
 
  &param1
- dx     =    20.0,
- dy     =    20.0,
+ dx     =    10.0,
+ dy     =    10.0,
  dz     =     2.5,
  dtl    =   0.125,
  timax  = 60.0,
@@ -82,7 +82,7 @@
  npt       =  1,
  pdtra     =  1,
  iprcl     =  1,  !This turns on the parcels, and with prcl_droplet=1 below, makes them droplets
- nparcels  =  2000000,  !I do at least 1000 just to get a variety
+ nparcels  =  8000000,  !I do at least 1000 just to get a variety
  /
 
  &param3
