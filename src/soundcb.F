@@ -380,9 +380,6 @@
 
         IF( convinit.eq.1 )THEN
           IF( rtime.le.convtime .and. nx.gt.1 )THEN
-#ifdef _OPENACC
-            stop 'soundcb: convinitu not ported to OpenACC'
-#endif
             call convinitu(myid,ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,   &
                            zdeep,lamx,lamy,xcent,ycent,aconv,    &
                            xf,yh,zh,u0,u3d)
@@ -396,9 +393,6 @@
         ! Cartesian grid:
         IF( convinit.eq.1 )THEN
           IF( rtime.le.convtime .and. ny.gt.1 )THEN
-#ifdef _OPENACC
-            stop 'soundcb: convinitv not ported to OpenACC'
-#endif
             call convinitv(myid,ib,ie,jb,je,kb,ke,ni,nj,nk,ibs,ibn,   &
                            zdeep,lamx,lamy,xcent,ycent,aconv,    &
                            xh,yf,zh,v0,v3d)
@@ -419,9 +413,6 @@
       IF( wnudge.eq.1 )THEN
         !  updraft nudging tendency:
         IF( (mtime+dt).le.t2_wnudge )THEN
-#ifdef _OPENACC
-            stop 'soundcb: get_wnudge not ported to OpenACC'
-#endif
           call get_wnudge(mtime,dts,xh,yh,zf,w3d,dum1)
         ENDIF
       ENDIF
