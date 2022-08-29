@@ -535,7 +535,6 @@
     real :: wbar,cc1,cc2
 
 
-  print *,'vinterp_flx5: stag: ',stag
   IF( stag.eq.1 )THEN
 #ifdef _OPENACC
     print *,'vinterp_flx5: stag is ',stag

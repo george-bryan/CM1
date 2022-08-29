@@ -284,6 +284,7 @@ end module cuda_rt
       real :: mp_total,minval,temx,temy,temni,temnj
       double precision :: tstart,tend
       integer, dimension(:), allocatable :: isum,jsum
+      integer :: padding
 #endif
 #ifdef _OPENACC
       integer :: ndev,idev
@@ -2259,7 +2260,8 @@ end module cuda_rt
       reqt = 0
 
 #ifdef MPI
-      nparcelsLocal = ceiling(nparcels*1.0/numprocs+pdata_buffer*nparcels)
+      padding = max(pdata_buffer*nparcels,100)
+      nparcelsLocal = ceiling((nparcels*1.0/numprocs)+padding)
 #else
       nparcelsLocal = nparcels
 #endif
@@ -3507,7 +3509,6 @@ end module cuda_rt
           enddo
           enddo
         ENDIF
-!#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3519,7 +3520,6 @@ end module cuda_rt
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
 
-!#endif
         !Also compute the droplet diagnostics at the same frequency as statpack
 
         ! JS: with the new MPI implementation, we can:

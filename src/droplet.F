@@ -141,7 +141,7 @@
       !$acc      copyin (randomNumbers,randomNumbers%state, &
       !$acc              pdata_neighbor)
 #else
-      !$acc data create (ta,zf_tmp) &
+      !$acc data create (ta) &
       !$acc      copyin (randomNumbers,randomNumbers%state)
 #endif
 
