@@ -392,7 +392,6 @@
       real :: term1,term2,term3,term4,umo
       !$acc declare present(xf,yh,zh,u0,u3d)
 
-!!!      if(myid.eq.0) print *,'    convinitu '
 #ifdef _OPENACC
       print *,'WARNING: OPENACC version of convinitu never verified'
 #endif
@@ -440,7 +439,6 @@
 #ifdef _OPENACC
       print *,'WARNING: OPENACC version of convinitv never verified'
 #endif
-!!!      if(myid.eq.0) print *,'    convinitv '
       !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,vmo)
       !$acc parallel loop gang vector collapse(3) default(present)
       do k=1,nk

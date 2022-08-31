@@ -567,6 +567,7 @@
     !----
 
     k = 3
+    !$omp parallel do default(shared) private(i,j)
     !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
@@ -580,6 +581,7 @@
     ENDDO
 
     k = nk-1
+    !$omp parallel do default(shared) private(i,j)
     !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
@@ -595,6 +597,7 @@
       !----
 
     k = 2
+    !$omp parallel do default(shared) private(i,j)
     !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
@@ -608,6 +611,7 @@
     ENDDO
 
     k = nk
+    !$omp parallel do default(shared) private(i,j)
     !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
@@ -636,7 +640,7 @@
         i2=ni+1
       endif
 
-    !$omp parallel do default(shared) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar) private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wbar)
     DO k=4,nk-2
       do j=1,nj
@@ -654,6 +658,7 @@
       !----
     ENDDO
     k = 3
+    !$omp parallel do default(shared) private(i,j,wbar)
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     DO j=1,nj
       !dir$ vector always
@@ -667,7 +672,8 @@
       enddo
     ENDDO
     k = nk-1
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
+    !$omp parallel do default(shared) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -680,7 +686,8 @@
       enddo
     ENDDO
     k = 2
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar,cc1,cc2)
+    !$omp parallel do default(shared) private(i,j,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !----
       !dir$ vector always
@@ -696,7 +703,8 @@
       enddo
     ENDDO
     k = nk
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar,cc1,cc2)
+    !$omp parallel do default(shared) private(i,j,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=1,nj
       !dir$ vector always
       do i=i1,i2
@@ -727,7 +735,7 @@
         j2=nj+1
       endif
     !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wbar)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO j=j1,j2
       do k=4,nk-2
       !dir$ vector always
@@ -743,7 +751,8 @@
     ENDDO
 
     k = 3
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !----
       !dir$ vector always
@@ -758,7 +767,8 @@
     ENDDO
 
     k = nk-1
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,wbar)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -772,7 +782,8 @@
     ENDDO
 
     k = 2
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar,cc1,cc2)
+    !$omp parallel do default(shared) private(i,j,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !----
       !dir$ vector always
@@ -788,7 +799,8 @@
       enddo
     ENDDO
     k = nk
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar,cc1,cc2)
+    !$omp parallel do default(shared) private(i,j,wbar,cc1,cc2)
+    !$acc parallel loop gang vector collapse(2) default(present)
     DO j=j1,j2
       !dir$ vector always
       do i=1,ni
@@ -914,7 +926,7 @@
   IF( stag.eq.1 )THEN
 
     !$omp parallel do default(shared) private(i,j,k)
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=4,nk-2
       do j=1,nj
       !dir$ vector always
@@ -924,7 +936,8 @@
       enddo
     ENDDO
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=3,(nk-1),(nk-4)
       do j=1,nj
       !dir$ vector always
@@ -934,7 +947,8 @@
       enddo
     ENDDO
 
-    !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
+    !$omp parallel do default(shared) private(i,j,k)
+    !$acc parallel loop gang vector collapse(3) default(present)
     DO k=2,nk,(nk-2)
       do j=1,nj
       !dir$ vector always
