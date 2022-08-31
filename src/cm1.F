@@ -284,6 +284,7 @@ end module cuda_rt
       real :: mp_total,minval,temx,temy,temni,temnj
       double precision :: tstart,tend
       integer, dimension(:), allocatable :: isum,jsum
+      integer :: padding
 #endif
 #ifdef _OPENACC
       integer :: ndev,idev
@@ -2259,7 +2260,8 @@ end module cuda_rt
       reqt = 0
 
 #ifdef MPI
-      nparcelsLocal = ceiling(nparcels*1.0/numprocs+pdata_buffer*nparcels)
+      padding = max(pdata_buffer*nparcels,100)
+      nparcelsLocal = ceiling((nparcels*1.0/numprocs)+padding)
 #else
       nparcelsLocal = nparcels
 #endif
@@ -2701,9 +2703,6 @@ end module cuda_rt
           ndt  = 0
           adt  = 0.0
           acfl = 0.0
-#ifdef _OPENACC
-          !print *, 'WARNING: getnewdt not supported on OpenACC' 
-#endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
                           dorestart,dowriteout,dostat,doprclout,dotdwrite,doazimwrite,  &
@@ -3434,7 +3433,7 @@ end module cuda_rt
       IF( (idiff.ge.1).and.(difforder.eq.2) )THEN
         !  get stress terms for explicit diffusion scheme:
 #ifdef _OPENACC
-        stop 'ERROR: diff2def not supported on OpenACC version' 
+        stop 'ERROR: diff2def not supported on OPENACC version' 
 #endif
         call diff2def(uh,arh1,arh2,uf,arf1,arf2,vh,vf,mh,c1,c2,mf,ust,zntmp,u1,v1,s1,  &
                       divx,rho,rr,rf,t11,t12,t13,t22,t23,t33,u3d,v3d,w3d,dissten)
@@ -3458,9 +3457,6 @@ end module cuda_rt
 
         IF( adapt_dt.eq.1 .and. dosolve )THEN
 
-#ifdef _OPENACC
-          !print *,'WARNING: getnewdt not supported on OpenACC' 
-#endif
           call   getnewdt(ndt,dt,dtlast,adt,acfl,dbldt,                                 &
                           mtime,stattim,taptim,rsttim,prcltim,diagtim,azimavgtim,       &
                           dorestart,dowriteout,dostat,doprclout,dotdwrite,doazimwrite,  &
@@ -3854,7 +3850,7 @@ end module cuda_rt
       if( doazimwrite )then
 
 #ifdef _OPENACC
-        stop 'ERROR: azimavg not supported in OpenACC'
+        stop 'ERROR: azimavg not supported in OPENACC'
 #endif
         call   azimavg(nstep,mtime,nwritea,arecs,arecw,qname,dt,dosfcflx,      &
                    icrs,icenter,jcenter,xcenter,ycenter,                       &
@@ -3908,7 +3904,7 @@ end module cuda_rt
       if( dohifrqwrite )then
 
 #ifdef _OPENACC
-        stop 'ERROR: writeout_hifrq not supported in OpenACC'
+        stop 'ERROR: writeout_hifrq not supported in OPENACC'
 #endif
         call   writeout_hifrq(                                                 &
                    nstep,mtime,nwriteh,qname,dt,dosfcflx,                      &
@@ -3975,7 +3971,7 @@ end module cuda_rt
           enddo
         endif
 #ifdef _OPENACC
-        print *,'ERROR: write_restart not supported in OpenACC'
+        print *,'ERROR: write_restart not supported in OPENACC'
 #endif
         call     write_restart(nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,      &
                                trecs,trecw,arecs,arecw,                             &
