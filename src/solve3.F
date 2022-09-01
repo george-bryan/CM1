@@ -1475,7 +1475,7 @@ print *,'Here 28 -- Not being executed'
       if(myid.eq.0) print *,'  Getting pressure diagnostics ... '
 
 #ifdef _OPENACC
-      stop 'WARNING: execution of pidcomp not supported under OpenACC'
+      stop 'WARNING: execution of pidcomp not supported under OPENACC'
 #endif
       call       pidcomp(dt,xh,rxh,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,vf,          &
                          gz,rgz,gzu,gzv,mh,rmh,mf,rmf,rds,rdsf,c1,c2,f2d,wprof,     &

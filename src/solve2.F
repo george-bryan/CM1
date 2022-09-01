@@ -1263,7 +1263,7 @@
         IF(psolver.eq.1)THEN
 
 #ifdef _OPENACC
-          stop 'ERROR: soundns not ported to GPU'
+          stop 'ERROR: soundns not ported to OPENACC'
 #endif
           call   soundns(xh,rxh,arh1,arh2,uh,xf,uf,yh,vh,yf,vf,           &
                          zh,mh,c1,c2,mf,zf,pi0,thv0,rr0,rf0,              &
@@ -1316,7 +1316,7 @@
           ! anelastic/incompressible solver:
 
 #ifdef _OPENACC
-          stop 'ERROR: anelp not ported to GPU'
+          stop 'ERROR: anelp not ported to OPENACC'
 #endif
           call   anelp(xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf,             &
                        zh,mh,rmh,mf,rmf,zf,pi0,thv0,rho0,prs0,rf0,  &
