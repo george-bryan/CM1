@@ -102,8 +102,11 @@ ifeq (${FC},nvfortran)
             OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
             OPTS_M += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
         else
-            OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
-            OPTS_M += -acc -gpu=cc70,lineinfo,nofma,math_uniform,managed -Mpcast -Minfo=accel
+	    # Potentially interesting non-default compiler flags:: 
+	    #     -Minfo=accel    Provides verbose output for accelerator compilation phase
+	    #     -Mpcast         Enables the use of PCAST functionality
+            OPTS += -acc -gpu=cc70,cc80,lineinfo,nofma,math_uniform
+            OPTS_M += -acc -gpu=cc70,cc80,lineinfo,nofma,math_uniform,managed
         endif
         DM       += -D_OPENACC
     endif
