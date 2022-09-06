@@ -2202,7 +2202,8 @@
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
          
-        fv2(:) = 1.
+        fv2(1) = 1.
+        fv2(2) = 1.
         !JMD-FIXME:  The following line appears to generate the following compiler error:
         !JMD-FIXME     Internal compiler error. Basic LLVM base data type required 
         !fv2 = (/1., 1./)
@@ -2299,7 +2300,8 @@
         v1(2) = rt_start(2)
         !JMD-FIXME generates an internal compiler error
         ! fv2 = (/1., 1./)
-        fv2(:) = 1.0
+        fv2(1) = 1.0
+        fv2(2) = 1.0
 
         lambda = 0.001
         lup = 2.0
