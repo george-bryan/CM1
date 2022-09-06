@@ -36,6 +36,7 @@ USE_OPENACC_L = $(shell echo $(USE_OPENACC) | tr A-Z a-z)
 USE_NETCDF_L  = $(shell echo $(USE_NETCDF) | tr A-Z a-z)
 DEBUG_L       = $(shell echo $(DEBUG) | tr A-Z a-z)
 USE_CUDAMEM_L = $(shell echo $(USE_CUDAMEM) | tr A-Z a-z)
+GPU_TYPE_L    = $(shell echo $(GPU_TYPE) | tr A-Z a-z)
 
 #-----------------------------------------------------------------------------
 #  initialize some options as empty
@@ -99,14 +100,24 @@ ifeq (${FC},nvfortran)
     endif
     ifeq (${USE_OPENACC_L},true)
         ifeq (${DEBUG_L},true)
-            OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
-            OPTS_M += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
+            ifeq (${GPU_TYPE_L},a100)
+                OPTS += -acc -gpu=cc80,lineinfo,nofma,autocompare,math_uniform
+                OPTS_M += -acc -gpu=cc80,lineinfo,nofma,autocompare,math_uniform
+            else
+                OPTS += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
+                OPTS_M += -acc -gpu=cc70,lineinfo,nofma,autocompare,math_uniform
+            endif
         else
-	    # Potentially interesting non-default compiler flags:: 
-	    #     -Minfo=accel    Provides verbose output for accelerator compilation phase
-	    #     -Mpcast         Enables the use of PCAST functionality
-            OPTS += -acc -gpu=cc70,cc80,lineinfo,nofma,math_uniform
-            OPTS_M += -acc -gpu=cc70,cc80,lineinfo,nofma,math_uniform,managed
+            # Potentially interesting non-default compiler flags:: 
+            #     -Minfo=accel    Provides verbose output for accelerator compilation phase
+            #     -Mpcast         Enables the use of PCAST functionality
+            ifeq (${GPU_TYPE_L},a100)
+                OPTS += -acc -gpu=cc80,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
+                OPTS_M += -acc -gpu=cc80,lineinfo,nofma,math_uniform,managed -Mpcast -Minfo=accel
+            else
+                OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
+                OPTS_M += -acc -gpu=cc70,lineinfo,nofma,math_uniform,managed -Mpcast -Minfo=accel
+            endif
         endif
         DM       += -D_OPENACC
     endif
@@ -153,7 +164,9 @@ endif
 #  Intel compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},ifort)
-    OPTS         += -g -O2 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback -no-fma
+    # replace -xHost with -march=core-avx2 to make sure the same code builds on
+    # both Intel and AMD CPUs 
+    OPTS         += -g -O2 -march=core-avx2 -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback -no-fma
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -qopenmp
