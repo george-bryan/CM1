@@ -96,8 +96,10 @@
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
       real :: sig3d,th_tmp,rand
-      real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt
-      real :: Nup,rhop0,taup0,rp0,salinity,part_grav1,part_grav2,part_grav3,rhoval,tval
+      real, dimension(nparcelsLocal) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
+                                        rhoval,rp0,taup0,rhop0,tval, &
+                                        iflag_tmp,jflag_tmp,kflag_tmp
+      real :: Nup,salinity,part_grav1,part_grav2,part_grav3
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
 
@@ -137,12 +139,18 @@
          pdata_neighbor(np) = undefined_index
       end do
 
-      !$acc data create (ta) &
-      !$acc      copyin (randomNumbers,randomNumbers%state, &
-      !$acc              pdata_neighbor)
+      !$acc data create  (ta) &
+      !$acc      copy    (pdata_neighbor) &
+      !$acc      copyin  (randomNumbers,randomNumbers%state) &
+      !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
+      !$acc               rhoval,rp0,taup0,rhop0,tval, & 
+      !$acc               iflag_tmp,jflag_tmp,kflag_tmp)
 #else
-      !$acc data create (ta) &
-      !$acc      copyin (randomNumbers,randomNumbers%state)
+      !$acc data create  (ta) &
+      !$acc      copyin  (randomNumbers,randomNumbers%state) &
+      !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
+      !$acc               rhoval,rp0,taup0,rhop0,tval, &
+      !$acc               iflag_tmp,jflag_tmp,kflag_tmp)
 #endif
 
     IF(bbc.eq.1)THEN
@@ -334,7 +342,7 @@
 ! JS: comment out this conflict check for the new MPI interface;
 !     otherwise there will be a droplet leak
 
-!      ! check for conflict:
+      ! check for conflict:
 !    IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
 !        (jflag.ge.1.and.jflag.le.nj) )THEN
 !      IF( iflag.eq.ni .and. pdata(np,prx).eq.xf(iflag+1) .and. nodex.gt.1 .and.  myi.ne.nodex ) iflag = -1
@@ -386,12 +394,12 @@
       dropalive1:  &
       IF (pdata(np,pract).gt.0.0) THEN
 
-      dvpdt1 = pdata(np,prvpx)
-      dvpdt2 = pdata(np,prvpy)
-      dvpdt3 = pdata(np,prvpz)
-      dtpdt    = pdata(np,prtp)
-      drpdt    = pdata(np,prrp)
-      dmvdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
+      dvpdt1(np) = pdata(np,prvpx)
+      dvpdt2(np) = pdata(np,prvpy)
+      dvpdt3(np) = pdata(np,prvpz)
+      dtpdt(np)  = pdata(np,prtp)
+      drpdt(np)  = pdata(np,prrp)
+      dmvdt(np)  = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
 
       !!!!!!! PROBLEM !!!!!!
@@ -408,15 +416,15 @@
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
-      call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
+      call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug)
 
       ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
 
 #ifdef MPI
-      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
+      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
       pdata_neighbor(np) = neighbor 
 #else
-      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
+      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug,num100,num1000)
 #endif
 
       ENDIF dropmethod
@@ -510,64 +518,24 @@
       !--------
       !PORTME
       !Recall that the "old" values are stored in the "d/dt" variables
-      dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
-      dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
-      dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
+      dvpdt1(np) = (pdata(np,prvpx)-dvpdt1(np))/dt   !Remember to deal with gravity later!
+      dvpdt2(np) = (pdata(np,prvpy)-dvpdt2(np))/dt
+      dvpdt3(np) = (pdata(np,prvpz)-dvpdt3(np))/dt
 
-      drpdt = (pdata(np,prrp)-drpdt)/dt
+      drpdt(np) = (pdata(np,prrp)-drpdt(np))/dt
 
       !Only the sensible component of energy 
       !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
 
       !dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(dtpdt-pdata(np,prtp))
 
-      dtpdt = (pdata(np,prtp)-dtpdt)/dt
+      dtpdt(np) = (pdata(np,prtp)-dtpdt(np))/dt
 
-      dmvdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt)/dt
+      dmvdt(np) = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmvdt(np))/dt
 
-      !Volume where the droplet finds itself
-      dV = (xh(iflag+1)-xh(iflag))*   &
-           (yh(jflag+1)-yh(jflag))*   &
-           (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-
-      !Loop over all nodes surrounding droplet
-      !$acc loop seq
-      do i=0,1
-      !$acc loop seq
-      do j=0,1
-      !$acc loop seq
-      do k=0,1
-
-        ix = iflag+i
-        iy = jflag+j
-        iz = kflag+k
-        !print *,'point #1: ix,iy,iz: ',ix,iy,iz
-
-        xv = xh(ix)
-        yv = yh(iy)
-        zv = zh(iflag,jflag,iz)
-
-        wtx = 1.0 - abs(pdata(np,prx)-xv)/(xh(iflag+1)-xh(iflag))
-        wty = 1.0 - abs(pdata(np,pry)-yv)/(yh(jflag+1)-yh(jflag))
-        wtz = 1.0 - abs(pdata(np,prz)-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-        wtt = wtx*wty*wtz
-
-        !!$acc atomic write
-        qten(ix,iy,iz) = qten(ix,iy,iz) - &
-            dmvdt/rhoval/dV*wtt*pdata(np,prmult)
-
-        !Ignoring the enthalpy contained in the vapor -- this has been shown to
-        !be negligible
-        !!$acc atomic write
-        thten(ix,iy,iz) = thten(ix,iy,iz) - &
-            dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
-            rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*wtt/dV*pdata(np,prmult)                   !Latent
-       
-
-      enddo
-      enddo
-      enddo
-
+      iflag_tmp(np) = iflag
+      jflag_tmp(np) = jflag
+      kflag_tmp(np) = kflag
 
     ENDIF dropalive2
 
@@ -636,7 +604,68 @@
 #else
     !$acc end parallel
 #endif
+
+    !$acc end data
+
+    !$acc update host(pdata,pdata_locind,qten,thten)
+
+! JS: update qten and thten here to avoid the race condition for a GPU case 
+!     the calculation is done on the CPU
+
+    do np = 1, nparcelsLocal
+
+       if ( pdata(np,pract) .gt. 0.0 ) then
+
+          ! do not search i/j/k index again as it may return -100 somehow
+
+          iflag = iflag_tmp(np)
+          jflag = jflag_tmp(np)
+          kflag = kflag_tmp(np)
+
+          !Volume where the droplet finds itself
+          dV = (xh(iflag+1)-xh(iflag))*   &
+               (yh(jflag+1)-yh(jflag))*   &
+               (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+          !Loop over all nodes surrounding droplet
+          do i=0,1
+             do j=0,1
+                do k=0,1
+                  ix = iflag+i
+                  iy = jflag+j
+                  iz = kflag+k
+                  !print *,'point #1: ix,iy,iz: ',ix,iy,iz
+    
+                  xv = xh(ix)
+                  yv = yh(iy)
+                  zv = zh(iflag,jflag,iz)
+    
+                  wtx = 1.0 - abs(pdata(np,prx)-xv)/(xh(iflag+1)-xh(iflag))
+                  wty = 1.0 - abs(pdata(np,pry)-yv)/(yh(jflag+1)-yh(jflag))
+                  wtz = 1.0 - abs(pdata(np,prz)-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+                  wtt = wtx*wty*wtz
+    
+                  !!$acc atomic write
+                  qten(ix,iy,iz) = qten(ix,iy,iz) - &
+                      dmvdt(np)/rhoval(np)/dV*wtt*pdata(np,prmult)
+    
+                  !Ignoring the enthalpy contained in the vapor -- this has been shown to
+                  !be negligible
+                  !!$acc atomic write
+                  thten(ix,iy,iz) = thten(ix,iy,iz) - &
+                      dtpdt(np)*6.0*(rhow/rhop0(np))*(cpl/cp)*taup0(np)*pi*rp0(np)*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
+                      rhow/rhop0(np)*4.0*pi*rp0(np)*drpdt(np)*(cpl/cp)*tval(np)*wtt/dV*pdata(np,prmult)                   !Latent
+                end do
+             end do
+          end do
+
+       end if     ! end of "if" the droplet is alive
+
+    end do        ! end of nparcelsLocal loop
+
+    !$acc update device (qten,thten)
+
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
+
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
@@ -644,8 +673,6 @@
 
     ! JS: send/receive the droplet information through MPI;
     !     all the calculations below are done on CPU
-
-    !$acc update host(pdata,pdata_locind,pdata_neighbor)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 1: Count the "num_holes", which is the number of "holes" in "pdata" !
@@ -710,7 +737,6 @@
 
 !
 !----------------------------------------------------------------------
-      !$acc end data
 
       end subroutine droplet_driver
 
