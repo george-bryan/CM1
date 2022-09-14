@@ -507,17 +507,10 @@
 
     IF( irdamp.eq.2 .or. hrdamp.eq.2 .or. tqnudge .or. do_lsnudge )THEN
       if( imoist.eq.1 )then
-#ifdef _OPENACC
-        !print *,'WARNING: solve1: get_avg_uvtq not verififed on GPU'
-#endif
         call     get_avg_uvtq(uavg,vavg,thavg,qavg,cavg,th0,ua,va,tha,qa,ruh,ruf,rvh,rvf)
       else
-#ifdef _OPENACC
-        print *,'WARNING: solve1: get_avg_uvt not ported to GPU'
-#endif
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
       endif
-
     ENDIF
 
 !--------------------------------------------------------------------
@@ -670,9 +663,6 @@
 
           if( mtime.gt.1800.0 .and. mod(mtime,300.0).lt.0.01 )then
 
-#ifdef _OPENACC
-        print *,'WARNING: solve1: get_avg_uvt not ported to GPU'
-#endif
             call get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)
 
             ! 200529: modify lspg to match reference wind
@@ -712,15 +702,21 @@
 #endif
             
 
-            ulspg = newval
+            !$acc parallel loop gang vector default(present)
+            do k=kb,ke
+              ulspg(k) = newval
+            enddo
    
           endif
           ENDIF
 
         if(     lspgrad.eq.1 )then
 
-          ulspg = 0.0
-          vlspg = 0.0
+          !$acc parallel loop gang vector default(present)
+          do k=kb,ke
+            ulspg(k) = 0.0
+            vlspg(k) = 0.0
+          enddo
 
           !---------------------------------------------------------------!
           ! Large-scale pressure gradient based on geostropic balance,
@@ -812,7 +808,7 @@
 
       IF( difforder.eq.2 )THEN
 #ifdef _OPENACC
-        print *,'WARNING: solve1: diffusion operator not ported to GPU'
+        print *,'WARNING: solve1: diffusion operator not support with OPENACC'
 #endif
         idiffge1:  &
         if(idiff.ge.1)then
@@ -1703,7 +1699,7 @@
       doeddyrec:  &
       IF( do_recycle )THEN
 #ifdef _OPENACC
-        print *,'WARNING: solve1: do_eddy_{recyr,recys} code not ported to GPU'
+        print *,'WARNING: solve1: do_eddy_{recyr,recys} code not ported to OPENACC'
 #endif
         if( do_recycle_w )then
           call   do_eddy_recyw(dt,xh,xf,yh,yf,zh,zf,u3d,v3d,w3d,uten1,vten1,wten1,urecyw,vrecyw,wrecyw,trecyw,out3d)

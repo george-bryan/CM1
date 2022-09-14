@@ -392,9 +392,11 @@
       real :: term1,term2,term3,term4,umo
       !$acc declare present(xf,yh,zh,u0,u3d)
 
-!!!      if(myid.eq.0) print *,'    convinitu '
+#ifdef _OPENACC
+      print *,'WARNING: OPENACC version of convinitu never verified'
+#endif
       !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,umo)
-      !$acc parallel loop gang vector default(present) private(i,j,k,term1,term2,term3,term4,umo)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=1,nk
       do j=1,nj
       do i=1,ni+1
@@ -434,9 +436,11 @@
       real :: term1,term2,term3,term4,vmo
       !$acc declare present(xh,yf,zh,v0,v3d)
 
-!!!      if(myid.eq.0) print *,'    convinitv '
+#ifdef _OPENACC
+      print *,'WARNING: OPENACC version of convinitv never verified'
+#endif
       !$omp parallel do default(shared) private(i,j,k,term1,term2,term3,term4,vmo)
-      !$acc parallel loop gang vector default(present) private(i,j,k,term1,term2,term3,term4,vmo)
+      !$acc parallel loop gang vector collapse(3) default(present)
       do k=1,nk
       do j=1,nj+1
       do i=1,ni
@@ -479,6 +483,9 @@
       real :: beta,wmag,gamm,tem
       !$acc declare present(xh,yh,zf,wa,wndgten)
 
+#ifdef _OPENACC
+      print *,'WARNING: OPENACC version of get_wnudge never verified'
+#endif
       !  updraft nudging scheme (Naylor and Gilmore, 2012, MWR, pgs 3699-3705)
 
       gamm = 1.0
@@ -492,7 +499,7 @@
       tem = alpha_wnudge * gamm
 
       !$omp parallel do default(shared) private(i,j,k,beta,wmag)
-      !$acc parallel loop gang vector default(present) private(i,j,k,beta,wmag)
+      !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,beta,wmag)
       do k=2,nk
       do j=1,nj
       do i=1,ni

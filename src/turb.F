@@ -623,7 +623,7 @@
 
           IF( ipbl.eq.2 )THEN
 #ifdef _OPENACC
-            stop 'ERROR: call to gethpbl2 not supported in OpenACC'
+            stop 'ERROR: call to gethpbl2 not supported in OPENACC'
 #endif
             ! (note: for ipbl=1,3,4,5 pbl depth is calculated within the PBL subroutine)
             call gethpbl2(psfc,qsfc,thflux,qvflux,ust,tsk,zh,th0,tha,divx,ugr,vgr,dum8(ib,jb,1),dum8(ib,jb,2),dum8(ib,jb,3),dum8(ib,jb,4),hpbl,thten)
@@ -691,7 +691,7 @@
         IF( sfcmodel.eq.5 )THEN
 
 #ifdef _OPENACC
-          stop 'ERROR: call to cm1most not supported in OpenACC'
+          stop 'ERROR: call to cm1most not supported in OPENACC'
 #endif
           call   cm1most(u1,v1,s1,t1,tst,thflux,zol,mol,rmol,       &
                          phim,phih,psim,psih,ppten(ib,jb,1),        &
@@ -706,7 +706,7 @@
           ! surface layer:
         if( sfcmodel.eq.2 )then
 #ifdef _OPENACC
-          stop 'ERROR: call to SFCLAY not supported in OpenACC'
+          stop 'ERROR: call to SFCLAY not supported in OPENACC'
 #endif
           call SFCLAY(dum1,dum2,dum4,divx,prs,dum5,      &
                        CP,G,ROVCP,RD,XLV,lv1,lv2,PSFC,CHS,CHS2,CQS2,CPMM, &
@@ -724,7 +724,7 @@
                        ustm,ck,cka,cd,cda,isftcflx,iz0tlnd,z0t,z0q   )
         elseif( sfcmodel.eq.3 )then
 #ifdef _OPENACC
-          stop 'ERROR: call to SFCLAYREV not supported in OpenACC'
+          stop 'ERROR: call to SFCLAYREV not supported in OPENACC'
 #endif
           call SFCLAYREV(dum1,dum2,dum4,divx,prs,dum5,   &
                        CP,G,ROVCP,RD,XLV,lv1,lv2,PSFC,CHS,CHS2,CQS2,CPMM, &
@@ -765,9 +765,6 @@
             zkmax(i,j) = zh(i,j,1)
           enddo
           enddo
-!#ifdef _OPENACC
-!          print *,'WARNING: call to SF_GFDL not supported in OpenACC'
-!#endif
           !$acc update &
           !$acc host(tsk,br,zkmax,chs,cd_out,ch_out,mol,zol,z0t,fm,fh,&
           !$acc      chs2,cpmm,cqs2,flhc,flqc,gz1oz0,hfx,lh,psim,psih, &
@@ -807,7 +804,7 @@
           ! stop 'surf_and_turb: after call to SF_GFDL'
         elseif( sfcmodel.eq.6 )then
 #ifdef _OPENACC
-          stop 'ERROR: call to SFCLAY_mynn not supported in OpenACC'
+          stop 'ERROR: call to SFCLAY_mynn not supported in OPENACC'
 #endif
           call SFCLAY_mynn(                                                                                     &
                      U3D=dum1,V3D=dum2,T3D=dum4,QV3D=divx,P3D=prs,dz8w=dum5,                                    &
@@ -876,7 +873,7 @@
           endif
 
 #ifdef _OPENACC
-          stop 'ERROR: call to MYSFC not supported in OpenACC'
+          stop 'ERROR: call to MYSFC not supported in OPENACC'
 #endif
           call   MYJSFC(ITIMESTEP=nstep,  &
                         HT=zs(ib,j),  &
@@ -919,7 +916,7 @@
 
         IF( update_sfc .and. testcase.ne.11 )THEN
 #ifdef _OPENACC
-          print *,'ERROR: call to SLAB not supported in OpenACC'
+          print *,'ERROR: call to SLAB not supported in OPENACC'
 #endif
           ! slab scheme (MM5/WRF):
           call SLAB(dum4,divx,prs,FLHC,FLQC,                        &
@@ -1204,7 +1201,7 @@
     IF( update_sfc )THEN
       if( getsfc )then
 #ifdef _OPENACC
-       stop 'ERROR: call to oceanml not supported in OpenACC'
+       stop 'ERROR: call to oceanml not supported in OPENACC'
 #endif
 
         CALL oceanml(tml,t0ml,hml,h0ml,huml,hvml,ust,dum1,dum2, &
@@ -1259,9 +1256,6 @@
     IF( cm1setup.eq.1 )THEN
 
       IF( dot2p )THEN
-!#ifdef _OPENACC
-!        print *,'ERROR: call to getgamk not supported in OpenACC'
-!#endif
         ! get gamk for two-part model:
         call     getgamk(dt,rtime,xf,rxf,c1,c2,zh,mh,zf,mf,rf0,rr0,rho0,rrf0,u0,v0,            &
                          uavg,vavg,savg,l2p,kmw,gamwall,gamk,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cavg,  &
@@ -1333,7 +1327,7 @@
           ! Nonlinear Backscatter and Anisotropy (NBA) model:
           ! TKE version:
 #ifdef _OPENACC
-          stop 'ERROR: call to turbnba not supported in OpenACC'
+          stop 'ERROR: call to turbnba not supported in OPENACC'
 #endif
           call   turbnba(nstep,uh,ruh,uf,ruf,vh,rvh,vf,rvf,mh,rmh,mf,rmf,zf,c1,c2,rho,rf,zntmp,ust,  &
                          dum1,dum2,dum3,dum4,dum5,dum6,            &
@@ -1347,7 +1341,7 @@
 
       ELSEIF(sgsmodel.eq.2)THEN
 #ifdef _OPENACC
-        stop 'ERROR: call to turbsmag not supported in OpenACC'
+        stop 'ERROR: call to turbsmag not supported in OPENACC'
 #endif
 
          ! Smagorinsky:
@@ -1364,7 +1358,7 @@
       ELSEIF( sgsmodel.eq.6 )THEN
 
 #ifdef _OPENACC
-        stop 'ERROR: call to turbnba2 not supported in OpenACC'
+        stop 'ERROR: call to turbnba2 not supported in OPENACC'
 #endif
         ! Nonlinear Backscatter and Anisotropy (NBA) model:
         ! Smagorinsky version:
@@ -1434,9 +1428,6 @@
                          u1,v1,s1,u1b,v1b,avgsfcu,avgsfcv,avgsfcs,                             &
                          reqs_s,uw31,uw32,ue31,ue32,us31,us32,un31,un32)
           elseif( sgsmodel.eq.4 )then
-!#ifdef _OPENACC
-!            print *,'ERROR: call to t2pcode not supported in OpenACC'
-!#endif
             call t2pcode(dt,rtime,xf,rxf,c1,c2,zh,mh,zf,mf,rf0,rr0,rho0,rrf0,u0,v0,            &
                          uavg,vavg,savg,l2p,kmw,gamwall,gamk,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cavg,  &
                          ua,va,wa,t11,t12,t13,t22,t23,t33,dum1,dum2,dum3,dum4,                 &
@@ -1462,7 +1453,7 @@
 
       IF( cm1setup.eq.2 .and. ipbl.eq.2 )THEN
 #ifdef _OPENACC
-        stop 'ERROR: call to turbparam_vert not supported in OpenACC'
+        stop 'ERROR: call to turbparam_vert not supported in OPENACC'
 #endif
         call turbparam_vert(nstep,zf,dt,dosfcflx,ruh,rvh,rmh,mf,rmf,th0,thflux,qvflux,rth0s,rf, &
                       nm,defv,defh,dum4,kmv,khv,dissten,out3d,zs,zntmp,ust,xland, &
@@ -1475,7 +1466,7 @@
 
       IF( cm1setup.eq.2 .and. horizturb.eq.1 )THEN
 #ifdef _OPENACC
-        stop 'ERROR: call to turbparam_horiz not supported in OpenACC'
+        stop 'ERROR: call to turbparam_horiz not supported in OPENACC'
 #endif
         call turbparam_horiz(nstep,zf,dt,dosfcflx,ruh,rvh,rmh,mf,rmf,th0,thflux,qvflux,rth0s,rf, &
                       nm,defv,defh,dum4,kmh,khh,dissten,out3d,zs,zntmp,ust,xland,psfc,tlh, &
@@ -1541,7 +1532,7 @@
 
         if( do_ib )then
 #ifdef _OPENACC
-          stop 'ERROR: call to drag_obstacles not supported in OpenACC'
+          stop 'ERROR: call to drag_obstacles not supported in OPENACC'
 #endif
           call drag_obstacles(xh,yh,zh,zf,rho,rf,dum1,dum2,dum3,dum4,dum5,dum6,t11,t12,t13,t22,t23,t33,ua,va,wa,kbdy)
         endif
@@ -1814,7 +1805,7 @@
           endif
         endif
 #ifdef _OPENACC
-        stop 'ERROR: call to ysu not supported in OpenACC'
+        stop 'ERROR: call to ysu not supported in OPENACC'
 #endif
         call ysu(u3d=dum1,v3d=dum2,th3d=dum3,t3d=dum4,qv3d=divx,                    &
                   qc3d=ppten,qi3d=dum8,p3d=prs,p3di=dum6,pi3d=dum7,                 &
@@ -1893,7 +1884,7 @@
           enddo
         endif
 #ifdef _OPENACC
-        stop 'ERROR: call to BL_GFSEDMF not supported in OpenACC'
+        stop 'ERROR: call to BL_GFSEDMF not supported in OPENACC'
 #endif
 
         call  BL_GFSEDMF(U3D=dum1,V3D=dum2,TH3D=dum3,T3D=dum4,QV3D=divx,            &
@@ -2050,7 +2041,7 @@
         ENDIF
 
 #ifdef _OPENACC
-        stop 'ERROR: call to mynn_bl_driver not supported in OpenACC'
+        stop 'ERROR: call to mynn_bl_driver not supported in OPENACC'
 #endif
         call mynn_bl_driver(                                                         &
         initflag=initflag,grav_settling=grav_settling,                               &
@@ -2187,7 +2178,7 @@
         enddo
         enddo
 #ifdef _OPENACC
-        stop 'ERROR: call to MYJPBL not supported in OpenACC'
+        stop 'ERROR: call to MYJPBL not supported in OPENACC'
 #endif
         call     MYJPBL(dt=DT,STEPBL=1,HT=zs(ib,j),DZ=tmp_myj(ibmyj,kbmyj,6)                     &
                        ,PMID=tmp_myj(ibmyj,kbmyj,7),PINT=tmp_myj(ibmyj,kbmyj,8),TH=tmp_myj(ibmyj,kbmyj,9),T=tmp_myj(ibmyj,kbmyj,10),EXNER=tmp_myj(ibmyj,kbmyj,11),QV=tmp_myj(ibmyj,kbmyj,12),QCW=tmp_myj(ibmyj,kbmyj,13),QCI=tmp_myj(ibmyj,kbmyj,14),QCS=tmp_myj(ibmyj,kbmyj,1),QCR=tmp_myj(ibmyj,kbmyj,2),QCG=tmp_myj(ibmyj,kbmyj,3)    &
@@ -5010,7 +5001,7 @@
       double precision, dimension(kb:ke) :: shravg
 
 #ifdef _OPENACC
-    stop 'Subroutine t2psmm not ported to OpenACC'
+    stop 'Subroutine t2psmm not ported to OPENACC'
 #endif
     !-------------------------------------------
     doingt2p:  &

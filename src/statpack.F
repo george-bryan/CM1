@@ -575,9 +575,6 @@
         endif
  
       if(stat_tenerg.eq.1)then
-#ifdef _OPENACC
-        !print *,'FIXME: subroutine calcener not ported to OPENACC'
-#endif
         call calcener(nstat,rstat,ruh,rvh,zh,rmh,pi0,th0,rho,ua,va,wa,ppi,tha,    &
                       dum1,dum2,dum3,dum4)
       endif

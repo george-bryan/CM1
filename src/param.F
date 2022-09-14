@@ -228,8 +228,8 @@
 #endif
 
       call bcast_log(terrain_flag,device=.true.)
-      call bcast_real(dx)
-      call bcast_real(dy)
+      call bcast_real(dx,device=.true.)
+      call bcast_real(dy,device=.true.)
       call bcast_real(dz)
       call bcast_real(dtl)
       call bcast_real(timax)
@@ -6284,6 +6284,7 @@
       mysouth = nabor(myi,   myj-1, nodex, nodey)
       myeast  = nabor(myi+1, myj,   nodex, nodey)
       mywest  = nabor(myi-1, myj,   nodex, nodey)
+      !$acc update device(mynorth,mysouth,myeast,mywest)
 
       if(dowr) write(outfile,*) '  mywest  =',mywest
       if(dowr) write(outfile,*) '  myeast  =',myeast
@@ -6295,6 +6296,7 @@
       mynw = nabor(myi-1, myj+1,   nodex, nodey)
       myne = nabor(myi+1, myj+1,   nodex, nodey)
       myse = nabor(myi+1, myj-1,   nodex, nodey)
+      !$acc update device(mysw,mynw,myne,myse)
 
       if(dowr) write(outfile,*) '  mysw    =',mysw
       if(dowr) write(outfile,*) '  mynw    =',mynw

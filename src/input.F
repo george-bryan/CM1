@@ -164,7 +164,8 @@
       !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist, &
       !$acc                 nqv,bbc,imove,prvpx,prvpy,prvpz,prrp,prms,prtp, &
       !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,   &
-      !$acc                 prt,prqv,prprs,prrho,nparcelsLocal)
+      !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,      &
+      !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw)
 
 !-----------------------------------------------------------------------
 
@@ -201,7 +202,7 @@
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
            base_tbot,base_ttop,base_pibot,base_pitop
 
-      !$acc declare create (zt,rzt,umove,vmove,viscosity,pr_num,sc_num, &
+      !$acc declare create (dx,dy,zt,rzt,umove,vmove,viscosity,pr_num,sc_num, &
       !$acc                 minx,maxx,miny,maxy,maxz)
 
 !-----------------------------------------------------------------------
