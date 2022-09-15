@@ -3899,17 +3899,16 @@
 
       tmass=0.0d0 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel default(present) private(i,j,k) reduction(+:foot,tmass)
-      !$acc loop gang reduction(+:tmass)
+      !$acc parallel loop default(present) collapse(3) reduction(+:tmass)
       do k=1,nk
-        foot=0.0d0
-        !$acc loop vector collapse(2) reduction(+:foot)
+        !foot=0.0d0
+        !!$acc loop vector collapse(2) reduction(+:foot)
         do j=1,nj
         do i=1,ni
-          foot=foot+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+          ! foot=foot+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+          tmass=tmass+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
         enddo
         enddo
-        tmass=tmass+foot
       enddo
       !$acc end parallel
 
@@ -4357,35 +4356,19 @@
       double precision :: foo1t,foo2t
 
 
-      !$acc data create(foo1,foo2)
+      tmfu=0.0d0
+      tmfd=0.0d0
       !$omp parallel do default(shared) private(i,j,k,mf)
-      !$acc parallel default(present)  private(i,j,k,mf) reduction(+:foo1t,foo2t)
-      !JMD internal compiler error
-      !!$acc loop gang reduction(+:tmfu,tmfd)
-      !$acc loop gang 
+      !$acc parallel loop gang vector default(present) collapse(3) reduction(+:tmfu,tmfd)
       do k=1,nk
-        foo1t = 0.0d0
-        foo2t = 0.0d0
-        !$acc loop vector collapse(2) reduction(+:foo1t,foo2t)
         do j=1,nj
         do i=1,ni
           mf=rho(i,j,k)*0.5*(wa(i,j,k)+wa(i,j,k+1))*ruh(i)*rvh(j)
-          foo1t=foo1t+max(mf,0.0d0)
-          foo2t=foo2t+min(mf,0.0d0)
+          tmfu=tmfu+max(mf,0.0d0)
+          tmfd=tmfd+min(mf,0.0d0)
         enddo
         enddo
-        foo1(k) = foo1t
-        foo2(k) = foo2t
       enddo
-      !$acc end parallel
-      tmfu=0.0d0
-      tmfd=0.0d0
-      !$acc parallel loop vector gang default(present) reduction(+:tmfu,tmfd)
-      do k=1,nk
-        tmfu=tmfu+foo1(k)
-        tmfd=tmfd+foo2(k)
-      enddo
-      !$acc end parallel
 
 #ifdef MPI
       var=0.0d0
@@ -4413,7 +4396,6 @@
 #ifdef MPI
       endif
 #endif
-      !$acc end data
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
 
