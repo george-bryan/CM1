@@ -402,7 +402,6 @@
           pdata(n,prz) = neg_huge
         enddo
 
-
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  Parcels ! '
         if(dowr) write(outfile,*) '  npvals,nparcelsLocal = ',npvals,nparcelsLocal
@@ -415,6 +414,7 @@
         randomNumbers = new_RandomNumberSequence(seed = nparcels)
 
         i = 1
+        nparcelsActive = 0
 
         do n=1,nparcels
 
@@ -471,6 +471,8 @@
              end if ! end of if statement for prcl_droplet == 1
 
              i = i + 1
+             nparcelsActive = nparcelsActive + 1
+
 #ifdef MPI   
              if ( i .gt. nparcelsLocal ) then
                 write(*,*) "Not enough space to initialize the droplets on myid = ", myid 

@@ -12728,7 +12728,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
                                    pdata_locind,pdata_neighbor)
 
       use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
-                        myse,myeast,mywest,mynorth,mysouth,ierr
+                        myse,myeast,mywest,mynorth,mysouth,ierr, &
+                        nparcelsActive
       use constants, only: undefined_index,num_nn,inorth,isouth, &
                            iwest,ieast,inw,ine,isw,ise
       use mpi
@@ -12744,9 +12745,9 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       integer, intent(out) :: num2(num_nn)                                 ! Number of droplets that will enter the 
                                                                            ! current MPI region from each nearest 
                                                                            ! neighbor at different directions
-      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata            ! droplet information
-      integer, intent(in), dimension(nparcelsLocal,3) :: pdata_locind       ! x/y/z location index of each droplet
-      integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor       ! array to store the new MPI region 
+      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata           ! droplet information
+      integer, intent(in), dimension(nparcelsLocal,3) :: pdata_locind      ! x/y/z location index of each droplet
+      integer, intent(in), dimension(nparcelsActive) :: pdata_neighbor     ! array to store the new MPI region 
                                                                            ! info for all the droplets
 
       ! Local variables
@@ -12776,7 +12777,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       ! current MPI region and to which neighbor
 
       i = 1
-      do n = 1, nparcelsLocal
+      do n = 1, nparcelsActive
          if ( (pdata_locind(n,1) .eq. undefined_index) .and. &
               (pdata_locind(n,2) .eq. undefined_index) ) then
             ! record the location index that can be used to store the new droplet
@@ -12931,7 +12932,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
     subroutine comm_droplet_value(holes_ind,num1,num2,pdata,pdata_neighbor)
 
       use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
-                        myse,myeast,mywest,mynorth,mysouth,ierr,pract
+                        myse,myeast,mywest,mynorth,mysouth,ierr, &
+                        pract,nparcelsActive
       use constants, only: undefined_index,neg_huge,num_nn,inorth, &
                            isouth,iwest,ieast,inw,ine,isw,ise
       use mpi
@@ -12947,8 +12949,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       integer, intent(in) :: num2(num_nn)                                  ! Number of droplets that will enter the 
                                                                            ! current MPI region from each nearest 
                                                                            ! neighbor at different directions
-      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata         ! droplet information
-      integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor       ! array to store the new MPI region 
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata        ! droplet information
+      integer, intent(in), dimension(nparcelsActive) :: pdata_neighbor     ! array to store the new MPI region 
                                                                            ! info for all the droplets
 
       ! Local variables
@@ -13005,7 +13007,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       sw_idx = 1
       se_idx = 1
 
-      do n = 1, nparcelsLocal
+      do n = 1, nparcelsActive
          if ( pdata_neighbor(n) .eq. mynorth ) then
             droplet_n1(n_idx,:) = pdata(n,:)
             n_idx = n_idx + 1

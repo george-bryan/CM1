@@ -36,7 +36,7 @@
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsactive
       use constants
       use comm_module
       use misclibs
@@ -96,9 +96,9 @@
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
       real :: sig3d,th_tmp,rand
-      real, dimension(nparcelsLocal) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
-                                        rhoval,rp0,taup0,rhop0,tval, &
-                                        iflag_tmp,jflag_tmp,kflag_tmp
+      real, dimension(nparcelsActive) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
+                                         rhoval,rp0,taup0,rhop0,tval, &
+                                         iflag_tmp,jflag_tmp,kflag_tmp
       real :: Nup,salinity,part_grav1,part_grav2,part_grav3
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
@@ -118,7 +118,7 @@
       integer :: num2(num_nn)                              ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
-      integer, dimension(nparcelsLocal) :: pdata_neighbor   ! array to store the new MPI region info for all the droplets
+      integer, dimension(nparcelsActive) :: pdata_neighbor ! array to store the new MPI region info for all the droplets
 #endif
 
 #ifdef _VERIFY_FIND_LOC
@@ -135,7 +135,7 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      do np = 1, nparcelsLocal
+      do np = 1, nparcelsActive
          pdata_neighbor(np) = undefined_index
       end do
 
@@ -301,7 +301,7 @@
     !$acc loop gang vector
 #endif
     nploop:  &
-    DO np=1,nparcelsLocal
+    DO np=1,nparcelsActive
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -420,11 +420,9 @@
 
       ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
 
-#ifdef MPI
       call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
+#ifdef MPI
       pdata_neighbor(np) = neighbor 
-#else
-      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug,num100,num1000)
 #endif
 
       ENDIF dropmethod
@@ -612,7 +610,7 @@
 ! JS: update qten and thten here to avoid the race condition for a GPU case 
 !     the calculation is done on the CPU
 
-    do np = 1, nparcelsLocal
+    do np = 1, nparcelsActive
 
        if ( pdata(np,pract) .gt. 0.0 ) then
 
@@ -660,7 +658,7 @@
 
        end if     ! end of "if" the droplet is alive
 
-    end do        ! end of nparcelsLocal loop
+    end do        ! end of nparcelsActive loop
 
     !$acc update device (qten,thten)
 
@@ -712,6 +710,42 @@
 
     call comm_droplet_value(holes_ind,num1,num2,pdata,pdata_neighbor)
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Step 5: Compress the new "pdata" to make sure that all the active    ! 
+    !         droplets are contiguous (no "holes" between "pdata" slots)   !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    ! there will be remaining "holes" in the "pdata" only when more
+    ! droplets leave rather than enter the current MPI region
+    if ( sum(num2) .lt. sum(num1) ) then
+       num_holes = sum(num1) - sum(num2)        ! number of "holes" we need to fill
+                                                ! to make the active dropelts in 
+                                                ! the "pdata" contiguous
+       i = nparcelsActive
+       j = 0
+       do np = 1, nparcelsActive
+          if ( pdata(np,pract) .lt. 0.0 ) then
+             do k = i, np, -1
+                if ( pdata(k,pract) .gt. 0.0 ) then
+                   pdata(np,:) = pdata(k,:)
+                   pdata(k,:) = neg_huge
+                   i = k
+                   j = j + 1
+                   exit
+                end if
+             end do
+             if ( k .lt. np ) exit              ! the active dropelts in the 
+                                                ! "pdata" are already contiguous
+                                                ! and no action is needed
+             if ( j .eq. num_holes ) exit       ! now the active dropelts in 
+                                                ! the "pdata" are contiguous
+                                                ! after filling the "holes"
+          end if
+       end do
+    end if
+
+    nparcelsActive = nparcelsActive + sum(num2) - sum(num1)
+
     !$acc update device(pdata)
 
     ! free up the memory for temporary variables
@@ -726,7 +760,7 @@
 
       if( terrain_flag )then
             call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcelsLocal
+            DO np=1,nparcelsActive
               ! get z from sigma:
               ! (see Section 3 of "The governing equations for CM1", 
               !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
