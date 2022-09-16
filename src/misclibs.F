@@ -3899,13 +3899,10 @@
 
       tmass=0.0d0 
       !$omp parallel do default(shared) private(i,j,k)
-      !$acc parallel loop default(present) collapse(3) reduction(+:tmass)
+      !$acc parallel loop gang vector default(present) collapse(3) reduction(+:tmass)
       do k=1,nk
-        !foot=0.0d0
-        !!$acc loop vector collapse(2) reduction(+:foot)
         do j=1,nj
         do i=1,ni
-          ! foot=foot+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
           tmass=tmass+rho(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
         enddo
         enddo
