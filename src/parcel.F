@@ -1809,10 +1809,10 @@
         ! write GrADS descriptor file:
         call write_prclctl(name_prcl,desc_prcl,unit_prcl,prec)
 
-        do i=1,maxstring
-          string(i:i) = ' '
-        enddo
-
+!        do i=1,maxstring
+!          string(i:i) = ' '
+!        enddo
+!
 !        string = 'cm1out_pdata.dat'
 !
 !!!!        write(string(15:20),101) prec
@@ -1836,15 +1836,15 @@
 !#ifdef MPI     
 !        deallocate(rbuf)
 !#endif
-
-#ifdef NETCDF
-      ELSEIF(output_format.eq.2)THEN
-
-        call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
-
-#endif
+!
+!#ifdef NETCDF
+!      ELSEIF(output_format.eq.2)THEN
+!
+!        call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
+!
+!#endif
       ENDIF
-      if(dowr) write(outfile,*)
+!      if(dowr) write(outfile,*)
 
     ENDIF   ! endif for myid=0
 

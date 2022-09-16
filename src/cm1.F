@@ -2260,7 +2260,7 @@ end module cuda_rt
       reqt = 0
 
 #ifdef MPI
-      padding = max(pdata_buffer*nparcels,100)
+      padding = max(pdata_buffer*nparcels,100.0)
       nparcelsLocal = ceiling((nparcels*1.0/numprocs)+padding)
 #else
       nparcelsLocal = nparcels
