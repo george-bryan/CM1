@@ -91,12 +91,14 @@
       integer :: n,np,i,j,k,iflag,jflag,kflag
       integer :: ix,iy,iz
       integer :: num100,num1000
-      real :: x3d,y3d,z3d,x3d0,y3d0,z3d0
+      real :: x3d,y3d,z3d,x3d0,y3d0,z3d0,sig3d0
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
-      real :: sig3d,sig3d0,th_tmp,rand
-      real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt
-      real :: Nup,rhop0,taup0,rp0,salinity,part_grav1,part_grav2,part_grav3
+      real :: sig3d,th_tmp,rand
+      real, dimension(nparcelsLocal) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+                                        iflag_tmp,jflag_tmp,kflag_tmp
+      real :: rp0,taup0,rhop0
+      real :: Nup,salinity,part_grav1,part_grav2,part_grav3
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
 
@@ -137,12 +139,18 @@
          pdata_neighbor(np) = undefined_index
       end do
 
-      !$acc data create (ta) &
-      !$acc      copyin (randomNumbers,randomNumbers%state, &
-      !$acc              pdata_neighbor)
+      !$acc data create  (ta) &
+      !$acc      copy    (pdata_neighbor) &
+      !$acc      copyin  (randomNumbers,randomNumbers%state) &
+      !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+      !$acc               rhoval,rp0,taup0,rhop0,tval, & 
+      !$acc               iflag_tmp,jflag_tmp,kflag_tmp)
 #else
-      !$acc data create (ta) &
-      !$acc      copyin (randomNumbers,randomNumbers%state)
+      !$acc data create  (ta) &
+      !$acc      copyin  (randomNumbers,randomNumbers%state) &
+      !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+      !$acc               rhoval,rp0,taup0,rhop0,tval, &
+      !$acc               iflag_tmp,jflag_tmp,kflag_tmp)
 #endif
 
     IF(bbc.eq.1)THEN
@@ -336,7 +344,7 @@
 ! JS: comment out this conflict check for the new MPI interface;
 !     otherwise there will be a droplet leak
 
-!      ! check for conflict:
+      ! check for conflict:
 !    IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
 !        (jflag.ge.1.and.jflag.le.nj) )THEN
 !      IF( iflag.eq.ni .and. pdata(np,prx).eq.xf(iflag+1) .and. nodex.gt.1 .and.  myi.ne.nodex ) iflag = -1
@@ -363,12 +371,12 @@
       dropalive1:  &
       IF (pdata(np,pract).gt.0.0) THEN
 
-      dvpdt1 = pdata(np,prvpx)
-      dvpdt2 = pdata(np,prvpy)
-      dvpdt3 = pdata(np,prvpz)
-      dtpdt    = pdata(np,prtp)
-      drpdt    = pdata(np,prrp)
-      dmpdt    = rhow*4.0/3.0*pi*pdata(np,prrp)**3
+      dvpdt1(np) = pdata(np,prvpx)
+      dvpdt2(np) = pdata(np,prvpy)
+      dvpdt3(np) = pdata(np,prvpz)
+      dtpdt(np)  = pdata(np,prtp)
+      drpdt(np)  = pdata(np,prrp)
+      dmpdt(np)  = rhow*4.0/3.0*pi*pdata(np,prrp)**3
 
 
       !Store its old position before getting updated:
@@ -401,25 +409,23 @@
       !--------
       !PORTME
       !Recall that the "old" values are stored in the "d/dt" variables
-      dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
-      dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
-      dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
+      dvpdt1(np) = (pdata(np,prvpx)-dvpdt1(np))/dt   !Remember to deal with gravity later!
+      dvpdt2(np) = (pdata(np,prvpy)-dvpdt2(np))/dt
+      dvpdt3(np) = (pdata(np,prvpz)-dvpdt3(np))/dt
 
-      drpdt = (pdata(np,prrp)-drpdt)/dt
+      drpdt(np) = (pdata(np,prrp)-drpdt(np))/dt
 
-      !Only the sensible component of energy 
-      !dtpdt = (pdata(np,prtp)-dtpdt)/dt - 3.0*lhv/cpl/rp0*drpdt
+      dtpdt(np) = (pdata(np,prtp)-dtpdt(np))/dt
 
-      !dtpdt = Nup/3.0/pr_num*(cp/cpl)*(rhop0/rhow)/taup0*(dtpdt-pdata(np,prtp))
-
-      dtpdt = (pdata(np,prtp)-dtpdt)/dt
-
-      dmpdt = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt)/dt
+      dmpdt(np) = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt(np))/dt
 
 
       !Project the feedback onto the grid, using ORIGINAL location
       call project_feedback(np,iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0,rhop0,taup0,rp0,tval,uten,vten,wten,qten,thten,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt,rhoval,part_grav1,part_grav2,part_grav3,pdata)
 
+      iflag_tmp(np) = iflag
+      jflag_tmp(np) = jflag
+      kflag_tmp(np) = kflag
 
     ENDIF dropalive2
 
@@ -483,12 +489,9 @@
       ENDIF  myparcel
 
     ENDDO  nploop
-#ifdef _B4B01F
-    !$acc update device(pdata,qten,thten)
-#else
-    !$acc end parallel
-#endif
+
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
+
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
@@ -496,8 +499,6 @@
 
     ! JS: send/receive the droplet information through MPI;
     !     all the calculations below are done on CPU
-
-    !$acc update host(pdata,pdata_locind,pdata_neighbor)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 1: Count the "num_holes", which is the number of "holes" in "pdata" !
@@ -562,7 +563,6 @@
 
 !
 !----------------------------------------------------------------------
-      !$acc end data
 
       end subroutine droplet_driver
 
@@ -1524,7 +1524,7 @@
       use cm1libs , only : eslf
       implicit none
 
-      real, intent(in) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt
+      real, dimension(nparcelsLocal),  intent(in) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(in) :: rhoval,part_grav1,part_grav2,part_grav3
 
@@ -1607,14 +1607,14 @@
         volp = (4.0/3.0)*pi*pdata(np,prrp)**3
         partmass = pdata(np,prms) + VolP*rhow
 
-        uten(i,j,k)       = uten(i,j,k)       - partmass/rhoval*(dvpdt1-part_grav1)*w1/dV*pdata(np,prmult)
-        uten(i+1,j,k)     = uten(i+1,j,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w2/dV*pdata(np,prmult)
-        uten(i,j+1,k)     = uten(i,j+1,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w3/dV*pdata(np,prmult)
-        uten(i,j,k+1)     = uten(i,j,k+1)     - partmass/rhoval*(dvpdt1-part_grav1)*w4/dV*pdata(np,prmult)
-        uten(i+1,j,k+1)   = uten(i+1,j,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w5/dV*pdata(np,prmult)
-        uten(i,j+1,k+1)   = uten(i,j+1,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w6/dV*pdata(np,prmult)
-        uten(i+1,j+1,k)   = uten(i+1,j+1,k)   - partmass/rhoval*(dvpdt1-part_grav1)*w7/dV*pdata(np,prmult)
-        uten(i+1,j+1,k+1) = uten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt1-part_grav1)*w8/dV*pdata(np,prmult)
+        uten(i,j,k)       = uten(i,j,k)       - partmass/rhoval*(dvpdt1(np)-part_grav1)*w1/dV*pdata(np,prmult)
+        uten(i+1,j,k)     = uten(i+1,j,k)     - partmass/rhoval*(dvpdt1(np)-part_grav1)*w2/dV*pdata(np,prmult)
+        uten(i,j+1,k)     = uten(i,j+1,k)     - partmass/rhoval*(dvpdt1(np)-part_grav1)*w3/dV*pdata(np,prmult)
+        uten(i,j,k+1)     = uten(i,j,k+1)     - partmass/rhoval*(dvpdt1(np)-part_grav1)*w4/dV*pdata(np,prmult)
+        uten(i+1,j,k+1)   = uten(i+1,j,k+1)   - partmass/rhoval*(dvpdt1(np)-part_grav1)*w5/dV*pdata(np,prmult)
+        uten(i,j+1,k+1)   = uten(i,j+1,k+1)   - partmass/rhoval*(dvpdt1(np)-part_grav1)*w6/dV*pdata(np,prmult)
+        uten(i+1,j+1,k)   = uten(i+1,j+1,k)   - partmass/rhoval*(dvpdt1(np)-part_grav1)*w7/dV*pdata(np,prmult)
+        uten(i+1,j+1,k+1) = uten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt1(np)-part_grav1)*w8/dV*pdata(np,prmult)
 
         !What interpolation is doing, for reference
         ! uval = ua(i  ,j  ,k  )*w1 &
@@ -1670,14 +1670,14 @@
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
 
-        vten(i,j,k)       = vten(i,j,k)       - partmass/rhoval*(dvpdt2-part_grav2)*w1/dV*pdata(np,prmult)
-        vten(i+1,j,k)     = vten(i+1,j,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w2/dV*pdata(np,prmult)
-        vten(i,j+1,k)     = vten(i,j+1,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w3/dV*pdata(np,prmult)
-        vten(i,j,k+1)     = vten(i,j,k+1)     - partmass/rhoval*(dvpdt2-part_grav2)*w4/dV*pdata(np,prmult)
-        vten(i+1,j,k+1)   = vten(i+1,j,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w5/dV*pdata(np,prmult)
-        vten(i,j+1,k+1)   = vten(i,j+1,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w6/dV*pdata(np,prmult)
-        vten(i+1,j+1,k)   = vten(i+1,j+1,k)   - partmass/rhoval*(dvpdt2-part_grav2)*w7/dV*pdata(np,prmult)
-        vten(i+1,j+1,k+1) = vten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt2-part_grav2)*w8/dV*pdata(np,prmult)
+        vten(i,j,k)       = vten(i,j,k)       - partmass/rhoval*(dvpdt2(np)-part_grav2)*w1/dV*pdata(np,prmult)
+        vten(i+1,j,k)     = vten(i+1,j,k)     - partmass/rhoval*(dvpdt2(np)-part_grav2)*w2/dV*pdata(np,prmult)
+        vten(i,j+1,k)     = vten(i,j+1,k)     - partmass/rhoval*(dvpdt2(np)-part_grav2)*w3/dV*pdata(np,prmult)
+        vten(i,j,k+1)     = vten(i,j,k+1)     - partmass/rhoval*(dvpdt2(np)-part_grav2)*w4/dV*pdata(np,prmult)
+        vten(i+1,j,k+1)   = vten(i+1,j,k+1)   - partmass/rhoval*(dvpdt2(np)-part_grav2)*w5/dV*pdata(np,prmult)
+        vten(i,j+1,k+1)   = vten(i,j+1,k+1)   - partmass/rhoval*(dvpdt2(np)-part_grav2)*w6/dV*pdata(np,prmult)
+        vten(i+1,j+1,k)   = vten(i+1,j+1,k)   - partmass/rhoval*(dvpdt2(np)-part_grav2)*w7/dV*pdata(np,prmult)
+        vten(i+1,j+1,k+1) = vten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt2(np)-part_grav2)*w8/dV*pdata(np,prmult)
 
         ! vval = va(i  ,j  ,k  )*w1 &
         !      + va(i+1,j  ,k  )*w2 &
@@ -1729,14 +1729,14 @@
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
 
-        wten(i,j,k)       = wten(i,j,k)       - partmass/rhoval*(dvpdt3-part_grav3)*w1/dV*pdata(np,prmult)
-        wten(i+1,j,k)     = wten(i+1,j,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w2/dV*pdata(np,prmult)
-        wten(i,j+1,k)     = wten(i,j+1,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w3/dV*pdata(np,prmult)
-        wten(i,j,k+1)     = wten(i,j,k+1)     - partmass/rhoval*(dvpdt3-part_grav3)*w4/dV*pdata(np,prmult)
-        wten(i+1,j,k+1)   = wten(i+1,j,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w5/dV*pdata(np,prmult)
-        wten(i,j+1,k+1)   = wten(i,j+1,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w6/dV*pdata(np,prmult)
-        wten(i+1,j+1,k)   = wten(i+1,j+1,k)   - partmass/rhoval*(dvpdt3-part_grav3)*w7/dV*pdata(np,prmult)
-        wten(i+1,j+1,k+1) = wten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt3-part_grav3)*w8/dV*pdata(np,prmult)
+        wten(i,j,k)       = wten(i,j,k)       - partmass/rhoval*(dvpdt3(np)-part_grav3)*w1/dV*pdata(np,prmult)
+        wten(i+1,j,k)     = wten(i+1,j,k)     - partmass/rhoval*(dvpdt3(np)-part_grav3)*w2/dV*pdata(np,prmult)
+        wten(i,j+1,k)     = wten(i,j+1,k)     - partmass/rhoval*(dvpdt3(np)-part_grav3)*w3/dV*pdata(np,prmult)
+        wten(i,j,k+1)     = wten(i,j,k+1)     - partmass/rhoval*(dvpdt3(np)-part_grav3)*w4/dV*pdata(np,prmult)
+        wten(i+1,j,k+1)   = wten(i+1,j,k+1)   - partmass/rhoval*(dvpdt3(np)-part_grav3)*w5/dV*pdata(np,prmult)
+        wten(i,j+1,k+1)   = wten(i,j+1,k+1)   - partmass/rhoval*(dvpdt3(np)-part_grav3)*w6/dV*pdata(np,prmult)
+        wten(i+1,j+1,k)   = wten(i+1,j+1,k)   - partmass/rhoval*(dvpdt3(np)-part_grav3)*w7/dV*pdata(np,prmult)
+        wten(i+1,j+1,k+1) = wten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt3(np)-part_grav3)*w8/dV*pdata(np,prmult)
 
         ! wval = wa(i  ,j  ,k  )*w1 &
         !      + wa(i+1,j  ,k  )*w2 &
@@ -1792,14 +1792,14 @@
         w8 = rx*ry*rz
 
       if(imoist.eq.1)then
-        qten(i,j,k)       = qten(i,j,k)       - dmpdt/rhoval/dV*w1*pdata(np,prmult)
-        qten(i+1,j,k)     = qten(i+1,j,k)     - dmpdt/rhoval/dV*w2*pdata(np,prmult)
-        qten(i,j+1,k)     = qten(i,j+1,k)     - dmpdt/rhoval/dV*w3*pdata(np,prmult)
-        qten(i,j,k+1)     = qten(i,j,k+1)     - dmpdt/rhoval/dV*w4*pdata(np,prmult)
-        qten(i+1,j,k+1)   = qten(i+1,j,k+1)   - dmpdt/rhoval/dV*w5*pdata(np,prmult)
-        qten(i,j+1,k+1)   = qten(i,j+1,k+1)   - dmpdt/rhoval/dV*w6*pdata(np,prmult)
-        qten(i+1,j+1,k)   = qten(i+1,j+1,k)   - dmpdt/rhoval/dV*w7*pdata(np,prmult)
-        qten(i+1,j+1,k+1) = qten(i+1,j+1,k+1) - dmpdt/rhoval/dV*w8*pdata(np,prmult)
+        qten(i,j,k)       = qten(i,j,k)       - dmpdt(np)/rhoval/dV*w1*pdata(np,prmult)
+        qten(i+1,j,k)     = qten(i+1,j,k)     - dmpdt(np)/rhoval/dV*w2*pdata(np,prmult)
+        qten(i,j+1,k)     = qten(i,j+1,k)     - dmpdt(np)/rhoval/dV*w3*pdata(np,prmult)
+        qten(i,j,k+1)     = qten(i,j,k+1)     - dmpdt(np)/rhoval/dV*w4*pdata(np,prmult)
+        qten(i+1,j,k+1)   = qten(i+1,j,k+1)   - dmpdt(np)/rhoval/dV*w5*pdata(np,prmult)
+        qten(i,j+1,k+1)   = qten(i,j+1,k+1)   - dmpdt(np)/rhoval/dV*w6*pdata(np,prmult)
+        qten(i+1,j+1,k)   = qten(i+1,j+1,k)   - dmpdt(np)/rhoval/dV*w7*pdata(np,prmult)
+        qten(i+1,j+1,k+1) = qten(i+1,j+1,k+1) - dmpdt(np)/rhoval/dV*w8*pdata(np,prmult)
 
         ! qval = qa(i  ,j  ,k  ,nqv)*w1 &
         !      + qa(i+1,j  ,k  ,nqv)*w2 &
@@ -1812,14 +1812,14 @@
       endif
 
 
-        thten(i,j,k)       = thten(i,j,k)         - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult) 
-        thten(i+1,j,k)     = thten(i+1,j,k)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult) 
-        thten(i,j+1,k)     = thten(i,j+1,k)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult) 
-        thten(i,j,k+1)     = thten(i,j,k+1)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult) 
-        thten(i+1,j,k+1)   = thten(i+1,j,k+1)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult) 
-        thten(i,j+1,k+1)   = thten(i,j+1,k+1)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult) 
-        thten(i+1,j+1,k)   = thten(i+1,j+1,k)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult) 
-        thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1)   - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult) 
+        thten(i,j,k)       = thten(i,j,k)         - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w1/dV*pdata(np,prmult) 
+        thten(i+1,j,k)     = thten(i+1,j,k)       - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w2/dV*pdata(np,prmult) 
+        thten(i,j+1,k)     = thten(i,j+1,k)       - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w3/dV*pdata(np,prmult) 
+        thten(i,j,k+1)     = thten(i,j,k+1)       - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w4/dV*pdata(np,prmult) 
+        thten(i+1,j,k+1)   = thten(i+1,j,k+1)     - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w5/dV*pdata(np,prmult) 
+        thten(i,j+1,k+1)   = thten(i,j+1,k+1)     - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w6/dV*pdata(np,prmult) 
+        thten(i+1,j+1,k)   = thten(i+1,j+1,k)     - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w7/dV*pdata(np,prmult) 
+        thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1)   - dtpdt(np)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt(np)*(cpl/cp)*tval*w8/dV*pdata(np,prmult) 
 
 
       ! tval   = ta(i  ,j  ,k  )*w1 &
@@ -2323,7 +2323,12 @@
 
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
-        fv2 = (/1., 1./)
+         
+        fv2(1) = 1.
+        fv2(2) = 1.
+        !JMD-FIXME:  The following line appears to generate the following compiler error:
+        !JMD-FIXME     Internal compiler error. Basic LLVM base data type required 
+        !fv2 = (/1., 1./)
         coeff = 0.1
 
         do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<1000))
@@ -2404,12 +2409,21 @@
 
         error = 1.0e-8
 
-        I = reshape((/1, 0, 0, 1/),(/2,2/))
+        
+        !JMD-FIXME generates an internal compiler eerror
+        ! I = reshape((/1, 0, 0, 1/),(/2,2/))
+        I(1,1)=1.0
+        I(2,1)=0.0
+        I(1,2)=0.0
+        I(2,2)=1.0
         iterations = 0
         flag = 0
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
-        fv2 = (/1., 1./)
+        !JMD-FIXME generates an internal compiler error
+        ! fv2 = (/1., 1./)
+        fv2(1) = 1.0
+        fv2(2) = 1.0
 
         lambda = 0.001
         lup = 2.0
