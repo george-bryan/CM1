@@ -546,7 +546,6 @@
     real :: wbar,cc1,cc2
 
 
-  print *,'vinterp_flx5: stag: ',stag
   IF( stag.eq.1 )THEN
     !$omp parallel do default(shared) private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present)

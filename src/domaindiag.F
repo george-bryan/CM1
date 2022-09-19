@@ -10327,7 +10327,6 @@
     IF( advwenov.ge.1 )THEN
 
       if(     weno_order.eq.5 )then
-        print *,'momentum_flux: calling vinterp_{weno5,flx6}'
         call vinterp_weno5(  3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d ,  0 ,0,weps)
  
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum4, v3d )
@@ -10337,11 +10336,9 @@
 
         !buh3
       if(     vadvordrs.eq.5 )then
-        print *,'momentum_flux: calling vinterp_{flx5,flx6}'
         call vinterp_flx5(   3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d )
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum4, v3d )
       elseif( vadvordrs.eq.6 )then
-        print *,'momentum_flux: calling vinterp_flx6'
         call vinterp_flx6(   3 ,ni,nj+1,nk,c1,c2,w3d,dum3, v3d )
         !$acc parallel loop gang vector collapse(3) default(present)
         do k=1,nk
