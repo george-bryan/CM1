@@ -1,0 +1,35 @@
+slab.F and module_sf_slab.F
+---------------------------
+
+   Incompatable arguments
+
+ysu.F and module_bl_ysu.F
+-------------------------
+
+   Incompatable arguments
+
+thompson.F and module_mp_thompson.F
+-----------------------------------
+  
+   Missing module_domain
+
+sfclay.F and module_sfc_sfclayrev.F
+-----------------------------------
+  
+   Change in name of the module
+
+module_bl_gwdo.F
+module_sf_noahdrv.F
+-------------------
+
+   Does not appear to be a corresponding file in current version of CM1
+
+module_ra_rrtmg_lw.f90 versus module_ra_rrtmg_lwf.F
+---------------------------------------------------
+
+   Size of integers and reals are not set properly
+
+module_ra_rrtmg_sw.f90 versus module_ra_rrtmg_swf.F
+---------------------------------------------------
+
+   Size of integers and reals are not set properly
