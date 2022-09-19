@@ -3969,7 +3969,7 @@ end module cuda_rt
           enddo
         endif
 #ifdef _OPENACC
-        print *,'ERROR: write_restart not supported in OPENACC'
+        print *,'WARNING: OPENACC version of write_restart has not been verified'
 #endif
         call     write_restart(nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,      &
                                trecs,trecw,arecs,arecw,                             &
