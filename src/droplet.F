@@ -571,6 +571,8 @@
 
       end subroutine droplet_driver
 
+
+      !! 9/20/22 -- NO LONGER UPDATING RK2_INTEGRATION. USE BE_INTEGRATION
       subroutine rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug)
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcelsLocal,npvals,nx,ny,viscosity, &
