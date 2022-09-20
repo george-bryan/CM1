@@ -1687,23 +1687,21 @@
       !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
-      do np=1,nparcelsLocal
-         if (pdata(np,pract) .gt. 0.0) then
-            tnumpart = tnumpart + 1
-            radavg = radavg + pdata(np,prrp)
-            radsqr = radsqr + pdata(np,prrp)**2
-            Tpavg = Tpavg + pdata(np,prtp)
-            Tpsqr = Tpsqr + pdata(np,prtp)**2 
-            Tfavg = Tfavg + pdata(np,prt)
-            qfavg = qfavg + pdata(np,prqv)
-            prsavg = prsavg + pdata(np,prprs)
-            rhoavg = rhoavg + pdata(np,prrho)
+      do np=1,nparcelsActive
+         tnumpart = tnumpart + 1
+         radavg = radavg + pdata(np,prrp)
+         radsqr = radsqr + pdata(np,prrp)**2
+         Tpavg = Tpavg + pdata(np,prtp)
+         Tpsqr = Tpsqr + pdata(np,prtp)**2 
+         Tfavg = Tfavg + pdata(np,prt)
+         qfavg = qfavg + pdata(np,prqv)
+         prsavg = prsavg + pdata(np,prprs)
+         rhoavg = rhoavg + pdata(np,prrho)
 
-            radmin = min(radmin, pdata(np,prrp))
-            radmax = max(radmax, pdata(np,prrp))
-            Tpmin = min(Tpmin, pdata(np,prtp))
-            Tpmax = max(Tpmax, pdata(np,prtp))
-         end if
+         radmin = min(radmin, pdata(np,prrp))
+         radmax = max(radmax, pdata(np,prrp))
+         Tpmin = min(Tpmin, pdata(np,prtp))
+         Tpmax = max(Tpmax, pdata(np,prtp))
       end do
       !$acc end parallel
 
@@ -1788,12 +1786,11 @@
       !$acc end parallel
 
       !$acc parallel loop gang vector default(present) reduction(partnum)
-      do np=1,nparcelsLocal
-         if (pdata(np,pract) .gt. 0.0) then
-            kflag = 1
-            call find_vertical_location_index (pdata_locind(np,3),pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
-            partnum(pdata_locind(np,3)) = partnum(pdata_locind(np,3)) + 1.0
-         end if
+      do np=1,nparcelsActive
+         kflag = 1
+         k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
+         call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
+         partnum(k) = partnum(k) + 1.0
       end do
       !$acc end parallel
 
