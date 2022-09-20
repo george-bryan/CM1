@@ -3503,7 +3503,6 @@ end module cuda_rt
           enddo
           enddo
         ENDIF
-!#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3515,7 +3514,6 @@ end module cuda_rt
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
 
-!#endif
         !Also compute the droplet diagnostics at the same frequency as statpack
 
         ! JS: with the new MPI implementation, we can:
