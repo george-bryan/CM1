@@ -12777,32 +12777,34 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       ! current MPI region and to which neighbor
 
       i = 1
-      do n = 1, nparcelsActive
+      do n = 1, nparcelsLocal
          if ( (pdata_locind(n,1) .eq. undefined_index) .and. &
               (pdata_locind(n,2) .eq. undefined_index) ) then
             ! record the location index that can be used to store the new droplet
             ! information after the old drolpet leaves the current MPI region
             holes_ind(i) = n
             i = i + 1
-            if ( pdata_neighbor(n) .eq. mynorth ) then
-               num1(inorth) = num1(inorth) + 1 
-            else if ( pdata_neighbor(n) .eq. mysouth ) then
-               num1(isouth) = num1(isouth) + 1 
-            else if ( pdata_neighbor(n) .eq. mywest ) then
-               num1(iwest) = num1(iwest) + 1
-            else if ( pdata_neighbor(n) .eq. myeast ) then
-               num1(ieast) = num1(ieast) + 1
-            else if ( pdata_neighbor(n) .eq. mynw ) then
-               num1(inw) = num1(inw) + 1
-            else if ( pdata_neighbor(n) .eq. myne ) then
-               num1(ine) = num1(ine) + 1
-            else if ( pdata_neighbor(n) .eq. mysw ) then
-               num1(isw) = num1(isw) + 1
-            else if ( pdata_neighbor(n) .eq. myse ) then
-               num1(ise) = num1(ise) + 1
-            else
-               cycle  ! this is an existing "hole" of "pdata"
-                      ! no action is needed
+            if ( n .le. nparcelsActive ) then
+               if ( pdata_neighbor(n) .eq. mynorth ) then
+                  num1(inorth) = num1(inorth) + 1 
+               else if ( pdata_neighbor(n) .eq. mysouth ) then
+                  num1(isouth) = num1(isouth) + 1 
+               else if ( pdata_neighbor(n) .eq. mywest ) then
+                  num1(iwest) = num1(iwest) + 1
+               else if ( pdata_neighbor(n) .eq. myeast ) then
+                  num1(ieast) = num1(ieast) + 1
+               else if ( pdata_neighbor(n) .eq. mynw ) then
+                  num1(inw) = num1(inw) + 1
+               else if ( pdata_neighbor(n) .eq. myne ) then
+                  num1(ine) = num1(ine) + 1
+               else if ( pdata_neighbor(n) .eq. mysw ) then
+                  num1(isw) = num1(isw) + 1
+               else if ( pdata_neighbor(n) .eq. myse ) then
+                  num1(ise) = num1(ise) + 1
+               else
+                  cycle  ! this is an existing "hole" of "pdata"
+                         ! no action is needed
+               end if
             end if
          end if
       end do

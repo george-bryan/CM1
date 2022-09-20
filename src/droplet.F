@@ -117,9 +117,9 @@
                                                            ! neighbor at different directions
       integer :: num2(num_nn)                              ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
-      integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
       integer, dimension(nparcelsActive) :: pdata_neighbor ! array to store the new MPI region info for all the droplets
 #endif
+      integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
@@ -315,28 +315,19 @@
       jflag = undefined_index
       kflag = 0
 
-  ! cm1r19:  skip if we already know this processor doesnt have this parcel
-  haveit1:  &
-  IF( x3d.ge.xf(1) .and. x3d.le.xf(ni+1) .and.  &
-      y3d.ge.yf(1) .and. y3d.le.yf(nj+1) )THEN
-    IF(nx.eq.1)THEN
-      iflag = 1
-    ELSE
-      ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
-    ENDIF
-
-    IF(axisymm.eq.1.or.ny.eq.1)THEN
-      jflag = 1
-    ELSE
-      ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
-    ENDIF
-  ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
-    pdata_locind(np,1) = undefined_index
-    pdata_locind(np,2) = undefined_index
-    pdata_locind(np,3) = undefined_index
-  ENDIF  haveit1
+      IF(nx.eq.1)THEN
+        iflag = 1
+      ELSE
+        ! cm1r19:
+        call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
+      ENDIF
+  
+      IF(axisymm.eq.1.or.ny.eq.1)THEN
+        jflag = 1
+      ELSE
+        ! cm1r19:
+        call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
+      ENDIF
 
 #ifdef MPI
 ! JS: comment out this conflict check for the new MPI interface;
@@ -349,9 +340,6 @@
 !      IF( jflag.eq.nj .and. pdata(np,pry).eq.yf(jflag+1) .and. nodey.gt.1 .and.  myj.ne.nodey ) jflag = -1
 !    ENDIF
 #endif
-
-      myparcel:  IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
-                     (jflag.ge.1.and.jflag.le.nj) )THEN
 
       kflag = 1
       if( .not. terrain_flag )then
@@ -371,28 +359,6 @@
       else
         call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
       endif
-!      !Store these for two-way coupling
-!      iflag_s=iflag
-!      jflag_s=jflag
-!      kflag_s=kflag
-!
-!      if( x3d.lt.xh(iflag) )then
-!        iflag_s=iflag_s-1
-!      endif
-!      if( y3d.lt.yh(jflag) )then
-!        jflag_s=jflag_s-1
-!      endif
-!      if( .not. terrain_flag )then
-!        if( z3d.lt.zh(iflag,jflag,kflag) )then
-!          kflag_s=kflag_s-1
-!        endif
-!      else
-!        if( sig3d.lt.sigma(kflag) )then
-!          kflag_s=kflag_s-1
-!        endif
-!      endif
-      dropalive1:  &
-      IF (pdata(np,pract).gt.0.0) THEN
 
       dvpdt1(np) = pdata(np,prvpx)
       dvpdt2(np) = pdata(np,prvpy)
@@ -427,91 +393,10 @@
 
       ENDIF dropmethod
 
-
-      ENDIF dropalive1
-      
-    dropalive2:  &
-    IF (pdata(np,pract).gt.0.0) THEN
-
 !-----------------------------------------------------
 !  Now perform the two-way coupling based on the changes in droplet momentum,
 !  temp, and size
 !-----------------------------------------------------
-
-!      ! GHB, 210714:
-!      ! get i,j,k for final parcel location:
-!
-!        iflag = undefined_index
-!        jflag = undefined_index
-!        IF(nx.eq.1)THEN
-!          iflag = 1
-!        ELSE
-!          ! cm1r19:
-!          call find_horizontal_location_index (pdata_locind(np,1), pdata(np,prx), ib, ie+1, xf, ni+2, iflag)
-!        ENDIF
-!        IF(axisymm.eq.1.or.ny.eq.1)THEN
-!          jflag = 1
-!        ELSE
-!          ! cm1r19:
-!          call find_horizontal_location_index (pdata_locind(np,2), pdata(np,pry), jb, je+1, yf, nj+2, jflag)
-!          if(mod(np,PITER)==0) then
-!             print *,'after dowhile loop: ',jflag
-!          endif
-!          i=iflag
-!          j=jflag
-!        ENDIF
-!
-!        !HERE print *,'droplet_driver: point #3'
-!#if 0
-!        IF(debug)THEN
-!        if( i.lt.0 .or. i.gt.(ni+1) .or. j.lt.0 .or. j.gt.(nj+1) )then
-!          print *,'  myid,i,j = ',myid,i,j
-!          print *,'  x,x1     = ',x3d,pdata(np,prx)
-!          print *,'  y,y1     = ',y3d,pdata(np,pry)
-!          do i=0,ni+1
-!            print *,i,abs(xh(i)-pdata(np,prx)),0.5*dx*ruh(i)
-!          enddo
-!          do j=0,nj+1
-!            print *,j,abs(yh(j)-pdata(np,pry)),0.5*dy*rvh(j)
-!          enddo
-!          print *,'  16665 '
-!          call stopcm1
-!        endif
-!        ENDIF
-!#endif
-!
-!
-!        !print *,'droplet_driver: point #4'
-!        kflag = 1
-!! JS - jflag could be negative somehow, which will break
-!!        the find_vertical_location_index subroutine and 
-!!        lead to invalid access to zf(iflag,jflag,kflag);
-!!        revert to the old implementation
-!        if( .not. terrain_flag )then
-!          do while( pdata(np,prz).gt.zf(iflag,jflag,kflag+1) )
-!            kflag = kflag+1
-!          enddo
-!        else
-!          do while( pdata(np,prsig).gt.sigmaf(kflag+1) )
-!            kflag = kflag+1
-!          enddo
-!        endif
-!        pdata_locind(np,3) = kflag
-!#if 0
-!        IF(debug)THEN
-!        if( kflag.le.0 .or. kflag.ge.(nk+1) )then
-!          print *,myid,nrkp
-!          print *,iflag,jflag,kflag
-!          print *,pdata(np,prx),pdata(np,pry),pdata(np,prz)
-!          print *,x3d,y3d,z3d
-!          print *,uval,vval,wval
-!          print *,zf(iflag,jflag,kflag),z3d,zf(iflag,jflag,kflag+1)
-!          print *,'  16667 '
-!          call stopcm1
-!        endif
-!        ENDIF
-!#endif
-
 
       !--------
       !PORTME
@@ -534,8 +419,6 @@
       iflag_tmp(np) = iflag
       jflag_tmp(np) = jflag
       kflag_tmp(np) = kflag
-
-    ENDIF dropalive2
 
 !-----------------------------------------------------
 !  Account for boundary conditions (if necessary)
@@ -569,39 +452,8 @@
               
       end if
 
-
-#ifdef MPI
-
-      ELSE
-
-        ! set to really small number
-
-        pdata(np,prx) = neg_huge 
-        pdata(np,pry) = neg_huge
-        if( .not. terrain_flag )then
-          pdata(np,prz) = neg_huge
-        else
-          pdata(np,prsig) = neg_huge
-        endif
-        pdata(np,prvpx) = neg_huge
-        pdata(np,prvpy) = neg_huge
-        pdata(np,prvpz) = neg_huge
-        pdata(np,prrp) = neg_huge
-        pdata(np,prtp) = neg_huge
-        pdata(np,prms) = neg_huge
-        pdata(np,prmult) = neg_huge
-        pdata(np,pract) = neg_huge
-
-#endif
-
-      ENDIF  myparcel
-
     ENDDO  nploop
-#ifdef _B4B01F
-    !$acc update device(pdata,qten,thten)
-#else
     !$acc end parallel
-#endif
 
     !$acc end data
 
@@ -612,55 +464,49 @@
 
     do np = 1, nparcelsActive
 
-       if ( pdata(np,pract) .gt. 0.0 ) then
+       ! do not search i/j/k index again as it may return -100 somehow
 
-          ! do not search i/j/k index again as it may return -100 somehow
+       iflag = iflag_tmp(np)
+       jflag = jflag_tmp(np)
+       kflag = kflag_tmp(np)
 
-          iflag = iflag_tmp(np)
-          jflag = jflag_tmp(np)
-          kflag = kflag_tmp(np)
-
-          !Volume where the droplet finds itself
-          dV = (xh(iflag+1)-xh(iflag))*   &
-               (yh(jflag+1)-yh(jflag))*   &
-               (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-          !Loop over all nodes surrounding droplet
-          do i=0,1
-             do j=0,1
-                do k=0,1
-                  ix = iflag+i
-                  iy = jflag+j
-                  iz = kflag+k
-                  !print *,'point #1: ix,iy,iz: ',ix,iy,iz
+       !Volume where the droplet finds itself
+       dV = (xh(iflag+1)-xh(iflag))*   &
+            (yh(jflag+1)-yh(jflag))*   &
+            (zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+       !Loop over all nodes surrounding droplet
+       do i=0,1
+          do j=0,1
+             do k=0,1
+               ix = iflag+i
+               iy = jflag+j
+               iz = kflag+k
+               !print *,'point #1: ix,iy,iz: ',ix,iy,iz
     
-                  xv = xh(ix)
-                  yv = yh(iy)
-                  zv = zh(iflag,jflag,iz)
+               xv = xh(ix)
+               yv = yh(iy)
+               zv = zh(iflag,jflag,iz)
     
-                  wtx = 1.0 - abs(pdata(np,prx)-xv)/(xh(iflag+1)-xh(iflag))
-                  wty = 1.0 - abs(pdata(np,pry)-yv)/(yh(jflag+1)-yh(jflag))
-                  wtz = 1.0 - abs(pdata(np,prz)-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
-                  wtt = wtx*wty*wtz
+               wtx = 1.0 - abs(pdata(np,prx)-xv)/(xh(iflag+1)-xh(iflag))
+               wty = 1.0 - abs(pdata(np,pry)-yv)/(yh(jflag+1)-yh(jflag))
+               wtz = 1.0 - abs(pdata(np,prz)-zv)/(zh(iflag,jflag,kflag+1)-zh(iflag,jflag,kflag))
+               wtt = wtx*wty*wtz
     
-                  !!$acc atomic write
-                  qten(ix,iy,iz) = qten(ix,iy,iz) - &
-                      dmvdt(np)/rhoval(np)/dV*wtt*pdata(np,prmult)
+               !!$acc atomic write
+               qten(ix,iy,iz) = qten(ix,iy,iz) - &
+                   dmvdt(np)/rhoval(np)/dV*wtt*pdata(np,prmult)
     
-                  !Ignoring the enthalpy contained in the vapor -- this has been shown to
-                  !be negligible
-                  !!$acc atomic write
-                  thten(ix,iy,iz) = thten(ix,iy,iz) - &
-                      dtpdt(np)*6.0*(rhow/rhop0(np))*(cpl/cp)*taup0(np)*pi*rp0(np)*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
-                      rhow/rhop0(np)*4.0*pi*rp0(np)*drpdt(np)*(cpl/cp)*tval(np)*wtt/dV*pdata(np,prmult)                   !Latent
-                end do
+               !Ignoring the enthalpy contained in the vapor -- this has been shown to
+               !be negligible
+               !!$acc atomic write
+               thten(ix,iy,iz) = thten(ix,iy,iz) - &
+                   dtpdt(np)*6.0*(rhow/rhop0(np))*(cpl/cp)*taup0(np)*pi*rp0(np)*viscosity*wtt/dV*pdata(np,prmult) - &  !Sensible
+                   rhow/rhop0(np)*4.0*pi*rp0(np)*drpdt(np)*(cpl/cp)*tval(np)*wtt/dV*pdata(np,prmult)                   !Latent
              end do
           end do
-
-       end if     ! end of "if" the droplet is alive
+       end do
 
     end do        ! end of nparcelsActive loop
-
-    !$acc update device (qten,thten)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
@@ -728,8 +574,10 @@
              do k = i, np, -1
                 if ( pdata(k,pract) .gt. 0.0 ) then
                    pdata(np,:) = pdata(k,:)
+                   pdata_locind(np,:) = pdata_locind(k,:) 
                    pdata(k,:) = neg_huge
-                   i = k
+                   pdata_locind(k,:) = undefined_index
+                   i = k - 1
                    j = j + 1
                    exit
                 end if
@@ -746,7 +594,7 @@
 
     nparcelsActive = nparcelsActive + sum(num2) - sum(num1)
 
-    !$acc update device(pdata)
+    !$acc update device(pdata,pdata_locind,qten,thten)
 
     ! free up the memory for temporary variables
     deallocate(holes_ind)
