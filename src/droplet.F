@@ -113,6 +113,7 @@
 #ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
+      integer, dimension(:), allocatable :: leave_ind      ! location index in "pdata" where a current droplet leaves
       integer :: num1(num_nn)                              ! Number of droplets that will enter each nearest 
                                                            ! neighbor at different directions
       integer :: num2(num_nn)                              ! Number of droplets that will enter the current
@@ -548,13 +549,14 @@
 
     call comm_droplet_number(holes_ind,num1,num2,pdata, &
                              pdata_locind,pdata_neighbor)
+    if ( sum(num1) .ne. 0 ) allocate(leave_ind(sum(num1)))
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 4: Exchange the detailed information of the droplets that will  !
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_value(holes_ind,num1,num2,pdata,pdata_neighbor)
+    call comm_droplet_value(holes_ind,leave_ind,num1,num2,pdata,pdata_neighbor)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 5: Compress the new "pdata" to make sure that all the active    ! 
@@ -569,12 +571,13 @@
                                                 ! the "pdata" contiguous
        i = nparcelsActive
        j = 0
-       do np = 1, nparcelsActive
-          if ( pdata(np,pract) .lt. 0.0 ) then
-             do k = i, np, -1
+       do np = 1, sum(num1)
+          n = leave_ind(np)
+          if ( pdata(n,pract) .lt. 0.0 ) then   ! this "hole" is not filled yet
+             do k = i, n, -1
                 if ( pdata(k,pract) .gt. 0.0 ) then
-                   pdata(np,:) = pdata(k,:)
-                   pdata_locind(np,:) = pdata_locind(k,:) 
+                   pdata(n,:) = pdata(k,:)
+                   pdata_locind(n,:) = pdata_locind(k,:) 
                    pdata(k,:) = neg_huge
                    pdata_locind(k,:) = undefined_index
                    i = k - 1
@@ -582,7 +585,7 @@
                    exit
                 end if
              end do
-             if ( k .lt. np ) exit              ! the active dropelts in the 
+             if ( k .lt. n ) exit               ! the active dropelts in the 
                                                 ! "pdata" are already contiguous
                                                 ! and no action is needed
              if ( j .eq. num_holes ) exit       ! now the active dropelts in 
@@ -594,10 +597,18 @@
 
     nparcelsActive = nparcelsActive + sum(num2) - sum(num1)
 
+    do np = 1, nparcelsActive
+         if ( pdata(np,prrp) .lt. 0.0 ) then
+            print *, "myid = ", myid, ", np = ", np, ", nparcelsActive = ", nparcelsActive, ", pdata(np,prrp) = ", pdata(np,prrp)
+            stop
+         end if
+    end do
+
     !$acc update device(pdata,pdata_locind,qten,thten)
 
     ! free up the memory for temporary variables
     deallocate(holes_ind)
+    if (allocated(leave_ind)) deallocate(leave_ind)
 
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif

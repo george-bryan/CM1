@@ -12931,7 +12931,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-    subroutine comm_droplet_value(holes_ind,num1,num2,pdata,pdata_neighbor)
+    subroutine comm_droplet_value(holes_ind,leave_ind,num1,num2,pdata,pdata_neighbor)
 
       use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                         myse,myeast,mywest,mynorth,mysouth,ierr, &
@@ -12946,6 +12946,8 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
                                                                            ! add a new droplet;
                                                                            ! not a fixed-size array but we do 
                                                                            ! not need to know its size
+      integer, intent(out), dimension(:) :: leave_ind                      ! location index in "pdata" where 
+                                                                           ! a current droplet leaves
       integer, intent(in) :: num1(num_nn)                                  ! Number of droplets that will enter each 
                                                                            ! nearest neighbor at different directions
       integer, intent(in) :: num2(num_nn)                                  ! Number of droplets that will enter the 
@@ -13008,45 +13010,40 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       ne_idx = 1
       sw_idx = 1
       se_idx = 1
+      i = 1
 
-      do n = 1, nparcelsActive
-         if ( pdata_neighbor(n) .eq. mynorth ) then
-            droplet_n1(n_idx,:) = pdata(n,:)
-            n_idx = n_idx + 1
-            pdata(n,:) = neg_huge
-         else if ( pdata_neighbor(n) .eq. mysouth ) then
-            droplet_s1(s_idx,:) = pdata(n,:)
-            s_idx = s_idx + 1
-            pdata(n,:) = neg_huge
-         else if ( pdata_neighbor(n) .eq. mywest ) then
-            droplet_w1(w_idx,:) = pdata(n,:)
-            w_idx = w_idx + 1
-            pdata(n,:) = neg_huge
-         else if ( pdata_neighbor(n) .eq. myeast ) then
-            droplet_e1(e_idx,:) = pdata(n,:)
-            e_idx = e_idx + 1
-            pdata(n,:) = neg_huge
-         else if ( pdata_neighbor(n) .eq. mynw ) then
-            droplet_nw1(nw_idx,:) = pdata(n,:)
-            nw_idx = nw_idx + 1
-            pdata(n,:) = neg_huge
-         else if ( pdata_neighbor(n) .eq. myne ) then
-            droplet_ne1(ne_idx,:) = pdata(n,:)
-            ne_idx = ne_idx + 1
-            pdata(n,:) = neg_huge
-         else if ( pdata_neighbor(n) .eq. mysw ) then
-            droplet_sw1(sw_idx,:) = pdata(n,:)
-            sw_idx = sw_idx + 1
-            pdata(n,:) = neg_huge
-         else if ( pdata_neighbor(n) .eq. myse ) then
-            droplet_se1(se_idx,:) = pdata(n,:)
-            se_idx = se_idx + 1
-            pdata(n,:) = neg_huge
-         else
-            cycle   ! this droplet stays at the same MPI region or this is a "hole";
-                    ! no action is needed
-         end if
-      end do
+      if ( sum(num1) .ne. 0 ) then
+         do n = 1, nparcelsActive
+            if ( pdata_neighbor(n) .eq. mynorth ) then
+               call record_leaving_droplet ( n, n_idx, i, pdata, &
+                                             droplet_n1, leave_ind )
+            else if ( pdata_neighbor(n) .eq. mysouth ) then
+               call record_leaving_droplet ( n, s_idx, i, pdata, &
+                                             droplet_s1, leave_ind )
+            else if ( pdata_neighbor(n) .eq. mywest ) then
+               call record_leaving_droplet ( n, w_idx, i, pdata, &
+                                             droplet_w1, leave_ind )
+            else if ( pdata_neighbor(n) .eq. myeast ) then
+               call record_leaving_droplet ( n, e_idx, i, pdata, &
+                                             droplet_e1, leave_ind )
+            else if ( pdata_neighbor(n) .eq. mynw ) then
+               call record_leaving_droplet ( n, nw_idx, i, pdata, &
+                                             droplet_nw1, leave_ind )
+            else if ( pdata_neighbor(n) .eq. myne ) then
+               call record_leaving_droplet ( n, ne_idx, i, pdata, &
+                                             droplet_ne1, leave_ind )
+            else if ( pdata_neighbor(n) .eq. mysw ) then
+               call record_leaving_droplet ( n, sw_idx, i, pdata, &
+                                             droplet_sw1, leave_ind )
+            else if ( pdata_neighbor(n) .eq. myse ) then
+               call record_leaving_droplet ( n, se_idx, i, pdata, &
+                                             droplet_se1, leave_ind )
+            else
+               cycle   ! this droplet stays at the same MPI region or this is a "hole";
+                       ! no action is needed
+            end if
+         end do
+      end if
 
       ! allocate temporary arrays if there are new droplets from the nearest neighbor
 
@@ -13253,6 +13250,35 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if (allocated(droplet_sw2)) deallocate(droplet_sw2)
 
     end subroutine comm_droplet_value
+
+    subroutine record_leaving_droplet ( np, neighbor_idx, leave_idx, &
+                                        pdata_slot, droplet_buffer, leave_id )
+
+    ! this subroutine is used to:
+    !      1. save the information of a droplet in "pdata" that will 
+    !         leave the current MPI region to a buffer
+    !      2. reset the corresponding slot in "pdata" to a negative value
+    !      3. record this "hole" index in "pdata"
+
+    use input, only : npvals,nparcelsLocal
+    use constants, only: neg_huge
+
+    implicit none
+
+    integer, intent(in) :: np                                             ! droplet index in "pdata"
+    integer, intent(inout) :: neighbor_idx                                ! idx-th droplet to enter a certain neighbor 
+    integer, intent(inout) :: leave_idx                                   ! idx-th droplet leaves the current MPI region
+    real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata_slot    ! the slot of "pdata" with a leaving droplet
+    real, intent(out), dimension(:,:) :: droplet_buffer                   ! array to save the information of leaving droplet
+    integer, intent(inout), dimension(:) ::  leave_id                     ! location index of a leaving droplet in "pdata"
+                                   
+    droplet_buffer(neighbor_idx,:) = pdata_slot(np,:)
+    neighbor_idx = neighbor_idx + 1
+    pdata_slot(np,:) = neg_huge
+    leave_id(leave_idx) = np
+    leave_idx = leave_idx + 1
+
+    end subroutine record_leaving_droplet
 
 #endif
 
