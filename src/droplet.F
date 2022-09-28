@@ -114,11 +114,12 @@
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
       integer, dimension(:), allocatable :: leave_ind      ! location index in "pdata" where a current droplet leaves
-      integer :: num1(num_nn)                              ! Number of droplets that will enter each nearest 
+      integer :: Depart(num_nn)                            ! Number of droplets that will enter each nearest 
                                                            ! neighbor at different directions
-      integer :: num2(num_nn)                              ! Number of droplets that will enter the current
+      integer :: Arrive(num_nn)                            ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
+      integer :: numDepart,numArrive
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
@@ -547,16 +548,18 @@
     !         the current MPI region with its nearest neighbor      !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_number(holes_ind,num1,num2,pdata, &
+    call comm_droplet_number(holes_ind,Depart,Arrive,pdata, &
                              pdata_locind,pdata_neighbor)
-    if ( sum(num1) .ne. 0 ) allocate(leave_ind(sum(num1)))
+    numDepart = sum(Depart)
+    numArrive = sum(Arrive)
+    if ( numDepart .ne. 0 ) allocate(leave_ind(numDepart))
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 4: Exchange the detailed information of the droplets that will  !
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_value(holes_ind,leave_ind,num1,num2,pdata,pdata_neighbor)
+    call comm_droplet_value(holes_ind,leave_ind,Depart,Arrive,pdata,pdata_neighbor)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 5: Compress the new "pdata" to make sure that all the active    ! 
@@ -565,13 +568,13 @@
 
     ! there will be remaining "holes" in the "pdata" only when more
     ! droplets leave rather than enter the current MPI region
-    if ( sum(num2) .lt. sum(num1) ) then
-       num_holes = sum(num1) - sum(num2)        ! number of "holes" we need to fill
+    if ( numArrive .lt. numDepart ) then
+       num_holes = numDepart - numArrive        ! number of "holes" we need to fill
                                                 ! to make the active dropelts in 
                                                 ! the "pdata" contiguous
        i = nparcelsActive
        j = 0
-       do np = 1, sum(num1)
+       do np = 1, numDepart
           n = leave_ind(np)
           if ( pdata(n,pract) .lt. 0.0 ) then   ! this "hole" is not filled yet
              do k = i, n, -1
@@ -595,7 +598,7 @@
        end do
     end if
 
-    nparcelsActive = nparcelsActive + sum(num2) - sum(num1)
+    nparcelsActive = nparcelsActive + numArrive - numDepart
 
     !$acc update device(pdata,pdata_locind,qten,thten)
 
