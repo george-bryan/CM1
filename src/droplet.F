@@ -38,7 +38,7 @@
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
           ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsactive
       use constants
-      use comm_module
+      use comm_droplet_module
       use misclibs
       use parcel_module
       use cm1libs , only : eslf
@@ -563,7 +563,7 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    nparcelsActive = nparcelsActive + numArrive - numDepart
+    nparcelsActive = nparcelsActive + sum(Arrive) - sum(Depart)
 
     !$acc update device(pdata,pdata_locind,qten,thten)
 
