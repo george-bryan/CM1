@@ -118,7 +118,6 @@
       integer :: Arrive(num_nn)                            ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
-      integer :: numDepart,numArrive
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
@@ -383,6 +382,8 @@
 
       dropmethod: IF ( idropmethod .eq. 0) THEN !RK2 for droplet time integration
 
+      stop "RK2 is not expected to work and will be removed in the future..."
+
       call rk2_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug)
 
       ELSEIF (idropmethod.eq.1) THEN  !Implicit backward Euler for the droplet integration
@@ -549,58 +550,25 @@
 
     call comm_droplet_number(holes_ind,Depart,Arrive,pdata, &
                              pdata_locind,pdata_neighbor)
-    numDepart = sum(Depart)
-    numArrive = sum(Arrive)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 4: Exchange the detailed information of the droplets that will  !
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_value(holes_ind,Depart,Arrive,pdata,pdata_neighbor)
+    call comm_droplet_value(holes_ind,Depart,Arrive,pdata, &
+                            pdata_locind,pdata_neighbor)
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Step 5: Compress the new "pdata" to make sure that all the active    ! 
-    !         droplets are contiguous (no "holes" between "pdata" slots)   !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    ! there will be remaining "holes" in the "pdata" only when more
-    ! droplets leave rather than enter the current MPI region
-    if ( numArrive .lt. numDepart ) then
-       num_holes = numDepart - numArrive        ! number of "holes" we need to fill
-                                                ! to make the active dropelts in 
-                                                ! the "pdata" contiguous
-       i = nparcelsActive
-       j = 0
-       do np = 1, numDepart
-          n = holes_ind(np)
-          if ( pdata(n,pract) .lt. 0.0 ) then   ! this "hole" is not filled yet
-             do k = i, n, -1
-                if ( pdata(k,pract) .gt. 0.0 ) then
-                   pdata(n,:) = pdata(k,:)
-                   pdata_locind(n,:) = pdata_locind(k,:) 
-                   pdata(k,:) = neg_huge
-                   pdata_locind(k,:) = undefined_index
-                   i = k - 1
-                   j = j + 1
-                   exit
-                end if
-             end do
-             if ( k .lt. n ) exit               ! the active dropelts in the 
-                                                ! "pdata" are already contiguous
-                                                ! and no action is needed
-             if ( j .eq. num_holes ) exit       ! now the active dropelts in 
-                                                ! the "pdata" are contiguous
-                                                ! after filling the "holes"
-          end if
-       end do
-    end if
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Step 5: Update the count of new active droplets with contiguous memory !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     nparcelsActive = nparcelsActive + numArrive - numDepart
 
     !$acc update device(pdata,pdata_locind,qten,thten)
 
     ! free up the memory for temporary variables
+
     deallocate(holes_ind)
 
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
