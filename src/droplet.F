@@ -147,14 +147,16 @@
       !$acc      copy    (pdata_neighbor) &
       !$acc      copyin  (randomNumbers,randomNumbers%state) &
       !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
-      !$acc               rhoval,rp0,taup0,rhop0,tval, & 
-      !$acc               iflag_tmp,jflag_tmp,kflag_tmp)
+      !$acc               rhoval_vec,rp0,taup0,rhop0,tval_vec, & 
+      !$acc               iflag_tmp,jflag_tmp,kflag_tmp,x3d0, &
+      !$acc               y3d0,z3d0,sig3d0)
 #else
       !$acc data create  (ta) &
       !$acc      copyin  (randomNumbers,randomNumbers%state) &
       !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
-      !$acc               rhoval,rp0,taup0,rhop0,tval, &
-      !$acc               iflag_tmp,jflag_tmp,kflag_tmp)
+      !$acc               rhoval_vec,rp0,taup0,rhop0,tval_vec, &
+      !$acc               iflag_tmp,jflag_tmp,kflag_tmp, &
+      !$acc               x3d0,y3d0,z3d0,sig3d0)
 #endif
 
     IF(bbc.eq.1)THEN
@@ -443,7 +445,7 @@
 
     !$acc end data
 
-    !$acc update host(pdata,pdata_locind,qten,thten)
+    !$acc update host(pdata,pdata_locind,qten,thten,uten,vten,wten)
 
 ! JS: update qten and thten here to avoid the race condition for a GPU case 
 !     the calculation is done on the CPU
@@ -510,7 +512,7 @@
 
     nparcelsActive = nparcelsActive + sum(Arrive) - sum(Depart)
 
-    !$acc update device(pdata,pdata_locind,qten,thten)
+    !$acc update device(pdata,pdata_locind,qten,thten,uten,vten,wten)
 
     ! free up the memory for temporary variables
 
@@ -1494,7 +1496,8 @@
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcelsLocal,nx,ny, &
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
-                        npvals,nparcelsLocal,prrp,prms,prmult,pract,viscosity
+                        npvals,nparcelsLocal,prrp,prms,prmult, &
+                        pract,viscosity,nparcelsActive
       use constants
       use parcel_module
       use cm1libs , only : eslf
@@ -1534,9 +1537,7 @@
       real :: partmass,dV,volp,sigdot
       integer :: i,j,k,dum
 
-      do np=1,nparcelsLocal
-
-      if (pdata(np,pract) .gt. 0.0) then
+      do np=1,nparcelsActive
 
       dvpdt1 = dvpdt1_vec(np)
       dvpdt2 = dvpdt2_vec(np)
@@ -1833,10 +1834,7 @@
       !        + ta(i+1,j+1,k  )*w7 &
       !        + ta(i+1,j+1,k+1)*w8
 
-
-      end if !Is it active?
       end do  ! np loop
-
 
       end subroutine project_feedback
 
