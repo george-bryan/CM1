@@ -113,7 +113,6 @@
 #ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
-      integer, dimension(:), allocatable :: leave_ind      ! location index in "pdata" where a current droplet leaves
       integer :: Depart(num_nn)                            ! Number of droplets that will enter each nearest 
                                                            ! neighbor at different directions
       integer :: Arrive(num_nn)                            ! Number of droplets that will enter the current
@@ -552,14 +551,13 @@
                              pdata_locind,pdata_neighbor)
     numDepart = sum(Depart)
     numArrive = sum(Arrive)
-    if ( numDepart .ne. 0 ) allocate(leave_ind(numDepart))
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 4: Exchange the detailed information of the droplets that will  !
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_value(holes_ind,leave_ind,Depart,Arrive,pdata,pdata_neighbor)
+    call comm_droplet_value(holes_ind,Depart,Arrive,pdata,pdata_neighbor)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 5: Compress the new "pdata" to make sure that all the active    ! 
@@ -575,7 +573,7 @@
        i = nparcelsActive
        j = 0
        do np = 1, numDepart
-          n = leave_ind(np)
+          n = holes_ind(np)
           if ( pdata(n,pract) .lt. 0.0 ) then   ! this "hole" is not filled yet
              do k = i, n, -1
                 if ( pdata(k,pract) .gt. 0.0 ) then
@@ -604,7 +602,6 @@
 
     ! free up the memory for temporary variables
     deallocate(holes_ind)
-    if (allocated(leave_ind)) deallocate(leave_ind)
 
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif

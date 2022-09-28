@@ -12931,7 +12931,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-    subroutine comm_droplet_value(holes_ind,leave_ind,Depart,Arrive,pdata,pdata_neighbor)
+    subroutine comm_droplet_value(holes_ind,Depart,Arrive,pdata,pdata_neighbor)
 
       use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                         myse,myeast,mywest,mynorth,mysouth,ierr, &
@@ -12946,8 +12946,6 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
                                                                            ! add a new droplet;
                                                                            ! not a fixed-size array but we do 
                                                                            ! not need to know its size
-      integer, intent(out), dimension(:) :: leave_ind                      ! location index in "pdata" where 
-                                                                           ! a current droplet leaves
       integer, intent(in) :: Depart(num_nn)                                ! Number of droplets that will enter each 
                                                                            ! nearest neighbor at different directions
       integer, intent(in) :: Arrive(num_nn)                                ! Number of droplets that will enter the 
@@ -13015,29 +13013,21 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if ( sum(Depart) .ne. 0 ) then
          do n = 1, nparcelsActive
             if ( pdata_neighbor(n) .eq. mynorth ) then
-               call record_leaving_droplet ( n, n_idx, i, pdata, &
-                                             droplet_n1, leave_ind )
+               call record_leaving_droplet ( n, n_idx, i, pdata, droplet_n1 )
             else if ( pdata_neighbor(n) .eq. mysouth ) then
-               call record_leaving_droplet ( n, s_idx, i, pdata, &
-                                             droplet_s1, leave_ind )
+               call record_leaving_droplet ( n, s_idx, i, pdata, droplet_s1 )
             else if ( pdata_neighbor(n) .eq. mywest ) then
-               call record_leaving_droplet ( n, w_idx, i, pdata, &
-                                             droplet_w1, leave_ind )
+               call record_leaving_droplet ( n, w_idx, i, pdata, droplet_w1 )
             else if ( pdata_neighbor(n) .eq. myeast ) then
-               call record_leaving_droplet ( n, e_idx, i, pdata, &
-                                             droplet_e1, leave_ind )
+               call record_leaving_droplet ( n, e_idx, i, pdata, droplet_e1 )
             else if ( pdata_neighbor(n) .eq. mynw ) then
-               call record_leaving_droplet ( n, nw_idx, i, pdata, &
-                                             droplet_nw1, leave_ind )
+               call record_leaving_droplet ( n, nw_idx, i, pdata, droplet_nw1 )
             else if ( pdata_neighbor(n) .eq. myne ) then
-               call record_leaving_droplet ( n, ne_idx, i, pdata, &
-                                             droplet_ne1, leave_ind )
+               call record_leaving_droplet ( n, ne_idx, i, pdata, droplet_ne1 )
             else if ( pdata_neighbor(n) .eq. mysw ) then
-               call record_leaving_droplet ( n, sw_idx, i, pdata, &
-                                             droplet_sw1, leave_ind )
+               call record_leaving_droplet ( n, sw_idx, i, pdata, droplet_sw1 )
             else if ( pdata_neighbor(n) .eq. myse ) then
-               call record_leaving_droplet ( n, se_idx, i, pdata, &
-                                             droplet_se1, leave_ind )
+               call record_leaving_droplet ( n, se_idx, i, pdata, droplet_se1 )
             else
                cycle   ! this droplet stays at the same MPI region or this is a "hole";
                        ! no action is needed
@@ -13240,7 +13230,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
     subroutine record_leaving_droplet ( np, neighbor_idx, leave_idx, &
-                                        pdata, droplet_buffer, leave_id )
+                                        pdata, droplet_buffer )
 
     ! this subroutine is used to:
     !      1. save the information of a droplet in "pdata" that will 
@@ -13258,12 +13248,10 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
     integer, intent(inout) :: leave_idx                                   ! idx-th droplet leaves the current MPI region
     real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata         ! the "pdata" with droplet information
     real, intent(out), dimension(:,:) :: droplet_buffer                   ! array to save the information of leaving droplet
-    integer, intent(inout), dimension(:) ::  leave_id                     ! location index of a leaving droplet in "pdata"
                                    
     droplet_buffer(neighbor_idx,:) = pdata(np,:)
     neighbor_idx = neighbor_idx + 1
     pdata(np,:) = neg_huge
-    leave_id(leave_idx) = np
     leave_idx = leave_idx + 1
 
     end subroutine record_leaving_droplet
