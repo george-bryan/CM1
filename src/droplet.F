@@ -96,9 +96,9 @@
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
       real :: sig3d,th_tmp,rand
-      real, dimension(nparcelsActive) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
-                                         rhoval,rp0,taup0,rhop0,tval, &
-                                         iflag_tmp,jflag_tmp,kflag_tmp
+      real, dimension(nparcelsLocal) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmvdt, &
+                                        rhoval,rp0,taup0,rhop0,tval, &
+                                        iflag_tmp,jflag_tmp,kflag_tmp
       real :: Nup,salinity,part_grav1,part_grav2,part_grav3
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
@@ -118,7 +118,7 @@
                                                            ! neighbor at different directions
       integer :: num2(num_nn)                              ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
-      integer, dimension(nparcelsActive) :: pdata_neighbor ! array to store the new MPI region info for all the droplets
+      integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
@@ -596,13 +596,6 @@
     end if
 
     nparcelsActive = nparcelsActive + sum(num2) - sum(num1)
-
-    do np = 1, nparcelsActive
-         if ( pdata(np,prrp) .lt. 0.0 ) then
-            print *, "myid = ", myid, ", np = ", np, ", nparcelsActive = ", nparcelsActive, ", pdata(np,prrp) = ", pdata(np,prrp)
-            stop
-         end if
-    end do
 
     !$acc update device(pdata,pdata_locind,qten,thten)
 

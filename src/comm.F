@@ -13178,45 +13178,29 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       do while( n .le. n_recv )
          call mpi_waitany(n_recv,reqs(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
          if ( indx .eq. index_n ) then
-            do i = 1, num2(inorth) 
-               pdata(holes_ind(k),:) = droplet_n2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(inorth), &
+                                      droplet_n2, pdata )
          else if ( indx .eq. index_s ) then
-            do i = 1, num2(isouth)
-               pdata(holes_ind(k),:) = droplet_s2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(isouth), &
+                                      droplet_s2, pdata )
          else if ( indx .eq. index_w ) then
-            do i = 1, num2(iwest)
-               pdata(holes_ind(k),:) = droplet_w2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(iwest), &
+                                      droplet_w2, pdata )
          else if ( indx .eq. index_e ) then
-            do i = 1, num2(ieast)
-               pdata(holes_ind(k),:) = droplet_e2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(ieast), &
+                                      droplet_e2, pdata )
          else if ( indx .eq. index_nw ) then
-            do i = 1, num2(inw)
-               pdata(holes_ind(k),:) = droplet_nw2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(inw), &
+                                      droplet_nw2, pdata )
          else if ( indx .eq. index_ne ) then
-            do i = 1, num2(ine)
-               pdata(holes_ind(k),:) = droplet_ne2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(ine), &
+                                      droplet_ne2, pdata )
          else if ( indx .eq. index_sw ) then
-            do i = 1, num2(isw)
-               pdata(holes_ind(k),:) = droplet_sw2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(isw), &
+                                      droplet_sw2, pdata )
          else if ( indx .eq. index_se ) then
-            do i = 1, num2(ise)
-               pdata(holes_ind(k),:) = droplet_se2(i,:)
-               k = k + 1
-            end do
+            call update_new_droplet ( holes_ind, k, num2(ise), &
+                                      droplet_se2, pdata )
          else
             write(*,*) indx," is not a nearest neighbor for myid = ",myid
             stop "Stop the program..."
@@ -13251,8 +13235,12 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
 
     end subroutine comm_droplet_value
 
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
     subroutine record_leaving_droplet ( np, neighbor_idx, leave_idx, &
-                                        pdata_slot, droplet_buffer, leave_id )
+                                        pdata, droplet_buffer, leave_id )
 
     ! this subroutine is used to:
     !      1. save the information of a droplet in "pdata" that will 
@@ -13268,17 +13256,47 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
     integer, intent(in) :: np                                             ! droplet index in "pdata"
     integer, intent(inout) :: neighbor_idx                                ! idx-th droplet to enter a certain neighbor 
     integer, intent(inout) :: leave_idx                                   ! idx-th droplet leaves the current MPI region
-    real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata_slot    ! the slot of "pdata" with a leaving droplet
+    real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata         ! the "pdata" with droplet information
     real, intent(out), dimension(:,:) :: droplet_buffer                   ! array to save the information of leaving droplet
     integer, intent(inout), dimension(:) ::  leave_id                     ! location index of a leaving droplet in "pdata"
                                    
-    droplet_buffer(neighbor_idx,:) = pdata_slot(np,:)
+    droplet_buffer(neighbor_idx,:) = pdata(np,:)
     neighbor_idx = neighbor_idx + 1
-    pdata_slot(np,:) = neg_huge
+    pdata(np,:) = neg_huge
     leave_id(leave_idx) = np
     leave_idx = leave_idx + 1
 
     end subroutine record_leaving_droplet
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+    subroutine update_new_droplet ( holes_ind, hole_idx, new_count, &
+                                    droplet_buffer, pdata )
+
+    ! this subroutine is used to update the new droplet information
+    ! to the "pdata" array on a particular MPI rank after the MPI communication
+
+    use input, only : npvals,nparcelsLocal
+
+    implicit none
+
+    integer, intent(in), dimension(:) :: holes_ind                        ! array to store the location index of "holes" in "pdata"
+    integer, intent(inout) :: hole_idx                                    ! hole_idx-th "hole" index in "pdata"
+    integer, intent(in) :: new_count                                      ! number of new droplets entering the current
+                                                                          ! MPI region from a particular neighbor
+    real, intent(in), dimension(:,:) :: droplet_buffer                    ! array to save the information of new droplets
+    real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata         ! the "pdata" with droplet information
+
+    integer :: i
+
+    do i = 1, new_count 
+       pdata(holes_ind(hole_idx),:) = droplet_buffer(i,:)
+       hole_idx = hole_idx + 1
+    end do
+
+    end subroutine update_new_droplet
 
 #endif
 
