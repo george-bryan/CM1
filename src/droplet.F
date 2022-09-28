@@ -38,6 +38,7 @@
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
           ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsactive
       use constants
+      use comm_module
       use comm_droplet_module
       use misclibs
       use parcel_module
