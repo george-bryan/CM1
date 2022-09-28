@@ -18,7 +18,7 @@
  timax  =   40.0,
  run_time =  -999.9,
  tapfrq =   900.0,
- rstfrq = 10800.0,
+ rstfrq =   40.0,
  statfrq =   1.0,
  prclfrq =   1.0,
  /

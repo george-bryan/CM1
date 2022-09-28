@@ -36,9 +36,10 @@
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsactive
       use constants
       use comm_module
+      use comm_droplet_module
       use misclibs
       use parcel_module
       use cm1libs , only : eslf
@@ -116,13 +117,13 @@
 #ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
-      integer :: num1(num_nn)                              ! Number of droplets that will enter each nearest 
+      integer :: Depart(num_nn)                            ! Number of droplets that will enter each nearest 
                                                            ! neighbor at different directions
-      integer :: num2(num_nn)                              ! Number of droplets that will enter the current
+      integer :: Arrive(num_nn)                            ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
-      integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
-      integer, dimension(nparcelsLocal) :: pdata_neighbor   ! array to store the new MPI region info for all the droplets
+      integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
 #endif
+      integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
@@ -138,7 +139,7 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      do np = 1, nparcelsLocal
+      do np = 1, nparcelsActive
          pdata_neighbor(np) = undefined_index
       end do
 
@@ -305,7 +306,7 @@
 #endif
 
     nploop:  &
-    DO np=1,nparcelsLocal
+    DO np=1,nparcelsActive
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -319,29 +320,19 @@
       jflag = undefined_index
       kflag = 0
 
-  ! cm1r19:  skip if we already know this processor doesnt have this parcel
-  haveit1:  &
-  IF( x3d.ge.xf(1) .and. x3d.le.xf(ni+1) .and.  &
-      y3d.ge.yf(1) .and. y3d.le.yf(nj+1) )THEN
-
-    IF(nx.eq.1)THEN
-      iflag = 1
-    ELSE
-      ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
-    ENDIF
-
-    IF(axisymm.eq.1.or.ny.eq.1)THEN
-      jflag = 1
-    ELSE
-      ! cm1r19:
-      call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
-    ENDIF
-  ELSE     ! re-initialize x/y/z location index array if a parcel is not on this process
-    pdata_locind(np,1) = undefined_index
-    pdata_locind(np,2) = undefined_index
-    pdata_locind(np,3) = undefined_index
-  ENDIF  haveit1
+      IF(nx.eq.1)THEN
+        iflag = 1
+      ELSE
+        ! cm1r19:
+        call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
+      ENDIF
+  
+      IF(axisymm.eq.1.or.ny.eq.1)THEN
+        jflag = 1
+      ELSE
+        ! cm1r19:
+        call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
+      ENDIF
 
 #ifdef MPI
 ! JS: comment out this conflict check for the new MPI interface;
@@ -355,24 +346,23 @@
 !    ENDIF
 #endif
 
-      myparcel:  IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
-                     (jflag.ge.1.and.jflag.le.nj) )THEN
-
-
-        kflag = 1
-        if( .not. terrain_flag )then
-          do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+      kflag = 1
+      if( .not. terrain_flag )then
+        !JS-KLUDGE: Somehow I have to use the zf_tmp variable 
+        !           for the find_vertical* subroutine,
+        !           otherwise the GPU code breaks for nparcels > ~2000
+!        !$acc loop seq
+!        do k = kb, ke+1
+!           zf_tmp(k) = zf(iflag,jflag,k)
+!        end do
+         do while( z3d.gt.zf(iflag,jflag,kflag+1) )
             kflag = kflag+1
-          enddo
-        else
-          do while( sig3d.gt.sigmaf(kflag+1) )
-            kflag = kflag+1
-          enddo
-        endif
-        pdata_locind(np,3) = kflag
-
-      dropalive1:  &
-      IF (pdata(np,pract).gt.0.0) THEN
+         enddo
+         pdata_locind(np,3) = kflag
+!         call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
+      else
+         call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
+      endif
 
       dvpdt1(np) = pdata(np,prvpx)
       dvpdt2(np) = pdata(np,prvpy)
@@ -380,8 +370,7 @@
       dtpdt(np)  = pdata(np,prtp)
       drpdt(np)  = pdata(np,prrp)
       dmpdt(np)  = rhow*4.0/3.0*pi*pdata(np,prrp)**3
-
-
+      
       !Store its old position before getting updated:
       x3d0(np) = x3d
       y3d0(np) = y3d
@@ -389,31 +378,19 @@
       sig3d0(np) = sig3d
 
       call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
-
       tval_vec(np) = tval
       rhoval_vec(np) = rhoval
 
+      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
 #ifdef MPI
-      call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d,uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
       pdata_neighbor(np) = neighbor 
-#else
-      call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d,uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000)
 #endif
-
-
-      ENDIF dropalive1
-
-    dropalive2:  &
-    IF (pdata(np,pract).gt.0.0) THEN
 
 !-----------------------------------------------------
 !  Now perform the two-way coupling based on the changes in droplet momentum,
 !  temp, and size
 !-----------------------------------------------------
 
-
-      !--------
-      !PORTME
       !Recall that the "old" values are stored in the "d/dt" variables
       dvpdt1(np) = (pdata(np,prvpx)-dvpdt1(np))/dt   !Remember to deal with gravity later!
       dvpdt2(np) = (pdata(np,prvpy)-dvpdt2(np))/dt
@@ -428,8 +405,6 @@
       iflag_tmp(np) = iflag
       jflag_tmp(np) = jflag
       kflag_tmp(np) = kflag
-
-    ENDIF dropalive2
 
 !-----------------------------------------------------
 !  Account for boundary conditions (if necessary)
@@ -463,37 +438,22 @@
               
       end if
 
-
-#ifdef MPI
-
-      ELSE
-
-        ! set to really small number
-
-        pdata(np,prx) = neg_huge 
-        pdata(np,pry) = neg_huge
-        if( .not. terrain_flag )then
-          pdata(np,prz) = neg_huge
-        else
-          pdata(np,prsig) = neg_huge
-        endif
-        pdata(np,prvpx) = neg_huge
-        pdata(np,prvpy) = neg_huge
-        pdata(np,prvpz) = neg_huge
-        pdata(np,prrp) = neg_huge
-        pdata(np,prtp) = neg_huge
-        pdata(np,prms) = neg_huge
-        pdata(np,prmult) = neg_huge
-        pdata(np,pract) = neg_huge
-
-#endif
-
-      ENDIF  myparcel
-
     ENDDO  nploop
+    !$acc end parallel
+
+    !$acc end data
+
+    !$acc update host(pdata,pdata_locind,qten,thten)
+
+! JS: update qten and thten here to avoid the race condition for a GPU case 
+!     the calculation is done on the CPU
 
     !Project the feedback onto the grid, using ORIGINAL location
-    call project_feedback(iflag_tmp,jflag_tmp,kflag_tmp,x3d0,y3d0,z3d0,sig3d0,rhop0,taup0,rp0,tval_vec,uten,vten,wten,qten,thten,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt,rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
+    call project_feedback(iflag_tmp,jflag_tmp,kflag_tmp,x3d0,y3d0,z3d0,sig3d0, &
+                          rhop0,taup0,rp0,tval_vec,uten,vten,wten,qten,thten, &
+                          xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa, &
+                          rho,prs,sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+                          rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
@@ -533,7 +493,7 @@
     !         the current MPI region with its nearest neighbor      !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_number(holes_ind,num1,num2,pdata, &
+    call comm_droplet_number(holes_ind,Depart,Arrive,pdata, &
                              pdata_locind,pdata_neighbor)
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -541,11 +501,19 @@
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_value(holes_ind,num1,num2,pdata,pdata_neighbor)
+    call comm_droplet_value(holes_ind,Depart,Arrive,pdata, &
+                            pdata_locind,pdata_neighbor)
 
-    !$acc update device(pdata)
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Step 5: Update the count of new active droplets with contiguous memory !
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    nparcelsActive = nparcelsActive + sum(Arrive) - sum(Depart)
+
+    !$acc update device(pdata,pdata_locind,qten,thten)
 
     ! free up the memory for temporary variables
+
     deallocate(holes_ind)
 
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
@@ -557,7 +525,7 @@
 
       if( terrain_flag )then
             call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcelsLocal
+            DO np=1,nparcelsActive
               ! get z from sigma:
               ! (see Section 3 of "The governing equations for CM1", 
               !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
@@ -1927,23 +1895,21 @@
       !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
-      do np=1,nparcelsLocal
-         if (pdata(np,pract) .gt. 0.0) then
-            tnumpart = tnumpart + 1
-            radavg = radavg + pdata(np,prrp)
-            radsqr = radsqr + pdata(np,prrp)**2
-            Tpavg = Tpavg + pdata(np,prtp)
-            Tpsqr = Tpsqr + pdata(np,prtp)**2 
-            Tfavg = Tfavg + pdata(np,prt)
-            qfavg = qfavg + pdata(np,prqv)
-            prsavg = prsavg + pdata(np,prprs)
-            rhoavg = rhoavg + pdata(np,prrho)
+      do np=1,nparcelsActive
+         tnumpart = tnumpart + 1
+         radavg = radavg + pdata(np,prrp)
+         radsqr = radsqr + pdata(np,prrp)**2
+         Tpavg = Tpavg + pdata(np,prtp)
+         Tpsqr = Tpsqr + pdata(np,prtp)**2 
+         Tfavg = Tfavg + pdata(np,prt)
+         qfavg = qfavg + pdata(np,prqv)
+         prsavg = prsavg + pdata(np,prprs)
+         rhoavg = rhoavg + pdata(np,prrho)
 
-            radmin = min(radmin, pdata(np,prrp))
-            radmax = max(radmax, pdata(np,prrp))
-            Tpmin = min(Tpmin, pdata(np,prtp))
-            Tpmax = max(Tpmax, pdata(np,prtp))
-         end if
+         radmin = min(radmin, pdata(np,prrp))
+         radmax = max(radmax, pdata(np,prrp))
+         Tpmin = min(Tpmin, pdata(np,prtp))
+         Tpmax = max(Tpmax, pdata(np,prtp))
       end do
       !$acc end parallel
 
@@ -2040,12 +2006,11 @@
       !$acc end parallel
 
       !$acc parallel loop gang vector default(present) reduction(partnum)
-      do np=1,nparcelsLocal
-         if (pdata(np,pract) .gt. 0.0) then
-            kflag = 1
-            call find_vertical_location_index (pdata_locind(np,3),pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
-            partnum(pdata_locind(np,3)) = partnum(pdata_locind(np,3)) + 1.0
-         end if
+      do np=1,nparcelsActive
+         kflag = 1
+         k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
+         call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
+         partnum(k) = partnum(k) + 1.0
       end do
       !$acc end parallel
 

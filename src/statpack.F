@@ -478,7 +478,7 @@
 
       if(stat_vort.eq.1) call vertvort(nstat,rstat,xh,xf,uf,vf,zh,zs,rgzu,rgzv,rds,sigma,rdsf,sigmaf,dum1,dum2,ua,va)
 
-      !JMD-KLUDGE if(stat_tmass.eq.1) call calcmass(nstat,rstat,ruh,rvh,rmh,rho)
+      if(stat_tmass.eq.1) call calcmass(nstat,rstat,ruh,rvh,rmh,rho)
 
 !$omp parallel do default(shared)  &
 !$omp private(i,j,k)
@@ -583,7 +583,7 @@
         call calcmoe(nstat,rstat,ruh,rvh,rmh,rho,ua,va,wa,dum1,dum2,dum3,dum4)
       endif
 
-      !JMD-KLUDGE if(stat_tmf.eq.1) call tmf(nstat,rstat,ruh,rvh,rho,wa)
+      if(stat_tmf.eq.1) call tmf(nstat,rstat,ruh,rvh,rho,wa)
 
 !----------
 
