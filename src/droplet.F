@@ -379,11 +379,17 @@
       z3d0(np) = z3d 
       sig3d0(np) = sig3d
 
-      call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d,uval,vval,wval,tval,qval,rhoval,prsval,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot)
+      call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
+                                 uval,vval,wval,tval,qval,rhoval,prsval, &
+                                 xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
+                                 ua,va,wa,ta,qa,rho,prs,sigdot)
       tval_vec(np) = tval
       rhoval_vec(np) = rhoval
 
-      call BE_integration(dt,np,pdata,pdata_locind,iflag,jflag,kflag,xf,xh,uh,ruh,yf,yh,vh,rvh,zf,zh,zs,znt,sigma,sigmaf,ua,va,wa,qa,ta,rho,prs,x3d,y3d,z3d,sig3d,rhoval(np),tval(np),Nup,rhop0(np),taup0(np),rp0(np),part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
+      call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
+                          uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
+                          taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
+                          num100,num1000,neighbor)
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
 #endif
