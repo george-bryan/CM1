@@ -453,8 +453,8 @@
     !Project the feedback onto the grid, using ORIGINAL location
     call project_feedback(iflag_tmp,jflag_tmp,kflag_tmp,x3d0,y3d0,z3d0,sig3d0, &
                           rhop0,taup0,rp0,tval_vec,uten,vten,wten,qten,thten, &
-                          xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa, &
-                          rho,prs,sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+                          xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
+                          sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                           rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
@@ -1162,7 +1162,7 @@
 
       end subroutine interpolate_to_parcel
 
-      subroutine project_feedback(iflag_vec,jflag_vec,kflag_vec,x3d_vec,y3d_vec,z3d_vec,sig3d_vec,rhop0_vec,taup0_vec,rp0_vec,tval_vec,uten,vten,wten,qten,thten,xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf,ua,va,wa,ta,qa,rho,prs,sigdot,dvpdt1_vec,dvpdt2_vec,dvpdt3_vec,drpdt_vec,dtpdt_vec,dmpdt_vec,rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
+      subroutine project_feedback(iflag_vec,jflag_vec,kflag_vec,x3d_vec,y3d_vec,z3d_vec,sig3d_vec,rhop0_vec,taup0_vec,rp0_vec,tval_vec,uten,vten,wten,qten,thten,xh,xf,yh,yf,zh,zf,sigma,sigmaf,sigdot,dvpdt1_vec,dvpdt2_vec,dvpdt3_vec,drpdt_vec,dtpdt_vec,dmpdt_vec,rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
 
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcelsLocal,nx,ny, &
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
@@ -1185,17 +1185,12 @@
       real, intent(in), dimension(ib:ie) :: xh
       real, intent(in), dimension(jb:je) :: yh
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
-      real, intent(in), dimension(ib:ie,jb:je) :: zs
       real, intent(in), dimension(kb:ke) :: sigma
       real, intent(in), dimension(kb:ke+1) :: sigmaf
-      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua,uten
-      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va,vten
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa,wten
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: uten
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: vten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wten
       double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ta
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
-      real, intent(in), dimension(ib:ie,jb:je) :: znt
 
       integer :: np
       integer, dimension(nparcelsLocal), intent(in) :: iflag_vec,jflag_vec,kflag_vec
