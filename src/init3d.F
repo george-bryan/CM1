@@ -433,9 +433,9 @@
              pdata(i,pry) = tmpy
              pdata(i,prz) = tmpz
 
-             !if(MODULO(n,100)==0) then 
-             if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
-             !endif
+             if(MODULO(n,100)==0) then 
+               if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
+             endif
 
              if (prcl_droplet.eq.1) then
     
