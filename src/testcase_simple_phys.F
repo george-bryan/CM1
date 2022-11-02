@@ -203,7 +203,7 @@
       tem = dx*dy
 
 #ifdef _OPENACC
-      print *,'WARNING: OPENACC version of get_avg_uvt has not yet been verified'
+      !print *,'WARNING: OPENACC version of get_avg_uvt has not yet been verified'
 #endif
       !$acc parallel default(present) reduction(+:tmp1,tmp2,tmp3)
       ! Get domain-averages:
