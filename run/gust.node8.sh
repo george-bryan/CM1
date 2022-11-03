@@ -14,4 +14,4 @@ export PALS_CPU_BIND=depth
 
 #mpiexec ./cm1.exe --namelist namelist.figureE.cpu >& node=8.figureE.512x512.log
 #mpiexec ./cpu.exe --namelist namelist.figureD.cpu >& node=8.figureD.256.log
-mpiexec ./cpu.exe --namelist namelist.figureA.cpu >& node=8.figureA.256.log
+mpiexec ./cpu.exe --namelist namelist.figureA.cpu >& gust.node8.figureA.256.log
