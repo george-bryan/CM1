@@ -24,5 +24,5 @@ export MPICH_GPU_SUPPORT_ENABLED=1
 export MPICH_GPU_MANAGED_MEMORY_SUPPORT_ENABLED=1
 #export NVCOMPILER_ACC_NOTIFY=16
 env 
-mpiexec -n 8 -ppn 4 ./setdev.sh ./gpu.exe --namelist namelist.figureE.gpu >& gust.ngpu8.figureE.512x512.log
+mpiexec -n 8 -ppn 4 ./setdev.sh ./cm1.exe --namelist namelist.figureE.gpu >& gust.ngpu8.figureE.512x512.log
 #mpiexec -n 8 -ppn 4 ./setdev.sh ./gpu.exe --namelist namelist.figureD.gpu >& gpu=8.figureD.256.log
