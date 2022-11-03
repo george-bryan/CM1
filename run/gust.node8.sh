@@ -7,6 +7,12 @@
 #PBS -A UNDM0006
 
 
+module purge
+module load nvhpc
+module load cray-mpich
+module load ncarcompilers
+module unload cuda
+
 export PALS_NRANKS=1024
 export PALS_PPN=128
 export PALS_DEPTH=1
