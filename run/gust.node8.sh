@@ -7,6 +7,12 @@
 #PBS -A UNDM0006
 
 
+module purge
+module load nvhpc
+module load cray-mpich
+module load ncarcompilers
+module unload cuda
+
 export PALS_NRANKS=1024
 export PALS_PPN=128
 export PALS_DEPTH=1
@@ -14,4 +20,4 @@ export PALS_CPU_BIND=depth
 
 #mpiexec ./cm1.exe --namelist namelist.figureE.cpu >& node=8.figureE.512x512.log
 #mpiexec ./cpu.exe --namelist namelist.figureD.cpu >& node=8.figureD.256.log
-mpiexec ./cpu.exe --namelist namelist.figureA.cpu >& node=8.figureA.256.log
+mpiexec ./cm1.exe --namelist namelist.figureA.cpu >& gust.node8.figureA.256.log
