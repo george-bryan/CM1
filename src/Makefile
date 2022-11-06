@@ -46,10 +46,10 @@
 #CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
 #-----------------------------------------------------------------------------
 #  multiple processors, distributed memory (MPI), Portland Group compiler
-#FC   = mpif90
-#OPTS = -Mfree -O2 -Ktrap=none -Mautoinline -Minline=reshape
-#CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
-#DM   = -DMPI
+FC   = mpif90
+OPTS = -Mfree -g -O2 -Ktrap=none -Mautoinline -Minline=reshape -Kieee -Mnofma
+CPP  = cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
+DM   = -DMPI
 #-----------------------------------------------------------------------------
 #  multiple processors, shared memory (OpenMP), Portland Group compiler
 #FC   = pgf90

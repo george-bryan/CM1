@@ -999,6 +999,92 @@
       end subroutine pdefq
 
 
+      subroutine pdefq2(rmax,asq,ruh,rvh,rmh,rho,q3d)
+      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk, &
+          dx,dy,dz,pdscheme,timestats,mytime,time_misc
+
+      implicit none
+
+      real rmax
+      double precision, intent(inout)    :: asq
+      real, intent(in), dimension(ib:ie) :: ruh
+      real, intent(in), dimension(jb:je) :: rvh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rmh
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rho
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: q3d
+
+      integer i,j,k
+      double precision :: t1,t2,t3
+      double precision :: a1,a2,tem
+      double precision, dimension(nj) :: budj
+      double precision, dimension(nk) :: budk
+      double precision :: budt
+
+!----------------------------------------------------------------------
+
+      !print *,'pdefq2: pdscheme: ',pdscheme
+      !tem = dx*dy*dz
+      IF(pdscheme.eq.1)THEN
+
+        !$omp parallel do default(shared) private(i,j,k,t1,t2,t3,a1,a2)
+        !$acc parallel default(present) private(i,j,k) &
+        !$acc reduction(+:a1,t1,t2) reduction(+:a2) reduction(+:asq)
+        !$acc loop gang collapse(2)
+        do j=1,nj
+          do i=1,ni
+            t1=0.0d0
+            t2=0.0d0
+            a1=0.0d0
+            a2=0.0d0
+            !$acc loop vector reduction(+:a1,t1,t2)
+            do k=1,nk
+              t1=t1+rho(i,j,k)*q3d(i,j,k)
+              a1=a1+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+!!!            q3d(i,j,k)=max(0.0,q3d(i,j,k))
+              if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+              t2=t2+rho(i,j,k)*q3d(i,j,k)
+            enddo
+            t3=(t1+1.0d-20)/(t2+1.0d-20)
+            if(t3.lt.0.0) t3=1.0d0
+            !$acc loop vector reduction(+:a2)
+            do k=1,nk
+              q3d(i,j,k)=t3*q3d(i,j,k)
+              a2=a2+rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+            enddo
+            asq=asq+(a2-a1)*dx*dy*dz
+          enddo
+        enddo
+        !$acc end parallel
+
+      ELSE
+
+        !$omp parallel do default(shared) private(i,j,k,a1,a2)
+        !$acc parallel default(present) private(i,j,k,a1,a2) reduction(+:budt,asq)
+        !$acc loop gang reduction(+:asq)
+        do k=1,nk
+          budt=0.0d0
+          !$acc loop vector collapse(2) reduction(+:budt)
+          do j=1,nj
+          do i=1,ni
+            a1=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+!!!          q3d(i,j,k)=max(0.0,q3d(i,j,k))
+            if(q3d(i,j,k).lt.rmax) q3d(i,j,k)=0.0
+            a2=rho(i,j,k)*q3d(i,j,k)*ruh(i)*rvh(j)*rmh(i,j,k)
+            budt=budt+a2-a1
+          enddo
+          enddo
+          asq=asq+budt*dx*dy*dz
+        enddo
+        !$acc end parallel
+
+      ENDIF
+
+!----------------------------------------------------------------------
+
+      if(timestats.ge.1) time_misc=time_misc+mytime()
+
+      end subroutine pdefq2
+
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

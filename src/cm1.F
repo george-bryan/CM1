@@ -2973,8 +2973,11 @@
         ! microphysics:
 
         ! cm1r20:  move calls to microphysics scheme into mp_driver.F
-
-        call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
+        if( ptype.eq.0 ) then 
+          !qv only:
+          call pdefq2(    0.0,asq(1),ruh,rvh,rmh,rho,q3d(ib,jb,kb,1))
+        else
+          call   mp_driver(nstep,dt,qbudget,asq,bsq,xh,ruh,xf,ruf,yh,rvh,yf,rvf,  &
                          mh,rmh,c1,c2,zh,mf,rmf,zf,rain,prate,pi0,th0,rho0,prs0,qv0,   &
                          rho,prs,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,  &
                          w3d,ppi,pp3d,ppten,sten,tha,th3d,thten,qa,q3d,qten,   &
@@ -2983,6 +2986,7 @@
                          tdiag,qdiag,out2d,out3d,  &
                          dowriteout,dorad,dotdwrite,doazimwrite,dorestart,  &
                          getdbz,getvt,dotbud,doqbud)
+        endif
 
       ENDIF
 

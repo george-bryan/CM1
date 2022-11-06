@@ -4327,6 +4327,17 @@
 
     ELSE
 
+    if( ptype.eq.0 ) then
+      !$omp parallel do default(shared) private(i,j,k)
+      do k=1,nk
+      do j=1,nj
+      do i=1,ni
+        qvci(i,j,k) = qa(i,j,k,nqv)
+        qt(i,j,k) = 0.0
+      enddo
+      enddo
+      enddo
+    else
       !$omp parallel do default(shared)  &
       !$omp private(i,j,k)
       do k=1,nk
@@ -4337,6 +4348,7 @@
       enddo
       enddo
       enddo
+    endif
 
       IF( iice.eq.1 )THEN
       !$omp parallel do default(shared)  &

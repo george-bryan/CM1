@@ -2519,6 +2519,7 @@
 
       if( imoist.eq.1 )then
         ! microphysics:
+        if( ptype.eq.0  ) param_mp = 'water vapor only (no microphysics)'
         if( ptype.eq.1  ) param_mp = 'Kessler'
         if( ptype.eq.2  ) param_mp = 'NASA-GSFC version of LFO'
         if( ptype.eq.3  ) param_mp = 'Thompson'
@@ -2843,7 +2844,35 @@
 !-----------------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !-----------------------------------------------------------------------
-        IF(ptype.eq.1)THEN        ! Kessler scheme
+
+        IF(ptype.eq.0)THEN        ! water vapor only
+
+          numq = 1
+          nqv = 1
+          cloudvar(1) = .false.
+          qname(1) = 'qv '
+          qunit(1) = 'kg/kg'
+          qmag( 1) = 1.0e-2
+
+          nbudget = 10
+
+          budname(1) = 'tcond '
+          budname(2) = 'tevac '
+          budname(3) = 'tauto '
+          budname(4) = 'taccr '
+          budname(5) = 'tevar '
+          budname(6) = 'train '
+          budname(7) = 'erain '
+          budname(8) = 'qsfc  '
+          budname(9) = 'esfc  '
+          budname(10) = 'erad  '
+
+          budrain = 6
+
+!-----------------------------------------------------------------------
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!-----------------------------------------------------------------------
+        ELSEIF(ptype.eq.1)THEN        ! Kessler scheme
 
           numq = 3    ! there are 3 q variables
 
