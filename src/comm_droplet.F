@@ -11,7 +11,9 @@ implicit none
 
 private
 
+#ifdef MPI
 public :: comm_droplet_number,comm_droplet_value
+#endif
 
 contains
 

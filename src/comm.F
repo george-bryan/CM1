@@ -43,6 +43,7 @@
   private
   public :: nabor
 
+#ifdef MPI
   !GPU enabled routines 
   public :: comm_2d_start_GPU,comm_2dns_end_GPU,comm_2dew_end_GPU
   public :: comm_1s_start_GPU,comm_1s_end_GPU
@@ -61,8 +62,9 @@
   public :: comm_1s_tend_halo_GPU
   public :: getcorneru_GPU,getcornerv_GPU,getcornert_GPU,getcornerw_GPU,getcorner_GPU
   public :: getcorneru3_GPU,getcornerv3_GPU,getcornerw3_GPU
+#endif
   public :: prepcorners3_GPU,prepcornert_GPU,prepcorners_GPU
-
+#ifdef MPI
   !CPU only routines
   public :: comm_2d_start, comm_2dns_end,comm_2dew_end
   public :: comm_2d_corner,comm_all_s
@@ -74,6 +76,7 @@
   public :: comm_3w_start,comm_3w_end
   public :: comm_1s2d_start,comm_1s2d_end
   public :: getcorneru3,getcornerv3,getcorner3_2d,getcorner
+#endif
 
   CONTAINS
 

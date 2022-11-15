@@ -56,8 +56,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,s1,s2,s3,s4,s5,bmax,doit)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     do k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -68,11 +70,7 @@
         end if
       end do
       end do
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    do k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni

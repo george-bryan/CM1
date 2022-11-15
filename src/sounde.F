@@ -31,7 +31,9 @@
       use misclibs , only : convinitu,convinitv,get_wnudge
       use bc_module, only : bcp, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
+#ifdef MPI
       use comm_module, only : comm_1p_start_GPU,comm_1p_end_GPU
+#endif
       use maxmin_module
       use ib_module
       implicit none
