@@ -1466,7 +1466,6 @@
 
     integer :: i,j,k,i1,i2,j1,j2
     real :: ubar,vbar,cc1,cc2
-    integer :: nelem
     !$acc declare present(c1,c2) &
     !$acc present(rru,rrv) &
     !$acc present(dumx,dumy,a)
@@ -1510,13 +1509,13 @@
       else
         i2=ni+1
       endif
-    nelem=ni*nj*nk
+
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
     !$acc parallel loop gang vector collapse(3) default(present)
     DO k=1,nk
       do j=1,nj+1
-      !!dir$ vector always
+      !dir$ vector always
       do i=(i1-1),i2
         ubar = 0.5*(rru(i,j,k)+rru(i+1,j,k))
         if(ubar.ge.0.0)then
@@ -1524,15 +1523,6 @@
         else
           dumx(i,j,k) = ubar*flx5(a(i+3,j,k),a(i+2,j,k),a(i+1,j,k),a(i  ,j,k),a(i-1,j,k))
         endif
-       enddo
-       enddo
-     ENDDO
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
-      do j=1,nj+1
-      do i=(i1-1),i2
         vbar = 0.5*(rrv(i,j,k)+rrv(i-1,j,k))
         if(vbar.ge.0.0)then
           dumy(i,j,k) = vbar*flx5(a(i,j-3,k),a(i,j-2,k),a(i,j-1,k),a(i,j  ,k),a(i,j+1,k))
@@ -1643,19 +1633,17 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
         dumx(i,j,k) = rru(i,j,k)*flx6(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k))
       enddo
       enddo
-    ENDDO
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1680,9 +1668,11 @@
         i2=ni+1
       endif
 
-    !$omp parallel do default(shared) private(i,j,k,ubar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$omp parallel do default(shared) private(i,j,k,ubar,vbar)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=(i1-1),i2
@@ -1690,12 +1680,7 @@
         dumx(i,j,k) = ubar*flx6(a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
-    ENDDO
-    !$acc end parallel
-
-    !$omp parallel do default(shared) private(i,j,k,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -1723,8 +1708,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni+1
@@ -1732,11 +1719,7 @@
         dumx(i,j,k) = ubar*flx6(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k))
       enddo
       enddo
-    ENDDO
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1751,8 +1734,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -1762,11 +1747,7 @@
         dumx(i,j,k) = ubar*flx6(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k))
       enddo
       enddo
-    ENDDO
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1809,8 +1790,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -1821,11 +1804,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -1856,8 +1835,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=(i1-1),i2
@@ -1869,11 +1850,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -1905,8 +1882,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni+1
@@ -1918,11 +1897,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -1941,8 +1916,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -1956,11 +1933,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2005,19 +1978,17 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
         dumx(i,j,k) = rru(i,j,k)*flx8(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2044,8 +2015,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=(i1-1),i2
@@ -2053,11 +2026,7 @@
         dumx(i,j,k) = ubar*flx8(a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -2085,8 +2054,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni+1
@@ -2094,11 +2065,7 @@
         dumx(i,j,k) = ubar*flx8(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -2113,8 +2080,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -2124,11 +2093,7 @@
         dumx(i,j,k) = ubar*flx8(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2171,8 +2136,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -2183,11 +2150,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2218,8 +2181,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=(i1-1),i2
@@ -2231,11 +2196,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -2267,8 +2228,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni+1
@@ -2280,11 +2243,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -2303,8 +2262,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -2318,11 +2279,7 @@
         endif
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2369,19 +2326,17 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
         dumx(i,j,k) = rru(i,j,k)*flx10(a(i-5,j,k),a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -2408,8 +2363,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=(i1-1),i2
@@ -2417,11 +2374,7 @@
         dumx(i,j,k) = ubar*flx10(a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k),a(i+5,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -2449,8 +2402,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni+1
@@ -2458,11 +2413,7 @@
         dumx(i,j,k) = ubar*flx10(a(i-5,j,k),a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -2477,8 +2428,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
+    !$acc parallel default(present)
+    !$acc loop gang
     DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -2488,11 +2441,7 @@
         dumx(i,j,k) = ubar*flx10(a(i-5,j,k),a(i-4,j,k),a(i-3,j,k),a(i-2,j,k),a(i-1,j,k),a(i  ,j,k),a(i+1,j,k),a(i+2,j,k),a(i+3,j,k),a(i+4,j,k))
       enddo
       enddo
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    DO k=2,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
