@@ -101,8 +101,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
-    do k=1,nk
+    !$acc parallel default(present)
+    !$acc loop gang
+    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=(i1-1),i2
@@ -112,13 +114,9 @@
         else
           dumx(i,j,k) = ubar*weno3(a(i+2,j,k),a(i+1,j,k),a(i  ,j,k),weps)
         endif
-      end do
-      end do
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    do k=1,nk
+      enddo
+      enddo
+      !$acc loop worker vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=i1,i2
@@ -128,9 +126,9 @@
         else
           dumy(i,j,k) = vbar*weno3(a(i,j+1,k),a(i,j  ,k),a(i,j-1,k),weps)
         endif
-      end do
-      end do
-    end do
+      enddo
+      enddo
+    ENDDO
     !$acc end parallel
 
   ELSEIF( stag.eq.3 )THEN
@@ -150,8 +148,10 @@
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
-    do k=1,nk
+    !$acc parallel default(present)
+    !$acc loop gang
+    DO k=1,nk
+      !$acc loop worker vector collapse(2)
       do j=j1,j2
       !dir$ vector always
       do i=1,ni+1
@@ -161,13 +161,9 @@
         else
           dumx(i,j,k) = ubar*weno3(a(i+1,j,k),a(i  ,j,k),a(i-1,j,k),weps)
         endif
-      end do
-      end do
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    do k=1,nk
+      enddo
+      enddo
+      !$acc loop worker vector collapse(2)
       do j=(j1-1),j2
       !dir$ vector always
       do i=1,ni
@@ -177,17 +173,19 @@
         else
           dumy(i,j,k) = vbar*weno3(a(i,j+2,k),a(i,j+1,k),a(i,j  ,k),weps)
         endif
-      end do
-      end do
-    end do
+      enddo
+      enddo
+    ENDDO
     !$acc end parallel
 
   ELSEIF( stag.eq.4 )THEN
 
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,ubar,vbar,cc1,cc2)
-    !$acc parallel loop gang vector collapse(3) default(present)
-    do k=2,nk
+    !$acc parallel default(present)
+    !$acc loop gang
+    DO k=2,nk
+      !$acc loop gang vector collapse(2)
       do j=1,nj
       !dir$ vector always
       do i=1,ni+1
@@ -199,13 +197,9 @@
         else
           dumx(i,j,k) = ubar*weno3(a(i+1,j,k),a(i  ,j,k),a(i-1,j,k),weps)
         endif
-      end do
-      end do
-    end do
-    !$acc end parallel
-
-    !$acc parallel loop gang vector collapse(3) default(present)
-    do k=2,nk
+      enddo
+      enddo
+      !$acc loop gang vector collapse(2)
       do j=1,nj+1
       !dir$ vector always
       do i=1,ni
@@ -217,9 +211,9 @@
         else
           dumy(i,j,k) = vbar*weno3(a(i,j+1,k),a(i,j  ,k),a(i,j-1,k),weps)
         endif
-      end do
-      end do
-    end do
+      enddo
+      enddo
+    ENDDO
     !$acc end parallel
 
   ENDIF
