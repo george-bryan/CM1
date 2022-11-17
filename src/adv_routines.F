@@ -3198,8 +3198,9 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=2,nk
+    DO k=2,nk
+
+      do j=1,nj
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -3229,8 +3230,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=2,nk
+    DO k=2,nk
+      do j=j1,j2
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -3247,8 +3248,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=1,nk
+    DO k=1,nk
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -3288,8 +3289,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k),
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=3,nk-1
+    DO k=3,nk-1
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         if(rrw(i,j,k).ge.0.0)then
@@ -3320,8 +3321,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=3,nk-1
+    DO k=3,nk-1
+      do j=1,nj
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -3353,8 +3354,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=3,nk-1
+    DO k=3,nk-1
+      do j=j1,j2
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -3373,8 +3374,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=2,nk-1
+    DO k=2,nk-1
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -3422,8 +3423,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=3,(nk-1)
+    DO k=3,(nk-1)
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx4(a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1))
@@ -3450,8 +3451,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=3,(nk-1)
+    DO k=3,(nk-1)
+      do j=1,nj
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -3479,8 +3480,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=3,(nk-1)
+    DO k=3,(nk-1)
+      do j=j1,j2
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -3495,8 +3496,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=2,(nk-1)
+    DO k=2,(nk-1)
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -3672,8 +3673,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=4,nk-2
+    DO k=4,nk-2
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx6(a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2))
@@ -3700,8 +3701,9 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=4,nk-2
+    DO k=4,nk-2
+      do j=1,nj
+
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -3729,8 +3731,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=4,nk-2
+    DO k=4,nk-2
+      do j=j1,j2
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -3745,8 +3747,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=3,nk-2
+    DO k=3,nk-2
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -3793,8 +3795,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=5,nk-3
+    DO k=5,nk-3
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         if(rrw(i,j,k).ge.0.0)then
@@ -3826,8 +3828,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=5,nk-3
+    DO k=5,nk-3
+      do j=1,nj
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -3860,8 +3862,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=5,nk-3
+    DO k=5,nk-3
+      do j=j1,j2
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -3881,8 +3883,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=4,nk-3
+    DO k=4,nk-3
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -3934,8 +3936,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=5,nk-3
+    DO k=5,nk-3
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx8(a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3))
@@ -3962,8 +3964,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=5,nk-3
+    DO k=5,nk-3
+      do j=1,nj
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -3991,8 +3993,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=5,nk-3
+    DO k=5,nk-3
+      do j=j1,j2
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -4007,8 +4009,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=4,nk-3
+    DO k=4,nk-3
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -4057,8 +4059,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=6,nk-4
+    DO k=6,nk-4
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         if(rrw(i,j,k).ge.0.0)then
@@ -4090,8 +4092,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=6,nk-4
+    DO k=6,nk-4
+      do j=1,nj
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -4124,8 +4126,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=6,nk-4
+    DO k=6,nk-4
+      do j=j1,j2
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -4145,8 +4147,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=5,nk-4
+    DO k=5,nk-4
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
@@ -4200,8 +4202,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=6,nk-4
+    DO k=6,nk-4
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         dumz(i,j,k) = rrw(i,j,k)*flx10(a(i,j,k-5),a(i,j,k-4),a(i,j,k-3),a(i,j,k-2),a(i,j,k-1),a(i,j,k  ),a(i,j,k+1),a(i,j,k+2),a(i,j,k+3),a(i,j,k+4))
@@ -4228,8 +4230,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=6,nk-4
+    DO k=6,nk-4
+      do j=1,nj
       !dir$ vector always
       do i=i1,i2
         wbar = 0.5*(rrw(i,j,k)+rrw(i-1,j,k))
@@ -4257,8 +4259,9 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=j1,j2
-      do k=6,nk-4
+    DO k=6,nk-4
+      do j=j1,j2
+
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j-1,k))
@@ -4273,8 +4276,8 @@
 !$omp parallel do default(shared)   &
 !$omp private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present)
-    DO j=1,nj
-      do k=5,nk-4
+    DO k=5,nk-4
+      do j=1,nj
       !dir$ vector always
       do i=1,ni
         wbar = 0.5*(rrw(i,j,k)+rrw(i,j,k+1))
