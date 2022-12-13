@@ -607,6 +607,8 @@
       taup  = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
 
       !Original, for calculating changes in momentum, mass, and energy
+      rhop0 = rhop
+      taup0 = taup
       rp0   = pdata(np,prrp)
       tp0   = pdata(np,prtp)
       volp0 = 4.0/3.0*pi*rp0**3
