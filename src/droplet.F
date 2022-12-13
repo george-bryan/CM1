@@ -449,10 +449,6 @@
     ENDDO  nploop
     !$acc end parallel
 
-    !$acc end data
-
-    !$acc update host(pdata,pdata_locind,qten,thten,uten,vten,wten)
-
 ! JS: update qten and thten here to avoid the race condition for a GPU case 
 !     the calculation is done on the CPU
 
@@ -462,6 +458,10 @@
                           xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
                           sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                           rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
+
+    !$acc end data
+
+    !$acc update host(pdata,pdata_locind)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
@@ -518,7 +518,7 @@
 
     nparcelsActive = nparcelsActive + sum(Arrive) - sum(Depart)
 
-    !$acc update device(pdata,pdata_locind,qten,thten,uten,vten,wten)
+    !$acc update device(pdata,pdata_locind)
 
     ! free up the memory for temporary variables
 
@@ -1206,9 +1206,11 @@
       real :: rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
       real :: rxu,ryv,rzw,rxs,rys,rzs
       real :: zsp,rznt,z0,var
-      real :: partmass,dV,volp,sigdot
+      real :: partmass,dV,volp,sigdot,tmpval
       integer :: i,j,k,dum
 
+      !$acc parallel default(present)
+      !$acc loop gang vector
       do np=1,nparcelsActive
 
       dvpdt1 = dvpdt1_vec(np)
@@ -1282,13 +1284,21 @@
         volp = (4.0/3.0)*pi*pdata(np,prrp)**3
         partmass = pdata(np,prms) + VolP*rhow
 
+        !$acc atomic update
         uten(i,j,k)       = uten(i,j,k)       - partmass/rhoval*(dvpdt1-part_grav1)*w1/dV*pdata(np,prmult)
+        !$acc atomic update
         uten(i+1,j,k)     = uten(i+1,j,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w2/dV*pdata(np,prmult)
+        !$acc atomic update
         uten(i,j+1,k)     = uten(i,j+1,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w3/dV*pdata(np,prmult)
+        !$acc atomic update
         uten(i,j,k+1)     = uten(i,j,k+1)     - partmass/rhoval*(dvpdt1-part_grav1)*w4/dV*pdata(np,prmult)
+        !$acc atomic update
         uten(i+1,j,k+1)   = uten(i+1,j,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w5/dV*pdata(np,prmult)
+        !$acc atomic update
         uten(i,j+1,k+1)   = uten(i,j+1,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w6/dV*pdata(np,prmult)
+        !$acc atomic update
         uten(i+1,j+1,k)   = uten(i+1,j+1,k)   - partmass/rhoval*(dvpdt1-part_grav1)*w7/dV*pdata(np,prmult)
+        !$acc atomic update
         uten(i+1,j+1,k+1) = uten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt1-part_grav1)*w8/dV*pdata(np,prmult)
 
         !What interpolation is doing, for reference
@@ -1345,13 +1355,21 @@
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
 
+        !$acc atomic update
         vten(i,j,k)       = vten(i,j,k)       - partmass/rhoval*(dvpdt2-part_grav2)*w1/dV*pdata(np,prmult)
+        !$acc atomic update
         vten(i+1,j,k)     = vten(i+1,j,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w2/dV*pdata(np,prmult)
+        !$acc atomic update
         vten(i,j+1,k)     = vten(i,j+1,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w3/dV*pdata(np,prmult)
+        !$acc atomic update
         vten(i,j,k+1)     = vten(i,j,k+1)     - partmass/rhoval*(dvpdt2-part_grav2)*w4/dV*pdata(np,prmult)
+        !$acc atomic update
         vten(i+1,j,k+1)   = vten(i+1,j,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w5/dV*pdata(np,prmult)
+        !$acc atomic update
         vten(i,j+1,k+1)   = vten(i,j+1,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w6/dV*pdata(np,prmult)
+        !$acc atomic update
         vten(i+1,j+1,k)   = vten(i+1,j+1,k)   - partmass/rhoval*(dvpdt2-part_grav2)*w7/dV*pdata(np,prmult)
+        !$acc atomic update
         vten(i+1,j+1,k+1) = vten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt2-part_grav2)*w8/dV*pdata(np,prmult)
 
         ! vval = va(i  ,j  ,k  )*w1 &
@@ -1404,13 +1422,21 @@
         w7 = rx*ry*(1.0-rz)
         w8 = rx*ry*rz
 
+        !$acc atomic update
         wten(i,j,k)       = wten(i,j,k)       - partmass/rhoval*(dvpdt3-part_grav3)*w1/dV*pdata(np,prmult)
+        !$acc atomic update
         wten(i+1,j,k)     = wten(i+1,j,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w2/dV*pdata(np,prmult)
+        !$acc atomic update
         wten(i,j+1,k)     = wten(i,j+1,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w3/dV*pdata(np,prmult)
+        !$acc atomic update
         wten(i,j,k+1)     = wten(i,j,k+1)     - partmass/rhoval*(dvpdt3-part_grav3)*w4/dV*pdata(np,prmult)
+        !$acc atomic update
         wten(i+1,j,k+1)   = wten(i+1,j,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w5/dV*pdata(np,prmult)
+        !$acc atomic update
         wten(i,j+1,k+1)   = wten(i,j+1,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w6/dV*pdata(np,prmult)
+        !$acc atomic update
         wten(i+1,j+1,k)   = wten(i+1,j+1,k)   - partmass/rhoval*(dvpdt3-part_grav3)*w7/dV*pdata(np,prmult)
+        !$acc atomic update
         wten(i+1,j+1,k+1) = wten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt3-part_grav3)*w8/dV*pdata(np,prmult)
 
         ! wval = wa(i  ,j  ,k  )*w1 &
@@ -1467,13 +1493,21 @@
         w8 = rx*ry*rz
 
       if(imoist.eq.1)then
+        !$acc atomic update
         qten(i,j,k)       = qten(i,j,k)       - dmpdt/rhoval/dV*w1*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j,k)     = qten(i+1,j,k)     - dmpdt/rhoval/dV*w2*pdata(np,prmult)
+        !$acc atomic update
         qten(i,j+1,k)     = qten(i,j+1,k)     - dmpdt/rhoval/dV*w3*pdata(np,prmult)
+        !$acc atomic update
         qten(i,j,k+1)     = qten(i,j,k+1)     - dmpdt/rhoval/dV*w4*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j,k+1)   = qten(i+1,j,k+1)   - dmpdt/rhoval/dV*w5*pdata(np,prmult)
+        !$acc atomic update
         qten(i,j+1,k+1)   = qten(i,j+1,k+1)   - dmpdt/rhoval/dV*w6*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j+1,k)   = qten(i+1,j+1,k)   - dmpdt/rhoval/dV*w7*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j+1,k+1) = qten(i+1,j+1,k+1) - dmpdt/rhoval/dV*w8*pdata(np,prmult)
 
         ! qval = qa(i  ,j  ,k  ,nqv)*w1 &
@@ -1486,16 +1520,45 @@
         !      + qa(i+1,j+1,k+1,nqv)*w8
       endif
 
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult)
+        !$acc atomic update
+        thten(i,j,k)       = thten(i,j,k) + tmpval
 
-        thten(i,j,k)       = thten(i,j,k)         - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult) 
-        thten(i+1,j,k)     = thten(i+1,j,k)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult) 
-        thten(i,j+1,k)     = thten(i,j+1,k)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult) 
-        thten(i,j,k+1)     = thten(i,j,k+1)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult) 
-        thten(i+1,j,k+1)   = thten(i+1,j,k+1)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult) 
-        thten(i,j+1,k+1)   = thten(i,j+1,k+1)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult) 
-        thten(i+1,j+1,k)   = thten(i+1,j+1,k)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult) 
-        thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1)   - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult) 
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult)
+        !$acc atomic update
+        thten(i+1,j,k)     = thten(i+1,j,k) + tmpval
 
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult)`
+        !$acc atomic update
+        thten(i,j+1,k)     = thten(i,j+1,k) + tmpval
+
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult)
+        !$acc atomic update
+        thten(i,j,k+1)     = thten(i,j,k+1) + tmpval
+
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult)
+        !$acc atomic update
+        thten(i+1,j,k+1)   = thten(i+1,j,k+1) + tmpval
+
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult)
+        !$acc atomic update
+        thten(i,j+1,k+1)   = thten(i,j+1,k+1) + tmpval
+
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult)
+        !$acc atomic update
+        thten(i+1,j+1,k)   = thten(i+1,j+1,k) + tmpval
+
+        tmpval             = - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult) &
+                             - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult)
+        !$acc atomic update
+        thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) + tmpval
 
       ! tval   = ta(i  ,j  ,k  )*w1 &
       !        + ta(i+1,j  ,k  )*w2 &
@@ -1507,6 +1570,7 @@
       !        + ta(i+1,j+1,k+1)*w8
 
       end do  ! np loop
+      !$acc end parallel
 
       end subroutine project_feedback
 
