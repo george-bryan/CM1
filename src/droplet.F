@@ -96,12 +96,9 @@
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
       real :: sig3d,th_tmp,rand
-      real, dimension(nparcelsLocal) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
-                                        rp0,taup0,rhop0, &
-                                        tval_vec,rhoval_vec, &
-                                        x3d0,y3d0,z3d0,sig3d0
+      real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+              rp0,taup0,rhop0,x3d0,y3d0,z3d0,sig3d0
 
-      integer, dimension(nparcelsLocal) :: iflag_tmp,jflag_tmp,kflag_tmp
       real :: Nup,salinity,part_grav1,part_grav2,part_grav3
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
@@ -144,19 +141,17 @@
       end do
 
       !$acc data create  (ta) &
-      !$acc      copy    (pdata_neighbor) &
-      !$acc      copyin  (randomNumbers,randomNumbers%state) &
-      !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
-      !$acc               rhoval_vec,rp0,taup0,rhop0,tval_vec, & 
-      !$acc               iflag_tmp,jflag_tmp,kflag_tmp,x3d0, &
-      !$acc               y3d0,z3d0,sig3d0)
+      !$acc      copyout (pdata_neighbor) &
+      !$acc      copyin  (randomNumbers,randomNumbers%state)
+
+      !$acc parallel loop gang vector default(present)
+      do np = 1, nparcelsActive
+         pdata_neighbor(np) = undefined_index
+      end do
+      !$acc end parallel
 #else
       !$acc data create  (ta) &
-      !$acc      copyin  (randomNumbers,randomNumbers%state) &
-      !$acc      copyout (dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
-      !$acc               rhoval_vec,rp0,taup0,rhop0,tval_vec, &
-      !$acc               iflag_tmp,jflag_tmp,kflag_tmp, &
-      !$acc               x3d0,y3d0,z3d0,sig3d0)
+      !$acc      copyin  (randomNumbers,randomNumbers%state)
 #endif
 
     IF(bbc.eq.1)THEN
@@ -366,25 +361,23 @@
          call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
       endif
 
-      dvpdt1(np) = pdata(np,prvpx)
-      dvpdt2(np) = pdata(np,prvpy)
-      dvpdt3(np) = pdata(np,prvpz)
-      dtpdt(np)  = pdata(np,prtp)
-      drpdt(np)  = pdata(np,prrp)
-      dmpdt(np)  = rhow*4.0/3.0*pi*pdata(np,prrp)**3
+      dvpdt1 = pdata(np,prvpx)
+      dvpdt2 = pdata(np,prvpy)
+      dvpdt3 = pdata(np,prvpz)
+      dtpdt  = pdata(np,prtp)
+      drpdt  = pdata(np,prrp)
+      dmpdt  = rhow*4.0/3.0*pi*pdata(np,prrp)**3
       
       !Store its old position before getting updated:
-      x3d0(np) = x3d
-      y3d0(np) = y3d
-      z3d0(np) = z3d 
-      sig3d0(np) = sig3d
+      x3d0   = x3d
+      y3d0   = y3d
+      z3d0   = z3d 
+      sig3d0 = sig3d
 
       call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
                                  uval,vval,wval,tval,qval,rhoval,prsval, &
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
-      tval_vec(np) = tval
-      rhoval_vec(np) = rhoval
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
@@ -400,19 +393,19 @@
 !-----------------------------------------------------
 
       !Recall that the "old" values are stored in the "d/dt" variables
-      dvpdt1(np) = (pdata(np,prvpx)-dvpdt1(np))/dt   !Remember to deal with gravity later!
-      dvpdt2(np) = (pdata(np,prvpy)-dvpdt2(np))/dt
-      dvpdt3(np) = (pdata(np,prvpz)-dvpdt3(np))/dt
+      dvpdt1 = (pdata(np,prvpx)-dvpdt1)/dt   !Remember to deal with gravity later!
+      dvpdt2 = (pdata(np,prvpy)-dvpdt2)/dt
+      dvpdt3 = (pdata(np,prvpz)-dvpdt3)/dt
+      drpdt  = (pdata(np,prrp)-drpdt)/dt
+      dtpdt  = (pdata(np,prtp)-dtpdt)/dt
+      dmpdt  = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt)/dt
 
-      drpdt(np) = (pdata(np,prrp)-drpdt(np))/dt
-
-      dtpdt(np) = (pdata(np,prtp)-dtpdt(np))/dt
-
-      dmpdt(np) = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt(np))/dt
-
-      iflag_tmp(np) = iflag
-      jflag_tmp(np) = jflag
-      kflag_tmp(np) = kflag
+      !Project the feedback onto the grid, using ORIGINAL location
+      call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
+                            rhop0,taup0,rp0,tval,uten,vten,wten,qten,thten, &
+                            xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
+                            sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+                            rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
 
 !-----------------------------------------------------
 !  Account for boundary conditions (if necessary)
@@ -421,29 +414,28 @@
       !Now that the particles have been updated, do something with those which
       !have fallen out the bottom:
       if (pdata(np,pract).lt.0.0) then
-            !Replace with a new droplet at random location
-              rand = getRandomReal(randomNumbers)
-              pdata(np,prx) = rand*maxx
-              rand = getRandomReal(randomNumbers)
-              pdata(np,pry) = rand*maxy
-              rand = getRandomReal(randomNumbers)
-              pdata(np,prz) = rand*maxz
-              pdata(np,prvpx) = 0.0
-              pdata(np,prvpy) = 0.0
-              pdata(np,prvpz) = 0.0
-              !Droplet size (radius)
-              pdata(np,prrp) = 20.0e-6
+         !Replace with a new droplet at random location
+         rand = getRandomReal(randomNumbers)
+         pdata(np,prx) = rand*maxx
+         rand = getRandomReal(randomNumbers)
+         pdata(np,pry) = rand*maxy
+         rand = getRandomReal(randomNumbers)
+         pdata(np,prz) = rand*maxz
+         pdata(np,prvpx) = 0.0
+         pdata(np,prvpy) = 0.0
+         pdata(np,prvpz) = 0.0
+         !Droplet size (radius)
+         pdata(np,prrp) = 20.0e-6
   
-              !Droplet solute mass
-              salinity = 0.034
-              pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
-              !Droplet temperature
-              pdata(np,prtp) = 302.0
-              !Droplet multiplicity
-              pdata(np,prmult) = 1.0
-              !Make it alive again
-              pdata(np,pract) = 1.0
-              
+         !Droplet solute mass
+         salinity = 0.034
+         pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+         !Droplet temperature
+         pdata(np,prtp) = 302.0
+         !Droplet multiplicity
+         pdata(np,prmult) = 1.0
+         !Make it alive again
+         pdata(np,pract) = 1.0
       end if
 
     ENDDO  nploop
@@ -451,17 +443,7 @@
 
     !$acc end data
 
-    !$acc update host(pdata,pdata_locind,qten,thten,uten,vten,wten)
-
-! JS: update qten and thten here to avoid the race condition for a GPU case 
-!     the calculation is done on the CPU
-
-    !Project the feedback onto the grid, using ORIGINAL location
-    call project_feedback(iflag_tmp,jflag_tmp,kflag_tmp,x3d0,y3d0,z3d0,sig3d0, &
-                          rhop0,taup0,rp0,tval_vec,uten,vten,wten,qten,thten, &
-                          xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
-                          sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
-                          rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
+    !$acc update host(pdata,pdata_locind)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
@@ -518,7 +500,7 @@
 
     nparcelsActive = nparcelsActive + sum(Arrive) - sum(Depart)
 
-    !$acc update device(pdata,pdata_locind,qten,thten,uten,vten,wten)
+    !$acc update device(pdata,pdata_locind)
 
     ! free up the memory for temporary variables
 
@@ -547,7 +529,11 @@
 
       end subroutine droplet_driver
 
-      subroutine BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d,uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0,taup0,rp0,part_grav1,part_grav2,part_grav3,debug,num100,num1000,neighbor)
+      subroutine BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
+                                z3d,sig3d,uval,vval,wval,qval,rhoval, &
+                                prsval,tval,Nup,rhop0,taup0,rp0, &
+                                part_grav1,part_grav2,part_grav3, &
+                                debug,num100,num1000,neighbor)
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
@@ -571,7 +557,7 @@
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind
       real, intent(out) :: Nup
-      real, dimension(nparcelsLocal), intent(inout) :: rhop0,taup0,rp0
+      real, intent(inout) :: rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
       integer, intent(out), optional :: neighbor  ! indicate which MPI region a droplet 
                                                   ! stays after this time step 
@@ -592,8 +578,6 @@
       real :: guess,rt_zeros(2),rt_start(2)
       integer :: mflag,flag
 
-
-
       !Store interpolated quantities for the sake of statistics
       pdata(np,pru) = uval
       pdata(np,prv) = vval
@@ -603,44 +587,44 @@
       pdata(np,prprs) = prsval
       pdata(np,prrho) = rhoval
 
-       !qval = 0.008807098199749
-       !tval = 282.3
-       !uval = 0.0
-       !vval = 0.0
-       !wval = 0.0
+      !qval = 0.008807098199749
+      !tval = 282.3
+      !uval = 0.0
+      !vval = 0.0
+      !wval = 0.0
 
-       estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
+      estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
 
 !-----------------------------------------------------
 !  Update droplet position, velocity, etc.
 !-----------------------------------------------------
 
-        xrhs1 = pdata(np,prvpx)
-        xrhs2 = pdata(np,prvpy)
-        xrhs3 = pdata(np,prvpz)
-        volp = 4.0/3.0*pi*pdata(np,prrp)**3
-        rhop = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
-        taup = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+      xrhs1 = pdata(np,prvpx)
+      xrhs2 = pdata(np,prvpy)
+      xrhs3 = pdata(np,prvpz)
+      volp  = 4.0/3.0*pi*pdata(np,prrp)**3
+      rhop  = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
+      taup  = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
 
-        !Original, for calculating changes in momentum, mass, and energy
-        rhop0(np) = rhop
-        taup0(np) = taup
-        rp0(np) = pdata(np,prrp)
-        tp0 = pdata(np,prtp)
-        volp0 = 4.0/3.0*pi*rp0(np)**3
+      !Original, for calculating changes in momentum, mass, and energy
+      rhop0 = rhop
+      taup0 = taup
+      rp0   = pdata(np,prrp)
+      tp0   = pdata(np,prtp)
+      volp0 = 4.0/3.0*pi*rp0**3
 
 
-        diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
-                         (vval-pdata(np,prvpy))**2+ &
-                         (wval-pdata(np,prvpz))**2)
+      diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
+                       (vval-pdata(np,prvpy))**2+ &
+                       (wval-pdata(np,prvpz))**2)
 
-        Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
-        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
-        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+      Rep = 2.0*pdata(np,prrp)*diffnorm/viscosity
+      Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
+      Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
-        vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
-        vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
-        vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
+      vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
+      vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
+      vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
 
       !Position and velocity are straightforward:
 
@@ -1168,8 +1152,13 @@
 
       end subroutine interpolate_to_parcel
 
-      subroutine project_feedback(iflag_vec,jflag_vec,kflag_vec,x3d_vec,y3d_vec,z3d_vec,sig3d_vec,rhop0_vec,taup0_vec,rp0_vec,tval_vec,uten,vten,wten,qten,thten,xh,xf,yh,yf,zh,zf,sigma,sigmaf,sigdot,dvpdt1_vec,dvpdt2_vec,dvpdt3_vec,drpdt_vec,dtpdt_vec,dmpdt_vec,rhoval_vec,part_grav1,part_grav2,part_grav3,pdata)
-
+      subroutine project_feedback(iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
+                                  rhop0,taup0,rp0,tval,uten,vten,wten, &
+                                  qten,thten,xh,xf,yh,yf,zh,zf,sigma,  &
+                                  sigmaf,sigdot,dvpdt1,dvpdt2,dvpdt3,  &
+                                  drpdt,dtpdt,dmpdt,rhoval,part_grav1, &
+                                  part_grav2,part_grav3,pdata,np)
+      !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcelsLocal,nx,ny, &
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
@@ -1180,8 +1169,7 @@
       use cm1libs , only : eslf
       implicit none
 
-      real, dimension(nparcelsLocal),  intent(in) :: dvpdt1_vec,dvpdt2_vec,dvpdt3_vec,drpdt_vec,dtpdt_vec,dmpdt_vec
-      real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt
+      real, intent(in) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(in) :: part_grav1,part_grav2,part_grav3
 
@@ -1198,282 +1186,286 @@
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wten
       double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
 
-      integer :: np
-      integer, dimension(nparcelsLocal), intent(in) :: iflag_vec,jflag_vec,kflag_vec
-      integer :: iflag,jflag,kflag
-      real, dimension(nparcelsLocal), intent(in) :: x3d_vec,y3d_vec,z3d_vec,sig3d_vec,rhop0_vec,taup0_vec,rp0_vec,tval_vec,rhoval_vec
-      real :: x3d,y3d,z3d,sig3d,rhop0,taup0,rp0,tval,rhoval
+      integer, intent(in) :: np
+      integer, intent(in) :: iflag,jflag,kflag
+      real, intent(in) :: x3d,y3d,z3d,sig3d,rhop0,taup0,rp0,tval,rhoval
       real :: rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
       real :: rxu,ryv,rzw,rxs,rys,rzs
       real :: zsp,rznt,z0,var
-      real :: partmass,dV,volp,sigdot
+      real :: partmass,dV,volp,sigdot,tmpval
       integer :: i,j,k,dum
-
-      do np=1,nparcelsActive
-
-      dvpdt1 = dvpdt1_vec(np)
-      dvpdt2 = dvpdt2_vec(np)
-      dvpdt3 = dvpdt3_vec(np)
-      drpdt = drpdt_vec(np)
-      dtpdt = dtpdt_vec(np)
-      dmpdt = dmpdt_vec(np)
-
-      iflag = iflag_vec(np)
-      jflag = jflag_vec(np)
-      kflag = kflag_vec(np)
-
-      x3d = x3d_vec(np)
-      y3d = y3d_vec(np)
-      z3d = z3d_vec(np)
-      sig3d = sig3d_vec(np)
-
-      taup0 = taup0_vec(np)
-      rhop0 = rhop0_vec(np)
-      rp0 = rp0_vec(np)
-      tval = tval_vec(np)
-      rhoval = rhoval_vec(np)
 
 !----------------------------------------------------------------------
 !  Project to u points
 
-        i=iflag
-        j=jflag
-        k=kflag
+      i=iflag
+      j=jflag
+      k=kflag
 
-        if( y3d.lt.yh(j) )then
-          j=j-1
+      if( y3d.lt.yh(j) )then
+        j=j-1
+      endif
+      if( .not. terrain_flag )then
+        if( z3d.lt.zh(iflag,jflag,k) )then
+          k=k-1
         endif
-        if( .not. terrain_flag )then
-          if( z3d.lt.zh(iflag,jflag,k) )then
-            k=k-1
-          endif
-          rz = ( z3d-zh(iflag,jflag,k) )/( zh(iflag,jflag,k+1)-zh(iflag,jflag,k) )
-        else
-          if( sig3d.lt.sigma(k) )then
-            k=k-1
-          endif
-          rz = ( sig3d-sigma(k) )/( sigma(k+1)-sigma(k) )
+        rz = ( z3d-zh(iflag,jflag,k) )/( zh(iflag,jflag,k+1)-zh(iflag,jflag,k) )
+      else
+        if( sig3d.lt.sigma(k) )then
+          k=k-1
         endif
+        rz = ( sig3d-sigma(k) )/( sigma(k+1)-sigma(k) )
+      endif
 
-        rx = ( x3d-xf(i) )/( xf(i+1)-xf(i) )
-        ry = ( y3d-yh(j) )/( yh(j+1)-yh(j) )
+      rx = ( x3d-xf(i) )/( xf(i+1)-xf(i) )
+      ry = ( y3d-yh(j) )/( yh(j+1)-yh(j) )
 
-        ! saveit:
-        rxu = rx
-        rys = ry
-        rzs = rz
+      ! saveit:
+      rxu = rx
+      rys = ry
+      rzs = rz
 
 
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
+      w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+      w2 = rx*(1.0-ry)*(1.0-rz)
+      w3 = (1.0-rx)*ry*(1.0-rz)
+      w4 = (1.0-rx)*(1.0-ry)*rz
+      w5 = rx*(1.0-ry)*rz
+      w6 = (1.0-rx)*ry*rz
+      w7 = rx*ry*(1.0-rz)
+      w8 = rx*ry*rz
 
-        if (.not. terrain_flag) then
-           dV = (xf(i+1)-xf(i))*(yh(j+1)-yh(j))*(zh(iflag,jflag,k+1)-zh(iflag,jflag,k))
-        else
-           dV = (xf(i+1)-xf(i))*(yh(j+1)-yh(j))*(sigma(k+1)-sigma(k))
-        end if
-       
-        volp = (4.0/3.0)*pi*pdata(np,prrp)**3
-        partmass = pdata(np,prms) + VolP*rhow
+      if (.not. terrain_flag) then
+         dV = (xf(i+1)-xf(i))*(yh(j+1)-yh(j))*(zh(iflag,jflag,k+1)-zh(iflag,jflag,k))
+      else
+         dV = (xf(i+1)-xf(i))*(yh(j+1)-yh(j))*(sigma(k+1)-sigma(k))
+      end if
+      
+      volp = (4.0/3.0)*pi*pdata(np,prrp)**3
+      partmass = pdata(np,prms) + VolP*rhow
 
-        uten(i,j,k)       = uten(i,j,k)       - partmass/rhoval*(dvpdt1-part_grav1)*w1/dV*pdata(np,prmult)
-        uten(i+1,j,k)     = uten(i+1,j,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w2/dV*pdata(np,prmult)
-        uten(i,j+1,k)     = uten(i,j+1,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w3/dV*pdata(np,prmult)
-        uten(i,j,k+1)     = uten(i,j,k+1)     - partmass/rhoval*(dvpdt1-part_grav1)*w4/dV*pdata(np,prmult)
-        uten(i+1,j,k+1)   = uten(i+1,j,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w5/dV*pdata(np,prmult)
-        uten(i,j+1,k+1)   = uten(i,j+1,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w6/dV*pdata(np,prmult)
-        uten(i+1,j+1,k)   = uten(i+1,j+1,k)   - partmass/rhoval*(dvpdt1-part_grav1)*w7/dV*pdata(np,prmult)
-        uten(i+1,j+1,k+1) = uten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt1-part_grav1)*w8/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i,j,k)       = uten(i,j,k)       - partmass/rhoval*(dvpdt1-part_grav1)*w1/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i+1,j,k)     = uten(i+1,j,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w2/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i,j+1,k)     = uten(i,j+1,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w3/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i,j,k+1)     = uten(i,j,k+1)     - partmass/rhoval*(dvpdt1-part_grav1)*w4/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i+1,j,k+1)   = uten(i+1,j,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w5/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i,j+1,k+1)   = uten(i,j+1,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w6/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i+1,j+1,k)   = uten(i+1,j+1,k)   - partmass/rhoval*(dvpdt1-part_grav1)*w7/dV*pdata(np,prmult)
+      !$acc atomic update
+      uten(i+1,j+1,k+1) = uten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt1-part_grav1)*w8/dV*pdata(np,prmult)
 
-        !What interpolation is doing, for reference
-        ! uval = ua(i  ,j  ,k  )*w1 &
-        !      + ua(i+1,j  ,k  )*w2 &
-        !      + ua(i  ,j+1,k  )*w3 &
-        !      + ua(i  ,j  ,k+1)*w4 &
-        !      + ua(i+1,j  ,k+1)*w5 &
-        !      + ua(i  ,j+1,k+1)*w6 &
-        !      + ua(i+1,j+1,k  )*w7 &
-        !      + ua(i+1,j+1,k+1)*w8
+      !What interpolation is doing, for reference
+      ! uval = ua(i  ,j  ,k  )*w1 &
+      !      + ua(i+1,j  ,k  )*w2 &
+      !      + ua(i  ,j+1,k  )*w3 &
+      !      + ua(i  ,j  ,k+1)*w4 &
+      !      + ua(i+1,j  ,k+1)*w5 &
+      !      + ua(i  ,j+1,k+1)*w6 &
+      !      + ua(i+1,j+1,k  )*w7 &
+      !      + ua(i+1,j+1,k+1)*w8
 
 !----------------------------------------------------------------------
 !  Project to v points
 
-        !print *,'parcel: data on v-points'
-        i=iflag
-        j=jflag
-        k=kflag
+      !print *,'parcel: data on v-points'
+      i=iflag
+      j=jflag
+      k=kflag
 
-        if( x3d.lt.xh(i) )then
-          i=i-1
+      if( x3d.lt.xh(i) )then
+        i=i-1
+      endif
+      if( .not. terrain_flag )then
+        if( z3d.lt.zh(iflag,jflag,k) )then
+          k=k-1
         endif
-        if( .not. terrain_flag )then
-          if( z3d.lt.zh(iflag,jflag,k) )then
-            k=k-1
-          endif
-        else
-          if( sig3d.lt.sigma(k) )then
-            k=k-1
-          endif
+      else
+        if( sig3d.lt.sigma(k) )then
+          k=k-1
         endif
+      endif
 
-        rx = ( x3d-xh(i) )/( xh(i+1)-xh(i) )
-        ry = ( y3d-yf(j) )/( yf(j+1)-yf(j) )
-        rz = rzs
+      rx = ( x3d-xh(i) )/( xh(i+1)-xh(i) )
+      ry = ( y3d-yf(j) )/( yf(j+1)-yf(j) )
+      rz = rzs
 
-        ! saveit:
-        rxs = rx
-        ryv = ry
+      ! saveit:
+      rxs = rx
+      ryv = ry
 
-        if (.not. terrain_flag) then
-           dV = (xh(i+1)-xh(i))*(yf(j+1)-yf(j))*(zh(iflag,jflag,k+1)-zh(iflag,jflag,k))
-        else
-           dV = (xh(i+1)-xh(i))*(yf(j+1)-yf(j))*(sigma(k+1)-sigma(k))
-        end if
+      if (.not. terrain_flag) then
+         dV = (xh(i+1)-xh(i))*(yf(j+1)-yf(j))*(zh(iflag,jflag,k+1)-zh(iflag,jflag,k))
+      else
+         dV = (xh(i+1)-xh(i))*(yf(j+1)-yf(j))*(sigma(k+1)-sigma(k))
+      end if
 
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
+      w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+      w2 = rx*(1.0-ry)*(1.0-rz)
+      w3 = (1.0-rx)*ry*(1.0-rz)
+      w4 = (1.0-rx)*(1.0-ry)*rz
+      w5 = rx*(1.0-ry)*rz
+      w6 = (1.0-rx)*ry*rz
+      w7 = rx*ry*(1.0-rz)
+      w8 = rx*ry*rz
 
-        vten(i,j,k)       = vten(i,j,k)       - partmass/rhoval*(dvpdt2-part_grav2)*w1/dV*pdata(np,prmult)
-        vten(i+1,j,k)     = vten(i+1,j,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w2/dV*pdata(np,prmult)
-        vten(i,j+1,k)     = vten(i,j+1,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w3/dV*pdata(np,prmult)
-        vten(i,j,k+1)     = vten(i,j,k+1)     - partmass/rhoval*(dvpdt2-part_grav2)*w4/dV*pdata(np,prmult)
-        vten(i+1,j,k+1)   = vten(i+1,j,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w5/dV*pdata(np,prmult)
-        vten(i,j+1,k+1)   = vten(i,j+1,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w6/dV*pdata(np,prmult)
-        vten(i+1,j+1,k)   = vten(i+1,j+1,k)   - partmass/rhoval*(dvpdt2-part_grav2)*w7/dV*pdata(np,prmult)
-        vten(i+1,j+1,k+1) = vten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt2-part_grav2)*w8/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i,j,k)       = vten(i,j,k)       - partmass/rhoval*(dvpdt2-part_grav2)*w1/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i+1,j,k)     = vten(i+1,j,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w2/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i,j+1,k)     = vten(i,j+1,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w3/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i,j,k+1)     = vten(i,j,k+1)     - partmass/rhoval*(dvpdt2-part_grav2)*w4/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i+1,j,k+1)   = vten(i+1,j,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w5/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i,j+1,k+1)   = vten(i,j+1,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w6/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i+1,j+1,k)   = vten(i+1,j+1,k)   - partmass/rhoval*(dvpdt2-part_grav2)*w7/dV*pdata(np,prmult)
+      !$acc atomic update
+      vten(i+1,j+1,k+1) = vten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt2-part_grav2)*w8/dV*pdata(np,prmult)
 
-        ! vval = va(i  ,j  ,k  )*w1 &
-        !      + va(i+1,j  ,k  )*w2 &
-        !      + va(i  ,j+1,k  )*w3 &
-        !      + va(i  ,j  ,k+1)*w4 &
-        !      + va(i+1,j  ,k+1)*w5 &
-        !      + va(i  ,j+1,k+1)*w6 &
-        !      + va(i+1,j+1,k  )*w7 &
-        !      + va(i+1,j+1,k+1)*w8
-
+      ! vval = va(i  ,j  ,k  )*w1 &
+      !      + va(i+1,j  ,k  )*w2 &
+      !      + va(i  ,j+1,k  )*w3 &
+      !      + va(i  ,j  ,k+1)*w4 &
+      !      + va(i+1,j  ,k+1)*w5 &
+      !      + va(i  ,j+1,k+1)*w6 &
+      !      + va(i+1,j+1,k  )*w7 &
+      !      + va(i+1,j+1,k+1)*w8
 
 !----------------------------------------------------------------------
 !  Project to w points
 
-        i=iflag
-        j=jflag
-        k=kflag
+      i=iflag
+      j=jflag
+      k=kflag
 
-        if( x3d.lt.xh(i) )then
-          i=i-1
-        endif
-        if( y3d.lt.yh(j) )then
-          j=j-1
-        endif
+      if( x3d.lt.xh(i) )then
+        i=i-1
+      endif
+      if( y3d.lt.yh(j) )then
+        j=j-1
+      endif
 
-        rx = rxs
-        ry = rys
-        if( .not. terrain_flag )then
-          rz = ( z3d-zf(iflag,jflag,k) )/( zf(iflag,jflag,k+1)-zf(iflag,jflag,k) )
-        else
-          rz = ( sig3d-sigmaf(k) )/( sigmaf(k+1)-sigmaf(k) )
-        endif
+      rx = rxs
+      ry = rys
+      if( .not. terrain_flag )then
+        rz = ( z3d-zf(iflag,jflag,k) )/( zf(iflag,jflag,k+1)-zf(iflag,jflag,k) )
+      else
+        rz = ( sig3d-sigmaf(k) )/( sigmaf(k+1)-sigmaf(k) )
+      endif
 
-        ! saveit:
-        rzw = rz
+      ! saveit:
+      rzw = rz
 
-        if (.not. terrain_flag) then
-           dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(zf(iflag,jflag,k+1)-zf(iflag,jflag,k))
-        else
-           dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(sigmaf(k+1)-sigmaf(k))
-        end if
+      if (.not. terrain_flag) then
+         dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(zf(iflag,jflag,k+1)-zf(iflag,jflag,k))
+      else
+         dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(sigmaf(k+1)-sigmaf(k))
+      end if
 
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
+      w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+      w2 = rx*(1.0-ry)*(1.0-rz)
+      w3 = (1.0-rx)*ry*(1.0-rz)
+      w4 = (1.0-rx)*(1.0-ry)*rz
+      w5 = rx*(1.0-ry)*rz
+      w6 = (1.0-rx)*ry*rz
+      w7 = rx*ry*(1.0-rz)
+      w8 = rx*ry*rz
 
-        wten(i,j,k)       = wten(i,j,k)       - partmass/rhoval*(dvpdt3-part_grav3)*w1/dV*pdata(np,prmult)
-        wten(i+1,j,k)     = wten(i+1,j,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w2/dV*pdata(np,prmult)
-        wten(i,j+1,k)     = wten(i,j+1,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w3/dV*pdata(np,prmult)
-        wten(i,j,k+1)     = wten(i,j,k+1)     - partmass/rhoval*(dvpdt3-part_grav3)*w4/dV*pdata(np,prmult)
-        wten(i+1,j,k+1)   = wten(i+1,j,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w5/dV*pdata(np,prmult)
-        wten(i,j+1,k+1)   = wten(i,j+1,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w6/dV*pdata(np,prmult)
-        wten(i+1,j+1,k)   = wten(i+1,j+1,k)   - partmass/rhoval*(dvpdt3-part_grav3)*w7/dV*pdata(np,prmult)
-        wten(i+1,j+1,k+1) = wten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt3-part_grav3)*w8/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i,j,k)       = wten(i,j,k)       - partmass/rhoval*(dvpdt3-part_grav3)*w1/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i+1,j,k)     = wten(i+1,j,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w2/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i,j+1,k)     = wten(i,j+1,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w3/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i,j,k+1)     = wten(i,j,k+1)     - partmass/rhoval*(dvpdt3-part_grav3)*w4/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i+1,j,k+1)   = wten(i+1,j,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w5/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i,j+1,k+1)   = wten(i,j+1,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w6/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i+1,j+1,k)   = wten(i+1,j+1,k)   - partmass/rhoval*(dvpdt3-part_grav3)*w7/dV*pdata(np,prmult)
+      !$acc atomic update
+      wten(i+1,j+1,k+1) = wten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt3-part_grav3)*w8/dV*pdata(np,prmult)
 
-        ! wval = wa(i  ,j  ,k  )*w1 &
-        !      + wa(i+1,j  ,k  )*w2 &
-        !      + wa(i  ,j+1,k  )*w3 &
-        !      + wa(i  ,j  ,k+1)*w4 &
-        !      + wa(i+1,j  ,k+1)*w5 &
-        !      + wa(i  ,j+1,k+1)*w6 &
-        !      + wa(i+1,j+1,k  )*w7 &
-        !      + wa(i+1,j+1,k+1)*w8
-
+      ! wval = wa(i  ,j  ,k  )*w1 &
+      !      + wa(i+1,j  ,k  )*w2 &
+      !      + wa(i  ,j+1,k  )*w3 &
+      !      + wa(i  ,j  ,k+1)*w4 &
+      !      + wa(i+1,j  ,k+1)*w5 &
+      !      + wa(i  ,j+1,k+1)*w6 &
+      !      + wa(i+1,j+1,k  )*w7 &
+      !      + wa(i+1,j+1,k+1)*w8
 
 !----------------------------------------------------------------------
 !  Project to scalar points
 
-        i=iflag
-        j=jflag
-        k=kflag
+      i=iflag
+      j=jflag
+      k=kflag
 
-        if( x3d.lt.xh(i) )then
-          i=i-1
+      if( x3d.lt.xh(i) )then
+        i=i-1
+      endif
+      if( y3d.lt.yh(j) )then
+        j=j-1
+      endif
+      if( .not. terrain_flag )then
+        if( z3d.lt.zh(iflag,jflag,k) )then
+          k=k-1
         endif
-        if( y3d.lt.yh(j) )then
-          j=j-1
+      else
+        if( z3d.lt.sigma(k) )then
+          k=k-1
         endif
-        if( .not. terrain_flag )then
-          if( z3d.lt.zh(iflag,jflag,k) )then
-            k=k-1
-          endif
-        else
-          if( z3d.lt.sigma(k) )then
-            k=k-1
-          endif
-        endif
+      endif
 
 
-        rx = rxs
-        ry = rys
-        rz = rzs
+      rx = rxs
+      ry = rys
+      rz = rzs
 
-        if (.not. terrain_flag) then
-           dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(zh(iflag,jflag,k+1)-zh(iflag,jflag,k))
-        else
-           dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(sigma(k+1)-sigma(k))
-        end if
+      if (.not. terrain_flag) then
+         dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(zh(iflag,jflag,k+1)-zh(iflag,jflag,k))
+      else
+         dV = (xh(i+1)-xh(i))*(yh(j+1)-yh(j))*(sigma(k+1)-sigma(k))
+      end if
 
-        w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
-        w2 = rx*(1.0-ry)*(1.0-rz)
-        w3 = (1.0-rx)*ry*(1.0-rz)
-        w4 = (1.0-rx)*(1.0-ry)*rz
-        w5 = rx*(1.0-ry)*rz
-        w6 = (1.0-rx)*ry*rz
-        w7 = rx*ry*(1.0-rz)
-        w8 = rx*ry*rz
+      w1 = (1.0-rx)*(1.0-ry)*(1.0-rz)
+      w2 = rx*(1.0-ry)*(1.0-rz)
+      w3 = (1.0-rx)*ry*(1.0-rz)
+      w4 = (1.0-rx)*(1.0-ry)*rz
+      w5 = rx*(1.0-ry)*rz
+      w6 = (1.0-rx)*ry*rz
+      w7 = rx*ry*(1.0-rz)
+      w8 = rx*ry*rz
 
       if(imoist.eq.1)then
+        !$acc atomic update
         qten(i,j,k)       = qten(i,j,k)       - dmpdt/rhoval/dV*w1*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j,k)     = qten(i+1,j,k)     - dmpdt/rhoval/dV*w2*pdata(np,prmult)
+        !$acc atomic update
         qten(i,j+1,k)     = qten(i,j+1,k)     - dmpdt/rhoval/dV*w3*pdata(np,prmult)
+        !$acc atomic update
         qten(i,j,k+1)     = qten(i,j,k+1)     - dmpdt/rhoval/dV*w4*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j,k+1)   = qten(i+1,j,k+1)   - dmpdt/rhoval/dV*w5*pdata(np,prmult)
+        !$acc atomic update
         qten(i,j+1,k+1)   = qten(i,j+1,k+1)   - dmpdt/rhoval/dV*w6*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j+1,k)   = qten(i+1,j+1,k)   - dmpdt/rhoval/dV*w7*pdata(np,prmult)
+        !$acc atomic update
         qten(i+1,j+1,k+1) = qten(i+1,j+1,k+1) - dmpdt/rhoval/dV*w8*pdata(np,prmult)
 
         ! qval = qa(i  ,j  ,k  ,nqv)*w1 &
@@ -1486,16 +1478,45 @@
         !      + qa(i+1,j+1,k+1,nqv)*w8
       endif
 
+      !$acc atomic update
+      thten(i,j,k)       = thten(i,j,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i,j,k)       = thten(i,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult)
 
-        thten(i,j,k)       = thten(i,j,k)         - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult) 
-        thten(i+1,j,k)     = thten(i+1,j,k)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult) 
-        thten(i,j+1,k)     = thten(i,j+1,k)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult) 
-        thten(i,j,k+1)     = thten(i,j,k+1)       - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult) 
-        thten(i+1,j,k+1)   = thten(i+1,j,k+1)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult) 
-        thten(i,j+1,k+1)   = thten(i,j+1,k+1)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult) 
-        thten(i+1,j+1,k)   = thten(i+1,j+1,k)     - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult) 
-        thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1)   - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult) 
+      !$acc atomic update
+      thten(i+1,j,k)     = thten(i+1,j,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i+1,j,k)     = thten(i+1,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult)
 
+      !$acc atomic update
+      thten(i,j+1,k)     = thten(i,j+1,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i,j+1,k)     = thten(i,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult)
+
+      !$acc atomic update
+      thten(i,j,k+1)     = thten(i,j,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i,j,k+1)     = thten(i,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult)
+
+      !$acc atomic update
+      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult)
+
+      !$acc atomic update
+      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult)
+
+      !$acc atomic update
+      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult)
+
+      !$acc atomic update
+      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
+      !$acc atomic update
+      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult)
 
       ! tval   = ta(i  ,j  ,k  )*w1 &
       !        + ta(i+1,j  ,k  )*w2 &
@@ -1505,8 +1526,6 @@
       !        + ta(i  ,j+1,k+1)*w6 &
       !        + ta(i+1,j+1,k  )*w7 &
       !        + ta(i+1,j+1,k+1)*w8
-
-      end do  ! np loop
 
       end subroutine project_feedback
 

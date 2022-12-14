@@ -165,7 +165,8 @@
       !$acc                 nqv,bbc,imove,prvpx,prvpy,prvpz,prrp,prms,prtp, &
       !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,   &
       !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,      &
-      !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw)
+      !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw,     &
+      !$acc                 prmult)
 
 !-----------------------------------------------------------------------
 
