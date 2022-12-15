@@ -2198,11 +2198,9 @@
       !$acc end parallel
 
 #ifdef MPI
-        !!$acc host_data use_device(doit)
-        !$acc update host(dumk1)
+        !$acc host_data use_device(dumk1)
         call MPI_ALLREDUCE(MPI_IN_PLACE,dumk1(1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !$acc update device(dumk1)
-        !!$acc end host_data
+        !$acc end host_data
 #endif
       print *,'domaindiag: after mpi_allreduce '
       !$acc parallel default(present) private(k)

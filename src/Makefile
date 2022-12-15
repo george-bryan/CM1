@@ -116,7 +116,7 @@ ifeq (${FC},nvfortran)
                 OPTS_M += -acc -gpu=cc80,lineinfo,nofma,math_uniform,managed -Mpcast -Minfo=accel
             else
                 OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
-                OPTS_M += -acc -gpu=cc70,lineinfo,nofma,math_uniform,managed -Mpcast -Minfo=accel
+                OPTS_M += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
             endif
         endif
         DM       += -D_OPENACC
