@@ -5446,11 +5446,11 @@
 
         !print *,'t2pcode: point #5'
 #ifdef MPI
-        !$acc update host(t13avg,t23avg,rfavg)
+        !$acc host_data use_device(t13avg,t23avg,rfavg)
         call MPI_ALLREDUCE(MPI_IN_PLACE,t13avg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,t23avg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
         call MPI_ALLREDUCE(MPI_IN_PLACE,rfavg ,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-        !$acc update device(t13avg,t23avg,rfavg)
+        !$acc end host_data 
 #endif
 
   !
@@ -5634,10 +5634,10 @@
       !$acc end parallel
 
 #ifdef MPI
-      !$acc update host(cavg)
+      !$acc host_data use_device(cavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(1,1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(1,2),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(cavg)
+      !$acc end host_data 
 #endif
 
       temd = 1.0/dble(nx*ny)
@@ -5693,9 +5693,9 @@
     !$acc end parallel
 
 #ifdef MPI
-      !$acc update host(spavg)
+      !$acc host_data use_device(spavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(spavg)
+      !$acc end host_data
 #endif
 
     !$acc parallel default(present)

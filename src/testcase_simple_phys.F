@@ -227,9 +227,9 @@
       !$acc end parallel
 
 #ifdef MPI
-      !$acc update host(cavg)
+      !$acc host_data use_device(cavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*3       ,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(cavg)
+      !$acc end host_data
 #endif
 
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
@@ -316,9 +316,9 @@
       !$acc end parallel
 
 #ifdef MPI
-      !acc update host(cavg)
+      !$acc host_data use_device(cavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(kb,1),(ke-kb+1)*(3+numq),MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-      !$acc update device(cavg) 
+      !$acc end host_data
 #endif
 
       temd = 1.0d0/( dble(maxx-minx)*dble(maxy-miny) )
