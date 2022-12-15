@@ -1791,11 +1791,11 @@
         ENDIF
 
 #ifdef MPI
-        !$acc update host(dumk3,dumk4)
+        !$acc host_data use_device(dumk3,dumk4)
         call MPI_IALLREDUCE(mpi_in_place,dumk3,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp1,ierr)
         call MPI_IALLREDUCE(mpi_in_place,dumk4,nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,reqp2,ierr)
+        !$acc end host_data
 #endif
-        !print *,'solve2: point #18'
 
         dopf = .true.
 
@@ -2120,7 +2120,6 @@
 #ifdef MPI
         call mpi_wait(reqp1,mpi_status_ignore,ierr)
         call mpi_wait(reqp2,mpi_status_ignore,ierr)
-        !$acc update device(dumk3,dumk4)
 #endif
         temq1 = 0.0
         temq2 = 0.0

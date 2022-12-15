@@ -239,10 +239,7 @@
       IF( numprocs.gt.nlim )THEN
         doit = .false.
         IF( myid.ge.nlim )THEN
-          !$acc update host(doit)
-          !!$acc host_data use_device(doit)
           call MPI_IRECV(doit,1,mpi_logical,myid-nlim,999999,MPI_COMM_WORLD,reqs,ierr)
-          !!$acc end host_data
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
       ENDIF
@@ -8196,10 +8193,7 @@
       IF( numprocs.gt.nlim )THEN
         doit = .true.
         IF( myid+nlim .le. (numprocs-1) )THEN
-          !!$acc host_data use_device(doit)
-          !$acc update host(doit)
           call MPI_ISEND(doit,1,mpi_logical,myid+nlim,999999,MPI_COMM_WORLD,reqs,ierr)
-          !!$acc end host_data
           call MPI_WAIT(reqs,status,ierr)
         ENDIF
       ENDIF
@@ -8552,10 +8546,7 @@
         enddo
         enddo
 
-        !!$acc host_data use_device(dat1)
-        !!$acc update host(dat1)
         call MPI_ISEND(dat1(1,1),d3i*d3j,MPI_REAL,nodemaster,tag,MPI_COMM_WORLD,reqs,ierr)
-        !!$acc end host_data
         call MPI_WAIT(reqs,MPI_STATUS_IGNORE,ierr)
 
         tag = tag+2
@@ -8589,7 +8580,6 @@
 
       ! begin nodemaster section (not proc 0):
 
-      !!$acc update host(dat3)
       tag = 1
       DO k=numk1,numk2
 
@@ -8662,7 +8652,6 @@
 #endif
 
       ! begin proc 0:
-      !!$acc update host(dat3)
       tag = 1
       
       ! start receives from all other processors on a node:

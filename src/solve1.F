@@ -677,6 +677,7 @@
                 uref = 11.096
               endif
 
+              !$acc update host(zh)
               k = 1
               do while( zh(1,1,k).lt.zref )
                 k = k+1
@@ -685,6 +686,7 @@
               k1 = k-1
               k2 = k
 
+              !$acc update host(uavg)
               umod = uavg(k1)+(uavg(k2)-uavg(k1))*(zref-zh(1,1,k2))/(zh(1,1,k1)-zh(1,1,k2))
 
               oldval = ulspg(1)
@@ -696,11 +698,8 @@
             endif
 
 #ifdef MPI
-            !$acc update host(newval)
             call MPI_BCAST( newval  ,1,MPI_REAL   ,0,MPI_COMM_WORLD,ierr)
-            !$acc update device(newval)
 #endif
-            
 
             !$acc parallel loop gang vector default(present)
             do k=kb,ke
