@@ -3130,8 +3130,7 @@
 !! May need some kind of sync-barrier here.
       enddo
 
-      !$acc update host (cfl,imaxt,jmaxt,kmaxt)
-
+      !$acc update host(cfl,imaxt,jmaxt,kmaxt)
       fmax=cfl(1)
       imax=imaxt(1)
       jmax=jmaxt(1)
@@ -3142,14 +3141,12 @@
       mmax(2)=myid
       call MPI_ALLREDUCE(mmax,nmax,1,MPI_2REAL,MPI_MAXLOC,   &
                          MPI_COMM_WORLD,ierr)
-      !!$acc update device(mmax)
       loc=nint(nmax(2))
       imax=imax+(myi1-1)
       jmax=jmax+(myj1-1)
       call MPI_BCAST(imax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(jmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(kmax,1,MPI_INTEGER,loc,MPI_COMM_WORLD,ierr)
-      !!$acc update device(imax,jmax,kmax)
       fmax=nmax(1)
       if(myid.eq.0)then
 #endif
@@ -3169,7 +3166,6 @@
 #ifdef MPI
       endif
 #endif
-
 
       print *,'calccfl: fmax is: ',fmax
       if(fmax.ge.1.50) stopit=.true.
