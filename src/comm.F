@@ -1,5 +1,37 @@
 #undef _GPUDIRECT
 
+
+#define _GPUDIRECT01
+#define _GPUDIRECT02
+#define _GPUDIRECT03
+#define _GPUDIRECT04
+#define _GPUDIRECT05
+#define _GPUDIRECT06
+#define _GPUDIRECT07
+
+#undef _GPUDIRECT08
+
+#define _GPUDIRECT09
+#define _GPUDIRECT10
+#define _GPUDIRECT11
+#define _GPUDIRECT12
+
+
+#undef _GPUDIRECT13
+#undef _GPUDIRECT14
+
+#undef _GPUDIRECT15
+#undef _GPUDIRECT16
+!17: minor impact
+!18: does not enter
+
+#define _GPUDIRECT17
+#define _GPUDIRECT18
+#define _GPUDIRECT19
+#define _GPUDIRECT20
+#define _GPUDIRECT21
+#define _GPUDIRECT22
+
 #ifdef _GPUDIRECT
 
 #define _GPUDIRECT01
