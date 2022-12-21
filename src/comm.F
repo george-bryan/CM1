@@ -1,8 +1,6 @@
 #undef _GPUDIRECT
 
 
-#define _GPUDIRECT04
-#define _GPUDIRECT05
 #define _GPUDIRECT06
 #define _GPUDIRECT07
 
@@ -31,8 +29,6 @@
 
 #ifdef _GPUDIRECT
 
-#define _GPUDIRECT04
-#define _GPUDIRECT05
 
 #define _GPUDIRECT07
 #define _GPUDIRECT09
@@ -1142,9 +1138,6 @@
       logical, parameter :: Debug =.FALSE.
 
 !-----
-#ifndef _GPUDIRECT04
-      if(Debug) print *,'getcornerw_GPU:'
-#endif
       nr = 0
       index_nw = -1
       index_sw = -1
@@ -1157,15 +1150,10 @@
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(nw2)
         call mpi_irecv(nw2,count,MPI_REAL,mynw,tag,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(nw2,count,MPI_REAL,mynw,tag,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_nw = nr
       endif
 
@@ -1176,15 +1164,10 @@
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(sw2)
         call mpi_irecv(sw2,count,MPI_REAL,mysw,tag,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(sw2,count,MPI_REAL,mysw,tag,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_sw = nr
       endif
 
@@ -1195,15 +1178,10 @@
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(ne2)
         call mpi_irecv(ne2,count,MPI_REAL,myne,tag,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(ne2,count,MPI_REAL,myne,tag,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_ne = nr
       endif
 
@@ -1214,15 +1192,10 @@
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(se2)
         call mpi_irecv(se2,count,MPI_REAL,myse,tag,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(se2,count,MPI_REAL,myse,tag,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_se = nr
       endif
 
@@ -1240,16 +1213,10 @@
           se1(k)=w(ni,1,k)
         enddo
         nrb = nrb + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(se1)
         call mpi_isend(se1,count,MPI_REAL,myse,tag,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
         !$acc end host_data
-#else
-        !$acc update host(se1)
-        call mpi_isend(se1,count,MPI_REAL,myse,tag,MPI_COMM_WORLD,   &
-                       reqs(nrb),ierr)
-#endif
       endif
 
 !-----
@@ -1264,16 +1231,10 @@
           ne1(k)=w(ni,nj,k)
         enddo
         nrb = nrb + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(ne1)
         call mpi_isend(ne1,count,MPI_REAL,myne,tag,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
         !$acc end host_data
-#else
-        !$acc update host(ne1)
-        call mpi_isend(ne1,count,MPI_REAL,myne,tag,MPI_COMM_WORLD,   &
-                       reqs(nrb),ierr)
-#endif
       endif
 
 !-----
@@ -1288,16 +1249,10 @@
           sw1(k)=w(1,1,k)
         enddo
         nrb = nrb + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(sw1)
         call mpi_isend(sw1,count,MPI_REAL,mysw,tag,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
         !$acc end host_data
-#else
-        !$acc update host(sw1)
-        call mpi_isend(sw1,count,MPI_REAL,mysw,tag,MPI_COMM_WORLD,   &
-                       reqs(nrb),ierr)
-#endif
       endif
 
 !-----
@@ -1312,16 +1267,10 @@
           nw1(k)=w(1,nj,k)
         enddo
         nrb = nrb + 1
-#ifdef _GPUDIRECT04
         !$acc host_data use_device(nw1)
         call mpi_isend(nw1,count,MPI_REAL,mynw,tag,MPI_COMM_WORLD,   &
                        reqs(nrb),ierr)
         !$acc end host_data
-#else
-        !$acc update host(nw1)
-        call mpi_isend(nw1,count,MPI_REAL,mynw,tag,MPI_COMM_WORLD,   &
-                       reqs(nrb),ierr)
-#endif
       endif
 
 !-----------------------------------------------------------------------
@@ -1332,36 +1281,24 @@
         nn = nn + 1
 
       if(index.eq.index_nw)then
-#ifndef _GPUDIRECT04
-        !$acc update device(nw2)
-#endif
         !$acc parallel loop gang vector default(present) private(k)
         !$omp parallel do default(shared) private(k)
         do k=1,nk
           w(0,nj+1,k)=nw2(k)
         enddo
       elseif(index.eq.index_sw)then
-#ifndef _GPUDIRECT04
-        !$acc update device(sw2)
-#endif
         !$acc parallel loop gang vector default(present) private(k)
         !$omp parallel do default(shared) private(k)
         do k=1,nk
           w(0,0,k)=sw2(k)
         enddo
       elseif(index.eq.index_ne)then
-#ifndef _GPUDIRECT04
-        !$acc update device(ne2)
-#endif
         !$acc parallel loop gang vector default(present) private(k)
         !$omp parallel do default(shared) private(k)
         do k=1,nk
           w(ni+1,nj+1,k)=ne2(k)
         enddo
       elseif(index.eq.index_se)then
-#ifndef _GPUDIRECT04
-        !$acc update device(se2)
-#endif
         !$acc parallel loop gang vector default(present) private(k)
         !$omp parallel do default(shared) private(k)
         do k=1,nk
@@ -1606,9 +1543,6 @@
       logical, parameter :: Debug =.FALSE.
 
 !-----
-#ifndef _GPUDIRECT05
-      if(Debug) print *,'getcorner3_GPU:'
-#endif
       nr = 0
       index_nw = -1
       index_sw = -1
@@ -1621,15 +1555,10 @@
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(nw2)
         call mpi_irecv(nw2,cmp*cmp*nk,MPI_REAL,mynw,tag1,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(nw2,cmp*cmp*nk,MPI_REAL,mynw,tag1,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_nw = nr
       endif
 
@@ -1639,15 +1568,10 @@
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(sw2)
         call mpi_irecv(sw2,cmp*cmp*nk,MPI_REAL,mysw,tag2,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(sw2,cmp*cmp*nk,MPI_REAL,mysw,tag2,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_sw = nr
       endif
 
@@ -1657,15 +1581,10 @@
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(ne2)
         call mpi_irecv(ne2,cmp*cmp*nk,MPI_REAL,myne,tag3,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(ne2,cmp*cmp*nk,MPI_REAL,myne,tag3,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_ne = nr
       endif
 
@@ -1675,15 +1594,10 @@
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(se2)
         call mpi_irecv(se2,cmp*cmp*nk,MPI_REAL,myse,tag4,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
-#else
-        call mpi_irecv(se2,cmp*cmp*nk,MPI_REAL,myse,tag4,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-#endif
         index_se = nr
       endif
 
@@ -1699,16 +1613,10 @@
         enddo
         enddo
         enddo
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(se1)
         call mpi_isend(se1,cmp*cmp*nk,MPI_REAL,myse,tag1,MPI_COMM_WORLD,   &
                        reqs(5),ierr)
         !$acc end host_data
-#else
-        !$acc update host(se1)
-        call mpi_isend(se1,cmp*cmp*nk,MPI_REAL,myse,tag1,MPI_COMM_WORLD,   &
-                       reqs(5),ierr)
-#endif
       endif
 
 !-----
@@ -1723,16 +1631,10 @@
         enddo
         enddo
         enddo
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(ne1)
         call mpi_isend(ne1,cmp*cmp*nk,MPI_REAL,myne,tag2,MPI_COMM_WORLD,   &
                        reqs(6),ierr)
         !$acc end host_data
-#else
-        !$acc update host(ne1)
-        call mpi_isend(ne1,cmp*cmp*nk,MPI_REAL,myne,tag2,MPI_COMM_WORLD,   &
-                       reqs(6),ierr)
-#endif
       endif
 
 !-----
@@ -1747,16 +1649,10 @@
         enddo
         enddo
         enddo
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(sw1)
         call mpi_isend(sw1,cmp*cmp*nk,MPI_REAL,mysw,tag3,MPI_COMM_WORLD,   &
                        reqs(7),ierr)
         !$acc end host_data
-#else
-        !$acc update host(sw1)
-        call mpi_isend(sw1,cmp*cmp*nk,MPI_REAL,mysw,tag3,MPI_COMM_WORLD,   &
-                       reqs(7),ierr)
-#endif
       endif
 
 !-----
@@ -1771,16 +1667,10 @@
         enddo
         enddo
         enddo
-#ifdef _GPUDIRECT05
         !$acc host_data use_device(nw1)
         call mpi_isend(nw1,cmp*cmp*nk,MPI_REAL,mynw,tag4,MPI_COMM_WORLD,   &
                        reqs(8),ierr)
         !$acc end host_data
-#else
-        !$acc update host(nw1)
-        call mpi_isend(nw1,cmp*cmp*nk,MPI_REAL,mynw,tag4,MPI_COMM_WORLD,   &
-                       reqs(8),ierr)
-#endif
       endif
 
 !-----
@@ -1791,9 +1681,6 @@
         nn = nn + 1
 
       if(index.eq.index_nw)then
-#ifndef _GPUDIRECT05
-        !$acc update device(nw2)
-#endif
 !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
@@ -1804,9 +1691,6 @@
         enddo
         enddo
       elseif(index.eq.index_sw)then
-#ifndef _GPUDIRECT05
-        !$acc update device(sw2)
-#endif
 !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
@@ -1817,9 +1701,6 @@
         enddo
         enddo
       elseif(index.eq.index_ne)then
-#ifndef _GPUDIRECT05
-        !$acc update device(ne2)
-#endif
 !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
@@ -1830,9 +1711,6 @@
         enddo
         enddo
       elseif(index.eq.index_se)then
-#ifndef _GPUDIRECT05
-        !$acc update device(se2)
-#endif
 !$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
         do k=1,nk
         do j=1,cmp
@@ -1847,7 +1725,7 @@
       enddo
 
 !-----
-      !JMD REVISIT
+      !JMD-KLUDGE REVISIT
       !JMD I am confused here.  Why are we updating the buffers here... I don't
       !JMD think this is needed
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
