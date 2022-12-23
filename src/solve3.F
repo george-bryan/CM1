@@ -736,7 +736,7 @@
         call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
-      !print *,'solve3: point #10'
+        !print *,'solve3: point #10'
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k) 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
@@ -760,7 +760,7 @@
                 reqs_t(1,n))
           enddo
 #endif
-      !print *,'solve3: point #11'
+          !print *,'solve3: point #11'
           print *, 'Here 16 -- Not being executed'
           !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
           !$omp parallel do default(shared)  &
@@ -808,7 +808,7 @@
                      ,reqs_q(1,n) )
         ENDDO
 #endif
-      !print *,'solve3: point #13'
+        !print *,'solve3: point #13'
         !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n) 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
@@ -840,7 +840,7 @@
         call bcs2_GPU(rf)
         !-----
 #endif
-      !print *,'solve3: point #14'
+        !print *,'solve3: point #14'
 
         ! meh 1 
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -996,7 +996,7 @@
           enddo
           !$acc end parallel
 
-          !print *,'solve3: before call to droplet_driver' 
+          print *,'solve3: before call to droplet_driver' 
           call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
                                tha,qa,th0,pi0,ppi,prs,                              &
@@ -1007,7 +1007,7 @@
                                uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2),  &
                                pdata_locind)
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
-          !print *,'solve3: after call to droplet_driver' 
+          print *,'solve3: after call to droplet_driver' 
 #ifdef MPI
           call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,1))
           call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,2))
@@ -1045,11 +1045,13 @@
             enddo
             enddo
             if(timestats.ge.1) time_parcels=time_parcels+mytime()
+            !print *,'solve3: before th3d'
             call bcs_GPU(th3d)
 #ifdef MPI
             call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
                                     rs31,rs32,rn31,rn32,reqs_y)
 #endif
+            !print *,'solve3: before q3d'
             call bcs_GPU(q3d(ib,jb,kb,nqv))
 #ifdef MPI
             call comm_3s_start_GPU(q3d(ib,jb,kb,nqv)  &
