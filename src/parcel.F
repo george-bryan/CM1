@@ -1785,6 +1785,7 @@
       real, dimension(:),allocatable :: sbuf
       real, dimension(:,:),allocatable :: rbuf
       integer, dimension(0:numprocs-1) :: displacements, counts, cnts
+      integer :: ierror
 #endif
 
 !----------------------------------------------------------------------
@@ -1810,7 +1811,7 @@
     end if
     ! collect number of active droplets from each MPI rank
     call mpi_gatherv(nparcelsActive,1,MPI_INTEGER,cnts,counts, &
-                     displacements,MPI_INTEGER,0,mpi_comm_world)
+                     displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
     if ( myid .eq. 0 ) then
        ! update the displacement and count for the second mpi_gatherv call
        do i = 0, numprocs-1
@@ -1827,8 +1828,8 @@
        do np = 0, nparcelsActive-1
           sbuf(np) = pdata(np+1,i+1)
        end do
-       call mpi_gather(sbuf,nparcelsActive,MPI_REAL,rbuf(:,i),counts, &
-                       displacements,MPI_REAL,0,mpi_comm_world)
+       call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,rbuf(:,i),counts, &
+                        displacements,MPI_REAL,0,mpi_comm_world,ierror)
     end do
 #endif
 
