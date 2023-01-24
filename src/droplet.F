@@ -111,6 +111,9 @@
       type(randomNumberSequence) :: randomNumbers
 !      real, dimension(kb:ke+1) :: zf_tmp
 
+      integer :: num_fallout,idx,np_tmp                        !droplets which fell out of domain
+      integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
+
 #ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
@@ -129,6 +132,9 @@
       call reinit_random_seed
 
       randomNumbers = new_RandomNumberSequence(seed = nparcels)
+
+      num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
+
 
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
@@ -287,7 +293,7 @@
     part_grav1 = 0.0
     part_grav2 = 0.0
     !part_grav3 = -0.84
-    part_grav3 = 0.0
+    part_grav3 = -9.81
 
     num100 = 0
     num1000 = 0
@@ -382,7 +388,7 @@
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
-                          num100,num1000,neighbor)
+                          num100,num1000,neighbor,num_fallout)
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
 #endif
@@ -413,31 +419,31 @@
 
       !Now that the particles have been updated, do something with those which
       !have fallen out the bottom:
-      if (pdata(np,pract).lt.0.0) then
-         !Replace with a new droplet at random location
-         rand = getRandomReal(randomNumbers)
-         pdata(np,prx) = rand*maxx
-         rand = getRandomReal(randomNumbers)
-         pdata(np,pry) = rand*maxy
-         rand = getRandomReal(randomNumbers)
-         pdata(np,prz) = rand*maxz
-         pdata(np,prvpx) = 0.0
-         pdata(np,prvpy) = 0.0
-         pdata(np,prvpz) = 0.0
-         !Droplet size (radius)
-         pdata(np,prrp) = 20.0e-6
-  
-         !Droplet solute mass
-         salinity = 0.034
-         pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
-         !Droplet temperature
-         pdata(np,prtp) = 302.0
-         !Droplet multiplicity
-         pdata(np,prmult) = 1.0
-         !Make it alive again
-         pdata(np,pract) = 1.0
-      end if
-
+!      if (pdata(np,pract).lt.0.0) then
+!         !Replace with a new droplet at random location
+!         rand = getRandomReal(randomNumbers)
+!         pdata(np,prx) = rand*maxx
+!         rand = getRandomReal(randomNumbers)
+!         pdata(np,pry) = rand*maxy
+!         rand = getRandomReal(randomNumbers)
+!         pdata(np,prz) = rand*maxz
+!         pdata(np,prvpx) = 0.0
+!         pdata(np,prvpy) = 0.0
+!         pdata(np,prvpz) = 0.0
+!         !Droplet size (radius)
+!         pdata(np,prrp) = 20.0e-6
+!  
+!         !Droplet solute mass
+!         salinity = 0.034
+!         pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+!         !Droplet temperature
+!         pdata(np,prtp) = 302.0
+!         !Droplet multiplicity
+!         pdata(np,prmult) = 1.0
+!         !Make it alive again
+!         pdata(np,pract) = 1.0
+!      end if
+!
     ENDDO  nploop
     !$acc end parallel
 
@@ -446,6 +452,51 @@
     !$acc update host(pdata,pdata_locind)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
+
+
+!----------------------------------------------------------------------
+!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsActive
+!  num_fallout already contains the number which have fallen out
+
+   allocate(holes_fallout_ind(num_fallout))
+
+   !List the spots in pdata which have "dead" particles
+   idx=1
+   do np=1,nparcelsActive
+
+      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
+         holes_fallout_ind(idx) = np
+         idx=idx+1
+      end if
+
+   end do
+
+
+   !Now transfer these to the end of the pdata list
+   !Simply move the last particle in the list, pdata(nparcelsActive,:), to a hole and update nparcelsActive
+   do np=num_fallout,1,-1
+
+      if (holes_fallout_ind(np) .eq. nparcelsActive) then
+         nparcelsActive = nparcelsActive-1  !If the dead particle is at end, simply reduce nparcelsActive
+      else
+         pdata(holes_fallout_ind(np),:) = pdata(nparcelsActive,:)
+         pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsActive,:)
+         pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsActive)
+         nparcelsActive = nparcelsActive-1
+      end if
+
+   end do
+
+   deallocate(holes_fallout_ind)
+
+   call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+
+   if (myid==0) then 
+   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
+   do np=1,nparcelsActive
+      write(*,'(a8,2i,5e15.6)') 'DHR2:',myid,np,pdata(np,prx),pdata(np,pry),pdata(np,prz),pdata(np,pract),pdata(np,prrp)
+   end do 
+   end if
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -509,6 +560,11 @@
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif
 
+   call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+   if (myid==0) then 
+   write(*,'(a8,2i)')  'DHR3:',np_tmp,nparcelsActive
+   end if
+
 
 !----------------------------------------------------------------------
 !  get height ASL:
@@ -533,11 +589,11 @@
                                 z3d,sig3d,uval,vval,wval,qval,rhoval, &
                                 prsval,tval,Nup,rhop0,taup0,rp0, &
                                 part_grav1,part_grav2,part_grav3, &
-                                debug,num100,num1000,neighbor)
+                                debug,num100,num1000,neighbor,num_fallout)
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho, &
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho,pract, &
           ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal,myid,dx,dy
       use constants
       use comm_module
@@ -578,6 +634,8 @@
       real :: guess,rt_zeros(2),rt_start(2)
       integer :: mflag,flag
 
+      integer :: num_fallout
+
       !Store interpolated quantities for the sake of statistics
       pdata(np,pru) = uval
       pdata(np,prv) = vval
@@ -587,11 +645,6 @@
       pdata(np,prprs) = prsval
       pdata(np,prrho) = rhoval
 
-      !qval = 0.008807098199749
-      !tval = 282.3
-      !uval = 0.0
-      !vval = 0.0
-      !wval = 0.0
 
       estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
 
@@ -689,11 +742,12 @@
          pdata(np,prvpz) = -pdata(np,prvpz)
          pdata_locind(np,3) = undefined_index
       elseif ( z3d .lt. bot ) then
-         !z3d = 1.0e-6  !Just temporary 
-         !pdata(np,pract) = -1.0  !Signal this as no longer alive
-         z3d = bot + (bot-z3d)
-         pdata(np,prvpz) = -pdata(np,prvpz)
+         z3d = 1.0e-6  !Just temporary 
+         pdata(np,pract) = -1.0  !Signal this as no longer alive
+         !z3d = bot + (bot-z3d)
+         !pdata(np,prvpz) = -pdata(np,prvpz)
          pdata_locind(np,3) = undefined_index
+         num_fallout = num_fallout + 1
       endif
 
       ! New for cm1r17:  if parcel exits domain,
