@@ -1763,7 +1763,7 @@
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
       use input, only : maxq,maxvars,nparcelsLocal,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile,numprocs,ierr
+          maxstring,string,outfile,numprocs,ierr,nparcels,nparcelsActive
 #ifdef MPI
       use mpi
 #endif
@@ -1782,7 +1782,9 @@
       integer :: i,n,np
 
 #ifdef MPI
+      real, dimension(:),allocatable :: sbuf
       real, dimension(:,:),allocatable :: rbuf
+      integer, dimension(0:numprocs-1) :: displacements, counts, cnts
 #endif
 
 !----------------------------------------------------------------------
@@ -1790,16 +1792,45 @@
 
     !$acc update host(pdata)
 
-    ! JS: use MPI_GATHER to collect all the droplet information
+    ! JS: use MPI_GATHERV to collect all the droplet information
     !     from different MPI ranks;
-    !     write out the "holes" with garbage information as well
+    !     also collect the number of active droplets from each MPI rank
 
-!#ifdef MPI
-!    if ( myid .eq. 0 ) allocate(rbuf(nparcelsLocal*numprocs,npvals))
-!    call mpi_gather(pdata,npvals*nparcelsLocal,MPI_REAL, &
-!                    rbuf,npvals*nparcelsLocal,MPI_REAL, &
-!                    0,MPI_COMM_WORLD,ierr)
-!#endif
+#ifdef MPI
+    ! local buffer for sending array on each MPI rank
+    allocate(sbuf(0:nparcelsActive-1))
+    if ( myid .eq. 0 ) then
+       ! local buffer for receiving array on root rank
+       allocate(rbuf(0:nparcels-1,0:npvals-1))
+       ! initialize the displacement and count for the mpi_gatherv call
+       do i = 0, numprocs-1
+          displacements(i) = i
+          counts(i) = 1 
+       end do
+    end if
+    ! collect number of active droplets from each MPI rank
+    call mpi_gatherv(nparcelsActive,1,MPI_INTEGER,cnts,counts, &
+                     displacements,MPI_INTEGER,0,mpi_comm_world)
+    if ( myid .eq. 0 ) then
+       ! update the displacement and count for the second mpi_gatherv call
+       do i = 0, numprocs-1
+          if ( i == 0 ) then
+             displacements(i) = 0
+          else
+             displacements(i) = cnts(i-1)
+          end if
+          counts(i) = cnts(i)
+       end do
+    end if
+    ! collect the information of active droplets from each MPI rank
+    do i = 0, npvals-1
+       do np = 0, nparcelsActive-1
+          sbuf(np) = pdata(np+1,i+1)
+       end do
+       call mpi_gather(sbuf,nparcelsActive,MPI_REAL,rbuf(:,i),counts, &
+                       displacements,MPI_REAL,0,mpi_comm_world)
+    end do
+#endif
 
     IF(myid.eq.0)THEN
 
@@ -1809,42 +1840,42 @@
         ! write GrADS descriptor file:
         call write_prclctl(name_prcl,desc_prcl,unit_prcl,prec)
 
-!        do i=1,maxstring
-!          string(i:i) = ' '
-!        enddo
-!
-!        string = 'cm1out_pdata.dat'
-!
-!!!!        write(string(15:20),101) prec
-!!!!101     format(i6.6)
-!
-!        if(dowr) write(outfile,*) string
-!        open(unit=61,file=string,form='unformatted',access='direct',   &
-!             recl=4*npvals*nparcelsLocal*numprocs,status='unknown')
-!
-!        if(dowr) write(outfile,*)
-!        if(dowr) write(outfile,*) '  pdata prec = ',prec
-!
-!#ifdef MPI
-!        write(61,rec=prec) ((rbuf(np,n),np=1,nparcelsLocal*numprocs),n=1,npvals)
-!#else
-!        write(61,rec=prec) ((pdata(np,n),np=1,nparcelsLocal*numprocs),n=1,npvals)
-!#endif
-!
-!        close(unit=61)
-!
-!#ifdef MPI     
-!        deallocate(rbuf)
-!#endif
-!
-!#ifdef NETCDF
-!      ELSEIF(output_format.eq.2)THEN
-!
-!        call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
-!
-!#endif
+        do i=1,maxstring
+          string(i:i) = ' '
+        enddo
+
+        string = 'cm1out_pdata.dat'
+
+!!!        write(string(15:20),101) prec
+!!!101     format(i6.6)
+
+        if(dowr) write(outfile,*) string
+        open(unit=61,file=string,form='unformatted',access='direct',   &
+             recl=4*npvals*nparcels,status='unknown')
+
+        if(dowr) write(outfile,*)
+        if(dowr) write(outfile,*) '  pdata prec = ',prec
+
+#ifdef MPI
+        write(61,rec=prec) ((rbuf(np,n),np=0,nparcels-1),n=0,npvals-1)
+#else
+        write(61,rec=prec) ((pdata(np,n),np=1,nparcels),n=1,npvals)
+#endif
+
+        close(unit=61)
+
+#ifdef MPI     
+        deallocate(rbuf)
+#endif
+
+#ifdef NETCDF
+      ELSEIF(output_format.eq.2)THEN
+
+        call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
+
+#endif
       ENDIF
-!      if(dowr) write(outfile,*)
+      if(dowr) write(outfile,*)
 
     ENDIF   ! endif for myid=0
 
