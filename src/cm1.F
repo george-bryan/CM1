@@ -2259,11 +2259,12 @@ end module cuda_rt
       allocate( reqt(d3t) )
       reqt = 0
 
+      nparcelsActiveMax = 1e6   !The total allowable number of particles on each processor
 #ifdef MPI
-      padding = max(pdata_buffer*nparcels,100.0)
-      nparcelsLocal = ceiling((nparcels*1.0/numprocs)+padding)
+      padding = max(pdata_buffer*nparcelsActiveMax,100.0)
+      nparcelsLocal = nparcelsActiveMax+padding
 #else
-      nparcelsLocal = nparcels
+      nparcelsLocal = nparcelsActiveMax
 #endif
 
       !$acc update device (nparcelsLocal)

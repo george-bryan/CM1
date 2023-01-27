@@ -444,7 +444,7 @@
                 pdata(i,prvpz) = 0.0
      
                 !Droplet size (radius)
-                pdata(i,prrp) = 20.0e-6
+                pdata(i,prrp) = 2.0e-6
      
                 !Droplet solute mass
                 salinity = 0.034
@@ -454,7 +454,7 @@
                 pdata(i,prtp) = 302.0
      
                 !Droplet multiplicity
-                pdata(i,prmult) = 1.0e6
+                pdata(i,prmult) = drop_mult
         
                 !Is droplet alive?
                 pdata(i,pract) = 1.0
@@ -467,6 +467,8 @@
                 pdata(i,prqv) = 0.0
                 pdata(i,prprs) = 0.0
                 pdata(i,prrho) = 0.0
+
+             write(*,*) 'DHR NEWPART',pdata(i,prrp),pdata(i,prms)
     
              end if ! end of if statement for prcl_droplet == 1
 

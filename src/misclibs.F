@@ -2986,7 +2986,7 @@
 
 !!!      cflmax = fmax
 
-      print *,'calccfl: fmax is: ',fmax
+!      print *,'calccfl: fmax is: ',fmax
       if(fmax.ge.1.50) stopit=.true.
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
@@ -3167,7 +3167,7 @@
       endif
 #endif
 
-      print *,'calccfl: fmax is: ',fmax
+!      print *,'calccfl: fmax is: ',fmax
       if(fmax.ge.1.50) stopit=.true.
  
       if(timestats.ge.1) time_stat=time_stat+mytime()

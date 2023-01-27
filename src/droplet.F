@@ -16,7 +16,7 @@
   !    the search range using the parameter below;
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
-  integer, parameter :: location_offset = 3
+  integer, parameter :: location_offset = 16
 
 
 
@@ -36,7 +36,7 @@
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsactive
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsActive,nparcelsActiveMax
       use constants
       use comm_module
       use comm_droplet_module
@@ -108,6 +108,8 @@
 
       logical, parameter :: debug = .false.
 
+      integer :: values(8),local_seed
+
       type(randomNumberSequence) :: randomNumbers
 !      real, dimension(kb:ke+1) :: zf_tmp
 
@@ -129,9 +131,17 @@
       integer :: tmp_flag
 #endif
 
+      double precision :: t_s,t_f,t_findloc,t_interp,t_BEint,t_feed,t_s1,t_f1,t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor
+
+
+      t_s = mpi_wtime()
+
+      !!! DHR: From what I can tell this is useless -- it only resets seed for the intrinsic random_number routine
       call reinit_random_seed
 
-      randomNumbers = new_RandomNumberSequence(seed = nparcels)
+      call date_and_time(values=values)
+      local_seed = -(myid+values(8)+values(7)+values(6))
+      randomNumbers = new_RandomNumberSequence(seed = local_seed)
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
 
@@ -292,7 +302,6 @@
     dt2 = dt/2.0
     part_grav1 = 0.0
     part_grav2 = 0.0
-    !part_grav3 = -0.84
     part_grav3 = -9.81
 
     num100 = 0
@@ -308,8 +317,43 @@
     !$acc loop gang vector
 #endif
 
+    t_f = mpi_wtime()
+    if (myid==0) write(*,*) 'TIME prep:',t_f-t_s
+
+    t_s = mpi_wtime()
+
+    t_findloc = 0.0
+    t_interp = 0.0
+    t_BEint = 0.0
+    t_feed = 0.0
+
+    t_BEprep = 0.0
+    t_radsolver = 0.0
+    t_gauss = 0.0
+    t_LV = 0.0
+    t_neighbor = 0.0
+
     nploop:  &
     DO np=1,nparcelsActive
+
+      if (isnan(pdata(np,prx))) write(*,*) 'DHR3.1'
+      if (isnan(pdata(np,pry))) write(*,*) 'DHR3.2'
+      if (isnan(pdata(np,prz))) write(*,*) 'DHR3.3'
+      if (isnan(pdata(np,prvpx))) write(*,*) 'DHR3.4'
+      if (isnan(pdata(np,prvpy))) write(*,*) 'DHR3.5'
+      if (isnan(pdata(np,prvpz))) write(*,*) 'DHR3.6'
+      if (isnan(pdata(np,prrp))) write(*,*) 'DHR3.7'
+      if (isnan(pdata(np,prtp))) write(*,*) 'DHR3.8'
+      if (isnan(pdata(np,pru))) write(*,*) 'DHR3.9'
+      if (isnan(pdata(np,prv))) write(*,*) 'DHR3.10'
+      if (isnan(pdata(np,prw))) write(*,*) 'DHR3.11'
+      if (isnan(pdata(np,prt))) write(*,*) 'DHR3.12'
+      if (isnan(pdata(np,prqv))) write(*,*) 'DHR3.13'
+      if (isnan(pdata(np,prrho))) write(*,*) 'DHR3.14'
+      if (isnan(pdata(np,prprs))) write(*,*) 'DHR3.15'
+      if (isnan(pdata(np,prprs))) write(*,*) 'DHR3.16'
+
+      t_s1 = mpi_wtime()
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -367,6 +411,9 @@
          call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
       endif
 
+      t_f1 = mpi_wtime()
+      t_findloc = t_findloc + (t_f1-t_s1)
+
       dvpdt1 = pdata(np,prvpx)
       dvpdt2 = pdata(np,prvpy)
       dvpdt3 = pdata(np,prvpz)
@@ -380,15 +427,26 @@
       z3d0   = z3d 
       sig3d0 = sig3d
 
+      t_s1 = mpi_wtime()
+
       call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
                                  uval,vval,wval,tval,qval,rhoval,prsval, &
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
+      t_f1 = mpi_wtime()
+      t_interp = t_interp + (t_f1-t_s1)
+
+      t_s1 = mpi_wtime()
+
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
-                          num100,num1000,neighbor,num_fallout)
+                          num100,num1000,neighbor,num_fallout,&
+                          t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor)
+
+      t_f1 = mpi_wtime()
+      t_BEint = t_BEint + (t_f1-t_s1)
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
 #endif
@@ -406,44 +464,17 @@
       dtpdt  = (pdata(np,prtp)-dtpdt)/dt
       dmpdt  = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt)/dt
 
+      t_s1 = mpi_wtime()
+
       !Project the feedback onto the grid, using ORIGINAL location
       call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
                             rhop0,taup0,rp0,tval,uten,vten,wten,qten,thten, &
                             xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
                             sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                             rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
+      t_f1 = mpi_wtime()
+      t_feed = t_feed + (t_f1-t_s1)
 
-!-----------------------------------------------------
-!  Account for boundary conditions (if necessary)
-!-----------------------------------------------------
-
-      !Now that the particles have been updated, do something with those which
-      !have fallen out the bottom:
-!      if (pdata(np,pract).lt.0.0) then
-!         !Replace with a new droplet at random location
-!         rand = getRandomReal(randomNumbers)
-!         pdata(np,prx) = rand*maxx
-!         rand = getRandomReal(randomNumbers)
-!         pdata(np,pry) = rand*maxy
-!         rand = getRandomReal(randomNumbers)
-!         pdata(np,prz) = rand*maxz
-!         pdata(np,prvpx) = 0.0
-!         pdata(np,prvpy) = 0.0
-!         pdata(np,prvpz) = 0.0
-!         !Droplet size (radius)
-!         pdata(np,prrp) = 20.0e-6
-!  
-!         !Droplet solute mass
-!         salinity = 0.034
-!         pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
-!         !Droplet temperature
-!         pdata(np,prtp) = 302.0
-!         !Droplet multiplicity
-!         pdata(np,prmult) = 1.0
-!         !Make it alive again
-!         pdata(np,pract) = 1.0
-!      end if
-!
     ENDDO  nploop
     !$acc end parallel
 
@@ -451,8 +482,28 @@
 
     !$acc update host(pdata,pdata_locind)
 
+    if (myid==0) write(*,*) 'TIME findloc:',t_findloc
+    if (myid==0) write(*,*) 'TIME interp:',t_interp
+
+    if (myid==0) write(*,*) 'TIME BEint:',t_BEint
+    if (myid==0) write(*,*) 'TIME BEprep:',t_BEprep
+    if (myid==0) write(*,*) 'TIME radsolver:',t_radsolver
+    if (myid==0) write(*,*) 'TIME gauss:',t_gauss
+    if (myid==0) write(*,*) 'TIME LV:',t_LV
+    if (myid==0) write(*,*) 'TIME neighbor:',t_neighbor
+
+    if (myid==0) write(*,*) 'TIME feed:',t_feed
+
+  
+    
+
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
+    t_f = mpi_wtime()
+    if (myid==0) write(*,*) 'TIME nploop:',t_f-t_s
+    
+
+    t_s = mpi_wtime()
 
 !----------------------------------------------------------------------
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsActive
@@ -491,12 +542,10 @@
 
    call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
 
-   if (myid==0) then 
-   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
-   do np=1,nparcelsActive
-      write(*,'(a8,2i,5e15.6)') 'DHR2:',myid,np,pdata(np,prx),pdata(np,pry),pdata(np,prz),pdata(np,pract),pdata(np,prrp)
-   end do 
-   end if
+    t_f = mpi_wtime()
+    if (myid==0) write(*,*) 'TIME fallout:',t_f-t_s
+
+    t_s = mpi_wtime()
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -560,11 +609,8 @@
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif
 
-   call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
-   if (myid==0) then 
-   write(*,'(a8,2i)')  'DHR3:',np_tmp,nparcelsActive
-   end if
-
+    t_f = mpi_wtime()
+    if (myid==0) write(*,*) 'TIME mpi_comm:',t_f-t_s
 
 !----------------------------------------------------------------------
 !  get height ASL:
@@ -583,13 +629,31 @@
 !
 !----------------------------------------------------------------------
 
-      end subroutine droplet_driver
+  t_s = mpi_wtime()
 
-      subroutine BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
+!----------------------------------------------------------------------
+! Final thing: Inject droplets which will be active on the next call of droplet_driver
+
+     call droplet_injection(pdata,xf,yf,dt,randomNumbers)
+
+   if (myid==0) then 
+   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
+!   do np=1,nparcelsActive
+!      write(*,'(a8,2i,5e15.6)') 'DHR2:',myid,np,pdata(np,prx),pdata(np,pry),pdata(np,prz),pdata(np,pract),pdata(np,prrp)
+!   end do 
+   end if
+
+    t_f = mpi_wtime()
+    if (myid==0) write(*,*) 'TIME injection:',t_f-t_s
+
+   end subroutine droplet_driver
+
+   subroutine BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
                                 z3d,sig3d,uval,vval,wval,qval,rhoval, &
                                 prsval,tval,Nup,rhop0,taup0,rp0, &
                                 part_grav1,part_grav2,part_grav3, &
-                                debug,num100,num1000,neighbor,num_fallout)
+                                debug,num100,num1000,neighbor,num_fallout,&
+                                t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor)
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
@@ -600,6 +664,7 @@
       use misclibs
       use parcel_module
       use cm1libs , only : eslf
+      use mpi
 
       implicit none
 
@@ -632,10 +697,18 @@
       integer :: i,j,k
       real :: taup_scale,dt_nondim
       real :: guess,rt_zeros(2),rt_start(2)
+      double precision :: rt_zeros_dbl(2)
       integer :: mflag,flag
 
       integer :: num_fallout
 
+      double precision :: t_s,t_f,t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor
+
+      t_s = mpi_wtime()
+
+      if (qval .lt. 0.0 .OR. tval .lt. 0.0 .OR. isnan(qval) .OR. isnan(tval) .OR. prsval .lt. 0.0 .OR. rhoval .lt. 0.0) then
+      write(*,'(a15,7e15.6)') 'DHR WARNING2:',qval,tval,rhoval,prsval,pdata(np,prx),pdata(np,pry),pdata(np,prz)
+      end if
       !Store interpolated quantities for the sake of statistics
       pdata(np,pru) = uval
       pdata(np,prv) = vval
@@ -698,6 +771,11 @@
       
       guess = 0.0
 
+      t_f = mpi_wtime()
+      t_BEprep = t_BEprep + (t_f-t_s)
+
+      t_s = mpi_wtime()
+
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
       call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
@@ -710,12 +788,23 @@
          rt_start(2) = 1.0
       end if
 
-      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+      t_f = mpi_wtime()
+      t_radsolver = t_radsolver + (t_f-t_s)
 
+      t_s = mpi_wtime()
+      call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),dble(rt_start),rt_zeros_dbl,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
+      rt_zeros = real(rt_zeros_dbl)
+      t_f = mpi_wtime()
+      t_gauss = t_gauss + (t_f-t_s)
+
+      t_s = mpi_wtime()
       if (flag==1) then
          num100 = num100+1
-         call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+         call LV_solver(dble(diffnorm),dble(dt_nondim),dble(taup_scale),dble(rt_start),rt_zeros_dbl,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
+         rt_zeros = real(rt_zeros_dbl)
       end if
+      t_f = mpi_wtime()
+      t_LV = t_LV + (t_f-t_s)
 
       if (flag==1) num1000 = num1000+1
 
@@ -755,6 +844,8 @@
       ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
 
 #ifdef MPI
+
+      t_s = mpi_wtime()
 
       ! determine which new MPI region this droplet 
       ! enters or stays for the next time step
@@ -845,6 +936,9 @@
           pdata_locind(np,2) .eq. undefined_index) then
           pdata_locind(np,3) = undefined_index
       end if
+
+      t_f = mpi_wtime()
+      t_neighbor = t_neighbor + (t_f-t_s)
 
       end subroutine BE_integration
 
@@ -2015,14 +2109,15 @@
 
       rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
+
       if (rhval .lt. 0.999) then
          a = -(2*mw*surften)/(ru*rhow*tval)/LOG(rhval)
          c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval)
 
-
          Q = (a**2.0)/9.0
          R = (2.0*a**3.0+27.0*c)/54.0
          M = R**2.0-Q**3.0
+
 
          if (M<0) then
            theta = acos(R/sqrt(Q**3.0))
@@ -2052,16 +2147,18 @@
 
         implicit none
 
-        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
-        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
-        real, intent(out) :: rt_zeros(2)
+        double precision, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        double precision, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        double precision, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
         integer, intent(in) :: np
 
-        real :: error,fv1(2),fv2(2),v1(2),rel
-        real :: diff, temp1(2), temp2(2), relax, coeff, correct(2)
-        real, dimension(1:2, 1:2) :: J,fancy,inv,finalJ
-        integer :: iterations,neg,counts
+        double precision :: error,fv1(2),fv2(2),v1(2),rel
+        double precision :: temp1(2), temp2(2), relax, coeff
+        double precision, dimension(1:2, 1:2) :: J,fancy,inv,finalJ
+        integer :: iterations,neg,counts,iteration_max
+
+        double precision :: diff,correct(2)
 
         iterations = 0
         flag = 0
@@ -2076,8 +2173,13 @@
         !JMD-FIXME     Internal compiler error. Basic LLVM base data type required 
         !fv2 = (/1., 1./)
         coeff = 0.1
+        correct(1) = 0.0
+        correct(2) = 0.0
+        diff = 0.0
 
-        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<1000))
+        iteration_max = 1000
+
+        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<iteration_max))
 
                 iterations = iterations + 1
 
@@ -2102,20 +2204,27 @@
                 rt_zeros(1) = v1(1) - correct(1)
                 rt_zeros(2) = v1(2) - correct(2)
 
+                if (rt_zeros(1) .lt. 0.0) write(*,'(a15,3e15.6)') 'DHR WARNING3:',rt_zeros(1),v1(1),correct(1)
+
                 call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
                 call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+
                 diff = sqrt(temp1(1)*temp1(1)+temp1(2)*temp1(2))-sqrt(temp2(1)*temp2(1)+temp2(2)*temp2(2))
 
                 if (sqrt(correct(1)*correct(1)+correct(2)*correct(2))<error) then
-                        EXIT
+                   EXIT
                 end if
+
 
                 relax = 1.0
                 counts = 0
 
-                do while ((diff<0) .OR. (rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
+                !do while ((diff<0) .OR. (rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
+                do while ((diff<0) .OR. (rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. isnan(rt_zeros(1)))
+
+                   write(*,'(a15,i,3e15.6)') 'DHR WARNING4:',counts,rt_zeros(1),rt_zeros(2),diff
                    counts = counts + 1
                    coeff = 0.5
                    relax = relax * coeff
@@ -2132,7 +2241,7 @@
 
                 call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         end do
-      if (iterations == 100) flag = 1
+      if (iterations == iteration_max) flag = 1
       if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
@@ -2141,16 +2250,16 @@
         !$acc routine seq
         implicit none
 
-        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
-        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
-        real, intent(out) :: rt_zeros(2)
+        double precision, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        double precision, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        double precision, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
         integer, intent(in) :: np
 
-        real :: error,fv1(2),fv2(2),v1(2),rel
-        real :: diff,lambda,lup,ldown
-        real :: C(2),newC(2),gradC(2),correct(2)
-        real, dimension(1:2, 1:2) :: J,I,g,invg
+        double precision :: error,fv1(2),fv2(2),v1(2),rel
+        double precision :: diff,lambda,lup,ldown
+        double precision :: C(2),newC(2),gradC(2),correct(2)
+        double precision, dimension(1:2, 1:2) :: J,I,g,invg
         integer :: iterations,neg
 
         error = 1.0e-8
@@ -2229,9 +2338,9 @@
       subroutine inverse_finder_2d(C, invC)
         !$acc routine seq
         implicit none
-        real :: det
-        real, dimension(1:2, 1:2), intent(in) :: C
-        real, dimension(1:2, 1:2), intent(out) :: invC
+        double precision :: det
+        double precision, dimension(1:2, 1:2), intent(in) :: C
+        double precision, dimension(1:2, 1:2), intent(out) :: invC
 
         det = C(1, 1) * C(2, 2) - C(1, 2) * C(2, 1)
 
@@ -2245,9 +2354,9 @@
         implicit none
         integer :: n
 
-        real, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
-        real, intent(out), dimension(1:2, 1:2) :: J
-        real :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
+        double precision, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
+        double precision, intent(out), dimension(1:2, 1:2) :: J
+        double precision :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
         integer, intent(in) :: np
 
         diff = 1E-5
@@ -2284,22 +2393,25 @@
       use cm1libs , only : eslf
       implicit none
 
-      real, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
-      real, intent(out) :: rT_output(2)
+      double precision, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
+      double precision, intent(out) :: rT_output(2)
       integer, intent(in) :: np
 
-      real :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
-      real :: Tnext,rnext
+      double precision :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
+      double precision :: Tnext,rnext
 
         ! quantities come in already non-dimensionalized, so must be converted back;
         rnext = tempr*radius
         Tnext = tempt*Tp
         dnext = rnext*2.0
 
-        esa = eslf(prsval,tval)
+        esa = eslf(real(prsval),real(tval))
         VolP = (4.0/3.0)*pi*rnext**3
         rhop = (m_s + VolP*rhow)/VolP
 
+        if ( abs(viscosity).lt.1.0e-10 .OR. abs(rhoval) .lt. 1.0e-10 .OR. isnan(viscosity) .OR. isnan(rhoval) .OR. isnan(rhop) .OR. isnan(dnext) .OR. dnext .lt. 0.0 .OR. abs(dnext) .lt. 1.0e-10) then
+        write(*,'(a15,4e15.6)') 'DHR WARNING1:',viscosity,rhoval,dnext,rhop
+        end if
         Rep = dnext*diffnorm/viscosity
         taup = (rhop*dnext**2)/(18.0*rhoval*viscosity)
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
@@ -2323,6 +2435,200 @@
         rT_output(2) = Tnext/Tp - 1.0  - dt_nondim*Tprime
 
       end subroutine ie_vrt_nd
+
+      subroutine droplet_injection(pdata,xf,yf,dt,randomNumbers)
+      !Inject new particles according to some rule
+      !Here use the sea spray generation function (SSGF) of Andreas (1998)
+      use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
+                        prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract, &
+                        prmult,prt,prrho,prprs,prqv,nparcelsActive,nparcelsActiveMax,numprocs
+      use constants
+      use MersenneTwister_mod
+
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
+      type(randomNumberSequence),intent(inout) :: randomNumbers
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in) :: dt
+    
+      integer :: i,my_reintro,np
+      real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
+      real :: binsdata(100)  !Discretized bins for cumulative SSGF
+
+      real :: totdrops  !Total number being produced during this call to droplet_injection
+      real :: rad_init  !Initial radius, being calculated one at a time according to SSGF
+      real :: u10       !Drives the SSGF
+
+      real :: xrange,yrange,zrange
+      real :: salinity
+      
+      real :: c1,c2,c3,u14,cdn10,a,rand
+      real :: a1,a2,r80,r0,dh
+      real :: dFsdr80(100),dFmsdr0(100),dr80_dr0
+      integer :: iter,nbin,num_create,j
+
+      !implementing the Andreas 1998 sea spray generation function
+      !Set the parameters of the two lognormals:
+      real :: rmin,rmax,rmin10,rmax10
+
+      rmin10 = log10(2e-06)
+      rmax10 = log10(500e-06)
+      dh = 0.0242
+
+  !   ===== update x-axis for each bin =====
+      binsdata(1) = rmin10
+      do i = 1,99
+        binsdata(i+1)= dh+binsdata(i)
+      end do
+
+      binsdata = 1e6*(10**binsdata)
+  
+      ! Now figure out how many particles are produced in each of
+      ! those bins. This is a function of u10
+
+
+      !!!!! NEED TO BRING IN THE ACTUAL MODEL U10 !!!!!
+      u10 = 30.0
+      !!!!! NEED TO BRING IN THE ACTUAL MODEL U10 !!!!!
+
+      c1 = 10*smithssgf(u10,10.0,0.4)
+      c2 = c1*(37.5**1.8)
+      c3 = c2*(100**5.2)
+      dFssum(1) = 0
+      do i = 1,100
+        r0 = binsdata(i)
+        ! calculate radius at 80%RH
+        r80 = 0.518*r0**0.976;
+ 
+     ! now apply these to Eqs. 3.5 in Andreas 1998
+        if (r80 .lt. 10) then
+          dFsdr80(i) =  smithssgf(u10,r80,0.4)
+        elseif ((r80 .ge. 10) .and. (r80 .lt. 37.5)) then
+          dFsdr80(i) = c1/r80
+        elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100)) then
+          dFSdr80(i) = c2*r80**-2.8
+        elseif ((r80 .ge. 100) .and. (r80 .lt. 250)) then
+          dFsdr80(i) = c3*r80**-8
+        endif
+ 
+       ! apply eq. 3.8 from Andreas 1998
+       dFmsdr0(i) = 3.5*dFsdr80(i)*0.506*r0**-0.024
+ 
+       if (i==1) then
+         dFssum(i+1) = dFmsdr0(i)
+       elseif (i .gt. 1) then
+         dFssum(i+1) = dFssum(i) + dFmsdr0(i)
+       endif
+  
+      end do
+
+      totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
+
+      !Define these here
+      xrange = xf(ni+1)-xf(1)
+      yrange = yf(nj+1)-yf(1)
+      zrange = 8.0
+
+#ifdef MPI
+      my_reintro = floor(xrange*yrange*dt*totdrops/(numprocs*drop_mult))    !Number of droplets to be produced by this MPI task
+#else
+      my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
+#endif
+
+      my_reintro = 10
+
+   if (myid==0) write(*,'(a8,3i,4e15.6)')  'DHR0:',totdrops,my_reintro,numprocs,drop_mult,xrange,yrange,dt
+
+      if (nparcelsActive+my_reintro .lt. nparcelsActiveMax) then   !Only add particles to pdata if we're still under nparcelsActiveMax
+
+      do np=nparcelsActive+1,nparcelsActive+my_reintro
+
+         rand = getRandomReal(randomNumbers)
+         a = totdrops*getRandomReal(randomNumbers)
+
+         do i = 1,100
+            if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
+               rand = getRandomReal(randomNumbers)
+               rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
+            endif
+         enddo
+
+         rad_init = rad_init*1.0e-6
+      
+        !Now populate the pdata array, starting at the list
+       
+        !!!!!!!! if (nparcelsActive+myreintro .lt. nparcelsActive_max)
+
+        !Random location in the loweset 8 meters
+        rand = getRandomReal(randomNumbers)
+        pdata(np,prx) = xf(1)+rand*xrange
+        rand = getRandomReal(randomNumbers)
+        pdata(np,pry) = yf(1)+rand*yrange
+        rand = getRandomReal(randomNumbers)
+        pdata(np,prz) = rand*zrange
+
+        pdata(np,prvpx) = 0.0
+        pdata(np,prvpy) = 0.0
+        pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
+
+        pdata(np,prrp) = rad_init
+
+
+        salinity = 0.034
+        pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+ 
+        pdata(np,prtp) = 302.0
+        pdata(np,prmult) = 1.0e9
+        pdata(np,pract) = 1.0
+
+        pdata(np,pru) = 0.0
+        pdata(np,prv) = 0.0
+        pdata(np,prw) = 0.0
+        pdata(np,prt) = 0.0
+        pdata(np,prqv) = 0.0
+        pdata(np,prprs) = 0.0
+        pdata(np,prrho) = 0.0
+
+      end do
+
+      !Then once the new droplets have been added, update nparcelsActive
+      nparcelsActive = nparcelsActive + my_reintro
+
+      else
+
+        write(*,*) 'CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSACTIVEMAX'  
+
+      end if
+
+
+
+    end subroutine droplet_injection
+
+    function smithssgf(u10,r80,vk)
+    implicit none
+    real :: u10,r80,cdn10,vk,u14
+    real :: a1,a2,smithssgf
+
+
+    ! added SEA93 function
+    if (u10 .ge. 4 .and. u10 .lt. 11) then
+       cdn10 = 1.2e-3
+    elseif (u10 .ge. 11) then
+       cdn10 = 1e-3*(0.49 + 0.065*u10)
+    end if
+
+    ! calculate 14 m wind speed
+    u14 = u10*(1 + (sqrt(cdn10)/vk)*alog(14.0/10.0))
+  
+    a1 = 10**(0.0676*u14 + 2.43)
+    a2 = 10**(0.959*sqrt(u14) - 1.476)
+  
+
+    ! calcaulate dFs/dr80 (Eq. A1 in Andreas 1998)
+    smithssgf = a1*exp(-3.1*(alog(r80/2.1))**2) + a2*exp(-3.3*(alog(r80/9.2))**2)
+
+    end function smithssgf
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

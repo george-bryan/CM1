@@ -7,7 +7,8 @@
     real :: g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp,                                 &
             cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1,       &
             cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2,  &
-            rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo,mw,ms,surften,ion,os,ru
+            rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo,mw,ms,surften,ion,os, &
+            ru,drop_mult
 
     !$acc declare create (ru,mw,surften,rhow,ion,os,ms,lv1,lv2,cpl,cp,eps)
 
@@ -174,6 +175,8 @@
       ion    = 2.0       !# of ions available in solute
       os     = 1.093     !Droplet osmotic coefficient
       ru     = 8.3144    !J/mol-K Universal gas constant
+
+      drop_mult = 1.0e9
 
 
 
