@@ -4591,7 +4591,6 @@
 #ifdef MPI
     rf2:  IF( restart_filetype.eq.3 )THEN
 
-      print *,'writer: before writer2'
       call    writer2(numi,numj,numk1,numk2,nxr,nyr,var,aname,           &
                       ni,nj,ngxy,myid,numprocs,nodex,nodey,orec,nfile,   &
                       ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p,   &
