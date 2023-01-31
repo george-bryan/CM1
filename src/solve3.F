@@ -997,7 +997,7 @@
           !$acc end parallel
 
           !print *,'solve3: before call to droplet_driver' 
-          call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+          call   droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
                                tha,qa,th0,pi0,ppi,prs,                              &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &

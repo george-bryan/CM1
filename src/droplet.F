@@ -23,7 +23,7 @@
 
   CONTAINS
 
-      subroutine droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+      subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata,                 &
                                th_in,qa,th0,pi0,ppa,prs,                            &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
@@ -55,6 +55,7 @@
 !-----------------------------------------------------------------------
 
       real, intent(in) :: dt
+      double precision, intent(in) :: mtime
       real, intent(in), dimension(ib:ie) :: xh,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je) :: yh,vh,rvh
@@ -336,23 +337,6 @@
     nploop:  &
     DO np=1,nparcelsActive
 
-      if (isnan(pdata(np,prx))) write(*,*) 'DHR3.1'
-      if (isnan(pdata(np,pry))) write(*,*) 'DHR3.2'
-      if (isnan(pdata(np,prz))) write(*,*) 'DHR3.3'
-      if (isnan(pdata(np,prvpx))) write(*,*) 'DHR3.4'
-      if (isnan(pdata(np,prvpy))) write(*,*) 'DHR3.5'
-      if (isnan(pdata(np,prvpz))) write(*,*) 'DHR3.6'
-      if (isnan(pdata(np,prrp))) write(*,*) 'DHR3.7'
-      if (isnan(pdata(np,prtp))) write(*,*) 'DHR3.8'
-      if (isnan(pdata(np,pru))) write(*,*) 'DHR3.9'
-      if (isnan(pdata(np,prv))) write(*,*) 'DHR3.10'
-      if (isnan(pdata(np,prw))) write(*,*) 'DHR3.11'
-      if (isnan(pdata(np,prt))) write(*,*) 'DHR3.12'
-      if (isnan(pdata(np,prqv))) write(*,*) 'DHR3.13'
-      if (isnan(pdata(np,prrho))) write(*,*) 'DHR3.14'
-      if (isnan(pdata(np,prprs))) write(*,*) 'DHR3.15'
-      if (isnan(pdata(np,prprs))) write(*,*) 'DHR3.16'
-
       t_s1 = mpi_wtime()
 
       x3d = pdata(np,prx)
@@ -445,6 +429,7 @@
                           num100,num1000,neighbor,num_fallout,&
                           t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor)
 
+
       t_f1 = mpi_wtime()
       t_BEint = t_BEint + (t_f1-t_s1)
 #ifdef MPI
@@ -494,8 +479,10 @@
 
     if (myid==0) write(*,*) 'TIME feed:',t_feed
 
-  
+    call mpi_allreduce(mpi_in_place,num100,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+    call mpi_allreduce(mpi_in_place,num1000,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
     
+    if (myid==0) write(*,*) 'num100,num1000 = ',num100,num1000
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
@@ -638,9 +625,6 @@
 
    if (myid==0) then 
    write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
-!   do np=1,nparcelsActive
-!      write(*,'(a8,2i,5e15.6)') 'DHR2:',myid,np,pdata(np,prx),pdata(np,pry),pdata(np,prz),pdata(np,pract),pdata(np,prrp)
-!   end do 
    end if
 
     t_f = mpi_wtime()
@@ -696,8 +680,7 @@
       real :: top,bot
       integer :: i,j,k
       real :: taup_scale,dt_nondim
-      real :: guess,rt_zeros(2),rt_start(2)
-      double precision :: rt_zeros_dbl(2)
+      double precision :: guess,rt_zeros(2),rt_start(2)
       integer :: mflag,flag
 
       integer :: num_fallout
@@ -706,13 +689,11 @@
 
       t_s = mpi_wtime()
 
-      if (qval .lt. 0.0 .OR. tval .lt. 0.0 .OR. isnan(qval) .OR. isnan(tval) .OR. prsval .lt. 0.0 .OR. rhoval .lt. 0.0) then
-      write(*,'(a15,7e15.6)') 'DHR WARNING2:',qval,tval,rhoval,prsval,pdata(np,prx),pdata(np,pry),pdata(np,prz)
-      end if
       !Store interpolated quantities for the sake of statistics
       pdata(np,pru) = uval
       pdata(np,prv) = vval
       pdata(np,prw) = wval
+  
       pdata(np,prt) = tval
       pdata(np,prqv) = qval
       pdata(np,prprs) = prsval
@@ -778,11 +759,11 @@
 
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
-      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+      call rad_solver2(guess,mflag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
 
       if (mflag.eq.0) then
-         rt_start(1) = guess/pdata(np,prrp)
-         rt_start(2) = tval/pdata(np,prtp)
+         rt_start(1) = guess/dble(pdata(np,prrp))
+         rt_start(2) = dble(tval)/dble(pdata(np,prtp))
       else
          rt_start(1) = 1.0
          rt_start(2) = 1.0
@@ -792,29 +773,27 @@
       t_radsolver = t_radsolver + (t_f-t_s)
 
       t_s = mpi_wtime()
-      call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),dble(rt_start),rt_zeros_dbl,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
-      rt_zeros = real(rt_zeros_dbl)
+      call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
       t_f = mpi_wtime()
       t_gauss = t_gauss + (t_f-t_s)
 
       t_s = mpi_wtime()
       if (flag==1) then
          num100 = num100+1
-         call LV_solver(dble(diffnorm),dble(dt_nondim),dble(taup_scale),dble(rt_start),rt_zeros_dbl,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
-         rt_zeros = real(rt_zeros_dbl)
+         call LV_solver(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
       end if
       t_f = mpi_wtime()
       t_LV = t_LV + (t_f-t_s)
 
-      if (flag==1) num1000 = num1000+1
-
       !In rare cases the nonlinear solvers fail to converge
-      if ( (rt_zeros(1) .ne. rt_zeros(1)) .OR. &
-           (rt_zeros(2) .ne. rt_zeros(2)) .OR. &
-           (rt_zeros(2) .lt. 0) ) then
-         !If this happens keep radius unchanged and temp equal to surrounding
-         rt_zeros(1) = 1.0
-         rt_zeros(2) = tval/pdata(np,prtp)
+      if (flag==1)  then
+
+       num1000 = num1000+1 
+
+       !If this happens keep radius unchanged and temp equal to surrounding
+       rt_zeros(1) = 1.0
+       rt_zeros(2) = tval/pdata(np,prtp)
+
       end if
 
       !Now redimsionalize
@@ -2098,14 +2077,14 @@
       use cm1libs , only : eslf
       implicit none
 
-      real, intent(out) :: guess
+      double precision, intent(out) :: guess
       integer, intent(out) :: mflag
-      real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+      double precision, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
       integer, intent(in) :: np
-      real :: a, c, esa, Q, R, M, theta, S, T, rhval
+      double precision :: a, c, esa, Q, R, M, theta, S, T, rhval
 
       mflag = 0
-      esa = eslf(prsval,tval)  !Saturation vapor pressure at droplet temperature
+      esa = eslf(real(prsval),real(tval))  !Saturation vapor pressure at droplet temperature
 
       rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
@@ -2153,12 +2132,12 @@
         integer, intent(out) :: flag
         integer, intent(in) :: np
 
-        double precision :: error,fv1(2),fv2(2),v1(2),rel
-        double precision :: temp1(2), temp2(2), relax, coeff
+        double precision :: error,fv1(2),fv2(2),v1(2),rel,det
+        double precision :: relax, coeff
         double precision, dimension(1:2, 1:2) :: J,fancy,inv,finalJ
         integer :: iterations,neg,counts,iteration_max
 
-        double precision :: diff,correct(2)
+        double precision :: correct(2)
 
         iterations = 0
         flag = 0
@@ -2167,19 +2146,13 @@
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
          
-        fv2(1) = 1.
-        fv2(2) = 1.
-        !JMD-FIXME:  The following line appears to generate the following compiler error:
-        !JMD-FIXME     Internal compiler error. Basic LLVM base data type required 
-        !fv2 = (/1., 1./)
         coeff = 0.1
         correct(1) = 0.0
         correct(2) = 0.0
-        diff = 0.0
 
-        iteration_max = 1000
+        iteration_max = 50
 
-        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<iteration_max))
+        do while (iterations<iteration_max)
 
                 iterations = iterations + 1
 
@@ -2191,7 +2164,13 @@
                 fancy(2,1) = J(1,2)*J(1,1)+J(2,2)*J(2,1)
                 fancy(2,2) = J(1,2)*J(1,2)+J(2,2)*J(2,2)
 
-                call inverse_finder_2d(fancy, inv)
+                det = fancy(1,1)*fancy(2,2) - fancy(1,2)*fancy(2,1)
+                if (abs(det) .lt. 1.0e-10) then
+                   flag = 1
+                   EXIT
+                end if
+                
+                call inverse_finder_2d(fancy,det,inv)
 
                 finalJ(1,1) = inv(1,1)*J(1,1)+inv(1,2)*J(1,2)
                 finalJ(1,2) = inv(1,1)*J(2,1)+inv(1,2)*J(2,2)
@@ -2204,42 +2183,31 @@
                 rt_zeros(1) = v1(1) - correct(1)
                 rt_zeros(2) = v1(2) - correct(2)
 
-                if (rt_zeros(1) .lt. 0.0) write(*,'(a15,3e15.6)') 'DHR WARNING3:',rt_zeros(1),v1(1),correct(1)
-
-                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-
-
-                diff = sqrt(temp1(1)*temp1(1)+temp1(2)*temp1(2))-sqrt(temp2(1)*temp2(1)+temp2(2)*temp2(2))
-
-                if (sqrt(correct(1)*correct(1)+correct(2)*correct(2))<error) then
-                   EXIT
-                end if
-
-
                 relax = 1.0
                 counts = 0
+                do while ((rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
 
-                !do while ((diff<0) .OR. (rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
-                do while ((diff<0) .OR. (rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. isnan(rt_zeros(1)))
-
-                   write(*,'(a15,i,3e15.6)') 'DHR WARNING4:',counts,rt_zeros(1),rt_zeros(2),diff
                    counts = counts + 1
                    coeff = 0.5
                    relax = relax * coeff
                    rt_zeros(1) = v1(1)-(finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2))*relax
                    rt_zeros(2) = v1(2)-(finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2))*relax
-                   call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-                   diff = sqrt(temp1(1)*temp1(1)+temp1(2)*temp1(2))-sqrt(temp2(1)*temp2(1)+temp2(2)*temp2(2))
 
                    if (counts>10) EXIT
                 end do
 
+                if (rt_zeros(1)<0.01 .OR. rt_zeros(2)<0.01) then
+                   flag = 1
+                   EXIT
+                end if
+
+                if (sqrt(correct(1)*correct(1)+correct(2)*correct(2))<error) then
+                   EXIT
+                end if
+
                 v1(1) = rt_zeros(1)
                 v1(2) = rt_zeros(2)
 
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         end do
       if (iterations == iteration_max) flag = 1
       if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
@@ -2256,27 +2224,25 @@
         integer, intent(out) :: flag
         integer, intent(in) :: np
 
-        double precision :: error,fv1(2),fv2(2),v1(2),rel
+        double precision :: error,fv1(2),fv2(2),v1(2),rel,det
         double precision :: diff,lambda,lup,ldown
         double precision :: C(2),newC(2),gradC(2),correct(2)
         double precision, dimension(1:2, 1:2) :: J,I,g,invg
-        integer :: iterations,neg
+        integer :: iterations,neg,iterations_max
+
 
         error = 1.0e-8
 
         
-        !JMD-FIXME generates an internal compiler eerror
-        ! I = reshape((/1, 0, 0, 1/),(/2,2/))
         I(1,1)=1.0
         I(2,1)=0.0
         I(1,2)=0.0
         I(2,2)=1.0
         iterations = 0
+        iterations_max = 1000
         flag = 0
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
-        !JMD-FIXME generates an internal compiler error
-        ! fv2 = (/1., 1./)
         fv2(1) = 1.0
         fv2(2) = 1.0
 
@@ -2284,7 +2250,7 @@
         lup = 2.0
         ldown = 2.0
 
-        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<1000))
+        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<iterations_max))
 
         iterations = iterations + 1
 
@@ -2302,7 +2268,12 @@
         C(1) = 0.5*fv1(1)*fv1(1)
         C(2) = 0.5*fv1(2)*fv1(2)
 
-        call inverse_finder_2d(g, invg)
+        det = g(1,1)*g(2,2) - g(1,2)*g(2,1)
+        if (abs(det) .lt. 1.0e-10) then
+             flag = 1
+             EXIT
+        end if
+        call inverse_finder_2d(g,det,invg)
         correct(1) = invg(1,1)*gradC(1)+invg(1,2)*gradC(2)
         correct(2) = invg(2,1)*gradC(1)+invg(2,2)*gradC(2)
         if (sqrt(correct(1)*correct(1)+correct(2)*correct(2)) < error) then
@@ -2323,9 +2294,14 @@
            lambda = lambda*lup
         end if
 
+        if (rt_zeros(1)<0.0 .OR. rt_zeros(2)<0.0) then
+            flag = 1
+            EXIT
+        end if
+
         end do
 
-        if (iterations==1000) then
+        if (iterations==iterations_max) then
            flag = 1
         end if
 
@@ -2335,14 +2311,12 @@
 
       end subroutine LV_solver
 
-      subroutine inverse_finder_2d(C, invC)
+      subroutine inverse_finder_2d(C,det,invC)
         !$acc routine seq
         implicit none
-        double precision :: det
+        double precision, intent(in) :: det
         double precision, dimension(1:2, 1:2), intent(in) :: C
         double precision, dimension(1:2, 1:2), intent(out) :: invC
-
-        det = C(1, 1) * C(2, 2) - C(1, 2) * C(2, 1)
 
         invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),(/2,2/))
         invC = (1./det)*invC
@@ -2359,7 +2333,7 @@
         double precision :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
         integer, intent(in) :: np
 
-        diff = 1E-5
+        diff = 1E-12
 
         ynext(1) = rnext
         ynext(2) = tnext
@@ -2374,8 +2348,8 @@
         do n=1, 2
            xper(n) = xper(n) + diff
            xper2(n) = xper2(n) - diff
-           call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+           call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
            call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
            J(1,n) = (fxper(1)-rt_output(1))/diff
@@ -2409,9 +2383,6 @@
         VolP = (4.0/3.0)*pi*rnext**3
         rhop = (m_s + VolP*rhow)/VolP
 
-        if ( abs(viscosity).lt.1.0e-10 .OR. abs(rhoval) .lt. 1.0e-10 .OR. isnan(viscosity) .OR. isnan(rhoval) .OR. isnan(rhop) .OR. isnan(dnext) .OR. dnext .lt. 0.0 .OR. abs(dnext) .lt. 1.0e-10) then
-        write(*,'(a15,4e15.6)') 'DHR WARNING1:',viscosity,rhoval,dnext,rhop
-        end if
         Rep = dnext*diffnorm/viscosity
         taup = (rhop*dnext**2)/(18.0*rhoval*viscosity)
         Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
@@ -2554,7 +2525,7 @@
          enddo
 
          rad_init = rad_init*1.0e-6
-      
+
         !Now populate the pdata array, starting at the list
        
         !!!!!!!! if (nparcelsActive+myreintro .lt. nparcelsActive_max)

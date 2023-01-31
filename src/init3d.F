@@ -423,7 +423,8 @@
           rand = getRandomReal(randomNumbers)
           tmpy = rand*maxy
           rand = getRandomReal(randomNumbers)
-          tmpz = rand*maxz
+          !tmpz = rand*maxz
+          tmpz = rand*8.0
 
           ! check if this parcel falls into this MPI region
           if ( tmpx .ge. xf(1) .and. tmpx .le. xf(ni+1) .and. &
@@ -468,7 +469,6 @@
                 pdata(i,prprs) = 0.0
                 pdata(i,prrho) = 0.0
 
-             write(*,*) 'DHR NEWPART',pdata(i,prrp),pdata(i,prms)
     
              end if ! end of if statement for prcl_droplet == 1
 

@@ -176,7 +176,7 @@
       os     = 1.093     !Droplet osmotic coefficient
       ru     = 8.3144    !J/mol-K Universal gas constant
 
-      drop_mult = 1.0e9
+      drop_mult = 1.0e3
 
 
 
