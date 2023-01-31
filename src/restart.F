@@ -573,91 +573,91 @@
 ! standard 2D:
 
       n = 1
-      !$acc update host(rain)
+      !$acc update host(rain) if_present
       call writer(ni,nj,1,1,nx,ny,rain(ib,jb,n),'rain    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sws)
+      !$acc update host(sws) if_present
       call writer(ni,nj,1,1,nx,ny,sws(ib,jb,n),'sws     ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(svs)
+      !$acc update host(svs) if_present
       call writer(ni,nj,1,1,nx,ny,svs(ib,jb,n),'svs     ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sps)
+      !$acc update host(sps) if_present
       call writer(ni,nj,1,1,nx,ny,sps(ib,jb,n),'sps     ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(srs)
+      !$acc update host(srs) if_present
       call writer(ni,nj,1,1,nx,ny,srs(ib,jb,n),'srs     ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sgs)
+      !$acc update host(sgs) if_present
       call writer(ni,nj,1,1,nx,ny,sgs(ib,jb,n),'sgs     ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sus)
+      !$acc update host(sus) if_present
       call writer(ni,nj,1,1,nx,ny,sus(ib,jb,n),'sus     ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(shs)
+      !$acc update host(shs) if_present
       call writer(ni,nj,1,1,nx,ny,shs(ib,jb,n),'shs     ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     if( nrain.eq.2 )then
       n = 2
-      !$acc update host(rain)
+      !$acc update host(rain) if_present
       call writer(ni,nj,1,1,nx,ny,rain(ib,jb,n),'rain2   ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sws)
+      !$acc update host(sws) if_present
       call writer(ni,nj,1,1,nx,ny,sws(ib,jb,n),'sws2    ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(svs)
+      !$acc update host(svs) if_present
       call writer(ni,nj,1,1,nx,ny,svs(ib,jb,n),'svs2    ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sps)
+      !$acc update host(sps) if_present
       call writer(ni,nj,1,1,nx,ny,sps(ib,jb,n),'sps2    ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(srs)
+      !$acc update host(srs) if_present
       call writer(ni,nj,1,1,nx,ny,srs(ib,jb,n),'srs2    ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sgs)
+      !$acc update host(sgs) if_present
       call writer(ni,nj,1,1,nx,ny,sgs(ib,jb,n),'sgs2    ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sus)
+      !$acc update host(sus) if_present
       call writer(ni,nj,1,1,nx,ny,sus(ib,jb,n),'sus2    ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(shs)
+      !$acc update host(shs) if_present
       call writer(ni,nj,1,1,nx,ny,shs(ib,jb,n),'shs2    ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     endif
 
-      !$acc update host(tsk)
+      !$acc update host(tsk) if_present
       call writer(ni,nj,1,1,nx,ny,tsk(ib,jb),'tsk     ',           &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -666,61 +666,61 @@
 !---------------------------------------------------------------
 ! standard 3D:
 
-      !$acc update host(rho)
+      !$acc update host(rho) if_present
       call writer(ni,nj,1,nk,nx,ny,rho(ib,jb,1),'rho     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(prs)
+      !$acc update host(prs) if_present
       call writer(ni,nj,1,nk,nx,ny,prs(ib,jb,1),'prs     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(ua)
+      !$acc update host(ua) if_present
       call writer(ni+1,nj,1,nk,nx+1,ny,ua(ib,jb,1),'ua      ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecu,52,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2iu,d2ju,d3iu,d3ju)
-      !$acc update host(va)
+      !$acc update host(va) if_present
       call writer(ni,nj+1,1,nk,nx,ny+1,va(ib,jb,1),'va      ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecv,53,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2iv,d2jv,d3iv,d3jv)
-      !$acc update host(wa)
+      !$acc update host(wa) if_present
       call writer(ni,nj,1,nk+1,nx,ny,wa(ib,jb,1),'wa      ',       &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecw,54,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(ppi)
+      !$acc update host(ppi) if_present
       call writer(ni,nj,1,nk,nx,ny,ppi(ib,jb,1),'ppi     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(tha)
+      !$acc update host(tha) if_present
       call writer(ni,nj,1,nk,nx,ny,tha(ib,jb,1),'tha     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(ppx)
+      !$acc update host(ppx) if_present
       call writer(ni,nj,1,nk,nx,ny,ppx(ib,jb,1),'ppx     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
 
     if( psolver.eq.6 )then
-      !$acc update host(phi1)
+      !$acc update host(phi1) if_present
       call writer(ni,nj,1,nk,nx,ny,phi1(ib,jb,1),'phi1    ',       &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(phi2)
+      !$acc update host(phi2) if_present
       call writer(ni,nj,1,nk,nx,ny,phi2(ib,jb,1),'phi2    ',       &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     endif
     IF(imoist.eq.1)THEN
-    !$acc update host(qa)
+    !$acc update host(qa) if_present
     do n=1,numq
       text1 = '        '
       write(text1(1:3),156) qname(n)
@@ -732,28 +732,28 @@
     enddo
     ENDIF
     if(imoist.eq.1.and.eqtset.eq.2)then
-      !$acc update host(qpten)
+      !$acc update host(qpten) if_present
       call writer(ni,nj,1,nk,nx,ny,qpten(ib,jb,1),'qpten   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qtten)
+      !$acc update host(qtten) if_present
       call writer(ni,nj,1,nk,nx,ny,qtten(ib,jb,1),'qtten   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qvten)
+      !$acc update host(qvten) if_present
       call writer(ni,nj,1,nk,nx,ny,qvten(ib,jb,1),'qvten   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qcten)
+      !$acc update host(qcten) if_present
       call writer(ni,nj,1,nk,nx,ny,qcten(ib,jb,1),'qcten   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     endif
-    !$acc update host(tkea)
+    !$acc update host(tkea) if_present
     if( cm1setup.eq.1 .and. iusetke )then
       call writer(ni,nj,1,nk+1,nx,ny,tkea(ib,jb,1),'tkea    ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecw,54,   &
@@ -765,17 +765,17 @@
 !  radiation:
 
       if(radopt.ge.1)then
-        !$acc update host(lwten)
+        !$acc update host(lwten) if_present
         call writer(ni,nj,1,nk,nx,ny,lwten(ib,jb,1),'lwten   ',      &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(swten)
+        !$acc update host(swten) if_present
         call writer(ni,nj,1,nk,nx,ny,swten(ib,jb,1),'swten   ',      &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-       !$acc update host(radsw)
+       !$acc update host(radsw) if_present
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -787,7 +787,7 @@
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(rnflx)
+        !$acc update host(rnflx) if_present
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -799,7 +799,7 @@
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(radswnet)
+        !$acc update host(radswnet) if_present
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -811,7 +811,7 @@
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(radlwin)
+        !$acc update host(radlwin) if_present
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -823,7 +823,7 @@
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(rad2d)
+        !$acc update host(rad2d) if_present
         do n=1,nrad2d
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
@@ -855,32 +855,32 @@
       endif
 
       if( radopt.ge.1 .and. ptype.eq.5 )then
-        !$acc update host(effc)
+        !$acc update host(effc) if_present
         call writer(ni,nj,1,nk,nx,ny,effc(ib,jb,1),'effc    ',       &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(effi)
+        !$acc update host(effi) if_present
         call writer(ni,nj,1,nk,nx,ny,effi(ib,jb,1),'effi    ',       &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(effs)
+        !$acc update host(effs) if_present
         call writer(ni,nj,1,nk,nx,ny,effs(ib,jb,1),'effs    ',       &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(effr)
+        !$acc update host(effr) if_present
         call writer(ni,nj,1,nk,nx,ny,effr(ib,jb,1),'effr    ',       &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(effg)
+        !$acc update host(effg) if_present
         call writer(ni,nj,1,nk,nx,ny,effg(ib,jb,1),'effg    ',       &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(effis)
+        !$acc update host(effis) if_present
         call writer(ni,nj,1,nk,nx,ny,effis(ib,jb,1),'effis   ',      &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -895,103 +895,103 @@
       if((oceanmodel.eq.2).or.(ipbl.ge.1).or.(sfcmodel.ge.1))then
         !---- (1) ----!
       if(sfcmodel.ge.1)then
-        !$acc update host(ust)
+        !$acc update host(ust) if_present
         call writer(ni,nj,1,1,nx,ny,ust(ib,jb),'ust     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(znt)
+        !$acc update host(znt) if_present
         call writer(ni,nj,1,1,nx,ny,znt(ib,jb),'znt     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(cd)
+        !$acc update host(cd) if_present
         call writer(ni,nj,1,1,nx,ny,cd(ib,jb),'cd      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(ch)
+        !$acc update host(ch) if_present
         call writer(ni,nj,1,1,nx,ny,ch(ib,jb),'ch      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(cq)
+        !$acc update host(cq) if_present
         call writer(ni,nj,1,1,nx,ny,cq(ib,jb),'cq      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(u1)
+        !$acc update host(u1) if_present
         call writer(ni,nj,1,1,nx,ny,u1(ib,jb),'u1      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(v1)
+        !$acc update host(v1) if_present
         call writer(ni,nj,1,1,nx,ny,v1(ib,jb),'v1      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(s1)
+        !$acc update host(s1) if_present
         call writer(ni,nj,1,1,nx,ny,s1(ib,jb),'s1      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(t1)
+        !$acc update host(t1) if_present
         call writer(ni,nj,1,1,nx,ny,t1(ib,jb),'t1      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(u10)
+        !$acc update host(u10) if_present
         call writer(ni,nj,1,1,nx,ny,u10(ib,jb),'u10     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(v10)
+        !$acc update host(v10) if_present
         call writer(ni,nj,1,1,nx,ny,v10(ib,jb),'v10     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(s10)
+        !$acc update host(s10) if_present
         call writer(ni,nj,1,1,nx,ny,s10(ib,jb),'s10     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(xland)
+        !$acc update host(xland) if_present
         call writer(ni,nj,1,1,nx,ny,xland(ib,jb),'xland   ',         &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(thflux)
+        !$acc update host(thflux) if_present
         call writer(ni,nj,1,1,nx,ny,thflux(ib,jb),'thflux  ',        &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(qvflux)
+        !$acc update host(qvflux) if_present
         call writer(ni,nj,1,1,nx,ny,qvflux(ib,jb),'qvflux  ',        &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(psfc)
+        !$acc update host(psfc) if_present
         call writer(ni,nj,1,1,nx,ny,psfc(ib,jb),'psfc    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
       if( tbc.eq.3 )then
-        !$acc update host(ustt)
+        !$acc update host(ustt) if_present
         call writer(ni,nj,1,1,nx,ny,ustt(ib,jb),'ustt    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(ut)
+        !$acc update host(ut) if_present
         call writer(ni,nj,1,1,nx,ny,  ut(ib,jb),'ut      ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(vt)
+        !$acc update host(vt) if_present
         call writer(ni,nj,1,1,nx,ny,  vt(ib,jb),'vt      ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(st)
+        !$acc update host(st) if_present
         call writer(ni,nj,1,1,nx,ny,  st(ib,jb),'st      ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -1002,7 +1002,7 @@
 
       if(sfcmodel.ge.1)then
         !---- (2) ----!
-        !$acc update host(lu_index)
+        !$acc update host(lu_index) if_present
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -1014,7 +1014,7 @@
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(kpbl2d)
+        !$acc update host(kpbl2d) if_present
 !$omp parallel do default(shared)  &
 !$omp private(i,j)
         do j=1,nj
@@ -1026,227 +1026,227 @@
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(hfx)
+        !$acc update host(hfx) if_present
         call writer(ni,nj,1,1,nx,ny,hfx(ib,jb),'hfx     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(qfx)
+        !$acc update host(qfx) if_present
         call writer(ni,nj,1,1,nx,ny,qfx(ib,jb),'qfx     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(hpbl)
+        !$acc update host(hpbl) if_present
         call writer(ni,nj,1,1,nx,ny,hpbl(ib,jb),'hpbl    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(wspd)
+        !$acc update host(wspd) if_present
         call writer(ni,nj,1,1,nx,ny,wspd(ib,jb),'wspd    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(psim)
+        !$acc update host(psim) if_present
         call writer(ni,nj,1,1,nx,ny,psim(ib,jb),'psim    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(psih)
+        !$acc update host(psih) if_present
         call writer(ni,nj,1,1,nx,ny,psih(ib,jb),'psih    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(gz1oz0)
+        !$acc update host(gz1oz0) if_present
         call writer(ni,nj,1,1,nx,ny,gz1oz0(ib,jb),'gz1oz0  ',        &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(br)
+        !$acc update host(br) if_present
         call writer(ni,nj,1,1,nx,ny,br(ib,jb),'br      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(chs)
+        !$acc update host(chs) if_present
         call writer(ni,nj,1,1,nx,ny,CHS(ib,jb),'chs     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(chs2)
+        !$acc update host(chs2) if_present
         call writer(ni,nj,1,1,nx,ny,CHS2(ib,jb),'chs2    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(cqs2)
+        !$acc update host(cqs2) if_present
         call writer(ni,nj,1,1,nx,ny,CQS2(ib,jb),'cqs2    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(cpmm)
+        !$acc update host(cpmm) if_present
         call writer(ni,nj,1,1,nx,ny,CPMM(ib,jb),'cpmm    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(zol)
+        !$acc update host(zol) if_present
         call writer(ni,nj,1,1,nx,ny,ZOL(ib,jb),'zol     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(mavail)
+        !$acc update host(mavail) if_present
         call writer(ni,nj,1,1,nx,ny,MAVAIL(ib,jb),'mavail  ',        &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(mol)
+        !$acc update host(mol) if_present
         call writer(ni,nj,1,1,nx,ny,MOL(ib,jb),'mol     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(rmol)
+        !$acc update host(rmol) if_present
         call writer(ni,nj,1,1,nx,ny,RMOL(ib,jb),'rmol    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(regime)
+        !$acc update host(regime) if_present
         call writer(ni,nj,1,1,nx,ny,REGIME(ib,jb),'regime  ',        &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(lh)
+        !$acc update host(lh) if_present
         call writer(ni,nj,1,1,nx,ny,LH(ib,jb),'lh      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(tmn)
+        !$acc update host(tmn) if_present
         call writer(ni,nj,1,1,nx,ny,tmn(ib,jb),'tmn     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(flhc)
+        !$acc update host(flhc) if_present
         call writer(ni,nj,1,1,nx,ny,FLHC(ib,jb),'flhc    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(flqc)
+        !$acc update host(flqc) if_present
         call writer(ni,nj,1,1,nx,ny,FLQC(ib,jb),'flqc    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(qgh)
+        !$acc update host(qgh) if_present
         call writer(ni,nj,1,1,nx,ny,QGH(ib,jb),'qgh     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(ck)
+        !$acc update host(ck) if_present
         call writer(ni,nj,1,1,nx,ny,CK(ib,jb),'ck      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(cka)
+        !$acc update host(cka) if_present
         call writer(ni,nj,1,1,nx,ny,CKA(ib,jb),'cka     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(cda)
+        !$acc update host(cda) if_present
         call writer(ni,nj,1,1,nx,ny,CDA(ib,jb),'cda     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(ustm)
+        !$acc update host(ustm) if_present
         call writer(ni,nj,1,1,nx,ny,USTM(ib,jb),'ustm    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(qsfc)
+        !$acc update host(qsfc) if_present
         call writer(ni,nj,1,1,nx,ny,QSFC(ib,jb),'qsfc    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(t2)
+        !$acc update host(t2) if_present
         call writer(ni,nj,1,1,nx,ny,T2(ib,jb),'t2      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(q2)
+        !$acc update host(q2) if_present
         call writer(ni,nj,1,1,nx,ny,Q2(ib,jb),'q2      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(th2)
+        !$acc update host(th2) if_present
         call writer(ni,nj,1,1,nx,ny,TH2(ib,jb),'th2     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(emiss)
+        !$acc update host(emiss) if_present
         call writer(ni,nj,1,1,nx,ny,EMISS(ib,jb),'emiss   ',         &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(thc)
+        !$acc update host(thc) if_present
         call writer(ni,nj,1,1,nx,ny,THC(ib,jb),'thc     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(albd)
+        !$acc update host(albd) if_present
         call writer(ni,nj,1,1,nx,ny,ALBD(ib,jb),'albd    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(gsw)
+        !$acc update host(gsw) if_present
         call writer(ni,nj,1,1,nx,ny,gsw(ib,jb),'gsw     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(glw)
+        !$acc update host(glw) if_present
         call writer(ni,nj,1,1,nx,ny,glw(ib,jb),'glw     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(chklowq) 
+        !$acc update host(chklowq) if_present
         call writer(ni,nj,1,1,nx,ny,chklowq(ib,jb),'chklowq ',       &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(capg)
+        !$acc update host(capg) if_present
         call writer(ni,nj,1,1,nx,ny,capg(ib,jb),'capg    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(snowc)
+        !$acc update host(snowc) if_present
         call writer(ni,nj,1,1,nx,ny,snowc(ib,jb),'snowc   ',         &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(fm)
+        !$acc update host(fm) if_present
         call writer(ni,nj,1,1,nx,ny,fm(ib,jb),'fm      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(fh)
+        !$acc update host(fh) if_present
         call writer(ni,nj,1,1,nx,ny,fh(ib,jb),'fh      ',            &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(mznt)
+        !$acc update host(mznt) if_present
         call writer(ni,nj,1,1,nx,ny,mznt(ib,jb),'mznt    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(swspd)
+        !$acc update host(swspd) if_present
         call writer(ni,nj,1,1,nx,ny,swspd(ib,jb),'swspd   ',         &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(wstar)
+        !$acc update host(wstar) if_present
         call writer(ni,nj,1,1,nx,ny,wstar(ib,jb),'wstar   ',         &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(delta)
+        !$acc update host(delta) if_present
         call writer(ni,nj,1,1,nx,ny,delta(ib,jb),'delta   ',         &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(tslb)
+        !$acc update host(tslb) if_present
         do n=1,num_soil_layers
           if( n.lt.10 )then
             text1 = 'tslbX   '
@@ -1268,37 +1268,37 @@
       endif
 
       if(oceanmodel.eq.2)then
-        !$acc update host(tml)
+        !$acc update host(tml) if_present
         call writer(ni,nj,1,1,nx,ny,tml(ib,jb),'tml     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(t0ml)
+        !$acc update host(t0ml) if_present
         call writer(ni,nj,1,1,nx,ny,t0ml(ib,jb),'t0ml    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(hml)
+        !$acc update host(hml) if_present
         call writer(ni,nj,1,1,nx,ny,hml(ib,jb),'hml     ',           &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(h0ml)
+        !$acc update host(h0ml) if_present
         call writer(ni,nj,1,1,nx,ny,h0ml(ib,jb),'h0ml    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(huml)
+        !$acc update host(huml) if_present
         call writer(ni,nj,1,1,nx,ny,huml(ib,jb),'huml    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(hvml)
+        !$acc update host(hvml) if_present
         call writer(ni,nj,1,1,nx,ny,hvml(ib,jb),'hvml    ',          &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                     dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-        !$acc update host(tmoml)
+        !$acc update host(tmoml) if_present
         call writer(ni,nj,1,1,nx,ny,tmoml(ib,jb),'tmoml   ',         &
                     ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                     ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -1309,157 +1309,157 @@
 
     IF( ipbl.eq.4 .or. ipbl.eq.5 .or. sfcmodel.eq.6 )THEN
       if(myid.eq.0) print *,'  writing mynn vars ... '
-      !$acc update host(qke)
+      !$acc update host(qke) if_present
       call writer(ni,nj,1,nk,nx,ny,qke(ib,jb,1),'qke     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qke3d)
+      !$acc update host(qke3d) if_present
       call writer(ni,nj,1,nk,nx,ny,qke3d(ib,jb,1),'qke3d   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(tsq)
+      !$acc update host(tsq) if_present
       call writer(ni,nj,1,nk,nx,ny,tsq(ib,jb,1),'tsq     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qsq)
+      !$acc update host(qsq) if_present
       call writer(ni,nj,1,nk,nx,ny,qsq(ib,jb,1),'qsq     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(cov)
+      !$acc update host(cov) if_present
       call writer(ni,nj,1,nk,nx,ny,cov(ib,jb,1),'cov     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sh3d)
+      !$acc update host(sh3d) if_present
       call writer(ni,nj,1,nk,nx,ny,sh3d(ib,jb,1),'sh3d    ',       &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(el_pbl)
+      !$acc update host(el_pbl) if_present 
       call writer(ni,nj,1,nk,nx,ny,el_pbl(ib,jb,1),'el_pbl  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qc_bl)
+      !$acc update host(qc_bl) if_present
       call writer(ni,nj,1,nk,nx,ny,qc_bl(ib,jb,1),'qc_bl   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qi_bl)
+      !$acc update host(qi_bl) if_present
       call writer(ni,nj,1,nk,nx,ny,qi_bl(ib,jb,1),'qi_bl   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(cldfra_bl)
+      !$acc update host(cldfra_bl) if_present
       call writer(ni,nj,1,nk,nx,ny,cldfra_bl(ib,jb,1),'cldfra_b',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(edmf_a)
+      !$acc update host(edmf_a) if_present
       call writer(ni,nj,1,nk,nx,ny,edmf_a(ib,jb,1),'edmf_a  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(edmf_w)
+      !$acc update host(edmf_w) if_present
       call writer(ni,nj,1,nk,nx,ny,edmf_w(ib,jb,1),'edmf_w  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(edmf_qt)
+      !$acc update host(edmf_qt) if_present
       call writer(ni,nj,1,nk,nx,ny,edmf_qt(ib,jb,1),'edmf_qt ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(edmf_thl)
+      !$acc update host(edmf_thl) if_present
       call writer(ni,nj,1,nk,nx,ny,edmf_thl(ib,jb,1),'edmf_thl',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(edmf_ent)
+      !$acc update host(edmf_ent) if_present
       call writer(ni,nj,1,nk,nx,ny,edmf_ent(ib,jb,1),'edmf_ent',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(edmf_qc)
+      !$acc update host(edmf_qc) if_present
       call writer(ni,nj,1,nk,nx,ny,edmf_qc(ib,jb,1),'edmf_qc ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sub_thl3d)
+      !$acc update host(sub_thl3d) if_present
       call writer(ni,nj,1,nk,nx,ny,sub_thl3d(ib,jb,1),'sub_thl3',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sub_sqv3d)
+      !$acc update host(sub_sqv3d) if_present
       call writer(ni,nj,1,nk,nx,ny,sub_sqv3d(ib,jb,1),'sub_sqv3',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(det_thl3d)
+      !$acc update host(det_thl3d) if_present
       call writer(ni,nj,1,nk,nx,ny,det_thl3d(ib,jb,1),'det_thl3',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(det_sqv3d)
+      !$acc update host(det_sqv3d) if_present
       call writer(ni,nj,1,nk,nx,ny,det_sqv3d(ib,jb,1),'det_sqv3',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(thpten)
+      !$acc update host(thpten) if_present
       call writer(ni,nj,1,nk,nx,ny,thpten(ib,jb,1),'thpten  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qvpten)
+      !$acc update host(qvpten) if_present
       call writer(ni,nj,1,nk,nx,ny,qvpten(ib,jb,1),'qvpten  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qcpten)
+      !$acc update host(qcpten) if_present
       call writer(ni,nj,1,nk,nx,ny,qcpten(ib,jb,1),'qcpten  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qipten)
+      !$acc update host(qipten) if_present
       call writer(ni,nj,1,nk,nx,ny,qipten(ib,jb,1),'qipten  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(upten)
+      !$acc update host(upten) if_present
       call writer(ni,nj,1,nk,nx,ny,upten(ib,jb,1),'upten   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(vpten)
+      !$acc update host(vpten) if_present
       call writer(ni,nj,1,nk,nx,ny,vpten(ib,jb,1),'vpten   ',      &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qnipten)
+      !$acc update host(qnipten) if_present
       call writer(ni,nj,1,nk,nx,ny,qnipten(ib,jb,1),'qnipten ',    &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qncpten)
+      !$acc update host(qncpten) if_present
       call writer(ni,nj,1,nk,nx,ny,qncpten(ib,jb,1),'qncpten ',    &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(vdfg)
+      !$acc update host(vdfg) if_present
       call writer(ni,nj,1,1,nx,ny,vdfg(ib,jb),'vdfg    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(maxmf)
+      !$acc update host(maxmf) if_present
       call writer(ni,nj,1,1,nx,ny,maxmf(ib,jb),'maxmf   ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(nupdraft,ktop_plume)
+      !$acc update host(nupdraft,ktop_plume) if_present
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = nupdraft(i,j)
@@ -1487,94 +1487,94 @@
 
     IF(ipbl.eq.6)THEN
       if(myid.eq.0) print *,'  writing myj vars ... '
-      !$acc update host(tke_myj)
+      !$acc update host(tke_myj) if_present
       call writer(ni,nj,1,nk,nx,ny,tke_myj(ib,jb,1),'tke_myj ',    &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(el_myj)
+      !$acc update host(el_myj) if_present
       call writer(ni,nj,1,nk,nx,ny,el_myj(ib,jb,1),'el_myj  ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF(sfcmodel.eq.7)THEN
-      !$acc update host(mixht)
+      !$acc update host(mixht) if_present
       call writer(ni,nj,1,1,nx,ny,mixht(ib,jb),'mixht   ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(akhs)
+      !$acc update host(akhs) if_present
       call writer(ni,nj,1,1,nx,ny,akhs(ib,jb),'akhs    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(akms)
+      !$acc update host(akms) if_present
       call writer(ni,nj,1,1,nx,ny,akms(ib,jb),'akms    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(elflx)
+      !$acc update host(elflx) if_present
       call writer(ni,nj,1,1,nx,ny,elflx(ib,jb),'elflx   ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(ct)
+      !$acc update host(ct) if_present
       call writer(ni,nj,1,1,nx,ny,ct(ib,jb),'ct      ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(snow)
+      !$acc update host(snow) if_present
       call writer(ni,nj,1,1,nx,ny,snow(ib,jb),'snow    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(sice)
+      !$acc update host(sice) if_present
       call writer(ni,nj,1,1,nx,ny,sice(ib,jb),'sice    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(thz0)
+      !$acc update host(thz0) if_present
       call writer(ni,nj,1,1,nx,ny,thz0(ib,jb),'thz0    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qz0)
+      !$acc update host(qz0) if_present
       call writer(ni,nj,1,1,nx,ny,qz0(ib,jb),'qz0     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(uz0)
+      !$acc update host(uz0) if_present
       call writer(ni,nj,1,1,nx,ny,uz0(ib,jb),'uz0     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(vz0)
+      !$acc update host(vz0) if_present
       call writer(ni,nj,1,1,nx,ny,vz0(ib,jb),'vz0     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(th10)
+      !$acc update host(th10) if_present
       call writer(ni,nj,1,1,nx,ny,th10(ib,jb),'th10    ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(q10)
+      !$acc update host(q10) if_present
       call writer(ni,nj,1,1,nx,ny,q10(ib,jb),'q10     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(z0base)
+      !$acc update host(z0base) if_present
       call writer(ni,nj,1,1,nx,ny,z0base(ib,jb),'z0base  ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(zntmyj)
+      !$acc update host(zntmyj) if_present
       call writer(ni,nj,1,1,nx,ny,zntmyj(ib,jb),'zntmyj  ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(lowlyr,ivgtyp)
+      !$acc update host(lowlyr,ivgtyp) if_present
       do j=1,nj
       do i=1,ni
         dum1(i,j,1) = lowlyr(i,j)
@@ -1627,7 +1627,7 @@
 #endif
           endif
         endif
-        !$acc update host(pta)
+        !$acc update host(pta) if_present
         do n=1,npt
           if( n.lt.10 )then
             text1 = 'ptX     '
@@ -1675,7 +1675,7 @@
 #endif
           endif
         endif
-        !$acc update host(pdata)
+        !$acc update host(pdata) if_present
         ! only write position info:
         if(myid.eq.0)then
           if( .not. terrain_flag )then
@@ -1746,7 +1746,7 @@
           endif
         endif
 #endif
-        !$acc update host(radbcw)
+        !$acc update host(radbcw) if_present
         do k=1,nk
           call writerbcwe(radbcw,aname,ndum,dumy,ibw,jb,je,kb,ke,ny,ni,nj,nk,nodex,nodey,restart_format,myid,k,numprocs,myj1p)
           if( myid.eq.0 )then
@@ -1780,7 +1780,7 @@
           endif
         endif
 #endif
-        !$acc update host(radbce)
+        !$acc update host(radbce) if_present
         do k=1,nk
           call writerbcwe(radbce,aname,ndum,dumy,ibe,jb,je,kb,ke,ny,ni,nj,nk,nodex,nodey,restart_format,myid,k,numprocs,myj1p)
           if( myid.eq.0 )then
@@ -1822,7 +1822,7 @@
           endif
         endif
 #endif
-        !$acc update host(radbcs)
+        !$acc update host(radbcs) if_present
         do k=1,nk
           call writerbcsn(radbcs,aname,ndum,dumx,ibs,ib,ie,kb,ke,nx,ni,nj,nk,nodex,nodey,restart_format,myid,k,numprocs,myi1p)
           if( myid.eq.0 )then
@@ -1856,7 +1856,7 @@
           endif
         endif
 #endif
-        !$acc update host(radbcn)
+        !$acc update host(radbcn) if_present
         do k=1,nk
           call writerbcsn(radbcn,aname,ndum,dumx,ibn,ib,ie,kb,ke,nx,ni,nj,nk,nodex,nodey,restart_format,myid,k,numprocs,myi1p)
           if( myid.eq.0 )then
@@ -1889,7 +1889,7 @@
 
 
     IF( restart_file_theta )THEN
-      !$acc update host(th0,tha)
+      !$acc update host(th0,tha) if_present
       do k=1,nk
       do j=1,nj
       do i=1,ni
@@ -1903,14 +1903,14 @@
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF( restart_file_u0 .or. do_lsnudge .or. do_adapt_move )THEN
-      !$acc update host(u0)
+      !$acc update host(u0) if_present
       call writer(ni+1,nj,1,nk,nx+1,ny,u0(ib,jb,1),'u0      ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecu,52,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2iu,d2ju,d3iu,d3ju)
     ENDIF
     IF( restart_file_v0 .or. do_lsnudge .or. do_adapt_move )THEN
-      !$acc update host(v0)
+      !$acc update host(v0) if_present
       call writer(ni,nj+1,1,nk,nx,ny+1,v0(ib,jb,1),'v0      ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecv,53,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -1918,7 +1918,7 @@
     ENDIF
     IF( restart_file_dbz )THEN
       ! cm1r19:
-      !$acc update host(qdiag)
+      !$acc update host(qdiag) if_present
       call writer(ni,nj,1,nk,nx,ny,qdiag(ibdq,jbdq,1,qd_dbz),'dbz     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -1926,35 +1926,35 @@
     ENDIF
     !-----
     IF( restart_file_th0 )THEN
-      !$acc update host(th0)
+      !$acc update host(th0) if_present
       call writer(ni,nj,1,nk,nx,ny,th0(ib,jb,1),'th0     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF( restart_file_prs0 )THEN
-      !$acc update host(prs0)
+      !$acc update host(prs0) if_present
       call writer(ni,nj,1,nk,nx,ny,prs0(ib,jb,1),'prs0    ',       &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF( restart_file_pi0 )THEN
-      !$acc update host(pi0)
+      !$acc update host(pi0) if_present
       call writer(ni,nj,1,nk,nx,ny,pi0(ib,jb,1),'pi0     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF( restart_file_rho0 )THEN
-      !$acc update host(rho0)
+      !$acc update host(rho0) if_present
       call writer(ni,nj,1,nk,nx,ny,rho0(ib,jb,1),'rho0    ',       &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF( restart_file_qv0 )THEN
-      !$acc update host(qv0)
+      !$acc update host(qv0) if_present
       call writer(ni,nj,1,nk,nx,ny,qv0(ib,jb,1),'qv0     ',        &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -1962,21 +1962,21 @@
     ENDIF
     !-----
     IF( restart_file_zs )THEN
-      !$acc update host(zs)
+      !$acc update host(zs) if_present
       call writer(ni,nj,1,1,nx,ny,zs(ib,jb),'zs      ',            &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF( restart_file_zh )THEN
-      !$acc update host(zh)
+      !$acc update host(zh) if_present
       call writer(ni,nj,1,nk,nx,ny,zh(ib,jb,1),'zhalf   ',         &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
     ENDIF
     IF( restart_file_zf )THEN
-      !$acc update host(zf)
+      !$acc update host(zf) if_present
       call writer(ni,nj,1,nk+1,nx,ny,zf(ib,jb,1),'zfull   ',       &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecw,54,   &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p, &
@@ -1984,7 +1984,7 @@
     ENDIF
 
     IF( restart_file_diags )THEN
-      !$acc update host(tdiag)
+      !$acc update host(tdiag) if_present
       if( td_diss.gt.0 )                                                 &
       call writer(ni,nj,1,nk,nx,ny,tdiag(ib,jb,1,td_diss),'dissheat',    &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,         &
@@ -1995,7 +1995,7 @@
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,         &
                   ncid,time_index,restart_format,restart_filetype,myi1p,myi2p,myj1p,myj2p,       &
                   dat1(1,1),dat2(1,1),dat3(1,1,1),reqt,ppnode,d3n,d3t,mynode,nodemaster,nodes,d2is,d2js,d3is,d3js)
-      !$acc update host(qdiag)
+      !$acc update host(qdiag) if_present
       if( qd_vtc.gt.0 )                                                  &
       call writer(ni,nj,1,nk,nx,ny,qdiag(ib,jb,1,qd_vtc),'vtc     ',     &
                   ni,nj,ngxy,myid,numprocs,nodex,nodey,orecs,51,         &
@@ -4946,6 +4946,7 @@
           enddo
           enddo
         enddo
+
         write(50) dat2
       ENDIF
     ENDDO
