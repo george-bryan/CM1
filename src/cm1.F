@@ -191,7 +191,7 @@ end module cuda_rt
       integer, dimension(:), allocatable :: reqt
       integer :: reqc,reqk
       real, dimension(:,:), allocatable :: pdata,ploc
-      double precision, dimension(:,:,:,:), allocatable :: dpten
+      real, dimension(:,:,:,:), allocatable :: dpten
       logical, dimension(:,:,:), allocatable :: flag
 
 !--- arrays for MPI ---

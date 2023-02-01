@@ -24,14 +24,14 @@
   CONTAINS
 
       subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
-                               sigma,sigmaf,znt,rho,ua,va,wa,pdata,                 &
-                               th_in,qa,th0,pi0,ppa,prs,                            &
-                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
-                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
-                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
-                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
+                               sigma,sigmaf,znt,rho,ua,va,wa,s10,pdata,                   &
+                               th_in,qa,th0,pi0,ppa,prs,                                  &
+                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                           &
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,                    &
+                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
+                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
                                uten,vten,wten,thten,qten,pdata_locind)
-      use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
+      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
           kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
@@ -67,9 +67,10 @@
       real, intent(in), dimension(kb:ke) :: sigma
       real, intent(in), dimension(kb:ke+1) :: sigmaf
       real, intent(in), dimension(ib:ie,jb:je) :: znt
+      real, intent(in), dimension(ibl:iel,jbl:jel) :: s10
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa
-      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
       real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua,uten
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va,vten
@@ -96,7 +97,7 @@
       real :: x3d,y3d,z3d
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
-      real :: sig3d,th_tmp,rand
+      real :: sig3d,th_tmp,rand,s10_xym
       real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
               rp0,taup0,rhop0,x3d0,y3d0,z3d0,sig3d0
 
@@ -620,8 +621,18 @@
 
 !----------------------------------------------------------------------
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
-
-     call droplet_injection(pdata,xf,yf,dt,randomNumbers)
+! Requires inputting the current 10-meter wind speed
+     
+     s10_xym = 0.0
+     do j=1,nj
+     do i=1,ni
+        s10_xym = s10_xym + s10(i,j)
+     end do
+     end do
+     call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+     s10_xym = s10_xym/real(nx*ny)
+     if (myid==0) write(*,*) 'DHR U10',s10_xym
+     call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
 
    if (myid==0) then 
    write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
@@ -680,7 +691,8 @@
       real :: top,bot
       integer :: i,j,k
       real :: taup_scale,dt_nondim
-      double precision :: guess,rt_zeros(2),rt_start(2)
+      double precision :: rt_zeros(2),rt_start(2)
+      real :: guess
       integer :: mflag,flag
 
       integer :: num_fallout
@@ -759,7 +771,7 @@
 
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
-      call rad_solver2(guess,mflag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
+      call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
       if (mflag.eq.0) then
          rt_start(1) = guess/dble(pdata(np,prrp))
@@ -1311,7 +1323,7 @@
       real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: uten
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: vten
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wten
-      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
 
       integer, intent(in) :: np
       integer, intent(in) :: iflag,jflag,kflag
@@ -2077,11 +2089,11 @@
       use cm1libs , only : eslf
       implicit none
 
-      double precision, intent(out) :: guess
+      real, intent(out) :: guess
       integer, intent(out) :: mflag
-      double precision, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+      real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
       integer, intent(in) :: np
-      double precision :: a, c, esa, Q, R, M, theta, S, T, rhval
+      real :: a, c, esa, Q, R, M, theta, S, T, rhval
 
       mflag = 0
       esa = eslf(real(prsval),real(tval))  !Saturation vapor pressure at droplet temperature
@@ -2407,7 +2419,7 @@
 
       end subroutine ie_vrt_nd
 
-      subroutine droplet_injection(pdata,xf,yf,dt,randomNumbers)
+      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
@@ -2420,7 +2432,7 @@
       type(randomNumberSequence),intent(inout) :: randomNumbers
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je+1) :: yf
-      real, intent(in) :: dt
+      real, intent(in) :: dt,s10_xym
     
       integer :: i,my_reintro,np
       real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
@@ -2428,7 +2440,7 @@
 
       real :: totdrops  !Total number being produced during this call to droplet_injection
       real :: rad_init  !Initial radius, being calculated one at a time according to SSGF
-      real :: u10       !Drives the SSGF
+      real :: u10
 
       real :: xrange,yrange,zrange
       real :: salinity
@@ -2456,11 +2468,7 @@
   
       ! Now figure out how many particles are produced in each of
       ! those bins. This is a function of u10
-
-
-      !!!!! NEED TO BRING IN THE ACTUAL MODEL U10 !!!!!
-      u10 = 30.0
-      !!!!! NEED TO BRING IN THE ACTUAL MODEL U10 !!!!!
+      u10 = min(s10_xym,50.0)
 
       c1 = 10*smithssgf(u10,10.0,0.4)
       c2 = c1*(37.5**1.8)
@@ -2508,7 +2516,7 @@
 
       my_reintro = 10
 
-   if (myid==0) write(*,'(a8,3i,4e15.6)')  'DHR0:',totdrops,my_reintro,numprocs,drop_mult,xrange,yrange,dt
+   if (myid==0) write(*,'(a15,i,6e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt
 
       if (nparcelsActive+my_reintro .lt. nparcelsActiveMax) then   !Only add particles to pdata if we're still under nparcelsActiveMax
 
