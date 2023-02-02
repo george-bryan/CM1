@@ -69,13 +69,13 @@
           ib2d,ie2d,jb2d,je2d,nout2d,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,nbudget,nqs1,nqs2,nql1,nql2, &
           nnci,nncc,nqv,nqc,nqi,dx,dy,dz,umove,vmove,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc, &
           terrain_flag,mytime,iice,sfcmodel,sgsmodel,myid,cm1setup,testcase,ipbl,idiss,horizturb, &
-          time_turb,time_sfcphys,time_pbl,output_dissten,use_pbl,rdx,rdy,rdz,timestats,isfcflx, &
+          time_turb,time_sfcphys,time_pbl,time_lb,output_dissten,use_pbl,rdx,rdy,rdz,timestats,isfcflx, &
           output_def,output_nm,output_km,output_kh,output_sfcflx,imoist,oceanmodel,imove, &
           viscosity,sc_num,pr_num,smeps,dot2p,use_avg_sfc,use_avg_sfc,dowr,ptype,axisymm, &
           td_diss,td_pbl,pertflx,radopt,outfile,dodomaindiag,cnst_znt,isftcflx,iz0tlnd,adapt_dt, &
           bl_mynn_edmf,bl_mynn_tkeadvect,bl_mynn_tkebudget,bl_mynn_cloudpdf,bl_mynn_mixlength,bl_mynn_edmf, &
           bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,bl_mynn_output,bl_mynn_cloudmix,bl_mynn_mixqt, &
-          icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag
+          icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag,ierr
       use constants
       use bc_module, only: bc2d_GPU, bcw_GPU, bcs_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_GPU
       use comm_module
@@ -1043,27 +1043,21 @@
   IF( bbc.eq.3 )THEN
     !-------------!
     call bc2d_GPU(ust)
-#ifdef MPI
-    call comm_1s2d_start_GPU(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
-                             us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
-#endif
     call bc2d_GPU(u1)
-#ifdef MPI
-    call comm_1s2d_start_GPU(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
-                             us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
-#endif
     call bc2d_GPU(v1)
-#ifdef MPI
-    call comm_1s2d_start_GPU(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
-                             us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
-#endif
     call bc2d_GPU(s1)
-#ifdef MPI
-    call comm_1s2d_start_GPU(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
-                             us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
-#endif
     call bc2d_GPU(znt)
 #ifdef MPI
+    call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+    if(timestats.ge.1) time_lb=time_lb+mytime()
+    call comm_1s2d_start_GPU(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
+                             us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
+    call comm_1s2d_start_GPU(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
+                             us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
+    call comm_1s2d_start_GPU(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
+                             us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
+    call comm_1s2d_start_GPU(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
+                             us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
     call comm_1s2d_start_GPU(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
                              us31(1,1,5),us32(1,1,5),un31(1,1,5),un32(1,1,5),reqs_p)
 #endif
@@ -1142,22 +1136,18 @@
   IF( tbc.eq.3 )THEN
     !-------------!
     call bc2d_GPU(ustt)
-#ifdef MPI
-    call comm_1s2d_start_GPU(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
-                              us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
-#endif
     call bc2d_GPU(ut)
-#ifdef MPI
-    call comm_1s2d_start_GPU(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
-                             us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
-#endif
     call bc2d_GPU(vt)
-#ifdef MPI
-    call comm_1s2d_start_GPU(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
-                             us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
-#endif
     call bc2d_GPU(st)
 #ifdef MPI
+    call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+    if(timestats.ge.1) time_lb=time_lb+mytime()
+    call comm_1s2d_start_GPU(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
+                              us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
+    call comm_1s2d_start_GPU(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
+                             us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
+    call comm_1s2d_start_GPU(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
+                             us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
     call comm_1s2d_start_GPU(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                              us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
 #endif
@@ -1167,18 +1157,15 @@
     !-------------!
     call comm_1s2d_end_GPU(ustt,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                             us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
-    call bcs2_2d_GPU(ustt)
-
     call comm_1s2d_end_GPU(ut ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                            us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
-    call bcs2_2d_GPU(ut )
-
     call comm_1s2d_end_GPU(vt ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                            us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
-    call bcs2_2d_GPU(vt )
-
     call comm_1s2d_end_GPU(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                            us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
+    call bcs2_2d_GPU(ustt)
+    call bcs2_2d_GPU(ut )
+    call bcs2_2d_GPU(vt )
     call bcs2_2d_GPU(st )
 
     !-------------!
@@ -1517,11 +1504,13 @@
 
       if( do_ib )then
 #ifdef MPI
+        call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call getcorneru_GPU(ua,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcu2_GPU(ua)
         call getcornerv_GPU(va,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcv2_GPU(va)
         call getcornerw_GPU(wa,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcu2_GPU(ua)
+        call bcv2_GPU(va)
         call bcw2_GPU(wa)
 #endif
       endif
@@ -2274,11 +2263,11 @@
 
       if( use_pbl )then
         call bcs_GPU(upten)
-#ifdef MPI
-        call comm_1s_start_GPU(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-#endif
         call bcs_GPU(vpten)
 #ifdef MPI
+        call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        if(timestats.ge.1) time_lb=time_lb+mytime()
+        call comm_1s_start_GPU(upten,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
         call comm_1s_start_GPU(vpten,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_p)
 #endif
         IF( axisymm.eq.1 )THEN
@@ -2323,10 +2312,14 @@
                          kvdw1,kvdw2,kvde1,kvde2,kvds1,kvds2,kvdn1,kvdn2)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmt,ibc,iec,jbc,jec,kbc,kec, &
           ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
-          dx,dy,dz,myid,timestats,time_turb,mytime,tconfig 
+          dx,dy,dz,myid,timestats,time_lb,time_turb,mytime,tconfig,ierr
       use constants
       use bc_module, only: bcw_GPU, bct2_GPU
       use comm_module
+#ifdef MPI
+      use mpi
+#endif
+
       implicit none
 
       integer, intent(in) :: nstep
@@ -2498,8 +2491,8 @@
 
     ENDIF
      
-    !$acc update host (grdscl)
     if( nstep.eq.0 .and. myid.eq.0 )then
+      !$acc update host (grdscl)
       print *
       print *,'  zf,grdscl:'
       i = 1
@@ -2515,25 +2508,18 @@
 ! Set values at boundaries, start comms:
 
       call bcw_GPU(kmh,1)
-#ifdef MPI
-      call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
-                             khcs1,khcs2,khcn1,khcn2,reqs_khc)
-#endif
-
       call bcw_GPU(kmv,1)
-#ifdef MPI
-      call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
-                             kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-#endif
-
       call bcw_GPU(khh,1)
-#ifdef MPI
-      call comm_1t_start_GPU(khh,khdw1,khdw2,khde1,khde2,   &
-                             khds1,khds2,khdn1,khdn2,reqs_khd)
-#endif
-
       call bcw_GPU(khv,1)
 #ifdef MPI
+      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      if(timestats.ge.1) time_lb=time_lb+mytime()
+      call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
+                             khcs1,khcs2,khcn1,khcn2,reqs_khc)
+      call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
+                             kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
+      call comm_1t_start_GPU(khh,khdw1,khdw2,khde1,khde2,   &
+                             khds1,khds2,khdn1,khdn2,reqs_khd)
       call comm_1t_start_GPU(khv,kvdw1,kvdw2,kvde1,kvde2,   &
                              kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
 #endif
@@ -2543,14 +2529,15 @@
 #ifdef MPI
       call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                            khcs1,khcs2,khcn1,khcn2,reqs_khc)
-      call bct2_GPU(kmh)
       call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                            kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call bct2_GPU(kmv)
       call comm_1t_end_GPU(khh,khdw1,khdw2,khde1,khde2,   &
                            khds1,khds2,khdn1,khdn2,reqs_khd)
       call comm_1t_end_GPU(khv,kvdw1,kvdw2,kvde1,kvde2,   &
                            kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
+
+      call bct2_GPU(kmh)
+      call bct2_GPU(kmv)
       call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #endif
@@ -2570,10 +2557,14 @@
                        kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmt,ibc,iec,jbc,jec,kbc,kec, &
           ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
-          dx,dy,dz,myid,timestats,time_turb,mytime,tbc,bbc
+          dx,dy,dz,myid,timestats,time_lb,time_turb,mytime,tbc,bbc,ierr
       use constants
       use bc_module, only: bc2d_GPU, bcs2_2d_GPU
       use comm_module
+#ifdef MPI
+      use mpi
+#endif
+
       implicit none
 
       real, intent(inout), dimension(ibt:iet,jbt:jet,kbt:ket) :: tkea
@@ -2626,20 +2617,15 @@
 
         !-----
         call bc2d_GPU(tkea(ibt,jbt,1))
-        !call bc2d(tkea(ibt,jbt,1))
+        call bc2d_GPU(kmh(ibc,jbc,1))
 #ifdef MPI
+        call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_1s2d_start_GPU(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                              kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-#endif
-        call bc2d_GPU(kmh(ibc,jbc,1))
-        !call bc2d(kmh(ibc,jbc,1))
-#ifdef MPI
         call comm_1s2d_start_GPU(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         !-----
-!!$acc update host(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
-!!$acc host(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
-!!$acc host(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
         call comm_1s2d_end_GPU(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                            kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
         call bcs2_2d_GPU(tkea(ibt,jbt,1))
@@ -2650,9 +2636,6 @@
         !-----
         call comm_2d_corner_GPU(tkea(ibt,jbt,1))
         call comm_2d_corner_GPU(kmh(ibc,jbc,1))
-!!$acc update device(tkea,kmh,kmv,khh,khv,zntmp,ust,ustt)              &
-!!$acc device(khcw1,khcw2,khce1,khce2,khcs1,khcs2,khcn1,khcn2)  &
-!!$acc device(kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2) 
         !-----
 #endif
 
@@ -2688,14 +2671,12 @@
 
         !-----
         call bc2d_GPU(tkea(ibt,jbt,nk+1))
-        !call bc2d(tkea(ibt,jbt,nk+1))
+        call bc2d_GPU(kmh(ibc,jbc,nk+1))
 #ifdef MPI
+        call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_1s2d_start_GPU(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                                 kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-#endif
-        call bc2d_GPU(kmh(ibc,jbc,nk+1))
-        !call bc2d(kmh(ibc,jbc,nk+1))
-#ifdef MPI
         call comm_1s2d_start_GPU(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                                khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         !-----
@@ -2881,6 +2862,8 @@
       call bcw_GPU(kmv,1)
       !$acc end data
 #ifdef MPI
+      ! call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      ! if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
       call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
@@ -2949,6 +2932,8 @@
         call bc2d_GPU(kmv(ibc,jbc,1))
         !$acc end data
 #ifdef MPI
+        !call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        !if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
@@ -3001,7 +2986,7 @@
                           kvcw1,kvcw2,kvce1,kvce2,kvcs1,kvcs2,kvcn1,kvcn2)
       use input, only : ib,ie,jb,je,kb,ke,ibc,iec,jbc,jec,kbc,kec,ib3d,ie3d, &
           jb3d,je3d,kb3d,ke3d,nout3d,kmt,imp,jmp,ni,nj,nk,nx,ny,dx,dy,timestats, &
-          time_turb,mytime,l_h,lhref1,lhref2,idiss,output_dissten
+          mytime,l_h,lhref1,lhref2,idiss,output_dissten,time_turb
       use constants
       use bc_module, only: bcw_GPU, bct2_GPU
       use comm_module
@@ -3101,6 +3086,8 @@
       call bcw_GPU(kmh,1)
       !$acc end data
 #ifdef MPI
+      !call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      !if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
       call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
@@ -3239,6 +3226,8 @@
 
 #ifdef MPI
       !JMD FIXME:  These subroutine operate on GPU resident data
+      !call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      !if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                              kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
       call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
@@ -3287,6 +3276,8 @@
         call bc2d_GPU(kmv(ibc,jbc,1))
         !$acc end data
 #ifdef MPI
+        !call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        !if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
@@ -5539,7 +5530,7 @@
 
       use input, only: ib,ie,jb,je,kb,ke,ib2pt,ie2pt,jb2pt,je2pt,kb2pt,ke2pt, &
           ibc,iec,jbc,jec,kbc,kec,imp,jmp,kmp,cmp,rmp,ntwk,numq,ni,nj,nk,nx,ny, &
-          ierr,rdz,smeps,timestats,time_turb,mytime
+          ierr,rdz,smeps,timestats,time_turb,time_mpgg,time_lb,mytime
   
       use constants , only : karman
 #ifdef MPI
@@ -5632,12 +5623,17 @@
         cavg(k,2) = cavg2
       enddo
       !$acc end parallel
+      if(timestats.ge.1) time_turb=time_turb+mytime()
 
 #ifdef MPI
+      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      if(timestats.ge.1) time_lb=time_lb+mytime()
+
       !$acc host_data use_device(cavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(1,1),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,cavg(1,2),nk,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc end host_data 
+      if(timestats.ge.1) time_mpgg=time_mpgg+mytime()
 #endif
 
       temd = 1.0/dble(nx*ny)
@@ -5691,11 +5687,16 @@
       spavg(k) = spavgt
     enddo
     !$acc end parallel
+      if(timestats.ge.1) time_turb=time_turb+mytime()
 
 #ifdef MPI
+      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      if(timestats.ge.1) time_lb=time_lb+mytime()
+
       !$acc host_data use_device(spavg)
       call MPI_ALLREDUCE(MPI_IN_PLACE,spavg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       !$acc end host_data
+      if(timestats.ge.1) time_mpgg=time_mpgg+mytime()
 #endif
 
     !$acc parallel default(present)
@@ -5719,11 +5720,11 @@
     !$acc serial default(present)
     gamk(1) = gamk(2)
     !$acc end serial 
+      if(timestats.ge.1) time_turb=time_turb+mytime()
  
     endif  doinggamk
 
     !$acc end data
-      if(timestats.ge.1) time_turb=time_turb+mytime()
 
       end subroutine getgamk
 

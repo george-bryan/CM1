@@ -14,9 +14,12 @@
 
       subroutine pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,west,newwest,east,neweast,reqs_s)
       use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,jmp,kmp,ni,nj,nk,&
-          wbc,ebc,ibw,ibe,rdx,axisymm,terrain_flag,timestats,time_pdef,mytime
+          wbc,ebc,ibw,ibe,rdx,axisymm,terrain_flag,timestats,time_pdef,time_lb,mytime,ierr
       use bc_module, only: bcs_GPU
       use comm_module
+#ifdef MPI
+      use mpi
+#endif
       implicit none
 
       real, intent(in), dimension(ib:ie) :: xh,arh1,arh2,uh
@@ -111,6 +114,8 @@
 
         call bcs_GPU(dum)
 #ifdef MPI
+        call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_2we_start_GPU(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
 #endif
 
@@ -289,9 +294,12 @@
 
       subroutine pdefy1(vh,rho0,gz,rgz,rrv,advy,dum,mass,s0,s,dt,flag,south,newsouth,north,newnorth,reqs_s)
       use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,imp,jmp,kmp,ni,nj,nk,&
-          sbc,nbc,ibs,ibn,rdy,axisymm,terrain_flag,timestats,time_pdef,mytime,smeps
+          sbc,nbc,ibs,ibn,rdy,axisymm,terrain_flag,timestats,time_pdef,mytime,smeps,time_lb,ierr
       use bc_module, only: bcs_GPU
       use comm_module
+#ifdef MPI
+      use mpi
+#endif
       implicit none
 
       real, intent(in), dimension(jb:je) :: vh
@@ -370,6 +378,8 @@
 
         call bcs_GPU(dum)
 #ifdef MPI
+        call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_2sn_start_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
 

@@ -26,7 +26,7 @@
       use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,rmp,imp,jmp,kmp,         &
           ni,nj,nk,nsound,psolver,terrain_flag,rdx,rdy,rdz,axisymm,timestats,time_sound,   &
           mytime,irbc,ibw,ibe,ibs,ibn,wbc,ebc,sbc,nbc,roflux,convinit,convtime,nx,ny,myid, &
-          zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
+          zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,time_lb,ierr
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
       use bc_module, only : bcp, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
@@ -36,6 +36,9 @@
 #endif
       use maxmin_module
       use ib_module
+#ifdef MPI
+      use mpi
+#endif
       implicit none
 
       real, intent(in) :: dt
@@ -988,6 +991,8 @@
           ! 210613: call bcp, only set 1 row/column
           call bcp(ppd)
 #ifdef MPI
+          call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+          if(timestats.ge.1) time_lb=time_lb+mytime()
           call comm_1p_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif

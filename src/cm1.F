@@ -2846,6 +2846,8 @@ end module cuda_rt
 !$acc              th3d,phi2,vten,vten1,rrw,wa,w3d,wten,wten1,pdata_locind, &
 !$acc              dum2d1,dum2d2,dum2d3,dum2d4,dum2d5)    ! JMD: does not appear to be used
 
+!!!!!$acc              kpbl2d,regime,LH,FLHC,CK,CKA,USTM, &
+
     if(timestats.ge.1) time_H2D=time_H2D+mytime()
 
     !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
@@ -3503,6 +3505,7 @@ end module cuda_rt
           enddo
           enddo
         ENDIF
+#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3513,7 +3516,7 @@ end module cuda_rt
                           ua,va,wa,ppi,tha,qa,qten,kmh,kmv,khh,khv,tkea,qke,  &
                           tke_myj,xkzh,xkzq,xkzm,                             &
                           pta,u10,v10,hpbl,prate,reset,nstatout)
-
+#endif
         !Also compute the droplet diagnostics at the same frequency as statpack
 
         ! JS: with the new MPI implementation, we can:
@@ -3969,7 +3972,7 @@ end module cuda_rt
           enddo
         endif
 #ifdef _OPENACC
-        print *,'WARNING: OPENACC version of write_restart has not been verified'
+        !print *,'WARNING: OPENACC version of write_restart has not been verified'
 #endif
         call     write_restart(nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,      &
                                trecs,trecw,arecs,arecw,                             &
@@ -4051,6 +4054,7 @@ end module cuda_rt
                     time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
+                    time_mpgg+time_lb+ &
                     time_dpc+time_droplet_reduce+time_parceli_reduce+                 &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
@@ -4172,9 +4176,14 @@ end module cuda_rt
         call MPI_REDUCE(time_phys_D2H ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_phys_D2H = sum/float(numprocs)
 
+        time_sound_min=time_sound
+        time_sound_max=time_sound
         sum = 0.0
         call MPI_REDUCE(time_sound   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,time_sound_min,1,MPI_REAL,MPI_MIN,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,time_sound_max,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
         time_sound = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_poiss   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_poiss = sum/float(numprocs)
@@ -4196,9 +4205,11 @@ end module cuda_rt
         sum = 0.0
         call MPI_REDUCE(time_buoyan  ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_buoyan = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_turb    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_turb = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_sfcphys ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_sfcphys = sum/float(numprocs)
@@ -4375,6 +4386,10 @@ end module cuda_rt
         time_droplet = sum/float(numprocs)
 
         sum = 0.0
+        call MPI_REDUCE(time_lb ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_lb = sum/float(numprocs)
+
+        sum = 0.0
         call MPI_REDUCE(time_droplet_reduce ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_droplet_reduce = sum/float(numprocs)
 
@@ -4436,6 +4451,16 @@ end module cuda_rt
         sum = 0.0
         call MPI_REDUCE(time_dpc     ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_dpc = sum/float(numprocs)
+
+        sum = 0.0
+        sum = 0.0
+        time_mpgg_min=time_mpgg
+        time_mpgg_max=time_mpgg
+        call MPI_REDUCE(time_mpgg    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,time_mpgg_min,1,MPI_REAL,MPI_MIN,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,time_mpgg_max,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        time_mpgg = sum/float(numprocs)
+
       ENDIF
 #endif
 
@@ -4457,7 +4482,8 @@ end module cuda_rt
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                   time_mps1+time_mps3+time_mpq1+time_mptk1+                     &
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
-                  time_dpc+time_droplet_reduce+                                    &
+                  time_mpgg+ &
+                  time_dpc+time_droplet_reduce+time_lb+                         &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
                   time_phys_H2D+time_phys_D2H
@@ -4467,7 +4493,7 @@ end module cuda_rt
       mp_total=time_mpu1+time_mpv1+time_mpw1+time_mpp1+                   &
                time_mpu2+time_mpv2+time_mpw2+time_mpp2+                   &
                time_mps1+time_mps3+time_mpq1+time_mptk1+                            &
-               time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+time_dpc
+               time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+time_dpc+time_mpgg
 #endif
 
       if(dowr) write(outfile,*)
@@ -4481,7 +4507,8 @@ end module cuda_rt
     IF(dowr)THEN
       write(outfile,100) 'phys-H2D',time_phys_H2D,time_phys_H2D/time_solve
       write(outfile,100) 'phys-D2H',time_phys_D2H,time_phys_D2H/time_solve
-      write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
+      ! write(outfile,100) 'sound   ',time_sound,time_sound/time_solve
+      write(outfile,120) 'sound ',time_sound_min,time_sound,time_sound_max
       write(outfile,100) 'poiss   ',time_poiss,time_poiss/time_solve
       write(outfile,100) 'advs    ',time_advs,time_advs/time_solve
       write(outfile,100) 'advu    ',time_advu,time_advu/time_solve
@@ -4489,7 +4516,7 @@ end module cuda_rt
       write(outfile,100) 'advw    ',time_advw,time_advw/time_solve
       write(outfile,100) 'divx    ',time_divx,time_divx/time_solve
       write(outfile,100) 'buoyan  ',time_buoyan,time_buoyan/time_solve
-      write(outfile,100) 'turb    ',time_turb,time_turb/time_solve
+      write(outfile,100) ' turb   ',time_turb,time_turb/time_solve
       write(outfile,100) 'sfcphys ',time_sfcphys,time_sfcphys/time_solve
       write(outfile,100) 'ttend   ',time_ttend,time_ttend/time_solve
       write(outfile,100) 'cor     ',time_cor,time_cor/time_solve
@@ -4550,6 +4577,7 @@ end module cuda_rt
       write(outfile,100) 'parcels ',time_parcels,time_parcels/time_solve
       write(outfile,100) 'parceli ',time_parceli,time_parceli/time_solve
       write(outfile,100) 'droplet ',time_droplet,time_droplet/time_solve
+      write(outfile,100) 'load-imb',time_lb,time_lb/time_solve
       if( dodomaindiag )  &
       write(outfile,100) 'domndiag',time_diag,time_diag/time_solve
       if( doazimavg )  &
@@ -4581,11 +4609,13 @@ end module cuda_rt
       write(outfile,100) 'dropletA',time_droplet_reduce,time_droplet_reduce/time_solve
       write(outfile,100) 'parceliA',time_parceli_reduce,time_parceli_reduce/time_solve
       write(outfile,100) 'dpc     ',time_dpc,time_dpc/time_solve
+      write(outfile,120) 'mpgg ',time_mpgg_min,time_mpgg,time_mpgg_max
 #endif
       write(outfile,*)
     ENDIF
 
 100   format(3x,a8,' :  ',f10.2,2x,f6.2,'%')
+120   format(3x,a8,' :  ',f10.2,2x,f10.2,2x,f10.2)
 
 #ifdef MPI
       if(myid.eq.0) print *

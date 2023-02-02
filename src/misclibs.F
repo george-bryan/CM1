@@ -4470,7 +4470,8 @@
 
 
       subroutine set_time_to_zero
-      use input, only : time_sound,time_poiss,time_advs,time_phys_H2D,time_phys_D2H, &
+      use input, only : time_sound,time_sound_min,time_sound_max, &
+          time_poiss,time_advs,time_phys_H2D,time_phys_D2H, &
           time_H2D,time_D2H,time_advu,time_advv,time_advw,time_buoyan,time_turb, &
           time_diffu,time_microphy,time_dbz,time_stat,time_cflq,time_bc,time_bcs, &
           time_bcs2,time_bcst,time_misc,time_misc01,time_misc02,time_misc03,time_misc04, &
@@ -4483,12 +4484,14 @@
           time_pdef,time_prsrho,time_diag,time_azimavg,time_hifrq,time_ercyl,time_mpu1, &
           time_mpv1,time_mpw1,time_mpp1,time_mpu2,time_mpv2,time_mpw2,time_mpp2,time_mps1, &
           time_mps3,time_mpq1,time_mptk1,time_mptk2,time_mps2,time_mps4,time_mpq2,time_mpb, &
-          time_dpc
+          time_dpc,time_mpgg,time_mpgg_min,time_mpgg_max,time_lb
 
 
       implicit none
 
       time_sound=0.0
+      time_sound_max=-10000000.0
+      time_sound_min= 10000000.00
       time_poiss=0.0
       time_advs=0.0
       time_phys_H2D=0.0
@@ -4577,6 +4580,10 @@
       time_mpq2=0.0
       time_mpb=0.0
       time_dpc=0.0
+      time_mpgg=0.0
+      time_mpgg_max=-10000000.0
+      time_mpgg_min= 10000000.00
+      time_lb=0.0
 #endif
 
       end subroutine set_time_to_zero

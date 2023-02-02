@@ -23,9 +23,9 @@
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,rmp,imp,jmp,kmp, &
-          ni,nj,nk,nsound,psolver,terrain_flag,rdx,rdy,rdz,axisymm,timestats,time_sound, &
+          ni,nj,nk,nsound,psolver,terrain_flag,rdx,rdy,rdz,axisymm,timestats,time_sound,time_lb, &
           mytime,irbc,ibw,ibe,ibs,ibn,wbc,ebc,sbc,nbc,roflux,convinit,convtime,nx,ny,myid, &
-          zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,alph
+          zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,alph,ierr
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
       use bc_module, only: bcs_GPU, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
@@ -34,6 +34,9 @@
       use comm_module, only : comm_1s_start_GPU,comm_1p_end_GPU
 #endif
       use ib_module
+#ifdef MPI
+      use mpi
+#endif
       implicit none
 
       real, intent(in) :: dt
@@ -333,10 +336,8 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          !!$acc update host(ppd)
           call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
-          !!$acc update device(ppd)
         endif
 #endif
 
@@ -834,10 +835,13 @@
 !          call flush(6)
           call bcs_GPU(ppd)
 #ifdef MPI
-          !$acc update host(ppd)
+          !JMD-KLUDGE this looks strange here...
+          call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+          if(timestats.ge.1) time_lb=time_lb+mytime()
+          !!$acc update host(ppd)
           call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
-          !$acc update device(ppd)
+          !!$acc update device(ppd)
 #endif
         ENDIF
 

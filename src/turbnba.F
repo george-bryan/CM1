@@ -147,6 +147,8 @@
     endif
 
 #ifdef MPI
+      ! call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      ! if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1s_start_GPU(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                                 ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
       call comm_1s_end_GPU(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
@@ -203,6 +205,8 @@
         call bc2d_GPU(grdscl(ib,jb,k))
         !$acc end data
 #ifdef MPI
+        ! call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+        ! if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_2d_start_GPU(grdscl(ib,jb,k),west,newwest,east,neweast,   &
                                            south,newsouth,north,newnorth,reqs_s)
         call comm_2dew_end_GPU(grdscl(ib,jb,k),west,newwest,east,neweast,reqs_s)
@@ -569,6 +573,8 @@
     endif
 
 #ifdef MPI
+      !call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+      !if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1s_start_GPU(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                                 ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
       call comm_1s_end_GPU(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
