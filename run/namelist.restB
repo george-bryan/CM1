@@ -1,9 +1,9 @@
 
  &param0
- nx           =    256,
- ny           =    512,
- nz           =    1024,
- ppnode       =      4,
+ nx           =    128,
+ ny           =    256,
+ nz           =    256,
+ ppnode       =    36,
  timeformat   =       2,
  timestats    =       1,
  terrain_flag = .false.,
@@ -11,14 +11,14 @@
  /
 
  &param1
- dx     =    20.0,
- dy     =    10.0,
- dz     =     2.5,
+ dx     =    40.0,
+ dy     =    20.0,
+ dz     =    10.0,
  dtl    =   0.125,
- timax  = 20.0,
+ timax  = 120.0,
  run_time =  -999.9,
  tapfrq =   900.0,
- rstfrq = 10.0,
+ rstfrq = 10800.0,
  statfrq =  60.0,
  prclfrq =   60.0,
  /
@@ -27,7 +27,7 @@
  cm1setup  =  1,
  testcase  = 10,
  adapt_dt  =  1,
- irst      =  0,
+ irst      =  1,
  rstnum    =  1,
  iconly    =  0,
  hadvordrs =  5,
@@ -342,7 +342,7 @@
 
  &param14
  dodomaindiag   =    .true.,
- diagfrq        =     2.0,
+ diagfrq        =     1.0,
  /
 
  &param15
