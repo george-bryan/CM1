@@ -227,9 +227,9 @@
       endif  myid0
 #endif
 
-      call bcast_log(terrain_flag,device=.true.)
-      call bcast_real(dx,device=.true.)
-      call bcast_real(dy,device=.true.)
+      call bcast_log(terrain_flag) ! DEVICE
+      call bcast_real(dx)          ! DEVICE
+      call bcast_real(dy)          ! DEVICE
       call bcast_real(dz)
       call bcast_real(dtl)
       call bcast_real(timax)
@@ -256,7 +256,7 @@
       call bcast_int(idiff)
       call bcast_int(mdiff)
       call bcast_int(difforder)
-      call bcast_int(imoist,device=.true.)
+      call bcast_int(imoist) ! DEVICE
       call bcast_int(ipbl)
       call bcast_int(sgsmodel)
       call bcast_int(tconfig)
@@ -266,7 +266,7 @@
       call bcast_int(irdamp)
       call bcast_int(hrdamp)
       call bcast_int(psolver)
-      call bcast_int(ptype,device=.true.)
+      call bcast_int(ptype) ! DEVICE
       call bcast_int(ihail)
       call bcast_int(iautoc)
       call bcast_int(icor)
@@ -279,7 +279,7 @@
       call bcast_int(ebc)
       call bcast_int(sbc)
       call bcast_int(nbc)
-      call bcast_int(bbc,device=.true.)
+      call bcast_int(bbc) ! DEVICE
       call bcast_int(tbc)
       call bcast_int(irbc)
       call bcast_int(roflux)
@@ -291,13 +291,13 @@
       call bcast_int(irandp)
       call bcast_int(ibalance)
       call bcast_int(iorigin)
-      call bcast_int(axisymm,device=.true.)
-      call bcast_int(imove,device=.true.)
+      call bcast_int(axisymm) ! DEVICE
+      call bcast_int(imove) ! DEVICE
       call bcast_int(iptra)
       call bcast_int(npt)
       call bcast_int(pdtra)
       call bcast_int(iprcl)
-      call bcast_int(nparcels,device=.true.)
+      call bcast_int(nparcels) ! DEVICE
       call bcast_real(kdiff2)
       call bcast_real(kdiff6)
       call bcast_real(fcor)
@@ -307,8 +307,8 @@
       call bcast_real(zd)
       call bcast_real(xhd)
       call bcast_real(alphobc)
-      call bcast_real(umove,device=.true.)
-      call bcast_real(vmove,device=.true.)
+      call bcast_real(umove) ! DEVICE
+      call bcast_real(vmove) ! DEVICE
       call bcast_real(v_t)
       call bcast_real(l_h)
       call bcast_real(lhref1)
@@ -334,9 +334,9 @@
       call bcast_int(bc_temp)
       call bcast_real(ptc_top)
       call bcast_real(ptc_bot)
-      call bcast_real(viscosity,device=.true.)
-      call bcast_real(pr_num,device=.true.)
-      call bcast_real(sc_num,device=.true.)
+      call bcast_real(viscosity) ! DEVICE
+      call bcast_real(pr_num)    ! DEVICE
+      call bcast_real(sc_num)    ! DEVICE
 
       call bcast_real(var1)
       call bcast_real(var2)
