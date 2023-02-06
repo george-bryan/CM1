@@ -133,13 +133,6 @@
       integer :: tmp_flag
 #endif
 
-      double precision :: t_s,t_f,t_findloc,t_interp,t_BEint,t_feed,t_s1,t_f1,t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor
-
-
-      t_s = mpi_wtime()
-
-      !!! DHR: From what I can tell this is useless -- it only resets seed for the intrinsic random_number routine
-      call reinit_random_seed
 
       call date_and_time(values=values)
       local_seed = -(myid+values(8)+values(7)+values(6))
@@ -319,26 +312,9 @@
     !$acc loop gang vector
 #endif
 
-    t_f = mpi_wtime()
-    if (myid==0) write(*,*) 'TIME prep:',t_f-t_s
-
-    t_s = mpi_wtime()
-
-    t_findloc = 0.0
-    t_interp = 0.0
-    t_BEint = 0.0
-    t_feed = 0.0
-
-    t_BEprep = 0.0
-    t_radsolver = 0.0
-    t_gauss = 0.0
-    t_LV = 0.0
-    t_neighbor = 0.0
 
     nploop:  &
     DO np=1,nparcelsActive
-
-      t_s1 = mpi_wtime()
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -396,9 +372,6 @@
          call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
       endif
 
-      t_f1 = mpi_wtime()
-      t_findloc = t_findloc + (t_f1-t_s1)
-
       dvpdt1 = pdata(np,prvpx)
       dvpdt2 = pdata(np,prvpy)
       dvpdt3 = pdata(np,prvpz)
@@ -412,27 +385,18 @@
       z3d0   = z3d 
       sig3d0 = sig3d
 
-      t_s1 = mpi_wtime()
-
       call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
                                  uval,vval,wval,tval,qval,rhoval,prsval, &
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
-      t_f1 = mpi_wtime()
-      t_interp = t_interp + (t_f1-t_s1)
-
-      t_s1 = mpi_wtime()
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
-                          num100,num1000,neighbor,num_fallout,&
-                          t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor)
+                          num100,num1000,neighbor,num_fallout)
 
 
-      t_f1 = mpi_wtime()
-      t_BEint = t_BEint + (t_f1-t_s1)
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
 #endif
@@ -450,7 +414,6 @@
       dtpdt  = (pdata(np,prtp)-dtpdt)/dt
       dmpdt  = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt)/dt
 
-      t_s1 = mpi_wtime()
 
       !Project the feedback onto the grid, using ORIGINAL location
       call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
@@ -458,8 +421,6 @@
                             xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
                             sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                             rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
-      t_f1 = mpi_wtime()
-      t_feed = t_feed + (t_f1-t_s1)
 
     ENDDO  nploop
     !$acc end parallel
@@ -468,17 +429,6 @@
 
     !$acc update host(pdata,pdata_locind)
 
-    if (myid==0) write(*,*) 'TIME findloc:',t_findloc
-    if (myid==0) write(*,*) 'TIME interp:',t_interp
-
-    if (myid==0) write(*,*) 'TIME BEint:',t_BEint
-    if (myid==0) write(*,*) 'TIME BEprep:',t_BEprep
-    if (myid==0) write(*,*) 'TIME radsolver:',t_radsolver
-    if (myid==0) write(*,*) 'TIME gauss:',t_gauss
-    if (myid==0) write(*,*) 'TIME LV:',t_LV
-    if (myid==0) write(*,*) 'TIME neighbor:',t_neighbor
-
-    if (myid==0) write(*,*) 'TIME feed:',t_feed
 
     call mpi_allreduce(mpi_in_place,num100,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
     call mpi_allreduce(mpi_in_place,num1000,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
@@ -487,11 +437,6 @@
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-    t_f = mpi_wtime()
-    if (myid==0) write(*,*) 'TIME nploop:',t_f-t_s
-    
-
-    t_s = mpi_wtime()
 
 !----------------------------------------------------------------------
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsActive
@@ -528,12 +473,7 @@
 
    deallocate(holes_fallout_ind)
 
-   call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
 
-    t_f = mpi_wtime()
-    if (myid==0) write(*,*) 'TIME fallout:',t_f-t_s
-
-    t_s = mpi_wtime()
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -597,8 +537,6 @@
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif
 
-    t_f = mpi_wtime()
-    if (myid==0) write(*,*) 'TIME mpi_comm:',t_f-t_s
 
 !----------------------------------------------------------------------
 !  get height ASL:
@@ -617,7 +555,6 @@
 !
 !----------------------------------------------------------------------
 
-  t_s = mpi_wtime()
 
 !----------------------------------------------------------------------
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
@@ -634,12 +571,11 @@
      if (myid==0) write(*,*) 'DHR U10',s10_xym
      call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
 
+   call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
    if (myid==0) then 
    write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
    end if
 
-    t_f = mpi_wtime()
-    if (myid==0) write(*,*) 'TIME injection:',t_f-t_s
 
    end subroutine droplet_driver
 
@@ -647,8 +583,7 @@
                                 z3d,sig3d,uval,vval,wval,qval,rhoval, &
                                 prsval,tval,Nup,rhop0,taup0,rp0, &
                                 part_grav1,part_grav2,part_grav3, &
-                                debug,num100,num1000,neighbor,num_fallout,&
-                                t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor)
+                                debug,num100,num1000,neighbor,num_fallout)
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
@@ -697,9 +632,6 @@
 
       integer :: num_fallout
 
-      double precision :: t_s,t_f,t_BEprep,t_radsolver,t_gauss,t_LV,t_neighbor
-
-      t_s = mpi_wtime()
 
       !Store interpolated quantities for the sake of statistics
       pdata(np,pru) = uval
@@ -764,10 +696,6 @@
       
       guess = 0.0
 
-      t_f = mpi_wtime()
-      t_BEprep = t_BEprep + (t_f-t_s)
-
-      t_s = mpi_wtime()
 
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
@@ -781,21 +709,13 @@
          rt_start(2) = 1.0
       end if
 
-      t_f = mpi_wtime()
-      t_radsolver = t_radsolver + (t_f-t_s)
 
-      t_s = mpi_wtime()
       call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
-      t_f = mpi_wtime()
-      t_gauss = t_gauss + (t_f-t_s)
 
-      t_s = mpi_wtime()
       if (flag==1) then
          num100 = num100+1
          call LV_solver(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
       end if
-      t_f = mpi_wtime()
-      t_LV = t_LV + (t_f-t_s)
 
       !In rare cases the nonlinear solvers fail to converge
       if (flag==1)  then
@@ -836,7 +756,6 @@
 
 #ifdef MPI
 
-      t_s = mpi_wtime()
 
       ! determine which new MPI region this droplet 
       ! enters or stays for the next time step
@@ -927,9 +846,6 @@
           pdata_locind(np,2) .eq. undefined_index) then
           pdata_locind(np,3) = undefined_index
       end if
-
-      t_f = mpi_wtime()
-      t_neighbor = t_neighbor + (t_f-t_s)
 
       end subroutine BE_integration
 
@@ -2523,8 +2439,11 @@
       do np=nparcelsActive+1,nparcelsActive+my_reintro
 
          rand = getRandomReal(randomNumbers)
-         a = totdrops*getRandomReal(randomNumbers)
+         a = totdrops*rand
 
+         !Set the droplet radius based on the sea spray generation function (SSGF)
+         !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
+         !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
          do i = 1,100
             if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
                rand = getRandomReal(randomNumbers)
