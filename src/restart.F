@@ -304,6 +304,7 @@
   IF( restart_format.eq.1 )THEN
     IF(myid.eq.0)THEN
       ! only processor 0 does this:
+      !$acc update host(nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,trecs,trecw) if_present
       write(50) nstep
       write(50) srec
       write(50) sirec
@@ -315,6 +316,7 @@
       write(50) prec
       write(50) trecs
       write(50) trecw
+      !$acc update host(arecs,arecw,mvrec,nwrite,nwritet,nwritea,nwritemv,nrst) if_present
       write(50) arecs
       write(50) arecw
       write(50) mvrec
@@ -323,6 +325,7 @@
       write(50) nwritea
       write(50) nwritemv
       write(50) nrst
+      !$acc update host(nstatout,ndt,icenter,jcenter,output_format,dt,dtlast,xcenter,ycenter,umove,vmove) if_present
       write(50) nstatout
       write(50) ndt
       write(50) icenter
@@ -334,6 +337,7 @@
       write(50) ycenter
       write(50) umove
       write(50) vmove
+      !$acc update host(adaptmovetim,cflmax,mtime,stattim,taptim,rsttim,prcltim) if_present
       write(50) adaptmovetim
       write(50) cflmax
       write(50) mtime
@@ -342,6 +346,7 @@
       write(50) rsttim
       write(50) radtim
       write(50) prcltim
+      !$acc update host(adt,acfl,dbldt,mass1,avgsfcu,avgsfcv,avgsfcs,avgsfct) if_present
       write(50) adt
       write(50) acfl
       write(50) dbldt
@@ -542,6 +547,7 @@
     IF( myid.eq.0 )THEN
 
       IF( restart_format.eq.1 )THEN
+        !$acc update host(qbudget,asq,bsq) if_present
         write(50) qbudget
         write(50) asq
         write(50) bsq
@@ -563,6 +569,7 @@
   IF( do_lsnudge .or. do_adapt_move )THEN
 
     if( myid.eq.0 )then
+      !$acc update host(ug,vg) if_present
       write(50) ug
       write(50) vg
     endif
@@ -1602,6 +1609,7 @@
 !  2-part turbulence param:
 
       if( myid.eq.0 )then
+        !$acc update host(gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z) if_present
         write(50) gamk
         write(50) kmw
         write(50) u1b
@@ -1619,6 +1627,7 @@
 
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
+            !$acc update host(npt) if_present
             write(50) npt
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -1649,6 +1658,7 @@
         if(myid.eq.0)then
           nvar = 0
           if( restart_format.eq.1 )then
+            !$acc update host(nvar) if_present
             write(50) nvar
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -1667,6 +1677,7 @@
         ! with parcels:
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
+            !$acc update host(nparcels) if_present
             write(50) nparcels
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -1707,6 +1718,7 @@
         if(myid.eq.0)then
           nvar = 0
           if( restart_format.eq.1 )then
+            !$acc update host(nvar) if_present
             write(50) nvar
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -2030,6 +2042,7 @@
       ! cm1r19.7 fix !
       if( myid.eq.0 )then
       if( restart_format.eq.1 )then
+        !$acc update host(nwriteh) if_present
         write(50) nwriteh
 #ifdef NETCDF
       elseif( restart_format.eq.2 )then
@@ -3553,14 +3566,14 @@
          read(50) ce1z
          read(50) ce2z
       endif
-      call bcast_real(gamk,ke,kb)
-      call bcast_real(kmw ,ke,kb)
-      call bcast_real(u1b ,ke,kb)
-      call bcast_real(v1b ,ke,kb)
-      call bcast_real(cmz ,ke,kb)
-      call bcast_real(csz ,ke,kb)
-      call bcast_real(ce1z,ke,kb)
-      call bcast_real(ce2z,ke,kb)
+      call bcast_real(gamk,kb,ke)
+      call bcast_real(kmw ,kb,ke)
+      call bcast_real(u1b ,kb,ke)
+      call bcast_real(v1b ,kb,ke)
+      call bcast_real(cmz ,kb,ke)
+      call bcast_real(csz ,kb,ke)
+      call bcast_real(ce1z,kb,ke)
+      call bcast_real(ce2z,kb,ke)
 !#ifdef MPI
 !      call MPI_BCAST(gamk,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
 !      call MPI_BCAST(kmw ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
