@@ -30,7 +30,7 @@
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,                    &
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
-                               uten,vten,wten,thten,qten,pdata_locind)
+                               uten,vten,wten,thten,qten,pdata_locind,time_dropinject)
       use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
           kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
@@ -87,6 +87,8 @@
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
+      real, intent(inout) :: time_dropinject
+      real :: drop_inject_elapse
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -416,11 +418,11 @@
 
 
       !Project the feedback onto the grid, using ORIGINAL location
-      call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
-                            rhop0,taup0,rp0,tval,uten,vten,wten,qten,thten, &
-                            xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
-                            sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
-                            rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
+      !call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
+      !                      rhop0,taup0,rp0,tval,uten,vten,wten,qten,thten, &
+      !                      xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
+      !                      sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
+      !                      rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
 
     ENDDO  nploop
     !$acc end parallel
@@ -429,14 +431,12 @@
 
     !$acc update host(pdata,pdata_locind)
 
-
     call mpi_allreduce(mpi_in_place,num100,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
     call mpi_allreduce(mpi_in_place,num1000,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
     
     if (myid==0) write(*,*) 'num100,num1000 = ',num100,num1000
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
-
 
 !----------------------------------------------------------------------
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsActive
@@ -568,8 +568,12 @@
      end do
      call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
      s10_xym = s10_xym/real(nx*ny)
-     if (myid==0) write(*,*) 'DHR U10',s10_xym
-     call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
+     if (myid==0) write(*,*) 'DHR U10',s10_xym,time_dropinject
+     drop_inject_elapse = 2.0
+     if (time_dropinject .gt. drop_inject_elapse) then
+        call droplet_injection(pdata,xf,yf,dt,s10_xym,time_dropinject,randomNumbers)
+         time_dropinject = 0.0
+     end if
 
    call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
    if (myid==0) then 
@@ -2204,13 +2208,21 @@
         call inverse_finder_2d(g,det,invg)
         correct(1) = invg(1,1)*gradC(1)+invg(1,2)*gradC(2)
         correct(2) = invg(2,1)*gradC(1)+invg(2,2)*gradC(2)
+
+        rt_zeros(1) = v1(1) - correct(1)
+        rt_zeros(2) = v1(2) - correct(2)
+
         if (sqrt(correct(1)*correct(1)+correct(2)*correct(2)) < error) then
            EXIT
         end if
 
-        rt_zeros(1) = v1(1) - correct(1)
-        rt_zeros(2) = v1(2) - correct(2)
+        if (rt_zeros(1)<0.0 .OR. rt_zeros(2)<0.0) then
+            flag = 1
+            EXIT
+        end if
+
         call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
         newC(1) = 0.5*fv2(1)*fv2(1)
         newC(2) = 0.5*fv2(2)*fv2(2)
 
@@ -2220,11 +2232,6 @@
            lambda = lambda/ldown
         else
            lambda = lambda*lup
-        end if
-
-        if (rt_zeros(1)<0.0 .OR. rt_zeros(2)<0.0) then
-            flag = 1
-            EXIT
         end if
 
         end do
@@ -2335,7 +2342,7 @@
 
       end subroutine ie_vrt_nd
 
-      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
+      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,time_since_inject,randomNumbers)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
@@ -2348,7 +2355,7 @@
       type(randomNumberSequence),intent(inout) :: randomNumbers
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je+1) :: yf
-      real, intent(in) :: dt,s10_xym
+      real, intent(in) :: dt,s10_xym,time_since_inject
     
       integer :: i,my_reintro,np
       real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
@@ -2420,19 +2427,19 @@
       totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
 
       !Define these here
+      !These are the LOCAL area for EACH processor
       xrange = xf(ni+1)-xf(1)
       yrange = yf(nj+1)-yf(1)
       zrange = 8.0
 
-#ifdef MPI
-      my_reintro = floor(xrange*yrange*dt*totdrops/(numprocs*drop_mult))    !Number of droplets to be produced by this MPI task
-#else
-      my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
-#endif
-
-      my_reintro = 10
+      !my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
+      !my_reintro = floor(xrange*yrange*dt*totdrops/1e9)      !Number of droplets to be produced by this MPI task
+      my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
    if (myid==0) write(*,'(a15,i,6e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt
+
+      !my_reintro = 10
+
 
       if (nparcelsActive+my_reintro .lt. nparcelsActiveMax) then   !Only add particles to pdata if we're still under nparcelsActiveMax
 
@@ -2452,6 +2459,9 @@
          enddo
 
          rad_init = rad_init*1.0e-6
+
+        !DHR TEST
+        rad_init = 2.0e-6
 
         !Now populate the pdata array, starting at the list
        

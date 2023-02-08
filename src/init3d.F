@@ -71,7 +71,8 @@
                         tha,th3d,thten,thten1,qa,q3d,qten,                &
                         kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                         pta,pt3d,ptten,                                   &
-                        pdata,cfb,cfa,cfc,ad1,ad2,pdt,lgbth,lgbph,rhs,trans)
+                        pdata,cfb,cfa,cfc,ad1,ad2,pdt,lgbth,lgbph,rhs,    &
+                        trans,time_dropinject)
 
       use input
       use constants
@@ -166,6 +167,7 @@
       logical :: doit
 
       real :: salinity
+      real, intent(inout) :: time_dropinject
 
 
       ! Note:  By default, CM1 uses the same set of psuedorandom numbers 
@@ -415,6 +417,7 @@
 
         i = 1
         nparcelsActive = 0
+        time_dropinject = 0.0
 
         do n=1,nparcels
 
