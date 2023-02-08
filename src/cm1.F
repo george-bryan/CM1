@@ -2267,6 +2267,16 @@ end module cuda_rt
       nparcelsLocal = nparcelsActiveMax
 #endif
 
+      if (nparcels .gt. nparcelsActiveMax) then
+
+      if( myid.eq.0 ) print *,' WARNING: nparcels exceeds allowed max. Check nparcelsActiveMax. Exiting'
+
+#ifdef MPI
+          call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+#endif
+          call stopcm1
+      end if
+
       !$acc update device (nparcelsLocal)
 
       allocate(  pdata(nparcelsLocal,npvals) )

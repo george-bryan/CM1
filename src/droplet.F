@@ -96,6 +96,7 @@
       integer :: n,np,i,j,k,iflag,jflag,kflag
       integer :: ix,iy,iz
       integer :: num100,num1000
+      integer, dimension(2) :: numvec
       real :: x3d,y3d,z3d
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
@@ -431,10 +432,16 @@
 
     !$acc update host(pdata,pdata_locind)
 
-    call mpi_allreduce(mpi_in_place,num100,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
-    call mpi_allreduce(mpi_in_place,num1000,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
-    
-    if (myid==0) write(*,*) 'num100,num1000 = ',num100,num1000
+    numvec(1) = num100
+    numvec(2) = num1000
+
+    if ( myid == 0 ) then
+       call mpi_reduce(mpi_in_place,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
+    else
+       call mpi_reduce(numvec,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
+    end if
+
+    if (myid==0) write(*,*) 'num100,num1000 = ',numvec(1),numvec(2)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
