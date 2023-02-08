@@ -3654,7 +3654,6 @@
       endif
 
       call bcast_int(nvar)
-#endif
 
       if( iprcl.eq.1 .or. nvar.gt.0 )then
         if( nvar.gt.0 )then
