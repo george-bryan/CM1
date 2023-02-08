@@ -2689,10 +2689,6 @@
     
     call bcast_real(ug,kb,ke)
     call bcast_real(vg,kb,ke)
-!#ifdef MPI
-!    call MPI_BCAST(ug(kb),ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!    call MPI_BCAST(vg(kb),ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!#endif
 
   ENDIF
 
@@ -3574,16 +3570,6 @@
       call bcast_real(csz ,kb,ke)
       call bcast_real(ce1z,kb,ke)
       call bcast_real(ce2z,kb,ke)
-!#ifdef MPI
-!      call MPI_BCAST(gamk,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!      call MPI_BCAST(kmw ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!      call MPI_BCAST(u1b ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!      call MPI_BCAST(v1b ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!      call MPI_BCAST(cmz ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!      call MPI_BCAST(csz ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!      call MPI_BCAST(ce1z,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!      call MPI_BCAST(ce2z,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-!#endif
 
 !---------------------------------------------------------------
 !  passive tracers:
@@ -3602,9 +3588,6 @@
       endif
 
       call bcast_int(nvar)
-!#ifdef MPI
-!      call MPI_BCAST(nvar,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-!#endif
 
       if( iptra.eq.1 .or. nvar.gt.0 )then
         if( nvar.gt.0 )then
@@ -3671,8 +3654,6 @@
       endif
 
       call bcast_int(nvar)
-#ifdef MPI
-!      call MPI_BCAST(nvar,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 #endif
 
       if( iprcl.eq.1 .or. nvar.gt.0 )then
@@ -3967,9 +3948,6 @@
       endif
       endif
       call bcast_int(nwriteh)
-!#ifdef MPI
-!      call MPI_BCAST(nwriteh,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-!#endif
 
     IF( restart_format.eq.1 )THEN
       IF(myid.eq.0) close(unit=50)
