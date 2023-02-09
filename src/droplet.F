@@ -1556,44 +1556,44 @@
       endif
 
       !$acc atomic update
-      thten(i,j,k)       = thten(i,j,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j,k)       = thten(i,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult)
+      thten(i,j,k)       = thten(i,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i,j,k)       = thten(i,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j,k)     = thten(i+1,j,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i+1,j,k)     = thten(i+1,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult)
+      thten(i+1,j,k)     = thten(i+1,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i+1,j,k)     = thten(i+1,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j+1,k)     = thten(i,j+1,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j+1,k)     = thten(i,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult)
+      thten(i,j+1,k)     = thten(i,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i,j+1,k)     = thten(i,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j,k+1)     = thten(i,j,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j,k+1)     = thten(i,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult)
+      thten(i,j,k+1)     = thten(i,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i,j,k+1)     = thten(i,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult)
+      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i+1,j,k+1)   = thten(i+1,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult)
+      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i,j+1,k+1)   = thten(i,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult)
+      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i+1,j+1,k)   = thten(i+1,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult)
+      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
+      !!$acc atomic update
+      !thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult)
 
       ! tval   = ta(i  ,j  ,k  )*w1 &
       !        + ta(i+1,j  ,k  )*w2 &
