@@ -304,6 +304,7 @@
   IF( restart_format.eq.1 )THEN
     IF(myid.eq.0)THEN
       ! only processor 0 does this:
+      !$acc update host(nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,trecs,trecw) if_present
       write(50) nstep
       write(50) srec
       write(50) sirec
@@ -315,6 +316,7 @@
       write(50) prec
       write(50) trecs
       write(50) trecw
+      !$acc update host(arecs,arecw,mvrec,nwrite,nwritet,nwritea,nwritemv,nrst) if_present
       write(50) arecs
       write(50) arecw
       write(50) mvrec
@@ -323,6 +325,7 @@
       write(50) nwritea
       write(50) nwritemv
       write(50) nrst
+      !$acc update host(nstatout,ndt,icenter,jcenter,output_format,dt,dtlast,xcenter,ycenter,umove,vmove) if_present
       write(50) nstatout
       write(50) ndt
       write(50) icenter
@@ -334,6 +337,7 @@
       write(50) ycenter
       write(50) umove
       write(50) vmove
+      !$acc update host(adaptmovetim,cflmax,mtime,stattim,taptim,rsttim,prcltim) if_present
       write(50) adaptmovetim
       write(50) cflmax
       write(50) mtime
@@ -342,6 +346,7 @@
       write(50) rsttim
       write(50) radtim
       write(50) prcltim
+      !$acc update host(adt,acfl,dbldt,mass1,avgsfcu,avgsfcv,avgsfcs,avgsfct) if_present
       write(50) adt
       write(50) acfl
       write(50) dbldt
@@ -542,6 +547,7 @@
     IF( myid.eq.0 )THEN
 
       IF( restart_format.eq.1 )THEN
+        !$acc update host(qbudget,asq,bsq) if_present
         write(50) qbudget
         write(50) asq
         write(50) bsq
@@ -563,6 +569,7 @@
   IF( do_lsnudge .or. do_adapt_move )THEN
 
     if( myid.eq.0 )then
+      !$acc update host(ug,vg) if_present
       write(50) ug
       write(50) vg
     endif
@@ -1602,6 +1609,7 @@
 !  2-part turbulence param:
 
       if( myid.eq.0 )then
+        !$acc update host(gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z) if_present
         write(50) gamk
         write(50) kmw
         write(50) u1b
@@ -1619,6 +1627,7 @@
 
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
+            !$acc update host(npt) if_present
             write(50) npt
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -1649,6 +1658,7 @@
         if(myid.eq.0)then
           nvar = 0
           if( restart_format.eq.1 )then
+            !$acc update host(nvar) if_present
             write(50) nvar
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -1667,6 +1677,7 @@
         ! with parcels:
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
+            !$acc update host(nparcels) if_present
             write(50) nparcels
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -1707,6 +1718,7 @@
         if(myid.eq.0)then
           nvar = 0
           if( restart_format.eq.1 )then
+            !$acc update host(nvar) if_present
             write(50) nvar
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -2030,6 +2042,7 @@
       ! cm1r19.7 fix !
       if( myid.eq.0 )then
       if( restart_format.eq.1 )then
+        !$acc update host(nwriteh) if_present
         write(50) nwriteh
 #ifdef NETCDF
       elseif( restart_format.eq.2 )then
@@ -2117,6 +2130,7 @@
 #ifdef MPI
       use mpi
 #endif
+      use bcast_module
 #ifdef NETCDF
       use netcdf
       use writeout_nc_module, only : disp_err
@@ -2587,55 +2601,53 @@
 #endif
   ENDIF
 
-#ifdef MPI
       ! communicate to all other processors:
-      call MPI_BCAST(nstep  ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(srec   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(sirec  ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(urec   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(vrec   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(wrec   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(nrec   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(mrec   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(prec   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(trecs  ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(trecw  ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(arecs  ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(arecw  ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(mvrec  ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(nwrite ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(nwritet,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(nwritea,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(nwritemv,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(nrst   ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(nstatout,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(ndt    ,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(icenter,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(jcenter,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(old_format,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(dt     ,1,MPI_REAL            ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(dtlast ,1,MPI_REAL            ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(xcenter,1,MPI_REAL            ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(ycenter,1,MPI_REAL            ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(umove  ,1,MPI_REAL            ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(vmove  ,1,MPI_REAL            ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(adaptmovetim,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(cflmax ,1,MPI_REAL            ,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(mtime  ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(stattim,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(taptim ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(rsttim ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(radtim ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(prcltim,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(adt    ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(acfl   ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(dbldt  ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(mass1  ,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(avgsfcu,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(avgsfcv,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(avgsfcs,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(avgsfct,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-#endif
+      call bcast_int(nstep) 
+      call bcast_int(srec)
+      call bcast_int(sirec)
+      call bcast_int(urec)
+      call bcast_int(vrec)
+      call bcast_int(wrec)
+      call bcast_int(nrec)
+      call bcast_int(mrec)
+      call bcast_int(prec)
+      call bcast_int(trecs)
+      call bcast_int(trecw)
+      call bcast_int(arecs)
+      call bcast_int(arecw)
+      call bcast_int(mvrec)
+      call bcast_int(nwrite)
+      call bcast_int(nwritet)
+      call bcast_int(nwritea)
+      call bcast_int(nwritemv)
+      call bcast_int(nrst)
+      call bcast_int(nstatout)
+      call bcast_int(ndt)
+      call bcast_int(icenter)
+      call bcast_int(jcenter)
+      call bcast_int(old_format)
+      call bcast_real(dt)
+      call bcast_real(dtlast)
+      call bcast_real(xcenter)
+      call bcast_real(ycenter)
+      call bcast_real(umove)
+      call bcast_real(vmove)
+      call bcast_real(cflmax)
+      call bcast_double(adaptmovetim)
+      call bcast_double(mtime)
+      call bcast_double(stattim)
+      call bcast_double(taptim)
+      call bcast_double(rsttim)
+      call bcast_double(radtim)
+      call bcast_double(prcltim)
+      call bcast_double(adt)
+      call bcast_double(acfl)
+      call bcast_double(dbldt)
+      call bcast_double(mass1)
+      call bcast_double(avgsfcu)
+      call bcast_double(avgsfcv)
+      call bcast_double(avgsfcs)
+      call bcast_double(avgsfct)
 
 !---------------------------------------------------------------
 ! budget variables:
@@ -2674,10 +2686,9 @@
       read(50) vg
     endif
 
-#ifdef MPI
-    call MPI_BCAST(ug(kb),ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(vg(kb),ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-#endif
+    
+    call bcast_real(ug,kb,ke)
+    call bcast_real(vg,kb,ke)
 
   ENDIF
 
@@ -3551,16 +3562,14 @@
          read(50) ce1z
          read(50) ce2z
       endif
-#ifdef MPI
-      call MPI_BCAST(gamk,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(kmw ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(u1b ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(v1b ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(cmz ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(csz ,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(ce1z,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-      call MPI_BCAST(ce2z,ke-kb+1,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-#endif
+      call bcast_real(gamk,kb,ke)
+      call bcast_real(kmw ,kb,ke)
+      call bcast_real(u1b ,kb,ke)
+      call bcast_real(v1b ,kb,ke)
+      call bcast_real(cmz ,kb,ke)
+      call bcast_real(csz ,kb,ke)
+      call bcast_real(ce1z,kb,ke)
+      call bcast_real(ce2z,kb,ke)
 
 !---------------------------------------------------------------
 !  passive tracers:
@@ -3578,9 +3587,7 @@
         print *,'  nvar_npt = ',nvar
       endif
 
-#ifdef MPI
-      call MPI_BCAST(nvar,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-#endif
+      call bcast_int(nvar)
 
       if( iptra.eq.1 .or. nvar.gt.0 )then
         if( nvar.gt.0 )then
@@ -3646,9 +3653,7 @@
         print *,'  nvar_parcels = ',nvar
       endif
 
-#ifdef MPI
-      call MPI_BCAST(nvar,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-#endif
+      call bcast_int(nvar)
 
       if( iprcl.eq.1 .or. nvar.gt.0 )then
         if( nvar.gt.0 )then
@@ -3941,9 +3946,7 @@
 #endif
       endif
       endif
-#ifdef MPI
-      call MPI_BCAST(nwriteh,1,MPI_INTEGER         ,0,MPI_COMM_WORLD,ierr)
-#endif
+      call bcast_int(nwriteh)
 
     IF( restart_format.eq.1 )THEN
       IF(myid.eq.0) close(unit=50)
