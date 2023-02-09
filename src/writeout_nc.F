@@ -1643,7 +1643,9 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine writedropdiag_nc(nrec,rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,zhvec,numconc)
+      subroutine writedropdiag_nc(nrec,&
+                                  rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
+                                  zhvec,numconc,Tpsrc,qvsrc,Tf,qf,Tpmean,radmean,qfsat)
       use input
       use constants
       use netcdf
@@ -1651,7 +1653,7 @@
 
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg
-      real,    intent(in)    :: zhvec(nk),numconc(nk)
+      real,    intent(in)    :: zhvec(nk),numconc(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),radmean(nk),qfsat(nk)
       integer, intent(in)    :: tnumpart
 
       integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid
@@ -1780,7 +1782,35 @@
     call disp_err( nf90_def_var(ncid,"numconc",nf90_float,(/zhid,timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged number concentration of droplets") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","#/m^3") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"Tpsrc",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the potential temperature") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","K/s") , .true. )
     
+    call disp_err( nf90_def_var(ncid,"qvsrc",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the water vapor mixing ratio") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","(kg/kg)/s") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"Tf",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Average temperature at droplet location") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","K") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"qf",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Average water vapor mixing ratio at droplet location") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg/kg") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"Tpmean",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged droplet temperature") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","K") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"radmean",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged droplet radius") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"qfsat",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged ambient saturation water vapor mixing ratio at droplet location") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg/kg") , .true. )
+
 
 
 
@@ -1848,6 +1878,26 @@
     call disp_err( nf90_inq_varid(ncid,"numconc",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,numconc,(/1,time_index/)) , .true. )
 
+    call disp_err( nf90_inq_varid(ncid,"Tpsrc",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,Tpsrc,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"qvsrc",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,qvsrc,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"Tf",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,Tf,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"qf",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,qf,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"Tpmean",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,Tpmean,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"radmean",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,radmean,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"qfsat",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,qfsat,(/1,time_index/)) , .true. )
 
     ! close file
 

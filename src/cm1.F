@@ -3539,7 +3539,7 @@ end module cuda_rt
         !     The second method is expected to avoid the creation of an
         !     array with size "nparcels*npvals" (saving memory space) 
         !     and thus implemented below 
-        call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
+        call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
 
         nrec = nrec + 1
         nstatout = nstatout + 1
