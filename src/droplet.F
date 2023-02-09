@@ -589,10 +589,16 @@
      call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
      s10_xym = s10_xym/real(nx*ny)
      if (myid==0) write(*,*) 'DHR U10',s10_xym,time_dropinject
+
      drop_inject_elapse = 2.0
      if (time_dropinject .gt. drop_inject_elapse) then
+
+        !Only start droplet injection after 30 minutes
+        if (mtime .gt. 1800.0) then
         call droplet_injection(pdata,xf,yf,dt,s10_xym,time_dropinject,randomNumbers)
-         time_dropinject = 0.0
+        end if
+
+        time_dropinject = 0.0
      end if
 
    call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
@@ -1239,7 +1245,7 @@
       use input, only : ib,ie,jb,je,kb,ke,numq,nparcelsLocal,nx,ny, &
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
-                        npvals,nparcelsLocal,prrp,prms,prmult, &
+                        npvals,nparcelsLocal,prrp,prms,prmult,prt, &
                         pract,viscosity,nparcelsActive
       use constants
       use parcel_module
@@ -1268,7 +1274,7 @@
       real, intent(in) :: x3d,y3d,z3d,sig3d,rhop0,taup0,rp0,tval,rhoval
       real :: rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
       real :: rxu,ryv,rzw,rxs,rys,rzs
-      real :: zsp,rznt,z0,var
+      real :: zsp,rznt,z0,var,lhv
       real :: partmass,dV,volp,sigdot,tmpval
       integer :: i,j,k,dum
 
@@ -1554,6 +1560,8 @@
         !      + qa(i+1,j+1,k  ,nqv)*w7 &
         !      + qa(i+1,j+1,k+1,nqv)*w8
       endif
+
+      lhv=lv1-lv2*pdata(np,prt)
 
       !$acc atomic update
       thten(i,j,k)       = thten(i,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
