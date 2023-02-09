@@ -1763,7 +1763,7 @@
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
       use input, only : maxq,maxvars,nparcelsLocal,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile,numprocs,ierr,nparcels,nparcelsActive
+          maxstring,string,outfile,numprocs,ierr,nparcels,nparcelsActive,nparcelsRest
 #ifdef MPI
       use mpi
 #endif

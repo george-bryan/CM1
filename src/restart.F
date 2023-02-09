@@ -2164,7 +2164,8 @@
                               thpten,qvpten,qcpten,qipten,upten,vpten,qnipten,qncpten, &
                               icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
                               gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
-                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
+                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,    &
+                              restarted,restart_prcl,xf,yf)
           ! end_read_restart
       use input
       use constants
@@ -2234,7 +2235,7 @@
       real, intent(inout), dimension(ibm:iem,jbm:jem,kbm:kem) :: qpten,qtten,qvten,qcten
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
       real, intent(inout), dimension(nparcels,npvals) :: pdata
-      real, intent(inout), dimension(:,:) :: ploc
+      real, intent(inout), dimension(:,:), allocatable :: ploc
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ppx
       real, intent(inout), dimension(ibph:ieph,jbph:jeph,kbph:keph) :: phi1,phi2
       real, intent(inout), dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: tsq,qsq,cov,sh3d,el_pbl,qc_bl,qi_bl,cldfra_bl, &
@@ -2262,6 +2263,8 @@
       integer, intent(in), dimension(numprocs) :: myi1p,myi2p,myj1p,myj2p
       logical, intent(in) :: restarted
       logical, intent(inout) :: restart_prcl
+      real, intent(in) :: xf(ib:ie+1)
+      real, intent(in) :: yf(jb:je+1)
 
       character(len=maxstring) fname
       character(len=8) :: text1

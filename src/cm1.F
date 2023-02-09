@@ -2535,8 +2535,9 @@ end module cuda_rt
                               tke_myj,el_myj,mixht,akhs,akms,elflx,ct,snow,sice,thz0,qz0,uz0,vz0,th10,q10,z0base,zntmyj,lowlyr,ivgtyp, &
                               thpten,qvpten,qcpten,qipten,upten,vpten,qnipten,qncpten, &
                               icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
-                              gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
-                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
+                              gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,            &
+                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p, &
+                              restarted,restart_prcl,xf,yf)
           ! end_read_restart
         !  In case user wants to change values on a restart:
         IF( restart_reset_frqtim )THEN 
