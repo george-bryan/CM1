@@ -1777,7 +1777,7 @@
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
-      real, intent(inout), dimension(nparcelsLocal,3) :: ploc
+      real, intent(inout), dimension(nparcelsRest,3) :: ploc
 
       integer :: i,n,np
 

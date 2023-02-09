@@ -109,7 +109,7 @@
       real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem) :: qpten,qtten,qvten,qcten
       real, intent(in), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
       real, intent(in), dimension(nparcels,npvals) :: pdata
-      real, intent(inout), dimension(nparcels,3) :: ploc
+      real, intent(inout), dimension(:,:) :: ploc
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: ppx
       real, intent(in),    dimension(ibph:ieph,jbph:jeph,kbph:keph) :: phi1,phi2
       real, intent(in)   , dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: tsq,qsq,cov,sh3d,el_pbl,qc_bl,qi_bl,cldfra_bl, &
@@ -146,6 +146,9 @@
       integer :: proc,index,count,req1,req2,req3,reqp
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
+      real, dimension(:),allocatable :: sbuf
+      integer, dimension(0:numprocs-1) :: displacements, counts, cnts
+      integer :: ierror
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -1675,35 +1678,76 @@
       if(iprcl.eq.1)then
         !-----------------
         ! with parcels:
+
+        !$acc update host(pdata) if_present
+
+#ifdef MPI
+        ! Collect the position information before writing out to a file
+
+        ! local buffer for sending array on each MPI rank
+        allocate(sbuf(0:nparcelsActive-1))
+        if ( myid .eq. 0 ) then
+           ! initialize the displacement and count for the mpi_gatherv call
+           do i = 0, numprocs-1
+              displacements(i) = i
+              counts(i) = 1
+           end do
+        end if
+        ! collect number of active droplets from each MPI rank
+        call mpi_gatherv(nparcelsActive,1,MPI_INTEGER,cnts,counts, &
+                         displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
+        if ( myid .eq. 0 ) then
+           ! update the displacement and count for the second mpi_gatherv call
+           do i = 0, numprocs-1
+              if ( i == 0 ) then
+                 displacements(i) = 0
+              else
+                 displacements(i) = cnts(i-1)
+              end if
+              counts(i) = cnts(i)
+           end do
+           ! update "nparcelsRest" as the current total number of active droplets
+           nparcelsRest = sum(counts)
+        end if
+        ! collect the position information of active droplets from each MPI rank
+        do np = 0, nparcelsActive-1
+           sbuf(np) = pdata(np+1,prx)
+        end do
+        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(:,0),counts, &
+                         displacements,MPI_REAL,0,mpi_comm_world,ierror)
+        do np = 0, nparcelsActive-1
+           sbuf(np) = pdata(np+1,pry)
+        end do
+        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(:,1),counts, &
+                         displacements,MPI_REAL,0,mpi_comm_world,ierror)
+        if ( .not. terrain_flag )then
+           do np = 0, nparcelsActive-1
+              sbuf(np) = pdata(np+1,prz)
+           end do
+        else
+           do np = 0, nparcelsActive-1
+              sbuf(np) = pdata(np+1,prsig)
+           end do
+        end if
+        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(:,2),counts, &
+                         displacements,MPI_REAL,0,mpi_comm_world,ierror)
+#endif
+
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
-            !$acc update host(nparcels) if_present
-            write(50) nparcels
+            write(50) nparcelsRest
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
-            call disp_err( nf90_inq_varid(ncid,"numparcels",varid) , .true. )
-            call disp_err( nf90_put_var(ncid,varid,nparcels,(/time_index/)) , .true. )
+            call disp_err( nf90_inq_varid(ncid,"numactiveparcels",varid) , .true. )
+            call disp_err( nf90_put_var(ncid,varid,nparcelsRest,(/time_index/)) , .true. )
 #endif
           endif
         endif
-        !$acc update host(pdata) if_present
+
         ! only write position info:
         if(myid.eq.0)then
-          if( .not. terrain_flag )then
-            DO np=1,nparcels
-              ploc(np,1)=pdata(np,prx)
-              ploc(np,2)=pdata(np,pry)
-              ploc(np,3)=pdata(np,prz)
-            ENDDO
-          else
-            DO np=1,nparcels
-              ploc(np,1)=pdata(np,prx)
-              ploc(np,2)=pdata(np,pry)
-              ploc(np,3)=pdata(np,prsig)
-            ENDDO
-          endif
           if( restart_format.eq.1 )then
-            write(50) ploc
+            write(50) ploc(0:nparcelsRest-1,0:2)
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
             call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
@@ -2190,7 +2234,7 @@
       real, intent(inout), dimension(ibm:iem,jbm:jem,kbm:kem) :: qpten,qtten,qvten,qcten
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
       real, intent(inout), dimension(nparcels,npvals) :: pdata
-      real, intent(inout), dimension(nparcels,3) :: ploc
+      real, intent(inout), dimension(:,:) :: ploc
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ppx
       real, intent(inout), dimension(ibph:ieph,jbph:jeph,kbph:keph) :: phi1,phi2
       real, intent(inout), dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: tsq,qsq,cov,sh3d,el_pbl,qc_bl,qi_bl,cldfra_bl, &
@@ -3659,10 +3703,10 @@
         if( nvar.gt.0 )then
           ! only read position info:
           if( myid.eq.0 )then
-            IF( nvar.eq.nparcels )THEN
+            IF( nvar.eq.nparcelsRest )THEN
               ! easy:  restart file matches current config
               if( restart_format.eq.1 )then
-                read(50) ploc
+                read(50) ploc(0:nparcelsRest-1,0:2)
 #ifdef NETCDF
               elseif( restart_format.eq.2 )then
                 call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
@@ -3674,16 +3718,16 @@
               ! annoying:  restart file has different nparcels than current config
               IF( iprcl.eq.1 )THEN
                 if( .not. terrain_flag )then
-                  do np=1,nparcels
-                    ploc(np,1) = pdata(np,prx)
-                    ploc(np,2) = pdata(np,pry)
-                    ploc(np,3) = pdata(np,prz)
+                  do np=1,nparcelsRest
+                    ploc(np-1,0) = pdata(np,prx)
+                    ploc(np-1,1) = pdata(np,pry)
+                    ploc(np-1,2) = pdata(np,prz)
                   enddo
                 else
-                  do np=1,nparcels
-                    ploc(np,1) = pdata(np,prx)
-                    ploc(np,2) = pdata(np,pry)
-                    ploc(np,3) = pdata(np,prsig)
+                  do np=1,nparcelsRest
+                    ploc(np-1,0) = pdata(np,prx)
+                    ploc(np-1,1) = pdata(np,pry)
+                    ploc(np-1,2) = pdata(np,prsig)
                   enddo
                 endif
               ENDIF
@@ -3701,7 +3745,7 @@
               IF( iprcl.eq.1 )THEN
                 do n=1,3
                 do np=1,min(nvar,nparcels)
-                  ploc(np,n) = pfoo(np,n)
+                  ploc(np-1,n-1) = pfoo(np,n)
                 enddo
                 enddo
               ENDIF
@@ -3711,22 +3755,39 @@
           endif
           IF( iprcl.eq.1 )THEN
 #ifdef MPI
-            call MPI_BCAST(ploc,3*nparcels,MPI_REAL,0,MPI_COMM_WORLD,ierr)
+            ! allocate "ploc" array on other MPI ranks
+            if ( .not. allocated(ploc) ) allocate( ploc(0:nparcelsRest-1,0:2) )
+            call MPI_BCAST(nparcelsRest,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+            call MPI_BCAST(ploc,3*nparcelsRest,MPI_REAL,0,MPI_COMM_WORLD,ierr)
 #endif
             if( .not. terrain_flag )then
-              DO np=1,nparcels
-                pdata(np,prx)=ploc(np,1)
-                pdata(np,pry)=ploc(np,2)
-                pdata(np,prz)=ploc(np,3)
+              DO np=1,nparcelsRest
+                 ! check if this droplet belongs to this MPI rank
+                 if ( ploc(np-1,0) .ge. xf(1) .and. ploc(np-1,0) .le. xf(ni+1) .and. &
+                      ploc(np-1,1) .ge. yf(1) .and. ploc(np-1,1) .le. yf(nj+1) ) then
+                    pdata(np,prx)=ploc(np-1,0)
+                    pdata(np,pry)=ploc(np-1,1)
+                    pdata(np,prz)=ploc(np-1,2)
+                 end if
               ENDDO
             else
-              DO np=1,nparcels
-                pdata(np,prx)=ploc(np,1)
-                pdata(np,pry)=ploc(np,2)
-                pdata(np,prsig)=ploc(np,3)
+              DO np=1,nparcelsRest
+                 ! check if this droplet belongs to this MPI rank
+                 if ( ploc(np-1,0) .ge. xf(1) .and. ploc(np-1,0) .le. xf(ni+1) .and. &
+                      ploc(np-1,1) .ge. yf(1) .and. ploc(np-1,1) .le. yf(nj+1) ) then
+                    pdata(np,prx)=ploc(np-1,0)
+                    pdata(np,pry)=ploc(np-1,1)
+                    pdata(np,prsig)=ploc(np-1,2)
+                 end if
               ENDDO
             endif
             restart_prcl = .true.
+#ifdef MPI
+            ! deallocate "ploc" array on other MPI ranks
+            if ( myid /= 0 ) then
+               if ( allocated(ploc) ) deallocate( ploc )
+            end if
+#endif
           ENDIF
         else
           if( myid.eq.0 ) print *

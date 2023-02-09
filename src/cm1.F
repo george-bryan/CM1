@@ -2265,13 +2265,19 @@ end module cuda_rt
 #else
       nparcelsLocal = nparcels
 #endif
+      ! number of droplets read from / write to a restart file
+      ! initialize its value as "nparcels"
+      nparcelsRest = nparcels
 
       !$acc update device (nparcelsLocal)
 
       allocate(  pdata(nparcelsLocal,npvals) )
       pdata = 0.0
-      allocate(   ploc(nparcelsLocal,  3   ) )
-      ploc = 0.0
+      if ( myid == 0 ) then
+         ! only the root rank needs this array, 0-index based
+         allocate( ploc(0:nparcelsRest-1,0:2) )
+         ploc = 0.0
+      end if
       allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
