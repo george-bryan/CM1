@@ -393,19 +393,6 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
-      if (abs(qval) .lt. 1.0e-3 .OR. qval .lt. 0.0) then
-      write(*,'(a15,4e15.6)') 'DHR QVAL',qval,x3d,y3d,z3d
-      end if
-      if (abs(tval) .lt. 1.0e-3 .OR. tval .lt. 0.0) then
-      write(*,'(a15,4e15.6)') 'DHR TVAL',tval,x3d,y3d,z3d
-      end if
-      if (abs(prsval) .lt. 1.0e-3 .OR. prsval .lt. 0.0) then
-      write(*,'(a15,4e15.6)') 'DHR PRSVAL',prsval,x3d,y3d,z3d
-      end if
-      if (abs(rhoval) .lt. 1.0e-3 .OR. rhoval .lt. 0.0) then
-      write(*,'(a15,4e15.6)') 'DHR RHOVAL',rhoval,x3d,y3d,z3d
-      end if
-
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
@@ -1565,43 +1552,27 @@
 
       !$acc atomic update
       thten(i,j,k)       = thten(i,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i,j,k)       = thten(i,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult)
 
       !$acc atomic update
       thten(i+1,j,k)     = thten(i+1,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i+1,j,k)     = thten(i+1,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult)
 
       !$acc atomic update
       thten(i,j+1,k)     = thten(i,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i,j+1,k)     = thten(i,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult)
 
       !$acc atomic update
       thten(i,j,k+1)     = thten(i,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i,j,k+1)     = thten(i,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult)
 
       !$acc atomic update
       thten(i+1,j,k+1)   = thten(i+1,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i+1,j,k+1)   = thten(i+1,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult)
 
       !$acc atomic update
       thten(i,j+1,k+1)   = thten(i,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i,j+1,k+1)   = thten(i,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult)
 
       !$acc atomic update
       thten(i+1,j+1,k)   = thten(i+1,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i+1,j+1,k)   = thten(i+1,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult)
 
       !$acc atomic update
       thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
-      !!$acc atomic update
-      !thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult)
 
       ! tval   = ta(i  ,j  ,k  )*w1 &
       !        + ta(i+1,j  ,k  )*w2 &
@@ -2128,8 +2099,6 @@
       mflag = 0
       esa = eslf(real(prsval),real(tval))  !Saturation vapor pressure at droplet temperature
 
-      if (abs(esa) .lt. 1.0e-10) write(*,*) 'DHR3:',prsval,tval,esa
-
       rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
 
@@ -2571,9 +2540,6 @@
          enddo
 
          rad_init = rad_init*1.0e-6
-
-        !DHR TEST
-        rad_init = 2.0e-6
 
         !Now populate the pdata array, starting at the list
        
