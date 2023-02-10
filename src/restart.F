@@ -1685,7 +1685,7 @@
         ! Collect the position information before writing out to a file
 
         ! local buffer for sending array on each MPI rank
-        allocate(sbuf(0:nparcelsActive-1))
+        allocate( sbuf(0:nparcelsActive-1) )
         if ( myid .eq. 0 ) then
            ! initialize the displacement and count for the mpi_gatherv call
            do i = 0, numprocs-1
@@ -1702,24 +1702,26 @@
               if ( i == 0 ) then
                  displacements(i) = 0
               else
-                 displacements(i) = cnts(i-1)
+                 displacements(i) = sum(cnts(0:i-1))
               end if
               counts(i) = cnts(i)
            end do
            ! update "nparcelsRest" as the current total number of active droplets
            nparcelsRest = sum(counts)
         end if
-        ! collect the position information of active droplets from each MPI rank
+        ! collect the x position information of active droplets from each MPI rank
         do np = 0, nparcelsActive-1
            sbuf(np) = pdata(np+1,prx)
         end do
-        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(:,0),counts, &
+        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(0,0),counts, &
                          displacements,MPI_REAL,0,mpi_comm_world,ierror)
+        ! collect the y position information of active droplets from each MPI rank
         do np = 0, nparcelsActive-1
            sbuf(np) = pdata(np+1,pry)
         end do
-        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(:,1),counts, &
+        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(0,1),counts, &
                          displacements,MPI_REAL,0,mpi_comm_world,ierror)
+        ! collect the z position information of active droplets from each MPI rank
         if ( .not. terrain_flag )then
            do np = 0, nparcelsActive-1
               sbuf(np) = pdata(np+1,prz)
@@ -1729,7 +1731,7 @@
               sbuf(np) = pdata(np+1,prsig)
            end do
         end if
-        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(:,2),counts, &
+        call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(0,2),counts, &
                          displacements,MPI_REAL,0,mpi_comm_world,ierror)
 #endif
 
@@ -3758,11 +3760,11 @@
           endif
           IF( iprcl.eq.1 )THEN
 #ifdef MPI
-            ! allocate "ploc" array on other MPI ranks
-            if ( .not. allocated(ploc) ) allocate( ploc(0:nparcelsRest-1,0:2) )
             call MPI_BCAST(nparcelsRest,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+            if ( .not. allocated(ploc) ) allocate( ploc(0:nparcelsRest-1,0:2) )
             call MPI_BCAST(ploc,3*nparcelsRest,MPI_REAL,0,MPI_COMM_WORLD,ierr)
 #endif
+            nparcelsActive = 0
             if( .not. terrain_flag )then
               DO np=1,nparcelsRest
                  ! check if this droplet belongs to this MPI rank
@@ -3771,6 +3773,7 @@
                     pdata(np,prx)=ploc(np-1,0)
                     pdata(np,pry)=ploc(np-1,1)
                     pdata(np,prz)=ploc(np-1,2)
+                    nparcelsActive = nparcelsActive + 1
                  end if
               ENDDO
             else
@@ -3781,16 +3784,17 @@
                     pdata(np,prx)=ploc(np-1,0)
                     pdata(np,pry)=ploc(np-1,1)
                     pdata(np,prsig)=ploc(np-1,2)
+                    nparcelsActive = nparcelsActive + 1
                  end if
               ENDDO
             endif
             restart_prcl = .true.
 #ifdef MPI
-            ! deallocate "ploc" array on other MPI ranks
             if ( myid /= 0 ) then
                if ( allocated(ploc) ) deallocate( ploc )
             end if
 #endif
+            print *, "JS: myid = ", myid, ", nparcelsActive = ", nparcelsActive 
           ENDIF
         else
           if( myid.eq.0 ) print *

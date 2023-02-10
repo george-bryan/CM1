@@ -1777,7 +1777,7 @@
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
-      real, intent(inout), dimension(nparcelsRest,3) :: ploc
+      real, intent(inout), dimension(:,:) :: ploc
 
       integer :: i,n,np
 
@@ -1818,7 +1818,7 @@
           if ( i == 0 ) then
              displacements(i) = 0
           else
-             displacements(i) = cnts(i-1)
+             displacements(i) = sum(cnts(0:i-1))
           end if
           counts(i) = cnts(i)
        end do
