@@ -108,7 +108,7 @@
       real, intent(in), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem) :: qpten,qtten,qvten,qcten
       real, intent(in), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
-      real, intent(in), dimension(nparcels,npvals) :: pdata
+      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(inout), dimension(:,:) :: ploc
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: ppx
       real, intent(in),    dimension(ibph:ieph,jbph:jeph,kbph:keph) :: phi1,phi2
@@ -1734,7 +1734,6 @@
         call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,ploc(0,2),counts, &
                          displacements,MPI_REAL,0,mpi_comm_world,ierror)
 #endif
-
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
             write(50) nparcelsRest
@@ -2236,7 +2235,7 @@
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(inout), dimension(ibm:iem,jbm:jem,kbm:kem) :: qpten,qtten,qvten,qcten
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(inout), dimension(:,:), allocatable :: ploc
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ppx
       real, intent(inout), dimension(ibph:ieph,jbph:jeph,kbph:keph) :: phi1,phi2
@@ -3794,7 +3793,6 @@
                if ( allocated(ploc) ) deallocate( ploc )
             end if
 #endif
-            print *, "JS: myid = ", myid, ", nparcelsActive = ", nparcelsActive 
           ENDIF
         else
           if( myid.eq.0 ) print *
