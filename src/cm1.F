@@ -2273,10 +2273,6 @@ end module cuda_rt
 
       allocate(  pdata(nparcelsLocal,npvals) )
       pdata = 0.0
-      if ( myid == 0 ) then
-         allocate( ploc(0:nparcelsRest-1,0:2) )
-         ploc = 0.0
-      end if
       allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
