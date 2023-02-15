@@ -15,12 +15,12 @@
  dy     =    20.0,
  dz     =    10.0,
  dtl    =   0.125,
- timax  = 60.0,
+ timax  =    10.0,
  run_time =  -999.9,
  tapfrq =   900.0,
- rstfrq = 60.0,
- statfrq =  60.0,
- prclfrq =   60.0,
+ rstfrq =    10.0,
+ statfrq =   10.0,
+ prclfrq =   10.0,
  /
 
  &param2
@@ -81,8 +81,8 @@
  iptra     =  0,
  npt       =  1,
  pdtra     =  1,
- iprcl     =  0,  !This turns on the parcels, and with prcl_droplet=1 below, makes them droplets
- nparcels  =  1000000,  !I do at least 1000 just to get a variety
+ iprcl     =  1,  !This turns on the parcels, and with prcl_droplet=1 below, makes them droplets
+ nparcels  =  1000,  !I do at least 1000 just to get a variety
  /
 
  &param3

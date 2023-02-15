@@ -108,8 +108,8 @@
       real, intent(in), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem) :: qpten,qtten,qvten,qcten
       real, intent(in), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
-      real, intent(in), dimension(nparcels,npvals) :: pdata
-      real, intent(inout), dimension(nparcels,3) :: ploc
+      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
+      real, intent(inout), dimension(:,:) :: ploc
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: ppx
       real, intent(in),    dimension(ibph:ieph,jbph:jeph,kbph:keph) :: phi1,phi2
       real, intent(in)   , dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: tsq,qsq,cov,sh3d,el_pbl,qc_bl,qi_bl,cldfra_bl, &
@@ -146,6 +146,10 @@
       integer :: proc,index,count,req1,req2,req3,reqp
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
+      real, dimension(:), allocatable :: sbuf
+      real, dimension(:,:), allocatable :: rbuf
+      integer, dimension(0:numprocs-1) :: displacements, counts, cnts
+      integer :: ierror
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -1675,35 +1679,69 @@
       if(iprcl.eq.1)then
         !-----------------
         ! with parcels:
+
+        !$acc update host(pdata) if_present
+
+#ifdef MPI
+        ! Collect the droplet information before writing out to a file
+
+        ! local buffer for sending array on each MPI rank
+        allocate( sbuf(0:nparcelsActive-1) )
+        if ( myid .eq. 0 ) then
+           ! initialize the displacement and count for the mpi_gatherv call
+           do i = 0, numprocs-1
+              displacements(i) = i
+              counts(i) = 1
+           end do
+        end if
+        ! collect number of active droplets from each MPI rank
+        call mpi_gatherv(nparcelsActive,1,MPI_INTEGER,cnts,counts, &
+                         displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
+        if ( myid .eq. 0 ) then
+           ! update the displacement and count for the second mpi_gatherv call
+           do i = 0, numprocs-1
+              if ( i == 0 ) then
+                 displacements(i) = 0
+              else
+                 displacements(i) = sum(cnts(0:i-1))
+              end if
+              counts(i) = cnts(i)
+           end do
+           ! update "nparcelsRest" as the current total number of active droplets
+           nparcelsRest = sum(counts)
+           allocate(rbuf(0:nparcelsRest-1,0:npvars-1))
+        end if
+        ! collect the information of active droplets from each MPI rank
+        do i = 1, npvars
+           do np = 0, nparcelsActive-1
+              sbuf(np) = pdata(np+1,i)
+           end do
+           call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,rbuf(0,i-1),counts, &
+                            displacements,MPI_REAL,0,mpi_comm_world,ierror)
+        end do
+        deallocate(sbuf)
+#else
+        nparcelsRest = nparcelsActive
+#endif
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
-            !$acc update host(nparcels) if_present
-            write(50) nparcels
+            write(50) nparcelsRest
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
-            call disp_err( nf90_inq_varid(ncid,"numparcels",varid) , .true. )
-            call disp_err( nf90_put_var(ncid,varid,nparcels,(/time_index/)) , .true. )
+            call disp_err( nf90_inq_varid(ncid,"numactiveparcels",varid) , .true. )
+            call disp_err( nf90_put_var(ncid,varid,nparcelsRest,(/time_index/)) , .true. )
 #endif
           endif
         endif
-        !$acc update host(pdata) if_present
-        ! only write position info:
+
         if(myid.eq.0)then
-          if( .not. terrain_flag )then
-            DO np=1,nparcels
-              ploc(np,1)=pdata(np,prx)
-              ploc(np,2)=pdata(np,pry)
-              ploc(np,3)=pdata(np,prz)
-            ENDDO
-          else
-            DO np=1,nparcels
-              ploc(np,1)=pdata(np,prx)
-              ploc(np,2)=pdata(np,pry)
-              ploc(np,3)=pdata(np,prsig)
-            ENDDO
-          endif
           if( restart_format.eq.1 )then
-            write(50) ploc
+#ifdef MPI
+            write(50) rbuf
+            deallocate(rbuf)            
+#else
+            write(50) pdata(1:nparcelsRest,1:npvars)
+#endif
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
             call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
@@ -2120,7 +2158,8 @@
                               thpten,qvpten,qcpten,qipten,upten,vpten,qnipten,qncpten, &
                               icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
                               gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
-                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
+                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,    &
+                              restarted,restart_prcl,xf,yf)
           ! end_read_restart
       use input
       use constants
@@ -2189,8 +2228,8 @@
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(inout), dimension(ibm:iem,jbm:jem,kbm:kem) :: qpten,qtten,qvten,qcten
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
-      real, intent(inout), dimension(nparcels,3) :: ploc
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
+      real, intent(inout), dimension(:,:), allocatable :: ploc
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: ppx
       real, intent(inout), dimension(ibph:ieph,jbph:jeph,kbph:keph) :: phi1,phi2
       real, intent(inout), dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: tsq,qsq,cov,sh3d,el_pbl,qc_bl,qi_bl,cldfra_bl, &
@@ -2218,6 +2257,8 @@
       integer, intent(in), dimension(numprocs) :: myi1p,myi2p,myj1p,myj2p
       logical, intent(in) :: restarted
       logical, intent(inout) :: restart_prcl
+      real, intent(in) :: xf(ib:ie+1)
+      real, intent(in) :: yf(jb:je+1)
 
       character(len=maxstring) fname
       character(len=8) :: text1
@@ -2228,6 +2269,7 @@
       double precision, dimension(numq,0:numprocs-1) :: csq,dsq
       real, dimension(:,:), allocatable :: pfoo
       real, dimension(:), allocatable :: dumx,dumy
+      real, dimension(:,:), allocatable :: rbuf
 #ifdef MPI
       integer :: proc,index,count,req1,req2,req3,reqp
 #endif
@@ -3659,10 +3701,13 @@
         if( nvar.gt.0 )then
           ! only read position info:
           if( myid.eq.0 )then
-            IF( nvar.eq.nparcels )THEN
+            ! reset "pdata" that is initialized by the init3d subroutine
+            pdata = 0.0
+            IF( nvar .eq. nparcelsRest )THEN
               ! easy:  restart file matches current config
               if( restart_format.eq.1 )then
-                read(50) ploc
+                allocate( rbuf(nparcelsRest,npvars) )
+                read(50) rbuf 
 #ifdef NETCDF
               elseif( restart_format.eq.2 )then
                 call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
@@ -3672,61 +3717,29 @@
               endif
             ELSE
               ! annoying:  restart file has different nparcels than current config
-              IF( iprcl.eq.1 )THEN
-                if( .not. terrain_flag )then
-                  do np=1,nparcels
-                    ploc(np,1) = pdata(np,prx)
-                    ploc(np,2) = pdata(np,pry)
-                    ploc(np,3) = pdata(np,prz)
-                  enddo
-                else
-                  do np=1,nparcels
-                    ploc(np,1) = pdata(np,prx)
-                    ploc(np,2) = pdata(np,pry)
-                    ploc(np,3) = pdata(np,prsig)
-                  enddo
-                endif
-              ENDIF
-              if( myid.eq.0 ) print *,'  start pfoo ' 
-              allocate( pfoo(nvar,3) )
-              if( restart_format.eq.1 )then
-                read(50) pfoo
-#ifdef NETCDF
-              elseif( restart_format.eq.2 )then
-                call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
-                n = 3
-                call disp_err( nf90_get_var(ncid,varid,pfoo,(/1,1,time_index/),(/nvar,n,1/)) , .true. )
-#endif
-              endif
-              IF( iprcl.eq.1 )THEN
-                do n=1,3
-                do np=1,min(nvar,nparcels)
-                  ploc(np,n) = pfoo(np,n)
-                enddo
-                enddo
-              ENDIF
-              deallocate( pfoo )
-              if( myid.eq.0 ) print *,'  end pfoo ' 
+              stop "unmatched nvar and nparcelsRest..."
             ENDIF
           endif
           IF( iprcl.eq.1 )THEN
 #ifdef MPI
-            call MPI_BCAST(ploc,3*nparcels,MPI_REAL,0,MPI_COMM_WORLD,ierr)
+            call MPI_BCAST(nparcelsRest,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+            if ( .not. allocated(rbuf) ) allocate( rbuf(nparcelsRest,npvars) )
+            call MPI_BCAST(rbuf,npvars*nparcelsRest,MPI_REAL,0,MPI_COMM_WORLD,ierr)
 #endif
-            if( .not. terrain_flag )then
-              DO np=1,nparcels
-                pdata(np,prx)=ploc(np,1)
-                pdata(np,pry)=ploc(np,2)
-                pdata(np,prz)=ploc(np,3)
-              ENDDO
-            else
-              DO np=1,nparcels
-                pdata(np,prx)=ploc(np,1)
-                pdata(np,pry)=ploc(np,2)
-                pdata(np,prsig)=ploc(np,3)
-              ENDDO
-            endif
+            j = 1
+            DO np=1,nparcelsRest
+               ! check if this droplet belongs to this MPI rank
+               if ( rbuf(np,prx) .ge. xf(1) .and. rbuf(np,prx) .le. xf(ni+1) .and. &
+                    rbuf(np,pry) .ge. yf(1) .and. rbuf(np,pry) .le. yf(nj+1) ) then
+                  do i = 1, npvars
+                     pdata(j,i) = rbuf(np,i)
+                  end do
+                  j = j + 1
+               end if
+            ENDDO
+            nparcelsActive = j - 1
             restart_prcl = .true.
+            deallocate( rbuf )
           ENDIF
         else
           if( myid.eq.0 ) print *
