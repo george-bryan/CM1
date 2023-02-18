@@ -1686,7 +1686,7 @@
         ! Collect the droplet information before writing out to a file
 
         ! local buffer for sending array on each MPI rank
-        allocate( sbuf(0:nparcelsActive-1) )
+        allocate( sbuf(0:nparcelsLocalActive-1) )
         if ( myid .eq. 0 ) then
            ! initialize the displacement and count for the mpi_gatherv call
            do i = 0, numprocs-1
@@ -1695,7 +1695,7 @@
            end do
         end if
         ! collect number of active droplets from each MPI rank
-        call mpi_gatherv(nparcelsActive,1,MPI_INTEGER,cnts,counts, &
+        call mpi_gatherv(nparcelsLocalActive,1,MPI_INTEGER,cnts,counts, &
                          displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
         if ( myid .eq. 0 ) then
            ! update the displacement and count for the second mpi_gatherv call
@@ -1713,15 +1713,15 @@
         end if
         ! collect the information of active droplets from each MPI rank
         do i = 1, npvars
-           do np = 0, nparcelsActive-1
+           do np = 0, nparcelsLocalActive-1
               sbuf(np) = pdata(np+1,i)
            end do
-           call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,rbuf(0,i-1),counts, &
+           call mpi_gatherv(sbuf,nparcelsLocalActive,MPI_REAL,rbuf(0,i-1),counts, &
                             displacements,MPI_REAL,0,mpi_comm_world,ierror)
         end do
         deallocate(sbuf)
 #else
-        nparcelsRest = nparcelsActive
+        nparcelsRest = nparcelsLocalActive
 #endif
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
@@ -3737,7 +3737,7 @@
                   j = j + 1
                end if
             ENDDO
-            nparcelsActive = j - 1
+            nparcelsLocalActive = j - 1
             restart_prcl = .true.
             deallocate( rbuf )
           ENDIF

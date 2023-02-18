@@ -32,11 +32,11 @@
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
                                uten,vten,wten,thten,qten,pdata_locind)
       use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
-          kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
+          kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsActive,nparcelsActiveMax
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive
       use constants
       use comm_module
       use comm_droplet_module
@@ -148,16 +148,12 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      do np = 1, nparcelsActive
-         pdata_neighbor(np) = undefined_index
-      end do
-
       !$acc data create  (ta) &
       !$acc      copyout (pdata_neighbor) &
       !$acc      copyin  (randomNumbers,randomNumbers%state)
 
       !$acc parallel loop gang vector default(present)
-      do np = 1, nparcelsActive
+      do np = 1, nparcelsLocalActive
          pdata_neighbor(np) = undefined_index
       end do
       !$acc end parallel
@@ -315,7 +311,7 @@
 
 
     nploop:  &
-    DO np=1,nparcelsActive
+    DO np=1,nparcelsLocalActive
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -453,7 +449,7 @@
 
    !List the spots in pdata which have "dead" particles
    idx=1
-   do np=1,nparcelsActive
+   do np=1,nparcelsLocalActive
 
       if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
          holes_fallout_ind(idx) = np
@@ -464,16 +460,16 @@
 
 
    !Now transfer these to the end of the pdata list
-   !Simply move the last particle in the list, pdata(nparcelsActive,:), to a hole and update nparcelsActive
+   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
    do np=num_fallout,1,-1
 
-      if (holes_fallout_ind(np) .eq. nparcelsActive) then
-         nparcelsActive = nparcelsActive-1  !If the dead particle is at end, simply reduce nparcelsActive
+      if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
+         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsActive
       else
-         pdata(holes_fallout_ind(np),:) = pdata(nparcelsActive,:)
-         pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsActive,:)
-         pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsActive)
-         nparcelsActive = nparcelsActive-1
+         pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
+         pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
+         pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
+         nparcelsLocalActive = nparcelslocalActive-1
       end if
 
    end do
@@ -533,7 +529,7 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    nparcelsActive = nparcelsActive + sum(Arrive) - sum(Depart)
+    nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
 
     !$acc update device(pdata,pdata_locind)
 
@@ -550,7 +546,7 @@
 
       if( terrain_flag )then
             call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcelsActive
+            DO np=1,nparcelsLocalActive
               ! get z from sigma:
               ! (see Section 3 of "The governing equations for CM1", 
               !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
@@ -578,9 +574,9 @@
      if (myid==0) write(*,*) 'DHR U10',s10_xym
      call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
 
-   call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+   call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
    if (myid==0) then 
-   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
+   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
    end if
 
 
@@ -1225,7 +1221,7 @@
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
                         npvals,nparcelsLocal,prrp,prms,prmult, &
-                        pract,viscosity,nparcelsActive
+                        pract,viscosity,nparcelsLocalActive
       use constants
       use parcel_module
       use cm1libs , only : eslf
@@ -1646,7 +1642,7 @@
       !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
-      do np=1,nparcelsActive
+      do np=1,nparcelsLocalActive
          tnumpart = tnumpart + 1
          radavg = radavg + pdata(np,prrp)
          radsqr = radsqr + pdata(np,prrp)**2
@@ -1757,7 +1753,7 @@
       !$acc end parallel
 
       !$acc parallel loop gang vector default(present) reduction(partnum)
-      do np=1,nparcelsActive
+      do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
          call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
@@ -2347,7 +2343,7 @@
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract, &
-                        prmult,prt,prrho,prprs,prqv,nparcelsActive,nparcelsActiveMax,numprocs
+                        prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs
       use constants
       use MersenneTwister_mod
 
@@ -2441,9 +2437,9 @@
 
    if (myid==0) write(*,'(a15,i,6e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt
 
-      if (nparcelsActive+my_reintro .lt. nparcelsActiveMax) then   !Only add particles to pdata if we're still under nparcelsActiveMax
+      if (nparcelsLocalActive+my_reintro .lt. nparcelsLocal) then   !Only add particles to pdata if we're still under nparcelsLocal
 
-      do np=nparcelsActive+1,nparcelsActive+my_reintro
+      do np=nparcelsLocalActive+1,nparcelsLocalActive+my_reintro
 
          rand = getRandomReal(randomNumbers)
          a = totdrops*rand
@@ -2496,8 +2492,8 @@
 
       end do
 
-      !Then once the new droplets have been added, update nparcelsActive
-      nparcelsActive = nparcelsActive + my_reintro
+      !Then once the new droplets have been added, update nparcelsLocalActive
+      nparcelsLocalActive = nparcelsLocalActive + my_reintro
 
       else
 

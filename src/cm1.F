@@ -2259,25 +2259,17 @@ end module cuda_rt
       allocate( reqt(d3t) )
       reqt = 0
 
-      nparcelsActiveMax = 1e6   !The total allowable number of particles on each processor
-#ifdef MPI
-      padding = max(pdata_buffer*nparcelsActiveMax,100.0)
-      nparcelsLocal = nparcelsActiveMax+padding
-#else
-      nparcelsLocal = nparcelsActiveMax
-#endif
-      ! number of droplets read from / write to a restart file
-      ! initialize its value as "nparcels"
-      nparcelsRest = nparcels
-
-      if (nparcels .gt. nparcelsActiveMax) then
-
-      if( myid.eq.0 ) print *,' WARNING: nparcels exceeds allowed max. Check nparcelsActiveMax. Exiting'
-
+      if ( nparcelsInit .gt. nparcelsMax ) then
+          if ( myid .eq. 0 ) print *,' WARNING: nparcelsInit exceeds allowed max. Check nparcelsMax. Exiting...'
 #ifdef MPI
           call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 #endif
           call stopcm1
+      else
+          nparcelsLocal = int(nparcelsMax / numprocs)
+          ! number of droplets read from / write to a restart file
+          ! initialize its value as "nparcelsInit"
+          nparcelsRest = nparcelsInit
       end if
 
       !$acc update device (nparcelsLocal)
