@@ -159,7 +159,7 @@
               bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,           &
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk,nparcelsLocal,nparcelsLocalActive,nparcelsMax,   &
-              nparcelsRest
+              nparcelsRest,injectHMax
 
       !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcelsInit,npvals,nx,ny, &
       !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist,   &
@@ -167,7 +167,7 @@
       !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,     &
       !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,        &
       !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw,       &
-      !$acc                 prmult)
+      !$acc                 prmult,injectHMax)
 
 !-----------------------------------------------------------------------
 
@@ -266,7 +266,7 @@
           wbc,ebc,sbc,nbc,bbc,tbc,irbc,roflux,nudgeobc,                 &
           isnd,iwnd,itern,iinit,                                        &
           irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,        &
-          iprcl,nparcelsInit,nparcelsMax
+          iprcl,nparcelsInit,nparcelsMax,injectHMax
       namelist /param3/ kdiff2,kdiff6,fcor,kdiv,alph,rdalpha,zd,xhd,alphobc, &
                         umove,vmove,v_t,l_h,lhref1,lhref2,l_inf,ndcnst
       namelist /param4/ stretch_x,dx_inner,dx_outer,nos_x_len,tot_x_len

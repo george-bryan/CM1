@@ -2682,6 +2682,7 @@
       if(dowr) write(outfile,*) 'pdtra     =',pdtra
       if(dowr) write(outfile,*) 'iprcl     =',iprcl
       if(dowr) write(outfile,*) 'nparcelsInit=',nparcelsInit
+      if(dowr) write(outfile,*) 'injectHMax= ',injectHMax
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'kdiff2    =',kdiff2
       if(dowr) write(outfile,*) 'kdiff6    =',kdiff6
@@ -6202,9 +6203,10 @@
       !$acc update device(nparcelsInit,npvals,pru,prv,prw,prt,prqv,prprs,prrho)
 
       if(dowr) write(outfile,*)
-      if(dowr) write(outfile,*) '  nparcelsInit= ',nparcelsInit
-      if(dowr) write(outfile,*) '  npvals   = ',npvals
-      if(dowr) write(outfile,*) '  npvars   = ',npvars
+      if(dowr) write(outfile,*) '  injectHMax = ',injectHMax
+      if(dowr) write(outfile,*) ' nparcelsInit= ',nparcelsInit
+      if(dowr) write(outfile,*) '  npvals     = ',npvals
+      if(dowr) write(outfile,*) '  npvars     = ',npvars
       if(dowr) write(outfile,*) '    prx      = ',prx
       if(dowr) write(outfile,*) '    pry      = ',pry
       if(dowr) write(outfile,*) '    prz      = ',prz

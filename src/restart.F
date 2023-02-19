@@ -3717,7 +3717,9 @@
               endif
             ELSE
               ! annoying:  restart file has different nparcels than current config
-              stop "unmatched nvar and nparcelsRest..."
+              print *, "unmatched nvar and nparcelsRest..."
+              print *, "nvar_parcels = ",nvar,", nparcelsRest = ",nparcelsRest
+              stop
             ENDIF
           endif
           IF( iprcl.eq.1 )THEN

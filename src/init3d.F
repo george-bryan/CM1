@@ -423,8 +423,7 @@
           rand = getRandomReal(randomNumbers)
           tmpy = rand*maxy
           rand = getRandomReal(randomNumbers)
-          !tmpz = rand*maxz
-          tmpz = rand*8.0
+          tmpz = rand*injectHMax
 
           ! check if this parcel falls into this MPI region
           if ( tmpx .ge. xf(1) .and. tmpx .le. xf(ni+1) .and. &
