@@ -159,7 +159,7 @@
               bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,           &
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk,nparcelsLocal,nparcelsLocalActive,nparcelsMax,   &
-              nparcelsRest,injectHMax
+              nparcelsRest
 
       !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcelsInit,npvals,nx,ny, &
       !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist,   &
@@ -167,7 +167,7 @@
       !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,     &
       !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,        &
       !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw,       &
-      !$acc                 prmult,injectHMax)
+      !$acc                 prmult)
 
 !-----------------------------------------------------------------------
 
@@ -202,7 +202,7 @@
            rad_solcon,rad_jday,rad_zenangle,rad_declin,rad_hrang,             &
            adapt_move_frq,                                                    &
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
-           base_tbot,base_ttop,base_pibot,base_pitop
+           base_tbot,base_ttop,base_pibot,base_pitop,injectHMax
 
       !$acc declare create (dx,dy,zt,rzt,umove,vmove,viscosity,pr_num,sc_num, &
       !$acc                 minx,maxx,miny,maxy,maxz)
