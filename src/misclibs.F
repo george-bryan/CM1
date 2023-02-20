@@ -3308,9 +3308,9 @@
 
       if(nx.gt.1.and.ny.gt.1)then
         ! 3d:
-        !$omp parallel do default(shared) private(i,j,k,tem1,tem2,tem3)
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
         ks(1)=0.0
+        !$omp parallel do default(shared) private(i,j,k,tem1,tem2,tem3)
         !$acc loop gang 
         do k=2,nk
            kstmp = 0.0
@@ -3331,9 +3331,9 @@
         !$acc end parallel
       elseif(nx.gt.1)then
         ! 2d (including axisymm):
-        !$omp parallel do default(shared) private(i,j,tem1,tem2,tem3)
         !$acc parallel default(present) private(i,j,k,tem1,tem2,tem3) reduction(max:kstmp) 
         ks(1)=0.0
+        !$omp parallel do default(shared) private(i,j,tem1,tem2,tem3)
         !$acc loop gang
         do k=2,nk
           kstmp = 0.0
@@ -3833,7 +3833,6 @@
           ENDIF
         enddo
       enddo
-!$acc end parallel
 
       vmax = 0.0
 
@@ -3903,7 +3902,6 @@
         enddo
         enddo
       enddo
-      !$acc end parallel
 
 #ifdef MPI
       var=0.0d0
@@ -4150,7 +4148,6 @@
         ep=ep+foo3(k)
         le=le+foo4(k)
       enddo
-      !$acc end parallel
       !$acc end data
  
       ek=ek*(dx*dy*dz)
