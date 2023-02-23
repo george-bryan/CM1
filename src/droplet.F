@@ -549,21 +549,26 @@
 !----------------------------------------------------------------------
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
 ! Requires inputting the current 10-meter wind speed
-     
-   s10_xym = 0.0
-   do j=1,nj
-   do i=1,ni
-      s10_xym = s10_xym + s10(i,j)
-   end do
-   end do
-   call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
-   s10_xym = s10_xym/real(nx*ny)
-   if (myid==0) write(*,*) 'DHR U10',s10_xym
-   call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
-
-   call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
-   if (myid==0) then 
-   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
+   
+   if ( .not. use_wall_bc ) then  
+      s10_xym = 0.0
+      do j=1,nj
+         do i=1,ni
+            s10_xym = s10_xym + s10(i,j)
+         end do
+      end do
+#ifdef MPI
+      call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+#endif
+      s10_xym = s10_xym/real(nx*ny)
+      if (myid==0) write(*,*) 'DHR U10',s10_xym
+      call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
+#ifdef MPI
+      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+#endif
+      if (myid==0) then 
+         write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
+      end if
    end if
 
    end subroutine droplet_driver

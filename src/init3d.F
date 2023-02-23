@@ -411,7 +411,7 @@
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
         !
         ! The generated random number is independent of compilers and MPI ranks
-        randomNumbers = new_RandomNumberSequence(seed = nparcelsInit)
+        randomNumbers = new_RandomNumberSequence(seed = nparcelsMax)
 
         i = 1
         nparcelsLocalActive = 0

@@ -3702,7 +3702,7 @@
           ! only read position info:
           if( myid.eq.0 )then
             ! reset "pdata" that is initialized by the init3d subroutine
-            pdata = 0.0
+            pdata(:,:) = neg_huge
             IF( nvar .eq. nparcelsRest )THEN
               ! easy:  restart file matches current config
               if( restart_format.eq.1 )then
