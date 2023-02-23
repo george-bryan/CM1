@@ -2938,10 +2938,10 @@
         enddo
         enddo
 
-        !$acc parallel loop gang vector default(present) private(i,j)
+        !$acc parallel default(present)
         do k=(nk-1),2,-1
 
-        !$omp parallel default(shared) private(i,j)
+        !$omp parallel do default(shared) private(i,j)
         !$acc loop gang vector collapse(2)
         do j=1,nj
         do i=1,ni
