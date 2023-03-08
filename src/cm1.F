@@ -2259,30 +2259,23 @@ end module cuda_rt
       allocate( reqt(d3t) )
       reqt = 0
 
-      nparcelsActiveMax = 1e6   !The total allowable number of particles on each processor
-#ifdef MPI
-      padding = max(pdata_buffer*nparcelsActiveMax,100.0)
-      nparcelsLocal = nparcelsActiveMax+padding
-#else
-      nparcelsLocal = nparcelsActiveMax
-#endif
-
-      if (nparcels .gt. nparcelsActiveMax) then
-
-      if( myid.eq.0 ) print *,' WARNING: nparcels exceeds allowed max. Check nparcelsActiveMax. Exiting'
-
+      if ( nparcelsInit .gt. nparcelsMax ) then
+          if ( myid .eq. 0 ) print *,' WARNING: nparcelsInit exceeds allowed max. Check nparcelsMax. Exiting...'
 #ifdef MPI
           call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 #endif
           call stopcm1
+      else
+          nparcelsLocal = int(nparcelsMax / numprocs)
+          ! number of droplets read from / write to a restart file
+          ! initialize its value as "nparcelsInit"
+          nparcelsRest = nparcelsInit
       end if
 
       !$acc update device (nparcelsLocal)
 
       allocate(  pdata(nparcelsLocal,npvals) )
       pdata = 0.0
-      allocate(   ploc(nparcelsLocal,  3   ) )
-      ploc = 0.0
       allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
@@ -2541,8 +2534,9 @@ end module cuda_rt
                               tke_myj,el_myj,mixht,akhs,akms,elflx,ct,snow,sice,thz0,qz0,uz0,vz0,th10,q10,z0base,zntmyj,lowlyr,ivgtyp, &
                               thpten,qvpten,qcpten,qipten,upten,vpten,qnipten,qncpten, &
                               icenter,jcenter,xcenter,ycenter,adaptmovetim,mvrec,nwritemv,ug,vg, &
-                              gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,                  &
-                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p,restarted,restart_prcl)
+                              gamk,kmw,u1b,v1b,cmz,csz,ce1z,ce2z,            &
+                              dum1,dat1,dat2,dat3,reqt,myi1p,myi2p,myj1p,myj2p, &
+                              restarted,restart_prcl,xf,yf)
           ! end_read_restart
         !  In case user wants to change values on a restart:
         IF( restart_reset_frqtim )THEN 

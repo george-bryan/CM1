@@ -413,21 +413,20 @@
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
         !
         ! The generated random number is independent of compilers and MPI ranks
-        randomNumbers = new_RandomNumberSequence(seed = nparcels)
+        randomNumbers = new_RandomNumberSequence(seed = nparcelsMax)
 
         i = 1
-        nparcelsActive = 0
         time_dropinject = 0.0
+        nparcelsLocalActive = 0
 
-        do n=1,nparcels
+        do n=1,nparcelsInit
 
           rand = getRandomReal(randomNumbers)
           tmpx = rand*maxx
           rand = getRandomReal(randomNumbers)
           tmpy = rand*maxy
           rand = getRandomReal(randomNumbers)
-          !tmpz = rand*maxz
-          tmpz = rand*8.0
+          tmpz = rand*injectHMax
 
           ! check if this parcel falls into this MPI region
           if ( tmpx .ge. xf(1) .and. tmpx .le. xf(ni+1) .and. &
@@ -476,18 +475,18 @@
              end if ! end of if statement for prcl_droplet == 1
 
              i = i + 1
-             nparcelsActive = nparcelsActive + 1
+             nparcelsLocalActive = nparcelsLocalActive + 1
 
 #ifdef MPI   
              if ( i .gt. nparcelsLocal ) then
                 write(*,*) "Not enough space to initialize the droplets on myid = ", myid 
-                write(*,*) 'Please increase the value of "pdata_buffer" in the constants.F'
+                write(*,*) 'Please increase the value of namelist variable nparcelsMax' 
                 stop "Stop the program..."
              end if
 #endif
           end if    ! end of if statement for xf/yf check
 
-        end do      ! end of loop for nparcels
+        end do      ! end of loop for nparcelsInit
 
 ! Original stuff:
 !        n = 0

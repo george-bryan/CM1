@@ -92,7 +92,7 @@
               wbc,ebc,sbc,nbc,bbc,tbc,irbc,roflux,nudgeobc,                   &
               isnd,iwnd,itern,iinit,                                          &
               irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,          &
-              iprcl,nparcels,                                                 &
+              iprcl,nparcelsInit,                                             &
               stretch_x,stretch_y,stretch_z,                                  &
               bc_temp,ibw,ibe,ibs,ibn,npvals,npvars,                          &
               outfile,myid,numprocs,myi,myj,nf,nu,nv,nw,                      &
@@ -158,14 +158,15 @@
               bl_mynn_mixlength,bl_mynn_edmf,                                 &
               bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,           &
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
-              nutk,nvtk,nwtk,nparcelsLocal,nparcelsActive,nparcelsActiveMax
+              nutk,nvtk,nwtk,nparcelsLocal,nparcelsLocalActive,nparcelsMax,   &
+              nparcelsRest
 
-      !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcels,npvals,nx,ny,   &
-      !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist, &
-      !$acc                 nqv,bbc,imove,prvpx,prvpy,prvpz,prrp,prms,prtp, &
-      !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,   &
-      !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,      &
-      !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw,     &
+      !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcelsInit,npvals,nx,ny, &
+      !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist,   &
+      !$acc                 nqv,bbc,imove,prvpx,prvpy,prvpz,prrp,prms,prtp,   &
+      !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,     &
+      !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,        &
+      !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw,       &
       !$acc                 prmult)
 
 !-----------------------------------------------------------------------
@@ -201,7 +202,7 @@
            rad_solcon,rad_jday,rad_zenangle,rad_declin,rad_hrang,             &
            adapt_move_frq,                                                    &
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
-           base_tbot,base_ttop,base_pibot,base_pitop
+           base_tbot,base_ttop,base_pibot,base_pitop,injectHMax
 
       !$acc declare create (dx,dy,zt,rzt,umove,vmove,viscosity,pr_num,sc_num, &
       !$acc                 minx,maxx,miny,maxy,maxz)
@@ -265,7 +266,7 @@
           wbc,ebc,sbc,nbc,bbc,tbc,irbc,roflux,nudgeobc,                 &
           isnd,iwnd,itern,iinit,                                        &
           irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,        &
-          iprcl,nparcels
+          iprcl,nparcelsInit,nparcelsMax,injectHMax
       namelist /param3/ kdiff2,kdiff6,fcor,kdiv,alph,rdalpha,zd,xhd,alphobc, &
                         umove,vmove,v_t,l_h,lhref1,lhref2,l_inf,ndcnst
       namelist /param4/ stretch_x,dx_inner,dx_outer,nos_x_len,tot_x_len

@@ -22,7 +22,7 @@ contains
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
-                      nparcelsActive
+                      nparcelsLocalActive
     use constants, only: undefined_index,num_nn,inorth,isouth, &
                          iwest,ieast,inw,ine,isw,ise
     use mpi
@@ -76,7 +76,7 @@ contains
           ! information after the old drolpet leaves the current MPI region
           holes_ind(i) = n
           i = i + 1
-          if ( n .le. nparcelsActive ) then
+          if ( n .le. nparcelsLocalActive ) then
              if ( pdata_neighbor(n) .eq. mynorth ) then
                 Depart(inorth) = Depart(inorth) + 1
              else if ( pdata_neighbor(n) .eq. mysouth ) then
@@ -229,7 +229,7 @@ contains
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
-                      pract,nparcelsActive
+                      pract,nparcelsLocalActive
     use constants, only: undefined_index,neg_huge,num_nn,inorth, &
                          isouth,iwest,ieast,inw,ine,isw,ise
     use mpi
@@ -310,7 +310,7 @@ contains
     i = 1
 
     if ( numDepart .ne. 0 ) then
-       do n = 1, nparcelsActive
+       do n = 1, nparcelsLocalActive
           if ( pdata_neighbor(n) .eq. mynorth ) then
              call record_leaving_droplet ( n, n_idx, i, pdata, droplet_n1 )
           else if ( pdata_neighbor(n) .eq. mysouth ) then
@@ -514,7 +514,7 @@ contains
        num_holes = numDepart - numArrive        ! number of "holes" we need to fill
                                                 ! to make the active dropelts in 
                                                 ! the "pdata" contiguous
-       last_active = nparcelsActive
+       last_active = nparcelsLocalActive
        i = 0
        do n = 1, numDepart
           indx = holes_ind(n)

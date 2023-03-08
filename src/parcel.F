@@ -27,7 +27,7 @@
       subroutine parcel_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,znt,rho,ua,va,wa,pdata)
       use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
-          kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
+          kmt,npvals,nparcelsLocal,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs, &
           dx,dy,njp1,nkp1,maxz,minx,maxx,miny,maxy,timestats,mytime,ierr,time_parcels,myid
@@ -58,7 +58,7 @@
       real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
-      real, intent(inout), dimension(nparcels,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
 
       integer :: n,np,i,j,k,iflag,jflag,kflag
       real :: uval,vval,wval,rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
@@ -156,7 +156,7 @@
 
     !$acc parallel loop gang vector default(present) 
     nploop:  &
-    DO np=1,nparcels
+    DO np=1,nparcelsLocal
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -649,10 +649,10 @@
 #ifdef MPI
       !$acc update host(pdata)
       if( .not. terrain_flag )then
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),npvars*nparcelsLocal,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       else
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
-        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcels,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,1),(npvars-1)*nparcelsLocal,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE,pdata(1,prsig),nparcelsLocal,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,ierr)
       endif
       !$acc update device(pdata)
 #endif
@@ -662,7 +662,7 @@
 
       if( terrain_flag )then
             call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcels
+            DO np=1,nparcelsLocal
               ! get z from sigma:
               ! (see Section 3 of "The governing equations for CM1", 
               !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
@@ -1762,8 +1762,9 @@
 
 
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-      use input, only : maxq,maxvars,nparcelsLocal,npvals,output_format,myid,dowr, &
-          maxstring,string,outfile,numprocs,ierr
+      use input, only : maxq,maxvars,nparcelsLocal,npvals,output_format, &
+                        myid,dowr,maxstring,string,outfile,numprocs,ierr, &
+                        nparcelsLocalActive
 #ifdef MPI
       use mpi
 #endif
@@ -1777,12 +1778,15 @@
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
-      real, intent(inout), dimension(nparcelsLocal,3) :: ploc
+      real, intent(inout), dimension(:,:) :: ploc
 
-      integer :: i,n,np
+      integer :: i,n,np,nparcelstot
 
 #ifdef MPI
+      real, dimension(:),allocatable :: sbuf
       real, dimension(:,:),allocatable :: rbuf
+      integer, dimension(0:numprocs-1) :: displacements, counts, cnts
+      integer :: ierror
 #endif
 
 !----------------------------------------------------------------------
@@ -1790,16 +1794,46 @@
 
     !$acc update host(pdata)
 
-    ! JS: use MPI_GATHER to collect all the droplet information
+    ! JS: use MPI_GATHERV to collect all the droplet information
     !     from different MPI ranks;
-    !     write out the "holes" with garbage information as well
+    !     also collect the number of active droplets from each MPI rank
 
-!#ifdef MPI
-!    if ( myid .eq. 0 ) allocate(rbuf(nparcelsLocal*numprocs,npvals))
-!    call mpi_gather(pdata,npvals*nparcelsLocal,MPI_REAL, &
-!                    rbuf,npvals*nparcelsLocal,MPI_REAL, &
-!                    0,MPI_COMM_WORLD,ierr)
-!#endif
+#ifdef MPI
+    ! local buffer for sending array on each MPI rank
+    allocate(sbuf(0:nparcelsLocalActive-1))
+    if ( myid .eq. 0 ) then
+       ! initialize the displacement and count for the mpi_gatherv call
+       do i = 0, numprocs-1
+          displacements(i) = i
+          counts(i) = 1 
+       end do
+    end if
+    ! collect number of active droplets from each MPI rank
+    call mpi_gatherv(nparcelsLocalActive,1,MPI_INTEGER,cnts,counts, &
+                     displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
+    if ( myid .eq. 0 ) then
+       ! update the displacement and count for the second mpi_gatherv call
+       do i = 0, numprocs-1
+          if ( i == 0 ) then
+             displacements(i) = 0
+          else
+             displacements(i) = sum(cnts(0:i-1))
+          end if
+          counts(i) = cnts(i)
+       end do
+       ! local buffer for receiving array on root rank
+       nparcelstot = sum(counts)
+       allocate(rbuf(0:nparcelstot-1,0:npvals-1))
+    end if
+    ! collect the information of active droplets from each MPI rank
+    do i = 0, npvals-1
+       do np = 0, nparcelsLocalActive-1
+          sbuf(np) = pdata(np+1,i+1)
+       end do
+       call mpi_gatherv(sbuf,nparcelsLocalActive,MPI_REAL,rbuf(:,i),counts, &
+                        displacements,MPI_REAL,0,mpi_comm_world,ierror)
+    end do
+#endif
 
     IF(myid.eq.0)THEN
 
@@ -1809,42 +1843,42 @@
         ! write GrADS descriptor file:
         call write_prclctl(name_prcl,desc_prcl,unit_prcl,prec)
 
-!        do i=1,maxstring
-!          string(i:i) = ' '
-!        enddo
-!
-!        string = 'cm1out_pdata.dat'
-!
-!!!!        write(string(15:20),101) prec
-!!!!101     format(i6.6)
-!
-!        if(dowr) write(outfile,*) string
-!        open(unit=61,file=string,form='unformatted',access='direct',   &
-!             recl=4*npvals*nparcelsLocal*numprocs,status='unknown')
-!
-!        if(dowr) write(outfile,*)
-!        if(dowr) write(outfile,*) '  pdata prec = ',prec
-!
-!#ifdef MPI
-!        write(61,rec=prec) ((rbuf(np,n),np=1,nparcelsLocal*numprocs),n=1,npvals)
-!#else
-!        write(61,rec=prec) ((pdata(np,n),np=1,nparcelsLocal*numprocs),n=1,npvals)
-!#endif
-!
-!        close(unit=61)
-!
-!#ifdef MPI     
-!        deallocate(rbuf)
-!#endif
-!
-!#ifdef NETCDF
-!      ELSEIF(output_format.eq.2)THEN
-!
-!        call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
-!
-!#endif
+        do i=1,maxstring
+          string(i:i) = ' '
+        enddo
+
+        string = 'cm1out_pdata.dat'
+
+!!!        write(string(15:20),101) prec
+!!!101     format(i6.6)
+
+        if(dowr) write(outfile,*) string
+        open(unit=61,file=string,form='unformatted',access='direct',   &
+             recl=4*npvals*nparcelstot,status='unknown')
+
+        if(dowr) write(outfile,*)
+        if(dowr) write(outfile,*) '  pdata prec = ',prec
+
+#ifdef MPI
+        write(61,rec=prec) ((rbuf(np,n),np=0,nparcelstot-1),n=0,npvals-1)
+#else
+        write(61,rec=prec) ((pdata(np,n),np=1,nparcelstot),n=1,npvals)
+#endif
+
+        close(unit=61)
+
+#ifdef MPI     
+        deallocate(rbuf)
+#endif
+
+#ifdef NETCDF
+      ELSEIF(output_format.eq.2)THEN
+
+        call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
+
+#endif
       ENDIF
-!      if(dowr) write(outfile,*)
+      if(dowr) write(outfile,*)
 
     ENDIF   ! endif for myid=0
 
@@ -2359,7 +2393,7 @@
 
       subroutine write_prclctl(name_prcl,desc_prcl,unit_prcl,prec)
       use input, only : maxvars,myid,string,maxstring,dowr,cm1version, &
-          nparcels,prcl_out,outfile
+          nparcelsInit,prcl_out,outfile
       use constants , only : grads_undef
       implicit none
 
@@ -2389,7 +2423,7 @@
       write(50,401) string
       write(50,402) trim(cm1version)
       write(50,403) grads_undef
-      write(50,404) nparcels
+      write(50,404) nparcelsInit
       write(50,405)
       write(50,406)
       write(50,407) prec
