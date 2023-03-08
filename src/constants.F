@@ -64,6 +64,12 @@
 
       integer, parameter :: undefined_index = -100
 
+      real, parameter :: pdata_buffer = 0.01      ! additional storage space for pdata from
+                                                  ! each MPI rank to account for the droplet
+                                                  ! communication between MPI ranks;
+                                                  ! this is a percent of
+                                                  ! "nparcelsMax" value
+
       real, parameter :: neg_huge = -1.0e30       ! define a large negative number
 
       integer, parameter :: num_nn = 8,  &        ! Number of nearest neighbor

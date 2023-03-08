@@ -477,7 +477,7 @@
 #ifdef MPI   
              if ( i .gt. nparcelsLocal ) then
                 write(*,*) "Not enough space to initialize the droplets on myid = ", myid 
-                write(*,*) 'Please increase the value of namelist variable nparcelsMax' 
+                write(*,*) 'Please increase the value of namelist variable "nparcelsMax" or the value of "pdata_buffer" in the constants.F' 
                 stop "Stop the program..."
              end if
 #endif
