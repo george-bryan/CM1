@@ -1874,7 +1874,7 @@
 #ifdef NETCDF
       ELSEIF(output_format.eq.2)THEN
 
-        call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
+        !call     writepdata_nc(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc(1,1))
 
 #endif
       ENDIF
