@@ -1787,8 +1787,8 @@
       do k=1,nk
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
-         do j=jb,je
-         do i=ib,ie
+         do j=1,nj
+         do i=1,ni
 
             Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
             qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
@@ -2517,7 +2517,7 @@
       !my_reintro = floor(xrange*yrange*dt*totdrops/1e9)      !Number of droplets to be produced by this MPI task
       my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
-   if (myid==0) write(*,'(a15,i,6e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt
+   if (myid==0) write(*,'(a15,i,7e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject
 
       !my_reintro = 10
 
