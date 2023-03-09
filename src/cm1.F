@@ -2267,7 +2267,7 @@ end module cuda_rt
           call stopcm1
       else
 #ifdef MPI
-          padding = max(pdata_buffer*nparcelsMax/numprocs,100.0)
+          padding = max(pdata_buffer*nparcelsMax/numprocs,500.0)
           nparcelsLocal = int(nparcelsMax/numprocs+padding)
 #else
           padding = max(pdata_buffer*nparcelsMax,100.0)

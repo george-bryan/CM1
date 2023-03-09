@@ -443,7 +443,7 @@
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
-!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsActive
+!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
 !  num_fallout already contains the number which have fallen out
 
    allocate(holes_fallout_ind(num_fallout))
@@ -461,7 +461,7 @@
    !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
    do np=num_fallout,1,-1
       if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
-         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsActive
+         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
       else
          pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
          pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
@@ -2534,7 +2534,7 @@
 
       else
 
-        write(*,*) 'CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
+        if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
 
       end if
 
