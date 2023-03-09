@@ -22,6 +22,9 @@
   ! falling off the bottom (i.e., conserve the total droplet number)
   logical, parameter :: use_wall_bc = .false.
 
+  !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
+  logical, parameter :: random_droplets = .false.
+
   CONTAINS
 
       subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
@@ -2460,7 +2463,8 @@
       zrange = injectHMax
 
       my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
-       my_reintro = 10
+
+      my_reintro = 10
 
 
 #ifdef MPI
@@ -2478,6 +2482,7 @@
 
       do np=nparcelsLocalActive+1,nparcelsLocalActive+my_reintro
 
+         if (random_droplets) then
          rand = getRandomReal(randomNumbers)
          a = totdrops*rand
 
@@ -2504,6 +2509,15 @@
         pdata(np,pry) = yf(1)+rand*yrange
         rand = getRandomReal(randomNumbers)
         pdata(np,prz) = rand*zrange
+
+        else
+
+        rad_init = 10.0e-6
+        pdata(np,prx) = xf(1) + xrange/2.0
+        pdata(np,pry) = yf(1) + yrange/2.0
+        pdata(np,prz) = injectHMax
+
+        end if
 
         pdata(np,prvpx) = 0.0
         pdata(np,prvpy) = 0.0
