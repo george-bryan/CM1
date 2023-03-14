@@ -23,7 +23,7 @@
   logical, parameter :: use_wall_bc = .false.
 
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
-  logical, parameter :: random_droplets = .false.
+  logical, parameter :: random_droplets = .true.
 
   CONTAINS
 
@@ -138,13 +138,16 @@
       integer :: tmp_flag
 #endif
 
-
       call date_and_time(values=values)
-      local_seed = -(myid+values(8)+values(7)+values(6))
+      ! 1) To match the initial and restart runs for total droplet number,
+      !    use the following form to calculate the seed value so that it is 
+      !    deterministic but varies between different MPI ranks and time steps
+      ! 2) Otherwise, use David's original form with date and time to achieve
+      !    more randomness but unmatched results between initial and restart runs
+      local_seed = int(mtime) * 1000 + myid          ! -(myid+values(8)+values(7)+values(6))
       randomNumbers = new_RandomNumberSequence(seed = local_seed)
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
-
 
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
@@ -471,6 +474,10 @@
          pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
          nparcelsLocalActive = nparcelslocalActive-1
       end if
+      ! reset all the information for this "dead" droplet
+      pdata_locind(nparcelsLocalActive,:) = undefined_index
+      pdata(nparcelsLocalActive,:) = neg_huge
+      pdata_neighbor(nparcelsLocalActive) = undefined_index
    end do
 
    deallocate(holes_fallout_ind)
@@ -852,6 +859,15 @@
       else
         pdata(np,prsig)=sig3d
       endif
+
+      ! If this droplet falls outside the bottom boundary,
+      ! it "dies" and should not enter any other MPI rank
+      ! even if its x/y location is valid
+      if (pdata(np,pract) .lt. 0.0) then
+         neighbor = undefined_index
+         pdata_locind(np,1) = undefined_index
+         pdata_locind(np,2) = undefined_index
+      end if
 
       if (pdata_locind(np,1) .eq. undefined_index .or. &
           pdata_locind(np,2) .eq. undefined_index) then
@@ -2551,8 +2567,6 @@
         if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
 
       end if
-
-
 
     end subroutine droplet_injection
 
