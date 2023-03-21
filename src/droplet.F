@@ -22,6 +22,9 @@
   ! falling off the bottom (i.e., conserve the total droplet number)
   logical, parameter :: use_wall_bc = .false.
 
+  !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
+  logical, parameter :: random_droplets = .true.
+
   CONTAINS
 
       subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
@@ -137,13 +140,16 @@
       integer :: tmp_flag
 #endif
 
-
       call date_and_time(values=values)
-      local_seed = -(myid+values(8)+values(7)+values(6))
+      ! 1) To match the initial and restart runs for total droplet number,
+      !    use the following form to calculate the seed value so that it is 
+      !    deterministic but varies between different MPI ranks and time steps
+      ! 2) Otherwise, use David's original form with date and time to achieve
+      !    more randomness but unmatched results between initial and restart runs
+      local_seed = int(mtime) * 1000 + myid          ! -(myid+values(8)+values(7)+values(6))
       randomNumbers = new_RandomNumberSequence(seed = local_seed)
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
-
 
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
@@ -430,18 +436,22 @@
     numvec(1) = num100
     numvec(2) = num1000
 
+#ifdef MPI
+
     if ( myid == 0 ) then
        call mpi_reduce(mpi_in_place,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
     else
        call mpi_reduce(numvec,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
     end if
 
+#endif
+
     if (myid==0) write(*,*) 'num100,num1000 = ',numvec(1),numvec(2)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
-!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsActive
+!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
 !  num_fallout already contains the number which have fallen out
 
    allocate(holes_fallout_ind(num_fallout))
@@ -459,13 +469,17 @@
    !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
    do np=num_fallout,1,-1
       if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
-         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsActive
+         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
       else
          pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
          pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
          pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
          nparcelsLocalActive = nparcelslocalActive-1
       end if
+      ! reset all the information for this "dead" droplet
+      pdata_locind(nparcelsLocalActive,:) = undefined_index
+      pdata(nparcelsLocalActive,:) = neg_huge
+      pdata_neighbor(nparcelsLocalActive) = undefined_index
    end do
 
    deallocate(holes_fallout_ind)
@@ -706,6 +720,7 @@
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
       call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
+      !Nondimensionalize the guesses
       if (mflag.eq.0) then
          rt_start(1) = dble(guess)/dble(pdata(np,prrp))
          rt_start(2) = dble(tval)/dble(pdata(np,prtp))
@@ -715,14 +730,16 @@
       end if
 
 
+      !Start using the standard Gauss-Newton algorithm
       call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
 
+      !If Gauss-Newton failed to converge, flag is set to 1 and try Levenberg-Marquardt algorithm
       if (flag==1) then
          num100 = num100+1
          call LV_solver(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
       end if
 
-      !In rare cases the nonlinear solvers fail to converge
+      !In rare cases both nonlinear solvers fail to converge
       if (flag==1)  then
 
        num1000 = num1000+1 
@@ -851,6 +868,15 @@
       else
         pdata(np,prsig)=sig3d
       endif
+
+      ! If this droplet falls outside the bottom boundary,
+      ! it "dies" and should not enter any other MPI rank
+      ! even if its x/y location is valid
+      if (pdata(np,pract) .lt. 0.0) then
+         neighbor = undefined_index
+         pdata_locind(np,1) = undefined_index
+         pdata_locind(np,2) = undefined_index
+      end if
 
       if (pdata_locind(np,1) .eq. undefined_index .or. &
           pdata_locind(np,2) .eq. undefined_index) then
@@ -2096,11 +2122,14 @@
 
       rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
+      !Calculate the equilibrium radius based on "rhval"
+      !Solve the cubic for the equilibrium radius
 
       if (rhval .lt. 0.999) then
          a = -(2*mw*surften)/(ru*rhow*tval)/LOG(rhval)
-         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval)
-
+         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval) 
+     
+         !Use Cardano's method for cubic solution
          Q = (a**2.0)/9.0
          R = (2.0*a**3.0+27.0*c)/54.0
          M = R**2.0-Q**3.0
@@ -2151,27 +2180,34 @@
         flag = 0
         error = 1.e-8
 
+        !Initialize the solution vector
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
          
-        coeff = 0.1
+        !Initialize the correction to zero
         correct(1) = 0.0
         correct(2) = 0.0
 
+        !Default max iterations before Gauss-Newton deemed failure (and moves onto a new scheme)
+        !Rare that it gets above ~5
         iteration_max = 50
 
         do while (iterations<iteration_max)
 
                 iterations = iterations + 1
 
+                !Compute the RHS of the droplet temp and radius equations
                 call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                !Approximate the Jacobian
                 call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+                !Matrix to be inverted via G-N method
                 fancy(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)
                 fancy(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)
                 fancy(2,1) = J(1,2)*J(1,1)+J(2,2)*J(2,1)
                 fancy(2,2) = J(1,2)*J(1,2)+J(2,2)*J(2,2)
 
+                !Determinant -- exit if it is too near zero, indicates failed convergence
                 det = fancy(1,1)*fancy(2,2) - fancy(1,2)*fancy(2,1)
                 if (abs(det) .lt. 1.0e-10) then
                    flag = 1
@@ -2185,14 +2221,17 @@
                 finalJ(2,1) = inv(2,1)*J(1,1)+inv(2,2)*J(1,2)
                 finalJ(2,2) = inv(2,1)*J(2,1)+inv(2,2)*J(2,2)
 
+                !How much to correct the solution vector
                 correct(1) = finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2)
                 correct(2) = finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2)
 
+                !Update the solution vector
                 rt_zeros(1) = v1(1) - correct(1)
                 rt_zeros(2) = v1(2) - correct(2)
 
                 relax = 1.0
                 counts = 0
+                !If either the temperature or radius goes negative, take a series of smaller adjustment steps
                 do while ((rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
 
                    counts = counts + 1
@@ -2204,11 +2243,13 @@
                    if (counts>10) EXIT
                 end do
 
+                !Failure to converge if these drop too low -- send to LV solver
                 if (rt_zeros(1)<0.01 .OR. rt_zeros(2)<0.01) then
                    flag = 1
                    EXIT
                 end if
 
+                !Converged when the correction is small
                 if (sqrt(correct(1)*correct(1)+correct(2)*correct(2))<error) then
                    EXIT
                 end if
@@ -2217,6 +2258,7 @@
                 v1(2) = rt_zeros(2)
 
         end do
+      !These indicate that this failed -- set flag = 1 to send to LV solver
       if (iterations == iteration_max) flag = 1
       if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
@@ -2242,6 +2284,7 @@
         error = 1.0e-8
 
         
+        !Preliminary
         I(1,1)=1.0
         I(2,1)=0.0
         I(1,2)=0.0
@@ -2254,6 +2297,7 @@
         fv2(1) = 1.0
         fv2(2) = 1.0
 
+        !These are parameters to the solver, could be adjusted but these work
         lambda = 0.001
         lup = 2.0
         ldown = 2.0
@@ -2262,9 +2306,12 @@
 
         iterations = iterations + 1
 
+        !Approximate the Jacobian of the system
         call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        !Compute the RHS of the temperature and radius equations
         call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+        !Calculate the update matrix which must be inverted
         g(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)+lambda*I(1,1)
         g(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)+lambda*I(1,2)
         g(2,1) = J(1,2)*J(1,1)+J(2,2)*J(2,1)+lambda*I(2,1)
@@ -2276,27 +2323,33 @@
         C(1) = 0.5*fv1(1)*fv1(1)
         C(2) = 0.5*fv1(2)*fv1(2)
 
+        !Exit if the determinant is too close to zero -- failed convergence
         det = g(1,1)*g(2,2) - g(1,2)*g(2,1)
         if (abs(det) .lt. 1.0e-10) then
              flag = 1
              EXIT
         end if
         call inverse_finder_2d(g,det,invg)
+
+        !Solve for correction vector
         correct(1) = invg(1,1)*gradC(1)+invg(1,2)*gradC(2)
         correct(2) = invg(2,1)*gradC(1)+invg(2,2)*gradC(2)
 
         rt_zeros(1) = v1(1) - correct(1)
         rt_zeros(2) = v1(2) - correct(2)
 
+        !Successful convergence if correction is small
         if (sqrt(correct(1)*correct(1)+correct(2)*correct(2)) < error) then
            EXIT
         end if
 
+        !Failed if temperature or radius goes negative
         if (rt_zeros(1)<0.0 .OR. rt_zeros(2)<0.0) then
             flag = 1
             EXIT
         end if
 
+        !Use the RHS to update the lambda parameter
         call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
         newC(1) = 0.5*fv2(1)*fv2(1)
@@ -2312,10 +2365,12 @@
 
         end do
 
+        !Failed if iterations hits maximum
         if (iterations==iterations_max) then
            flag = 1
         end if
 
+        !Failed if it returns negative radius or temperature
         if (rt_zeros(1) < 0 .OR. rt_zeros(2) < 0) then
            flag = 1
         end if
@@ -2344,11 +2399,13 @@
         double precision :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
         integer, intent(in) :: np
 
+        !Take a very small difference to approximate the derivatives
         diff = 1E-12
 
         ynext(1) = rnext
         ynext(2) = tnext
 
+        !Evaluate RHS 
         call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
         xper(1) = ynext(1)
@@ -2356,6 +2413,7 @@
         xper2(1) = ynext(1)
         xper2(2) = ynext(2)
 
+        !Now evaluate RHS a bit ahead and behind the base point
         do n=1, 2
            xper(n) = xper(n) + diff
            xper2(n) = xper2(n) - diff
@@ -2363,6 +2421,7 @@
            call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
            call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+           !Use these differences to compute the Jacobian
            J(1,n) = (fxper(1)-rt_output(1))/diff
            J(2,n) = (fxper(2)-rt_output(2))/diff
            xper(n) = ynext(n)
@@ -2423,9 +2482,13 @@
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract, &
-                        prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs
+                        prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
+                        injectHMax
       use constants
       use MersenneTwister_mod
+#ifdef MPI
+      use mpi
+#endif
 
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       type(randomNumberSequence),intent(inout) :: randomNumbers
@@ -2433,7 +2496,8 @@
       real, intent(in), dimension(jb:je+1) :: yf
       real, intent(in) :: dt,s10_xym,time_since_inject
     
-      integer :: i,my_reintro,np
+      integer :: i,my_reintro,np,tot_after_reintro
+      integer :: sum_buf(2)
       real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
       real :: binsdata(100)  !Discretized bins for cumulative SSGF
 
@@ -2447,7 +2511,7 @@
       real :: c1,c2,c3,u14,cdn10,a,rand
       real :: a1,a2,r80,r0,dh
       real :: dFsdr80(100),dFmsdr0(100),dr80_dr0
-      integer :: iter,nbin,num_create,j
+      integer :: iter,nbin,num_create,j,ierr
 
       !implementing the Andreas 1998 sea spray generation function
       !Set the parameters of the two lognormals:
@@ -2506,7 +2570,7 @@
       !These are the LOCAL area for EACH processor
       xrange = xf(ni+1)-xf(1)
       yrange = yf(nj+1)-yf(1)
-      zrange = 8.0
+      zrange = injectHMax
 
       !my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
       !my_reintro = floor(xrange*yrange*dt*totdrops/1e9)      !Number of droplets to be produced by this MPI task
@@ -2516,11 +2580,18 @@
 
       !my_reintro = 10
 
+#ifdef MPI
+      call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+#else
+      !Calculate the total number which will occur after injection
+      tot_after_reintro = my_reintro+nparcelsLocalActive
+#endif
 
-      if (nparcelsLocalActive+my_reintro .lt. nparcelsLocal) then   !Only add particles to pdata if we're still under nparcelsLocal
+      if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected does not make the global exceed nparcelsMax
 
       do np=nparcelsLocalActive+1,nparcelsLocalActive+my_reintro
 
+         if (random_droplets) then
          rand = getRandomReal(randomNumbers)
          a = totdrops*rand
 
@@ -2547,6 +2618,15 @@
         pdata(np,pry) = yf(1)+rand*yrange
         rand = getRandomReal(randomNumbers)
         pdata(np,prz) = rand*zrange
+
+        else
+
+        rad_init = 10.0e-6
+        pdata(np,prx) = xf(1) + xrange/2.0
+        pdata(np,pry) = yf(1) + yrange/2.0
+        pdata(np,prz) = injectHMax
+
+        end if
 
         pdata(np,prvpx) = 0.0
         pdata(np,prvpy) = 0.0
@@ -2577,11 +2657,9 @@
 
       else
 
-        write(*,*) 'CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSACTIVEMAX'  
+        if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
 
       end if
-
-
 
     end subroutine droplet_injection
 

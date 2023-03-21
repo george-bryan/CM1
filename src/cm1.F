@@ -2266,7 +2266,13 @@ end module cuda_rt
 #endif
           call stopcm1
       else
-          nparcelsLocal = int(nparcelsMax / numprocs)
+#ifdef MPI
+          padding = max(pdata_buffer*nparcelsMax/numprocs,500.0)
+          nparcelsLocal = int(nparcelsMax/numprocs+padding)
+#else
+          padding = max(pdata_buffer*nparcelsMax,100.0)
+          nparcelsLocal = int(nparcelsMax+padding)
+#endif
           ! number of droplets read from / write to a restart file
           ! initialize its value as "nparcelsInit"
           nparcelsRest = nparcelsInit

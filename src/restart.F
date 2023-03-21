@@ -1746,7 +1746,7 @@
           elseif( restart_format.eq.2 )then
             call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
             n = 3
-            call disp_err( nf90_put_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcels,n,1/)) , .true. )
+            call disp_err( nf90_put_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcelsLocal,n,1/)) , .true. )
 #endif
           endif
         endif
@@ -3712,7 +3712,7 @@
               elseif( restart_format.eq.2 )then
                 call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
                 n = 3
-                call disp_err( nf90_get_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcels,n,1/)) , .true. )
+                call disp_err( nf90_get_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcelsLocal,n,1/)) , .true. )
 #endif
               endif
             ELSE

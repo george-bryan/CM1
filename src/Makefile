@@ -156,7 +156,7 @@ endif
 ifeq (${FC},ifort)
     # replace -xHost with -march=core-avx2 to make sure the same code builds on
     # both Intel and AMD CPUs 
-    OPTS         += -g -O2 -march=core-avx2 -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback -no-fma
+    OPTS         += -g -O2 -xHost -ip -assume byterecl -fp-model precise -ftz -init=snan,arrays -traceback -no-fma
     CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -qopenmp
@@ -180,15 +180,20 @@ endif
 #  Cray compiler
 #-----------------------------------------------------------------------------
 ifeq (${FC},ftn)
-    OPTS         += -O3 -Ovector3 -Oscalar3 -Othread3
-    LINKOPTS     += -lfast_mv
-    CPP          += cpp -C -P -traditional
+    OPTS         += -O2 -Ovector2 -Oscalar2 -Othread2
+    #LINKOPTS     += -lfast_mv
+    CPP          += cpp -C -P -traditional -Wno-invalid-pp-token -ffreestanding
     ifeq (${USE_OPENMP_L},true)
         OPTS     += -h omp
         OMP      += -DOPENMP
     else
         OPTS     += -h noomp
     endif
+    ifeq (${USE_OPENACC_L},true)
+        OPTS     += -h acc
+        DM       += -D_OPENACC
+    endif
+
 endif
 
 #-----------------------------------------------------------------------------
