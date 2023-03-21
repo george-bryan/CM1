@@ -10274,7 +10274,7 @@
 
   !----------------------
 
-      !$omp parallel default(shared) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
+      !$omp parallel do default(shared) private(i,j,k,wbar) reduction(+:ufrt,ufdt)
       !$acc parallel default(present) reduction(+:ufrt,ufdt)
       !$acc loop gang 
       do k=2,nk

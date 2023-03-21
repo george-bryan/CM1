@@ -1585,7 +1585,6 @@
             radbcs(i,k)=avgs
           enddo
         enddo
-        !$acc end parallel
       endif
 
       if(ibn.eq.1.and.nbc.eq.2)then
@@ -1605,7 +1604,6 @@
             radbcn(i,k)=avgn
           enddo
         enddo
-        !$acc end parallel
       endif
 
       if(timestats.ge.1) time_bc=time_bc+mytime()
@@ -1646,7 +1644,6 @@
         temout(k) = 0.0d0
         temin(k)  = 0.0d0
       enddo
-      !$acc end parallel
 
       if(wbc.eq.2.and.ibw.eq.1)then
         i=1
@@ -1694,7 +1691,6 @@
         fluxout = fluxout + temout(k)
         fluxin  = fluxin  + temin(k)
       enddo
-      !$acc end parallel
 
 #ifdef MPI
       tem=0.0d0
@@ -1721,7 +1717,6 @@
           endif
         enddo
         enddo
-        !$acc end parallel
       endif
 
       if(ebc.eq.2.and.ibe.eq.1)then
@@ -1736,7 +1731,6 @@
           endif
         enddo
         enddo
-        !$acc end parallel
       endif
 
       !$acc end data
@@ -1815,7 +1809,6 @@
         fluxout = fluxout + temout(k)
         fluxin  = fluxin  + temin(k)
       enddo
-      !$acc end parallel
 
 #ifdef MPI
       tem=0.0d0

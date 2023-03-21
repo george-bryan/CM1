@@ -370,7 +370,6 @@
         kzi(i,j) = 0  ! initilize this to zero 
       enddo
       enddo
-      !$acc end parallel
 
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,n)
       do k=1,nk
@@ -384,7 +383,6 @@
         enddo
         !----
       enddo
-      !$acc end parallel
 
       do n=nql1,nql2
       !$acc parallel default(present)

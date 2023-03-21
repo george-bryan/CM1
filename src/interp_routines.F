@@ -369,8 +369,8 @@
 
       !----
 
-    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
     k = 3
+    !$omp parallel do default(shared) private(i,j,k,wbar,cc1,cc2)
     !$acc parallel loop gang vector collapse(2) default(present) private(i,j,wbar)
     DO j=j1,j2
       !dir$ vector always
@@ -639,7 +639,7 @@
         i2=ni+1
       endif
 
-    !$omp parallel do default(shared) private(i,j,k,wbar) private(i,j,k,wbar)
+    !$omp parallel do default(shared) private(i,j,k,wbar)
     !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k,wbar)
     DO k=4,nk-2
       do j=1,nj

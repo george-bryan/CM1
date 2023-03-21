@@ -5079,7 +5079,7 @@
       qd_subl  = 0
 
       ! dbz (new for cm1r19)
-      IF( output_dbz.eq.1 .or. restart_file_dbz .or. prcl_dbz )THEN
+      IF( output_dbz.eq.1 .or. restart_file_dbz .or. (prcl_dbz .eq. 1) )THEN
         ibdq = ib
         iedq = ie
         jbdq = jb

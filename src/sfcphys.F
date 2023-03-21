@@ -548,7 +548,7 @@
 
 
       !$acc declare &
-      !$acc present(psfc,tsk,th0,tha,qa,tsk,znt,za) &
+      !$acc present(psfc,tsk,th0,tha,qa,znt,za) &
       !$acc present(dsxy,s1,thflux,qvflux,rf,cd,hpbl) &
       !$acc present(qsfc,gz1oz0,wspd,br,hfx,qfx) &
       !$acc present(cda,psim,psih,zol,mol,fm,fh,th2,q2,t2)

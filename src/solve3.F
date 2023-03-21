@@ -623,9 +623,8 @@
             !JMD ENDIF
         ELSE
           ! psolver=1,4,5:
-!$omp parallel do default(shared)   &
-!$omp private(i,j,k)
             print *, 'Here 8 -- Not being executed'
+            !$omp parallel do default(shared) private(i,j,k)
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk
             do j=1,nj
