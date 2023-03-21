@@ -1228,7 +1228,7 @@
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
                         npvals,nparcelsLocal,prrp,prms,prmult, &
-                        pract,viscosity,nparcelsLocalActive
+                        pract,prt,viscosity,nparcelsLocalActive
       use constants
       use parcel_module
       use cm1libs , only : eslf
