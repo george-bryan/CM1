@@ -477,9 +477,9 @@
          nparcelsLocalActive = nparcelslocalActive-1
       end if
       ! reset all the information for this "dead" droplet
-      pdata_locind(nparcelsLocalActive,:) = undefined_index
-      pdata(nparcelsLocalActive,:) = neg_huge
-      pdata_neighbor(nparcelsLocalActive) = undefined_index
+      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
+      pdata(nparcelsLocalActive+1,:) = neg_huge
+      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
    end do
 
    deallocate(holes_fallout_ind)
@@ -582,18 +582,18 @@
      if (time_dropinject .gt. drop_inject_elapse) then
 
         !Only start droplet injection after 30 minutes
-        if (mtime .gt. 1800.0) then
+        if (mtime .gt. 900.0) then
         call droplet_injection(pdata,xf,yf,dt,s10_xym,time_dropinject,randomNumbers)
         end if
 
         time_dropinject = 0.0
      end if
 #ifdef MPI
-   call mpi_allreduce(nparcelsActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+   call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
 #endif
 
    if (myid==0) then 
-   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsActive
+   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
    end if
 
    end subroutine droplet_driver
@@ -2609,8 +2609,6 @@
 
         !Now populate the pdata array, starting at the list
        
-        !!!!!!!! if (nparcelsActive+myreintro .lt. nparcelsActive_max)
-
         !Random location in the loweset 8 meters
         rand = getRandomReal(randomNumbers)
         pdata(np,prx) = xf(1)+rand*xrange
