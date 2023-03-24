@@ -262,7 +262,7 @@
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d,ptten
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
-      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke,2) :: dpten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke,2) :: dpten
       real, intent(in), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: cfb
       real, intent(in), dimension(kpb:kpe) :: cfa,cfc,ad1,ad2
       complex, intent(inout), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: pdt,lgbth,lgbph
@@ -996,14 +996,14 @@
           !$acc end parallel
 
           !print *,'solve3: before call to droplet_driver' 
-          call   droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
-                               sigma,sigmaf,zntmp,rho,rru,rrv,rrw,pdata,            &
-                               tha,qa,th0,pi0,ppi,prs,                              &
-                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
-                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
-                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
-                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
-                               uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2),  &
+          call   droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                               sigma,sigmaf,zntmp,rho,rru,rrv,rrw,s10,pdata,              &
+                               tha,qa,th0,pi0,ppi,prs,                                    &
+                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                           &
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,                    &
+                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
+                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
+                               uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2),        &
                                pdata_locind)
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
           !print *,'solve3: after call to droplet_driver' 

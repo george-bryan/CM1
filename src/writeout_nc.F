@@ -716,7 +716,7 @@
     if( iprcl.eq.1 )then
       n = 3
       call disp_err( nf90_def_dim(ncid,'nploc',n,plocid) , .true. )
-      n = max( 1 , nparcels )
+      n = max( 1 , nparcelsLocalActive )
       call disp_err( nf90_def_dim(ncid,'nparcels',n,nparcelsid) , .true. )
     endif
 
@@ -1896,8 +1896,8 @@
       real, intent(in) :: rtime
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
-      real, intent(in), dimension(nparcels,npvals) :: pdata
-      real, intent(inout), dimension(nparcels) :: pdata2
+      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
+      real, intent(inout), dimension(nparcelsLocal) :: pdata2
 
       integer :: i,ncid,status,dimid,varid,time_index,n,n2,np,timeid,tfile,xid
       integer :: npid,yhid,zhid
@@ -1951,7 +1951,7 @@
       call disp_err( nf90_create(path=string,cmode=0,ncid=ncid) , .true. )
 #endif
 
-    call disp_err( nf90_def_dim(ncid,"xh",nparcels,npid) , .true. )
+    call disp_err( nf90_def_dim(ncid,"xh",nparcelsLocal,npid) , .true. )
     call disp_err( nf90_def_dim(ncid,"yh",1,yhid) , .true. )
     call disp_err( nf90_def_dim(ncid,"zh",1,zhid) , .true. )
     call disp_err( nf90_def_dim(ncid,"time",nf90_unlimited,timeid) , .true. )
@@ -1999,7 +1999,7 @@
 
     call disp_err( nf90_enddef(ncid) , .true. )
 
-  do np=1,nparcels
+  do np=1,nparcelsLocal
     call disp_err( nf90_put_var(ncid,npid,float(np),(/np/)) , .true. )
   enddo
     call disp_err( nf90_put_var(ncid,yhid,0.0) , .true. )
@@ -2020,10 +2020,10 @@
 
       DO n=1,prcl_out
         call disp_err( nf90_inq_varid(ncid,trim(name_prcl(n)),varid) , .true. )
-        do np=1,nparcels
+        do np=1,nparcelsLocal
           pdata2(np) = pdata(np,n)
         enddo
-        call disp_err( nf90_put_var(ncid,varid,pdata2,(/1,time_index/),(/nparcels,1/)) , .true. )
+        call disp_err( nf90_put_var(ncid,varid,pdata2,(/1,time_index/),(/nparcelsLocal,1/)) , .true. )
       ENDDO
 
       ! close file

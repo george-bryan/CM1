@@ -297,7 +297,9 @@
       call bcast_int(npt)
       call bcast_int(pdtra)
       call bcast_int(iprcl)
-      call bcast_int(nparcels) ! DEVICE
+      call bcast_int(nparcelsInit) ! DEVICE
+      call bcast_int(nparcelsMax)
+      call bcast_real(injectHMax)
       call bcast_real(kdiff2)
       call bcast_real(kdiff6)
       call bcast_real(fcor)
@@ -2417,7 +2419,7 @@
       endif
 
       ! for parcels:
-      nparcels = max(1,nparcels)
+      nparcelsInit = max(1,nparcelsInit)
 
 !-----
 
@@ -2681,7 +2683,9 @@
       if(dowr) write(outfile,*) 'npt       =',npt
       if(dowr) write(outfile,*) 'pdtra     =',pdtra
       if(dowr) write(outfile,*) 'iprcl     =',iprcl
-      if(dowr) write(outfile,*) 'nparcels  =',nparcels
+      if(dowr) write(outfile,*) 'nparcelsInit=',nparcelsInit
+      if(dowr) write(outfile,*) 'nparcelsMax=',nparcelsMax
+      if(dowr) write(outfile,*) 'injectHMax= ',injectHMax
       if(dowr) write(outfile,*)
       if(dowr) write(outfile,*) 'kdiff2    =',kdiff2
       if(dowr) write(outfile,*) 'kdiff6    =',kdiff6
@@ -6195,16 +6199,18 @@
 
       else
 
-        nparcels = 1
+        nparcelsInit = 1
 
       endif
 
-      !$acc update device(nparcels,npvals,pru,prv,prw,prt,prqv,prprs,prrho)
+      !$acc update device(nparcelsInit,npvals,pru,prv,prw,prt,prqv,prprs,prrho)
 
       if(dowr) write(outfile,*)
-      if(dowr) write(outfile,*) '  nparcels = ',nparcels
-      if(dowr) write(outfile,*) '  npvals   = ',npvals
-      if(dowr) write(outfile,*) '  npvars   = ',npvars
+      if(dowr) write(outfile,*) '  injectHMax = ',injectHMax
+      if(dowr) write(outfile,*) ' nparcelsMax = ',nparcelsMax
+      if(dowr) write(outfile,*) ' nparcelsInit= ',nparcelsInit
+      if(dowr) write(outfile,*) '  npvals     = ',npvals
+      if(dowr) write(outfile,*) '  npvars     = ',npvars
       if(dowr) write(outfile,*) '    prx      = ',prx
       if(dowr) write(outfile,*) '    pry      = ',pry
       if(dowr) write(outfile,*) '    prz      = ',prz

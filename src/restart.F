@@ -1686,7 +1686,7 @@
         ! Collect the droplet information before writing out to a file
 
         ! local buffer for sending array on each MPI rank
-        allocate( sbuf(0:nparcelsActive-1) )
+        allocate( sbuf(0:nparcelsLocalActive-1) )
         if ( myid .eq. 0 ) then
            ! initialize the displacement and count for the mpi_gatherv call
            do i = 0, numprocs-1
@@ -1695,7 +1695,7 @@
            end do
         end if
         ! collect number of active droplets from each MPI rank
-        call mpi_gatherv(nparcelsActive,1,MPI_INTEGER,cnts,counts, &
+        call mpi_gatherv(nparcelsLocalActive,1,MPI_INTEGER,cnts,counts, &
                          displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
         if ( myid .eq. 0 ) then
            ! update the displacement and count for the second mpi_gatherv call
@@ -1713,15 +1713,15 @@
         end if
         ! collect the information of active droplets from each MPI rank
         do i = 1, npvars
-           do np = 0, nparcelsActive-1
+           do np = 0, nparcelsLocalActive-1
               sbuf(np) = pdata(np+1,i)
            end do
-           call mpi_gatherv(sbuf,nparcelsActive,MPI_REAL,rbuf(0,i-1),counts, &
+           call mpi_gatherv(sbuf,nparcelsLocalActive,MPI_REAL,rbuf(0,i-1),counts, &
                             displacements,MPI_REAL,0,mpi_comm_world,ierror)
         end do
         deallocate(sbuf)
 #else
-        nparcelsRest = nparcelsActive
+        nparcelsRest = nparcelsLocalActive
 #endif
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
@@ -1746,7 +1746,7 @@
           elseif( restart_format.eq.2 )then
             call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
             n = 3
-            call disp_err( nf90_put_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcels,n,1/)) , .true. )
+            call disp_err( nf90_put_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcelsLocal,n,1/)) , .true. )
 #endif
           endif
         endif
@@ -3702,7 +3702,7 @@
           ! only read position info:
           if( myid.eq.0 )then
             ! reset "pdata" that is initialized by the init3d subroutine
-            pdata = 0.0
+            pdata(:,:) = neg_huge
             IF( nvar .eq. nparcelsRest )THEN
               ! easy:  restart file matches current config
               if( restart_format.eq.1 )then
@@ -3712,12 +3712,14 @@
               elseif( restart_format.eq.2 )then
                 call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
                 n = 3
-                call disp_err( nf90_get_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcels,n,1/)) , .true. )
+                call disp_err( nf90_get_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcelsLocal,n,1/)) , .true. )
 #endif
               endif
             ELSE
               ! annoying:  restart file has different nparcels than current config
-              stop "unmatched nvar and nparcelsRest..."
+              print *, "unmatched nvar and nparcelsRest..."
+              print *, "nvar_parcels = ",nvar,", nparcelsRest = ",nparcelsRest
+              stop
             ENDIF
           endif
           IF( iprcl.eq.1 )THEN
@@ -3737,7 +3739,7 @@
                   j = j + 1
                end if
             ENDDO
-            nparcelsActive = j - 1
+            nparcelsLocalActive = j - 1
             restart_prcl = .true.
             deallocate( rbuf )
           ENDIF

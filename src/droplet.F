@@ -16,27 +16,31 @@
   !    the search range using the parameter below;
   ! This assumes that a parcel does not move too far and does
   !    not move between processes within this subroutine?
-  integer, parameter :: location_offset = 3
+  integer, parameter :: location_offset = 16
 
+  ! set this variable to ".true." to rebounce the particles
+  ! falling off the bottom (i.e., conserve the total droplet number)
+  logical, parameter :: use_wall_bc = .false.
 
-
+  !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
+  logical, parameter :: random_droplets = .true.
 
   CONTAINS
 
-      subroutine droplet_driver(dt,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
-                               sigma,sigmaf,znt,rho,ua,va,wa,pdata,                 &
-                               th_in,qa,th0,pi0,ppa,prs,                            &
-                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                     &
-                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,              &
-                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,             &
-                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,      &
+      subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+                               sigma,sigmaf,znt,rho,ua,va,wa,s10,pdata,                   &
+                               th_in,qa,th0,pi0,ppa,prs,                                  &
+                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                           &
+                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,                    &
+                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
+                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
                                uten,vten,wten,thten,qten,pdata_locind)
-      use input, only : ib,ie,jb,je,kb,ke,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
-          kmt,npvals,nparcels,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
+      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
+          kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsactive
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive
       use constants
       use comm_module
       use comm_droplet_module
@@ -55,6 +59,7 @@
 !-----------------------------------------------------------------------
 
       real, intent(in) :: dt
+      double precision, intent(in) :: mtime
       real, intent(in), dimension(ib:ie) :: xh,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je) :: yh,vh,rvh
@@ -66,9 +71,10 @@
       real, intent(in), dimension(kb:ke) :: sigma
       real, intent(in), dimension(kb:ke+1) :: sigmaf
       real, intent(in), dimension(ib:ie,jb:je) :: znt
+      real, intent(in), dimension(ibl:iel,jbl:jel) :: s10
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa
-      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
       real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua,uten
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va,vten
@@ -92,10 +98,11 @@
       integer :: n,np,i,j,k,iflag,jflag,kflag
       integer :: ix,iy,iz
       integer :: num100,num1000
+      integer, dimension(2) :: numvec
       real :: x3d,y3d,z3d
       integer :: nrkp
       real :: dt2,uu1,vv1,ww1
-      real :: sig3d,th_tmp,rand
+      real :: sig3d,th_tmp,rand,s10_xym
       real :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
               rp0,taup0,rhop0,x3d0,y3d0,z3d0,sig3d0
 
@@ -108,8 +115,13 @@
 
       logical, parameter :: debug = .false.
 
+      integer :: values(8),local_seed
+
       type(randomNumberSequence) :: randomNumbers
 !      real, dimension(kb:ke+1) :: zf_tmp
+
+      integer :: num_fallout,idx,np_tmp                        !droplets which fell out of domain
+      integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
 
 #ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
@@ -126,9 +138,16 @@
       integer :: tmp_flag
 #endif
 
-      call reinit_random_seed
+      call date_and_time(values=values)
+      ! 1) To match the initial and restart runs for total droplet number,
+      !    use the following form to calculate the seed value so that it is 
+      !    deterministic but varies between different MPI ranks and time steps
+      ! 2) Otherwise, use David's original form with date and time to achieve
+      !    more randomness but unmatched results between initial and restart runs
+      local_seed = int(mtime) * 1000 + myid          ! -(myid+values(8)+values(7)+values(6))
+      randomNumbers = new_RandomNumberSequence(seed = local_seed)
 
-      randomNumbers = new_RandomNumberSequence(seed = nparcels)
+      num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
 
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
@@ -136,16 +155,12 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      do np = 1, nparcelsActive
-         pdata_neighbor(np) = undefined_index
-      end do
-
       !$acc data create  (ta) &
       !$acc      copyout (pdata_neighbor) &
       !$acc      copyin  (randomNumbers,randomNumbers%state)
 
       !$acc parallel loop gang vector default(present)
-      do np = 1, nparcelsActive
+      do np = 1, nparcelsLocalActive
          pdata_neighbor(np) = undefined_index
       end do
       !$acc end parallel
@@ -286,8 +301,7 @@
     dt2 = dt/2.0
     part_grav1 = 0.0
     part_grav2 = 0.0
-    !part_grav3 = -0.84
-    part_grav3 = 0.0
+    part_grav3 = -9.81
 
     num100 = 0
     num1000 = 0
@@ -299,11 +313,10 @@
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
-    !$acc loop gang vector
+    !$acc loop gang vector reduction(+:num_fallout)
 #endif
-
     nploop:  &
-    DO np=1,nparcelsActive
+    DO np=1,nparcelsLocalActive
 
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
@@ -379,10 +392,13 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
+
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
-                          num100,num1000,neighbor)
+                          num100,num1000,neighbor,num_fallout)
+
+
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
 #endif
@@ -400,43 +416,13 @@
       dtpdt  = (pdata(np,prtp)-dtpdt)/dt
       dmpdt  = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt)/dt
 
+
       !Project the feedback onto the grid, using ORIGINAL location
       call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
                             rhop0,taup0,rp0,tval,uten,vten,wten,qten,thten, &
                             xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
                             sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                             rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
-
-!-----------------------------------------------------
-!  Account for boundary conditions (if necessary)
-!-----------------------------------------------------
-
-      !Now that the particles have been updated, do something with those which
-      !have fallen out the bottom:
-      if (pdata(np,pract).lt.0.0) then
-         !Replace with a new droplet at random location
-         rand = getRandomReal(randomNumbers)
-         pdata(np,prx) = rand*maxx
-         rand = getRandomReal(randomNumbers)
-         pdata(np,pry) = rand*maxy
-         rand = getRandomReal(randomNumbers)
-         pdata(np,prz) = rand*maxz
-         pdata(np,prvpx) = 0.0
-         pdata(np,prvpy) = 0.0
-         pdata(np,prvpz) = 0.0
-         !Droplet size (radius)
-         pdata(np,prrp) = 20.0e-6
-  
-         !Droplet solute mass
-         salinity = 0.034
-         pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
-         !Droplet temperature
-         pdata(np,prtp) = 302.0
-         !Droplet multiplicity
-         pdata(np,prmult) = 1.0
-         !Make it alive again
-         pdata(np,pract) = 1.0
-      end if
 
     ENDDO  nploop
     !$acc end parallel
@@ -445,7 +431,56 @@
 
     !$acc update host(pdata,pdata_locind)
 
+    numvec(1) = num100
+    numvec(2) = num1000
+
+#ifdef MPI
+
+    if ( myid == 0 ) then
+       call mpi_reduce(mpi_in_place,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
+    else
+       call mpi_reduce(numvec,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
+    end if
+
+#endif
+
+    if (myid==0) write(*,*) 'num100,num1000 = ',numvec(1),numvec(2)
+
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
+
+!----------------------------------------------------------------------
+!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
+!  num_fallout already contains the number which have fallen out
+
+   allocate(holes_fallout_ind(num_fallout))
+
+   !List the spots in pdata which have "dead" particles
+   idx=1
+   do np=1,nparcelsLocalActive
+      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
+         holes_fallout_ind(idx) = np
+         idx=idx+1
+      end if
+   end do
+
+   !Now transfer these to the end of the pdata list
+   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
+   do np=num_fallout,1,-1
+      if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
+         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
+      else
+         pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
+         pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
+         pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
+         nparcelsLocalActive = nparcelslocalActive-1
+      end if
+      ! reset all the information for this "dead" droplet
+      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
+      pdata(nparcelsLocalActive+1,:) = neg_huge
+      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
+   end do
+
+   deallocate(holes_fallout_ind)
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -498,7 +533,7 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    nparcelsActive = nparcelsActive + sum(Arrive) - sum(Depart)
+    nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
 
     !$acc update device(pdata,pdata_locind)
 
@@ -515,35 +550,61 @@
 
       if( terrain_flag )then
             call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcelsActive
+            DO np=1,nparcelsLocalActive
               ! get z from sigma:
               ! (see Section 3 of "The governing equations for CM1", 
               !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
               pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
             ENDDO
       endif
+
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-!
+!----------------------------------------------------------------------
+! Final thing: Inject droplets which will be active on the next call of droplet_driver
+! Requires inputting the current 10-meter wind speed
+   
+   if ( .not. use_wall_bc ) then  
+      s10_xym = 0.0
+      do j=1,nj
+         do i=1,ni
+            s10_xym = s10_xym + s10(i,j)
+         end do
+      end do
+#ifdef MPI
+      call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+#endif
+      s10_xym = s10_xym/real(nx*ny)
+      if (myid==0) write(*,*) 'DHR U10',s10_xym
+      call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
+#ifdef MPI
+      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+#endif
+      if (myid==0) then 
+         write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
+      end if
+   end if
+
+   end subroutine droplet_driver
+
 !----------------------------------------------------------------------
 
-      end subroutine droplet_driver
-
-      subroutine BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
+   subroutine BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
                                 z3d,sig3d,uval,vval,wval,qval,rhoval, &
                                 prsval,tval,Nup,rhop0,taup0,rp0, &
                                 part_grav1,part_grav2,part_grav3, &
-                                debug,num100,num1000,neighbor)
+                                debug,num100,num1000,neighbor,num_fallout)
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho, &
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho,pract, &
           ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal,myid,dx,dy
       use constants
       use comm_module
       use misclibs
       use parcel_module
       use cm1libs , only : eslf
+      use mpi
 
       implicit none
 
@@ -575,23 +636,23 @@
       real :: top,bot
       integer :: i,j,k
       real :: taup_scale,dt_nondim
-      real :: guess,rt_zeros(2),rt_start(2)
+      double precision :: rt_zeros(2),rt_start(2)
+      real :: guess
       integer :: mflag,flag
+
+      integer :: num_fallout
+
 
       !Store interpolated quantities for the sake of statistics
       pdata(np,pru) = uval
       pdata(np,prv) = vval
       pdata(np,prw) = wval
+  
       pdata(np,prt) = tval
       pdata(np,prqv) = qval
       pdata(np,prprs) = prsval
       pdata(np,prrho) = rhoval
 
-      !qval = 0.008807098199749
-      !tval = 282.3
-      !uval = 0.0
-      !vval = 0.0
-      !wval = 0.0
 
       estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
 
@@ -645,34 +706,39 @@
       
       guess = 0.0
 
+
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
       call rad_solver2(guess,mflag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
+      !Nondimensionalize the guesses
       if (mflag.eq.0) then
-         rt_start(1) = guess/pdata(np,prrp)
-         rt_start(2) = tval/pdata(np,prtp)
+         rt_start(1) = guess/dble(pdata(np,prrp))
+         rt_start(2) = dble(tval)/dble(pdata(np,prtp))
       else
          rt_start(1) = 1.0
          rt_start(2) = 1.0
       end if
 
-      call gauss_newton_2d(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
 
+      !Start using the standard Gauss-Newton algorithm
+      call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
+
+      !If Gauss-Newton failed to converge, flag is set to 1 and try Levenberg-Marquardt algorithm
       if (flag==1) then
          num100 = num100+1
-         call LV_solver(diffnorm,dt_nondim,taup_scale,rt_start,rt_zeros,flag,prsval,rhoval,tval,qval,pdata(np,prtp),pdata(np,prms),pdata(np,prrp),np)
+         call LV_solver(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
       end if
 
-      if (flag==1) num1000 = num1000+1
+      !In rare cases both nonlinear solvers fail to converge
+      if (flag==1)  then
 
-      !In rare cases the nonlinear solvers fail to converge
-      if ( (rt_zeros(1) .ne. rt_zeros(1)) .OR. &
-           (rt_zeros(2) .ne. rt_zeros(2)) .OR. &
-           (rt_zeros(2) .lt. 0) ) then
-         !If this happens keep radius unchanged and temp equal to surrounding
-         rt_zeros(1) = 1.0
-         rt_zeros(2) = tval/pdata(np,prtp)
+       num1000 = num1000+1 
+
+       !If this happens keep radius unchanged and temp equal to surrounding
+       rt_zeros(1) = 1.0
+       rt_zeros(2) = tval/pdata(np,prtp)
+
       end if
 
       !Now redimsionalize
@@ -689,10 +755,16 @@
          pdata(np,prvpz) = -pdata(np,prvpz)
          pdata_locind(np,3) = undefined_index
       elseif ( z3d .lt. bot ) then
-         !z3d = 1.0e-6  !Just temporary 
-         !pdata(np,pract) = -1.0  !Signal this as no longer alive
-         z3d = bot + (bot-z3d)
-         pdata(np,prvpz) = -pdata(np,prvpz)
+         if ( use_wall_bc ) then
+            ! use Wall BC
+            z3d = bot + (bot-z3d)
+            pdata(np,prvpz) = -pdata(np,prvpz)
+         else
+            ! fall off the bottom and "die"
+            z3d = 1.0e-6            !Just temporary 
+            pdata(np,pract) = -1.0  !Signal this as no longer alive
+            num_fallout = num_fallout + 1
+         end if 
          pdata_locind(np,3) = undefined_index
       endif
 
@@ -701,6 +773,7 @@
       ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
 
 #ifdef MPI
+
 
       ! determine which new MPI region this droplet 
       ! enters or stays for the next time step
@@ -786,6 +859,15 @@
       else
         pdata(np,prsig)=sig3d
       endif
+
+      ! If this droplet falls outside the bottom boundary,
+      ! it "dies" and should not enter any other MPI rank
+      ! even if its x/y location is valid
+      if (pdata(np,pract) .lt. 0.0) then
+         neighbor = undefined_index
+         pdata_locind(np,1) = undefined_index
+         pdata_locind(np,2) = undefined_index
+      end if
 
       if (pdata_locind(np,1) .eq. undefined_index .or. &
           pdata_locind(np,2) .eq. undefined_index) then
@@ -1163,7 +1245,7 @@
                         axisymm,terrain_flag,ni,nj,nip1,nk,nkp1, &
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove, &
                         npvals,nparcelsLocal,prrp,prms,prmult, &
-                        pract,viscosity,nparcelsActive
+                        pract,prt,viscosity,nparcelsLocalActive
       use constants
       use parcel_module
       use cm1libs , only : eslf
@@ -1184,14 +1266,14 @@
       real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: uten
       real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: vten
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wten
-      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
 
       integer, intent(in) :: np
       integer, intent(in) :: iflag,jflag,kflag
       real, intent(in) :: x3d,y3d,z3d,sig3d,rhop0,taup0,rp0,tval,rhoval
       real :: rx,ry,rz,w1,w2,w3,w4,w5,w6,w7,w8,wsum
       real :: rxu,ryv,rzw,rxs,rys,rzs
-      real :: zsp,rznt,z0,var
+      real :: zsp,rznt,z0,var,lhv
       real :: partmass,dV,volp,sigdot,tmpval
       integer :: i,j,k,dum
 
@@ -1478,45 +1560,31 @@
         !      + qa(i+1,j+1,k+1,nqv)*w8
       endif
 
-      !$acc atomic update
-      thten(i,j,k)       = thten(i,j,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j,k)       = thten(i,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w1/dV*pdata(np,prmult)
+      lhv=lv1-lv2*pdata(np,prt)
 
       !$acc atomic update
-      thten(i+1,j,k)     = thten(i+1,j,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i+1,j,k)     = thten(i+1,j,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w2/dV*pdata(np,prmult)
+      thten(i,j,k)       = thten(i,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j+1,k)     = thten(i,j+1,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j+1,k)     = thten(i,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w3/dV*pdata(np,prmult)
+      thten(i+1,j,k)     = thten(i+1,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j,k+1)     = thten(i,j,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j,k+1)     = thten(i,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w4/dV*pdata(np,prmult)
+      thten(i,j+1,k)     = thten(i,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w5/dV*pdata(np,prmult)
+      thten(i,j,k+1)     = thten(i,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w6/dV*pdata(np,prmult)
+      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
-      !$acc atomic update
-      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w7/dV*pdata(np,prmult)
+      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - dtpdt*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
+      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
+
       !$acc atomic update
-      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - rhow/rhop0*4.0*pi*rp0*drpdt*(cpl/cp)*tval*w8/dV*pdata(np,prmult)
+      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
 
       ! tval   = ta(i  ,j  ,k  )*w1 &
       !        + ta(i+1,j  ,k  )*w2 &
@@ -1584,7 +1652,7 @@
       !$acc          reduction(+:tnumpart,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
-      do np=1,nparcelsActive
+      do np=1,nparcelsLocalActive
          tnumpart = tnumpart + 1
          radavg = radavg + pdata(np,prrp)
          radsqr = radsqr + pdata(np,prrp)**2
@@ -1695,7 +1763,7 @@
       !$acc end parallel
 
       !$acc parallel loop gang vector default(present) reduction(partnum)
-      do np=1,nparcelsActive
+      do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
          call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
@@ -1957,18 +2025,22 @@
       real :: a, c, esa, Q, R, M, theta, S, T, rhval
 
       mflag = 0
-      esa = eslf(prsval,tval)  !Saturation vapor pressure at droplet temperature
+      esa = eslf(real(prsval),real(tval))  !Saturation vapor pressure at droplet temperature
 
       rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
+      !Calculate the equilibrium radius based on "rhval"
+      !Solve the cubic for the equilibrium radius
+
       if (rhval .lt. 0.999) then
          a = -(2*mw*surften)/(ru*rhow*tval)/LOG(rhval)
-         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval)
-
-
+         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval) 
+     
+         !Use Cardano's method for cubic solution
          Q = (a**2.0)/9.0
          R = (2.0*a**3.0+27.0*c)/54.0
          M = R**2.0-Q**3.0
+
 
          if (M<0) then
            theta = acos(R/sqrt(Q**3.0))
@@ -1998,87 +2070,103 @@
 
         implicit none
 
-        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
-        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
-        real, intent(out) :: rt_zeros(2)
+        double precision, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        double precision, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        double precision, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
         integer, intent(in) :: np
 
-        real :: error,fv1(2),fv2(2),v1(2),rel
-        real :: diff, temp1(2), temp2(2), relax, coeff, correct(2)
-        real, dimension(1:2, 1:2) :: J,fancy,inv,finalJ
-        integer :: iterations,neg,counts
+        double precision :: error,fv1(2),fv2(2),v1(2),rel,det
+        double precision :: relax, coeff
+        double precision, dimension(1:2, 1:2) :: J,fancy,inv,finalJ
+        integer :: iterations,neg,counts,iteration_max
+
+        double precision :: correct(2)
 
         iterations = 0
         flag = 0
         error = 1.e-8
 
+        !Initialize the solution vector
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
          
-        fv2(1) = 1.
-        fv2(2) = 1.
-        !JMD-FIXME:  The following line appears to generate the following compiler error:
-        !JMD-FIXME     Internal compiler error. Basic LLVM base data type required 
-        !fv2 = (/1., 1./)
-        coeff = 0.1
+        !Initialize the correction to zero
+        correct(1) = 0.0
+        correct(2) = 0.0
 
-        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<1000))
+        !Default max iterations before Gauss-Newton deemed failure (and moves onto a new scheme)
+        !Rare that it gets above ~5
+        iteration_max = 50
+
+        do while (iterations<iteration_max)
 
                 iterations = iterations + 1
 
+                !Compute the RHS of the droplet temp and radius equations
                 call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                !Approximate the Jacobian
                 call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+                !Matrix to be inverted via G-N method
                 fancy(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)
                 fancy(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)
                 fancy(2,1) = J(1,2)*J(1,1)+J(2,2)*J(2,1)
                 fancy(2,2) = J(1,2)*J(1,2)+J(2,2)*J(2,2)
 
-                call inverse_finder_2d(fancy, inv)
+                !Determinant -- exit if it is too near zero, indicates failed convergence
+                det = fancy(1,1)*fancy(2,2) - fancy(1,2)*fancy(2,1)
+                if (abs(det) .lt. 1.0e-10) then
+                   flag = 1
+                   EXIT
+                end if
+                
+                call inverse_finder_2d(fancy,det,inv)
 
                 finalJ(1,1) = inv(1,1)*J(1,1)+inv(1,2)*J(1,2)
                 finalJ(1,2) = inv(1,1)*J(2,1)+inv(1,2)*J(2,2)
                 finalJ(2,1) = inv(2,1)*J(1,1)+inv(2,2)*J(1,2)
                 finalJ(2,2) = inv(2,1)*J(2,1)+inv(2,2)*J(2,2)
 
+                !How much to correct the solution vector
                 correct(1) = finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2)
                 correct(2) = finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2)
 
+                !Update the solution vector
                 rt_zeros(1) = v1(1) - correct(1)
                 rt_zeros(2) = v1(2) - correct(2)
 
-                call ie_vrt_nd(diffnorm,v1(1),v1(2),temp1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-
-                diff = sqrt(temp1(1)*temp1(1)+temp1(2)*temp1(2))-sqrt(temp2(1)*temp2(1)+temp2(2)*temp2(2))
-
-                if (sqrt(correct(1)*correct(1)+correct(2)*correct(2))<error) then
-                        EXIT
-                end if
-
                 relax = 1.0
                 counts = 0
+                !If either the temperature or radius goes negative, take a series of smaller adjustment steps
+                do while ((rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
 
-                do while ((diff<0) .OR. (rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
                    counts = counts + 1
                    coeff = 0.5
                    relax = relax * coeff
                    rt_zeros(1) = v1(1)-(finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2))*relax
                    rt_zeros(2) = v1(2)-(finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2))*relax
-                   call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),temp2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-                   diff = sqrt(temp1(1)*temp1(1)+temp1(2)*temp1(2))-sqrt(temp2(1)*temp2(1)+temp2(2)*temp2(2))
 
                    if (counts>10) EXIT
                 end do
 
+                !Failure to converge if these drop too low -- send to LV solver
+                if (rt_zeros(1)<0.01 .OR. rt_zeros(2)<0.01) then
+                   flag = 1
+                   EXIT
+                end if
+
+                !Converged when the correction is small
+                if (sqrt(correct(1)*correct(1)+correct(2)*correct(2))<error) then
+                   EXIT
+                end if
+
                 v1(1) = rt_zeros(1)
                 v1(2) = rt_zeros(2)
 
-                call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         end do
-      if (iterations == 100) flag = 1
+      !These indicate that this failed -- set flag = 1 to send to LV solver
+      if (iterations == iteration_max) flag = 1
       if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
 
       end subroutine gauss_newton_2d
@@ -2087,47 +2175,50 @@
         !$acc routine seq
         implicit none
 
-        real, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
-        real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
-        real, intent(out) :: rt_zeros(2)
+        double precision, intent(in) :: diffnorm,dt_nondim,taup_scale,rt_start(2)
+        double precision, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+        double precision, intent(out) :: rt_zeros(2)
         integer, intent(out) :: flag
         integer, intent(in) :: np
 
-        real :: error,fv1(2),fv2(2),v1(2),rel
-        real :: diff,lambda,lup,ldown
-        real :: C(2),newC(2),gradC(2),correct(2)
-        real, dimension(1:2, 1:2) :: J,I,g,invg
-        integer :: iterations,neg
+        double precision :: error,fv1(2),fv2(2),v1(2),rel,det
+        double precision :: diff,lambda,lup,ldown
+        double precision :: C(2),newC(2),gradC(2),correct(2)
+        double precision, dimension(1:2, 1:2) :: J,I,g,invg
+        integer :: iterations,neg,iterations_max
+
 
         error = 1.0e-8
 
         
-        !JMD-FIXME generates an internal compiler eerror
-        ! I = reshape((/1, 0, 0, 1/),(/2,2/))
+        !Preliminary
         I(1,1)=1.0
         I(2,1)=0.0
         I(1,2)=0.0
         I(2,2)=1.0
         iterations = 0
+        iterations_max = 1000
         flag = 0
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
-        !JMD-FIXME generates an internal compiler error
-        ! fv2 = (/1., 1./)
         fv2(1) = 1.0
         fv2(2) = 1.0
 
+        !These are parameters to the solver, could be adjusted but these work
         lambda = 0.001
         lup = 2.0
         ldown = 2.0
 
-        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<1000))
+        do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<iterations_max))
 
         iterations = iterations + 1
 
+        !Approximate the Jacobian of the system
         call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        !Compute the RHS of the temperature and radius equations
         call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+        !Calculate the update matrix which must be inverted
         g(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)+lambda*I(1,1)
         g(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)+lambda*I(1,2)
         g(2,1) = J(1,2)*J(1,1)+J(2,2)*J(2,1)+lambda*I(2,1)
@@ -2139,15 +2230,33 @@
         C(1) = 0.5*fv1(1)*fv1(1)
         C(2) = 0.5*fv1(2)*fv1(2)
 
-        call inverse_finder_2d(g, invg)
+        !Exit if the determinant is too close to zero -- failed convergence
+        det = g(1,1)*g(2,2) - g(1,2)*g(2,1)
+        if (abs(det) .lt. 1.0e-10) then
+             flag = 1
+             EXIT
+        end if
+        call inverse_finder_2d(g,det,invg)
+
+        !Solve for correction vector
         correct(1) = invg(1,1)*gradC(1)+invg(1,2)*gradC(2)
         correct(2) = invg(2,1)*gradC(1)+invg(2,2)*gradC(2)
+        
+        !Successful convergence if correction is small
         if (sqrt(correct(1)*correct(1)+correct(2)*correct(2)) < error) then
            EXIT
         end if
 
         rt_zeros(1) = v1(1) - correct(1)
         rt_zeros(2) = v1(2) - correct(2)
+
+        !Failed if temperature or radius goes negative
+        if (rt_zeros(1)<0.0 .OR. rt_zeros(2)<0.0) then
+            flag = 1
+            EXIT
+        end if
+
+        !Use the RHS to update the lambda parameter
         call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
         newC(1) = 0.5*fv2(1)*fv2(1)
         newC(2) = 0.5*fv2(2)*fv2(2)
@@ -2160,26 +2269,27 @@
            lambda = lambda*lup
         end if
 
+
         end do
 
-        if (iterations==1000) then
+        !Failed if iterations hits maximum
+        if (iterations==iterations_max) then
            flag = 1
         end if
 
+        !Failed if it returns negative radius or temperature
         if (rt_zeros(1) < 0 .OR. rt_zeros(2) < 0) then
            flag = 1
         end if
 
       end subroutine LV_solver
 
-      subroutine inverse_finder_2d(C, invC)
+      subroutine inverse_finder_2d(C,det,invC)
         !$acc routine seq
         implicit none
-        real :: det
-        real, dimension(1:2, 1:2), intent(in) :: C
-        real, dimension(1:2, 1:2), intent(out) :: invC
-
-        det = C(1, 1) * C(2, 2) - C(1, 2) * C(2, 1)
+        double precision, intent(in) :: det
+        double precision, dimension(1:2, 1:2), intent(in) :: C
+        double precision, dimension(1:2, 1:2), intent(out) :: invC
 
         invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),(/2,2/))
         invC = (1./det)*invC
@@ -2191,16 +2301,18 @@
         implicit none
         integer :: n
 
-        real, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
-        real, intent(out), dimension(1:2, 1:2) :: J
-        real :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
+        double precision, intent(in) :: diffnorm,rnext,tnext,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius
+        double precision, intent(out), dimension(1:2, 1:2) :: J
+        double precision :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
         integer, intent(in) :: np
 
-        diff = 1E-5
+        !Take a very small difference to approximate the derivatives
+        diff = 1E-12
 
         ynext(1) = rnext
         ynext(2) = tnext
 
+        !Evaluate RHS 
         call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
         xper(1) = ynext(1)
@@ -2208,13 +2320,15 @@
         xper2(1) = ynext(1)
         xper2(2) = ynext(2)
 
+        !Now evaluate RHS a bit ahead and behind the base point
         do n=1, 2
            xper(n) = xper(n) + diff
            xper2(n) = xper2(n) - diff
-           call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+           call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
            call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
 
+           !Use these differences to compute the Jacobian
            J(1,n) = (fxper(1)-rt_output(1))/diff
            J(2,n) = (fxper(2)-rt_output(2))/diff
            xper(n) = ynext(n)
@@ -2230,19 +2344,19 @@
       use cm1libs , only : eslf
       implicit none
 
-      real, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
-      real, intent(out) :: rT_output(2)
+      double precision, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
+      double precision, intent(out) :: rT_output(2)
       integer, intent(in) :: np
 
-      real :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
-      real :: Tnext,rnext
+      double precision :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
+      double precision :: Tnext,rnext
 
         ! quantities come in already non-dimensionalized, so must be converted back;
         rnext = tempr*radius
         Tnext = tempt*Tp
         dnext = rnext*2.0
 
-        esa = eslf(prsval,tval)
+        esa = eslf(real(prsval),real(tval))
         VolP = (4.0/3.0)*pi*rnext**3
         rhop = (m_s + VolP*rhow)/VolP
 
@@ -2269,6 +2383,218 @@
         rT_output(2) = Tnext/Tp - 1.0  - dt_nondim*Tprime
 
       end subroutine ie_vrt_nd
+
+      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
+      !Inject new particles according to some rule
+      !Here use the sea spray generation function (SSGF) of Andreas (1998)
+      use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
+                        prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract, &
+                        prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
+                        injectHMax
+      use constants
+      use MersenneTwister_mod
+#ifdef MPI
+      use mpi
+#endif
+
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
+      type(randomNumberSequence),intent(inout) :: randomNumbers
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in) :: dt,s10_xym
+    
+      integer :: i,my_reintro,np,tot_after_reintro
+      integer :: sum_buf(2)
+      real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
+      real :: binsdata(100)  !Discretized bins for cumulative SSGF
+
+      real :: totdrops  !Total number being produced during this call to droplet_injection
+      real :: rad_init  !Initial radius, being calculated one at a time according to SSGF
+      real :: u10
+
+      real :: xrange,yrange,zrange
+      real :: salinity
+      
+      real :: c1,c2,c3,u14,cdn10,a,rand
+      real :: a1,a2,r80,r0,dh
+      real :: dFsdr80(100),dFmsdr0(100),dr80_dr0
+      integer :: iter,nbin,num_create,j,ierr
+
+      !implementing the Andreas 1998 sea spray generation function
+      !Set the parameters of the two lognormals:
+      real :: rmin,rmax,rmin10,rmax10
+
+      rmin10 = log10(2e-06)
+      rmax10 = log10(500e-06)
+      dh = 0.0242
+
+  !   ===== update x-axis for each bin =====
+      binsdata(1) = rmin10
+      do i = 1,99
+        binsdata(i+1)= dh+binsdata(i)
+      end do
+
+      binsdata = 1e6*(10**binsdata)
+  
+      ! Now figure out how many particles are produced in each of
+      ! those bins. This is a function of u10
+      u10 = min(s10_xym,50.0)
+
+      c1 = 10*smithssgf(u10,10.0,0.4)
+      c2 = c1*(37.5**1.8)
+      c3 = c2*(100**5.2)
+      dFssum(1) = 0
+      do i = 1,100
+        r0 = binsdata(i)
+        ! calculate radius at 80%RH
+        r80 = 0.518*r0**0.976;
+ 
+     ! now apply these to Eqs. 3.5 in Andreas 1998
+        if (r80 .lt. 10) then
+          dFsdr80(i) =  smithssgf(u10,r80,0.4)
+        elseif ((r80 .ge. 10) .and. (r80 .lt. 37.5)) then
+          dFsdr80(i) = c1/r80
+        elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100)) then
+          dFSdr80(i) = c2*r80**-2.8
+        elseif ((r80 .ge. 100) .and. (r80 .lt. 250)) then
+          dFsdr80(i) = c3*r80**-8
+        endif
+ 
+       ! apply eq. 3.8 from Andreas 1998
+       dFmsdr0(i) = 3.5*dFsdr80(i)*0.506*r0**-0.024
+ 
+       if (i==1) then
+         dFssum(i+1) = dFmsdr0(i)
+       elseif (i .gt. 1) then
+         dFssum(i+1) = dFssum(i) + dFmsdr0(i)
+       endif
+  
+      end do
+
+      totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
+
+      !Define these here
+      xrange = xf(ni+1)-xf(1)
+      yrange = yf(nj+1)-yf(1)
+      zrange = injectHMax
+
+      my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
+
+      my_reintro = 10
+
+
+#ifdef MPI
+      call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+#else
+      !Calculate the total number which will occur after injection
+      tot_after_reintro = my_reintro+nparcelsLocalActive
+#endif
+
+
+
+   if (myid==0) write(*,'(a15,i,6e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt
+
+      if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected does not make the global exceed nparcelsMax
+
+      do np=nparcelsLocalActive+1,nparcelsLocalActive+my_reintro
+
+         if (random_droplets) then
+         rand = getRandomReal(randomNumbers)
+         a = totdrops*rand
+
+         !Set the droplet radius based on the sea spray generation function (SSGF)
+         !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
+         !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
+         do i = 1,100
+            if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
+               rand = getRandomReal(randomNumbers)
+               rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
+            endif
+         enddo
+
+         rad_init = rad_init*1.0e-6
+
+        !Now populate the pdata array, starting at the list
+       
+        !!!!!!!! if (nparcelsActive+myreintro .lt. nparcelsActive_max)
+
+        !Random location in the loweset 8 meters
+        rand = getRandomReal(randomNumbers)
+        pdata(np,prx) = xf(1)+rand*xrange
+        rand = getRandomReal(randomNumbers)
+        pdata(np,pry) = yf(1)+rand*yrange
+        rand = getRandomReal(randomNumbers)
+        pdata(np,prz) = rand*zrange
+
+        else
+
+        rad_init = 10.0e-6
+        pdata(np,prx) = xf(1) + xrange/2.0
+        pdata(np,pry) = yf(1) + yrange/2.0
+        pdata(np,prz) = injectHMax
+
+        end if
+
+        pdata(np,prvpx) = 0.0
+        pdata(np,prvpy) = 0.0
+        pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
+
+        pdata(np,prrp) = rad_init
+
+
+        salinity = 0.034
+        pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+ 
+        pdata(np,prtp) = 302.0
+        pdata(np,prmult) = 1.0e9
+        pdata(np,pract) = 1.0
+
+        pdata(np,pru) = 0.0
+        pdata(np,prv) = 0.0
+        pdata(np,prw) = 0.0
+        pdata(np,prt) = 0.0
+        pdata(np,prqv) = 0.0
+        pdata(np,prprs) = 0.0
+        pdata(np,prrho) = 0.0
+
+      end do
+
+      !Then once the new droplets have been added, update nparcelsLocalActive
+      nparcelsLocalActive = nparcelsLocalActive + my_reintro
+
+      else
+
+        if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
+
+      end if
+
+    end subroutine droplet_injection
+
+    function smithssgf(u10,r80,vk)
+    implicit none
+    real :: u10,r80,cdn10,vk,u14
+    real :: a1,a2,smithssgf
+
+
+    ! added SEA93 function
+    if (u10 .ge. 4 .and. u10 .lt. 11) then
+       cdn10 = 1.2e-3
+    elseif (u10 .ge. 11) then
+       cdn10 = 1e-3*(0.49 + 0.065*u10)
+    end if
+
+    ! calculate 14 m wind speed
+    u14 = u10*(1 + (sqrt(cdn10)/vk)*alog(14.0/10.0))
+  
+    a1 = 10**(0.0676*u14 + 2.43)
+    a2 = 10**(0.959*sqrt(u14) - 1.476)
+  
+
+    ! calcaulate dFs/dr80 (Eq. A1 in Andreas 1998)
+    smithssgf = a1*exp(-3.1*(alog(r80/2.1))**2) + a2*exp(-3.3*(alog(r80/9.2))**2)
+
+    end function smithssgf
+
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

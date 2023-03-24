@@ -11171,11 +11171,11 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       use mpi
       implicit none
  
-      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
 
-      double precision, dimension(2,nj,nk) :: west,newwest,east,neweast
-      double precision, dimension(ni,2,nk) :: south,newsouth,north,newnorth
-      double precision, dimension(2,2,nk) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
+      real, dimension(2,nj,nk) :: west,newwest,east,neweast
+      real, dimension(ni,2,nk) :: south,newsouth,north,newnorth
+      real, dimension(2,2,nk) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
       integer reqs(8)
  
       integer :: i,j,k,nn,nr,index
@@ -11197,7 +11197,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if(ibe.eq.0)then
         nr = nr + 1
         !$acc host_data use_device(neweast)
-        call mpi_irecv(neweast,2*cs1we,MPI_DOUBLE_PRECISION,myeast,tag1,   &
+        call mpi_irecv(neweast,2*cs1we,MPI_REAL,myeast,tag1,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11211,7 +11211,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if(ibw.eq.0)then
         nr = nr + 1
         !$acc host_data use_device(newwest)
-        call mpi_irecv(newwest,2*cs1we,MPI_DOUBLE_PRECISION,mywest,tag2,   &
+        call mpi_irecv(newwest,2*cs1we,MPI_REAL,mywest,tag2,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11225,7 +11225,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if(ibs.eq.0)then
         nr = nr + 1
         !$acc host_data use_device(newsouth)
-        call mpi_irecv(newsouth,2*cs1sn,MPI_DOUBLE_PRECISION,mysouth,tag3,   &
+        call mpi_irecv(newsouth,2*cs1sn,MPI_REAL,mysouth,tag3,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11239,7 +11239,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if(ibn.eq.0)then
         nr = nr + 1
         !$acc host_data use_device(newnorth)
-        call mpi_irecv(newnorth,2*cs1sn,MPI_DOUBLE_PRECISION,mynorth,tag4,   &
+        call mpi_irecv(newnorth,2*cs1sn,MPI_REAL,mynorth,tag4,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11263,7 +11263,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         nr = nr + 1
         !$acc host_data use_device(west)
-        call mpi_isend(west,2*cs1we,MPI_DOUBLE_PRECISION,mywest,tag1,   &
+        call mpi_isend(west,2*cs1we,MPI_REAL,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11283,7 +11283,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         nr = nr + 1
         !$acc host_data use_device(east)
-        call mpi_isend(east,2*cs1we,MPI_DOUBLE_PRECISION,myeast,tag2,   &
+        call mpi_isend(east,2*cs1we,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11303,7 +11303,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         nr = nr + 1
         !$acc host_data use_device(north)
-        call mpi_isend(north,2*cs1sn,MPI_DOUBLE_PRECISION,mynorth,tag3,   &
+        call mpi_isend(north,2*cs1sn,MPI_REAL,mynorth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11323,7 +11323,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         nr = nr + 1
         !$acc host_data use_device(south)
-        call mpi_isend(south,2*cs1sn,MPI_DOUBLE_PRECISION,mysouth,tag4,   &
+        call mpi_isend(south,2*cs1sn,MPI_REAL,mysouth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
       endif
@@ -11440,7 +11440,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
         !$acc host_data use_device(nw2)
-        call mpi_irecv(nw2,2*2*nk,MPI_DOUBLE_PRECISION,mynw,tag1,MPI_COMM_WORLD,   &
+        call mpi_irecv(nw2,2*2*nk,MPI_REAL,mynw,tag1,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
         index_nw = nr
@@ -11453,7 +11453,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
         !$acc host_data use_device(sw2)
-        call mpi_irecv(sw2,2*2*nk,MPI_DOUBLE_PRECISION,mysw,tag2,MPI_COMM_WORLD,   &
+        call mpi_irecv(sw2,2*2*nk,MPI_REAL,mysw,tag2,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
         index_sw = nr
@@ -11466,7 +11466,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
         !$acc host_data use_device(ne2)
-        call mpi_irecv(ne2,2*2*nk,MPI_DOUBLE_PRECISION,myne,tag3,MPI_COMM_WORLD,   &
+        call mpi_irecv(ne2,2*2*nk,MPI_REAL,myne,tag3,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
         index_ne = nr
@@ -11479,7 +11479,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
         !$acc host_data use_device(se2)
-        call mpi_irecv(se2,2*2*nk,MPI_DOUBLE_PRECISION,myse,tag4,MPI_COMM_WORLD,   &
+        call mpi_irecv(se2,2*2*nk,MPI_REAL,myse,tag4,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
         index_se = nr
@@ -11498,7 +11498,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
 
         !$acc host_data use_device(se1)
-        call mpi_isend(se1,2*2*nk,MPI_DOUBLE_PRECISION,myse,tag1,MPI_COMM_WORLD,   &
+        call mpi_isend(se1,2*2*nk,MPI_REAL,myse,tag1,MPI_COMM_WORLD,   &
                        reqs(5),ierr)
         !$acc end host_data
       endif
@@ -11515,7 +11515,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         enddo
         !$acc host_data use_device(ne1)
-        call mpi_isend(ne1,2*2*nk,MPI_DOUBLE_PRECISION,myne,tag2,MPI_COMM_WORLD,   &
+        call mpi_isend(ne1,2*2*nk,MPI_REAL,myne,tag2,MPI_COMM_WORLD,   &
                        reqs(6),ierr)
         !$acc end host_data
       endif
@@ -11532,7 +11532,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         enddo
         !$acc host_data use_device(sw1)
-        call mpi_isend(sw1,2*2*nk,MPI_DOUBLE_PRECISION,mysw,tag3,MPI_COMM_WORLD,   &
+        call mpi_isend(sw1,2*2*nk,MPI_REAL,mysw,tag3,MPI_COMM_WORLD,   &
                        reqs(7),ierr)
         !$acc end host_data
       endif
@@ -11549,7 +11549,7 @@ if(Debug) print *, "prepcorners3_GPU: Im called"
         enddo
         enddo
         !$acc host_data use_device(nw1)
-        call mpi_isend(nw1,2*2*nk,MPI_DOUBLE_PRECISION,mynw,tag4,MPI_COMM_WORLD,   &
+        call mpi_isend(nw1,2*2*nk,MPI_REAL,mynw,tag4,MPI_COMM_WORLD,   &
                        reqs(8),ierr)
         !$acc end host_data
       endif

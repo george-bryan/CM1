@@ -191,7 +191,7 @@ end module cuda_rt
       integer, dimension(:), allocatable :: reqt
       integer :: reqc,reqk
       real, dimension(:,:), allocatable :: pdata,ploc
-      double precision, dimension(:,:,:,:), allocatable :: dpten
+      real, dimension(:,:,:,:), allocatable :: dpten
       logical, dimension(:,:,:), allocatable :: flag
 
 !--- arrays for MPI ---
@@ -2259,15 +2259,24 @@ end module cuda_rt
       allocate( reqt(d3t) )
       reqt = 0
 
+      if ( nparcelsInit .gt. nparcelsMax ) then
+          if ( myid .eq. 0 ) print *,' WARNING: nparcelsInit exceeds allowed max. Check nparcelsMax. Exiting...'
 #ifdef MPI
-      padding = max(pdata_buffer*nparcels,100.0)
-      nparcelsLocal = ceiling((nparcels*1.0/numprocs)+padding)
-#else
-      nparcelsLocal = nparcels
+          call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 #endif
-      ! number of droplets read from / write to a restart file
-      ! initialize its value as "nparcels"
-      nparcelsRest = nparcels
+          call stopcm1
+      else
+#ifdef MPI
+          padding = max(pdata_buffer*nparcelsMax/numprocs,500.0)
+          nparcelsLocal = int(nparcelsMax/numprocs+padding)
+#else
+          padding = max(pdata_buffer*nparcelsMax,100.0)
+          nparcelsLocal = int(nparcelsMax+padding)
+#endif
+          ! number of droplets read from / write to a restart file
+          ! initialize its value as "nparcelsInit"
+          nparcelsRest = nparcelsInit
+      end if
 
       !$acc update device (nparcelsLocal)
 
