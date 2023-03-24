@@ -140,7 +140,7 @@
                    bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                &
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
-                   doazimwrite,dorestart,pdata_locind,time_dropinject)
+                   doazimwrite,dorestart,pdata_locind)
         ! end_solve3
       use input, only : ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,ibb2,ibe2,jbb2,jbe2, &
           kbb2,kbe2,ibph,ieph,jbph,jeph,kbph,keph,ibnba,ienba,jbnba,jenba,kbnba,kenba, &
@@ -326,7 +326,6 @@
       logical, intent(in) :: dowriteout,dorad,dotdwrite,doazimwrite,dorestart
       logical, intent(inout) :: getdbz,getvt,dotbud,doqbud,doubud,dovbud,dowbud,donudge
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind
-      real, intent(inout) :: time_dropinject
 
 !-----------------------------------------------------------------------
 ! Arrays and variables defined inside solve
@@ -1005,7 +1004,7 @@
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
                                uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2),        &
-                               pdata_locind,time_dropinject)
+                               pdata_locind)
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
           !print *,'solve3: after call to droplet_driver' 
 #ifdef MPI

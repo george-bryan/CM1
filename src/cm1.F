@@ -265,7 +265,7 @@ end module cuda_rt
 !-----
 
       integer count,rate,maxr
-      real rtime,xtime,time_solve,time_solve0,time_dropinject
+      real rtime,xtime,time_solve,time_solve0
       real steptime1,steptime2
       integer :: i,j,k,m,n,nn,fnum,frec
       real :: sum,tem0,tem
@@ -2329,7 +2329,7 @@ end module cuda_rt
                   kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                   pta,pt3d,ptten,                                   &
                   pdata,cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,      &
-                  trans,time_dropinject)
+                  trans)
 
 !----------------------------------------------------------------------
 
@@ -3271,7 +3271,7 @@ end module cuda_rt
                    bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                &
                    dowriteout,dorad,getdbz,getvt,dotdwrite,          &
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
-                   doazimwrite,dorestart,pdata_locind,time_dropinject)
+                   doazimwrite,dorestart,pdata_locind)
         ! end_solve3
 #ifdef _NVTX
         call nvtxEndRange
@@ -3286,7 +3286,6 @@ end module cuda_rt
         !   (NOTE:  do not change mtime anywhere else!)
 
         mtime = mtime + dbldt
-        time_dropinject = time_dropinject + dt
 
         !--------------------------------
 

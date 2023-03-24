@@ -34,7 +34,7 @@
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,                    &
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
-                               uten,vten,wten,thten,qten,pdata_locind,time_dropinject)
+                               uten,vten,wten,thten,qten,pdata_locind)
       use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
           kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
@@ -91,7 +91,6 @@
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
-      real, intent(inout) :: time_dropinject
       real :: drop_inject_elapse
 
       !Need to compute the true temperature
@@ -394,6 +393,10 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
+!      if (rhval .lt. 0.5 .or. rhval .gt. 1.1) then
+!      write(*,'(a8,i,6e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,mw,esa
+!      end if
+
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
@@ -576,17 +579,18 @@
      call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
      s10_xym = s10_xym/real(nx*ny)
-     if (myid==0) write(*,*) 'DHR U10',s10_xym,time_dropinject
+     if (myid==0) write(*,*) 'DHR U10',s10_xym
 
-     drop_inject_elapse = 2.0
-     if (time_dropinject .gt. drop_inject_elapse) then
+     !Only inject if a certain time has elapsed
+     drop_inject_elapse = 1.0e-5
+     if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
 
-        !Only start droplet injection after 30 minutes
-        if (mtime .gt. 900.0) then
-        call droplet_injection(pdata,xf,yf,dt,s10_xym,time_dropinject,randomNumbers)
+        !Only start droplet injection after a specified time
+        if (mtime .gt. 0.0) then
+        call droplet_injection(pdata,xf,yf,dt,s10_xym,drop_inject_elapse,randomNumbers,mtime)
         end if
 
-        time_dropinject = 0.0
+      !  time_dropinject = 0.0
      end if
 #ifdef MPI
    call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
@@ -2477,7 +2481,7 @@
 
       end subroutine ie_vrt_nd
 
-      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,time_since_inject,randomNumbers)
+      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,time_since_inject,randomNumbers,mtime)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
@@ -2495,6 +2499,7 @@
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je+1) :: yf
       real, intent(in) :: dt,s10_xym,time_since_inject
+      double precision, intent(in) :: mtime
     
       integer :: i,my_reintro,np,tot_after_reintro
       integer :: sum_buf(2)
@@ -2576,7 +2581,7 @@
       !my_reintro = floor(xrange*yrange*dt*totdrops/1e9)      !Number of droplets to be produced by this MPI task
       my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
-   if (myid==0) write(*,'(a15,i,7e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject
+   if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject,mtime
 
       !my_reintro = 10
 

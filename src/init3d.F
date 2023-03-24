@@ -72,7 +72,7 @@
                         kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                         pta,pt3d,ptten,                                   &
                         pdata,cfb,cfa,cfc,ad1,ad2,pdt,lgbth,lgbph,rhs,    &
-                        trans,time_dropinject)
+                        trans)
 
       use input
       use constants
@@ -167,7 +167,6 @@
       logical :: doit
 
       real :: salinity
-      real, intent(inout) :: time_dropinject
 
 
       ! Note:  By default, CM1 uses the same set of psuedorandom numbers 
@@ -416,7 +415,6 @@
         randomNumbers = new_RandomNumberSequence(seed = nparcelsMax)
 
         i = 1
-        time_dropinject = 0.0
         nparcelsLocalActive = 0
 
         do n=1,nparcelsInit
