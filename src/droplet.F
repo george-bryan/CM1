@@ -475,9 +475,9 @@
          nparcelsLocalActive = nparcelslocalActive-1
       end if
       ! reset all the information for this "dead" droplet
-      pdata_locind(nparcelsLocalActive,:) = undefined_index
-      pdata(nparcelsLocalActive,:) = neg_huge
-      pdata_neighbor(nparcelsLocalActive) = undefined_index
+      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
+      pdata(nparcelsLocalActive+1,:) = neg_huge
+      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
    end do
 
    deallocate(holes_fallout_ind)
