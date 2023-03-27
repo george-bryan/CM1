@@ -111,7 +111,7 @@
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
 
-      real :: uval,vval,wval,qval,prsval,tval,rhoval
+      real :: uval,vval,wval,qval,prsval,tval,rhoval,rhval
       real :: sigdot
 
       logical, parameter :: debug = .false.
@@ -393,9 +393,11 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
-!      if (rhval .lt. 0.5 .or. rhval .gt. 1.1) then
-!      write(*,'(a8,i,6e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,mw,esa
-!      end if
+
+      rhval = (ru*tval*rhoval*qval)/(mw*eslf(prsval,tval))
+      if (rhval .lt. 0.5 .or. rhval .gt. 1.1) then
+      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
+      end if
 
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
@@ -582,7 +584,7 @@
      if (myid==0) write(*,*) 'DHR U10',s10_xym
 
      !Only inject if a certain time has elapsed
-     drop_inject_elapse = 1.0e-5
+     drop_inject_elapse = 2.0
      if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
 
         !Only start droplet injection after a specified time
@@ -1615,7 +1617,6 @@
       use input
       use constants
       use cm1libs , only : eslf
-      !use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
 #ifdef MPI
       use mpi
 #endif
@@ -1640,6 +1641,12 @@
       integer :: tnumpart,tnumdrop,tnumaerosol
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
       real :: partnum(nk),numconc(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),Tpmean(nk),qfsat(nk)
+
+      integer, parameter :: nbins = 514
+      real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10
+      real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp
+      integer :: ibin
+
 #ifdef MPI
       real, dimension(11) :: droplet_diag0     ! temporary array for MPI reduce operation
                                                ! for the 0th-order diagnostic except rtime
@@ -1759,6 +1766,8 @@
       end if
 #endif
 
+
+
       !!!!!!! 1st order  !!!!!!!!
 
       !$acc parallel loop gang vector default(present)
@@ -1877,6 +1886,8 @@
       end if
 
 
+      !These summed quantities need to be normalized
+      !Either by the number of horizontal grid points or number of droplets (depends on quantity)
       if ( myid == 0 ) then 
 #endif
       do iz=1,nk
@@ -1923,15 +1934,83 @@
       end if
 #endif
 
+
+
+      !!!!!!! HISTOGRAMS  !!!!!!!!
+
+      ! One last type of droplet stat is the histogram
+
+      bins_radius = 0.0
+      hist_radius = 0.0
+      hist_radius10 = 0.0
+
+      !First set up the bin centers
+      rmin = 1.0e-8
+      rmax = 1.0e-3
+      rmin10 = log10(rmin)
+      rmax10 = log10(rmax)
+
+      dr = (rmax10-rmin10)/(nbins-1)
+
+      bins_radius(1) = rmin10-dr
+      do i=1,nbins-1
+         bins_radius(i+1) = bins_radius(i) + dr
+      end do 
+
+      !Now that the bin centers are defined, loop through particles
+      do np=1,nparcelsLocalActive
+
+         rad10_tmp = log10(pdata(np,prrp))
+        
+         !Figure out which bin it belongs to
+         if (rad10_tmp .gt. rmax10 + 0.5*dr) then
+            ibin = nbins
+         elseif (rad10_tmp .lt. rmin10 - 0.5*dr) then
+            ibin = 1
+         else
+            ibin = (floor((rad10_tmp-(rmin10-0.5*dr))/dr)+1)+1
+         end if
+
+         if (ibin .gt. nbins .or. ibin .lt. 1) then
+         write (*,*) 'DHR BINS',rad10_tmp,rmin10,rmax10,dr,ibin
+         end if
+ 
+         !Increment that bin by the multiplicity
+         !(since that is how many droplets are said to have this size)
+         !hist_radius(ibin) = hist_radius(ibin) + pdata(np,prmult)
+         hist_radius(ibin) = hist_radius(ibin) + 1.0
+
+         if (pdata(np,prz) .lt. 10.0) then
+           hist_radius10(ibin) = hist_radius10(ibin) + 1.0
+         end if
+     
+      end do
+
+#ifdef MPI
+       !Sum up the histograms across MPI processes
+       if (myid == 0) then
+          call mpi_reduce(MPI_IN_PLACE,hist_radius,nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(MPI_IN_PLACE,hist_radius10,nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       else
+          call mpi_reduce(hist_radius,hist_radius,nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(hist_radius10,hist_radius10,nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       end if
+#endif
+
 #ifdef NETCDF
       ! JS: this subroutine is not updated with the new MPI
       !     interface for the droplets yet
 #ifdef MPI
       if ( myid == 0 ) then
 #endif
-      call writedropdiag_nc(nrec, &
+      call writedropdiag_nc(nrec,nbins, &
            rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,Tpsrc,qvsrc,Tf,qf,Tpmean,radmean,qfsat)
+           dumzh,numconc,Tpsrc,qvsrc,Tf,qf,Tpmean,radmean,qfsat, &
+           bins_radius,hist_radius,hist_radius10)
 #ifdef MPI
       end if
 #endif

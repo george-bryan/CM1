@@ -1643,9 +1643,10 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine writedropdiag_nc(nrec,&
+      subroutine writedropdiag_nc(nrec,nbins,&
                                   rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,Tpsrc,qvsrc,Tf,qf,Tpmean,radmean,qfsat)
+                                  zhvec,numconc,Tpsrc,qvsrc,Tf,qf,Tpmean,radmean,qfsat,&
+                                  bins_radius,hist_radius,hist_radius10)
       use input
       use constants
       use netcdf
@@ -1654,9 +1655,11 @@
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg
       real,    intent(in)    :: zhvec(nk),numconc(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),radmean(nk),qfsat(nk)
-      integer, intent(in)    :: tnumpart
+      integer, intent(in)    :: tnumpart,nbins
 
-      integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid
+      real,    intent(in)    :: bins_radius(nbins),hist_radius(nbins),hist_radius10(nbins)
+
+      integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid,binsid
       logical :: allinfo
 
       if( myid.eq.0 ) print *,'  Entering writedropdiag_nc '
@@ -1710,6 +1713,7 @@
 
     call disp_err( nf90_def_dim(ncid,"time",nf90_unlimited,timeid) , .true. )
     call disp_err( nf90_def_dim(ncid,"zh",nk,zhid) , .true. )
+    call disp_err( nf90_def_dim(ncid,"bins",nbins,binsid) , .true. )
 
     call disp_err( nf90_def_var(ncid,"time",nf90_float,(/timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","time") , .true. )
@@ -1720,7 +1724,6 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","height of scalar levels") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"axis","Z") , .true. )
-
 
 
     !Unlike statpack and other nc writes, doing these manually since they aren't all the same size
@@ -1812,6 +1815,18 @@
     call disp_err( nf90_put_att(ncid,varid,"units","kg/kg") , .true. )
 
 
+    !!Histograms (histograms of various droplet properties)
+    call disp_err( nf90_def_var(ncid,"bins_radius",nf90_float,(/binsid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","histogram bin centers for radius") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
+    
+    call disp_err( nf90_def_var(ncid,"hist_radius",nf90_float,(/binsid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each bin") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"hist_radius10",nf90_float,(/binsid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each bin only for those under 10m") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
 
 
     call disp_err( nf90_put_att(ncid,NF90_GLOBAL,'CM1 version',trim(cm1version)) , .true. )
@@ -1898,6 +1913,16 @@
 
     call disp_err( nf90_inq_varid(ncid,"qfsat",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,qfsat,(/1,time_index/)) , .true. )
+
+    !!Histograms
+    call disp_err( nf90_inq_varid(ncid,"bins_radius",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,bins_radius,(/1/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"hist_radius",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,hist_radius,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"hist_radius10",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,hist_radius10,(/1,time_index/)) , .true. )
 
     ! close file
 
