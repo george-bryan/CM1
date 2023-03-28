@@ -1631,7 +1631,7 @@
 
       end subroutine project_feedback
 
-      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
+      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten,uten,vten,wten)
 
       use input
       use constants
@@ -1644,6 +1644,9 @@
       integer, intent(inout) :: nrec
       real, intent(in) :: rtime
       real, intent(in), dimension(ib:ie,jb:je,kb:ke,2) :: dpten
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: uten
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: vten
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wten
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
@@ -1652,13 +1655,13 @@
       integer :: np,iz,i,j,k
       integer :: kflag
       real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
-      real :: Tpsrc_tmp,qvsrc_tmp
+      real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
       integer :: tnumpart,tnumdrop,tnumaerosol
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult
-      real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk)
+      real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk)
 
-      integer, parameter :: nbins = 514,num0 = 12, num1 = 16
+      integer, parameter :: nbins = 514,num0 = 12, num1 = 19
       real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10
       real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp
       integer :: ibin
@@ -1812,6 +1815,9 @@
          vp1msqr(k) = 0.0
          vp2msqr(k) = 0.0
          vp3msqr(k) = 0.0
+         m1src(k) = 0.0
+         m2src(k) = 0.0
+         m3src(k) = 0.0
          Tpsrc(k) = 0.0
          qvsrc(k) = 0.0
          Tf(k) = 0.0
@@ -1854,18 +1860,27 @@
       end do
       !$acc end parallel
 
-      !! Temperature source
+      !! Droplet feedbacks
       do k=1,nk
+         m1src_tmp = 0.0
+         m2src_tmp = 0.0
+         m3src_tmp = 0.0
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
          do j=1,nj
          do i=1,ni
 
+            m1src_tmp = m1src_tmp + uten(i,j,k)
+            m2src_tmp = m2src_tmp + vten(i,j,k)
+            m3src_tmp = m3src_tmp + wten(i,j,k)
             Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
             qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
 
          end do
          end do
+         m1src(k) = m1src_tmp/real(nx*ny)
+         m2src(k) = m2src_tmp/real(nx*ny)
+         m3src(k) = m3src_tmp/real(nx*ny)
          Tpsrc(k) = Tpsrc_tmp/real(nx*ny)
          qvsrc(k) = qvsrc_tmp/real(nx*ny)
 
@@ -1896,15 +1911,18 @@
       droplet_diag1(iz,5) = vp1msqr(iz)
       droplet_diag1(iz,6) = vp2msqr(iz)
       droplet_diag1(iz,7) = vp3msqr(iz)
-      droplet_diag1(iz,8) = Tpsrc(iz)
-      droplet_diag1(iz,9) = qvsrc(iz)
-      droplet_diag1(iz,10) = Tf(iz)
-      droplet_diag1(iz,11) = qf(iz)
-      droplet_diag1(iz,12) = Tpmean(iz)
-      droplet_diag1(iz,13) = Tpmsqr(iz)
-      droplet_diag1(iz,14) = radmean(iz)
-      droplet_diag1(iz,15) = radmsqr(iz)
-      droplet_diag1(iz,16) = qfsat(iz)
+      droplet_diag1(iz,8) = m1src(iz)
+      droplet_diag1(iz,9) = m2src(iz)
+      droplet_diag1(iz,10) = m3src(iz)
+      droplet_diag1(iz,11) = Tpsrc(iz)
+      droplet_diag1(iz,12) = qvsrc(iz)
+      droplet_diag1(iz,13) = Tf(iz)
+      droplet_diag1(iz,14) = qf(iz)
+      droplet_diag1(iz,15) = Tpmean(iz)
+      droplet_diag1(iz,16) = Tpmsqr(iz)
+      droplet_diag1(iz,17) = radmean(iz)
+      droplet_diag1(iz,18) = radmsqr(iz)
+      droplet_diag1(iz,19) = qfsat(iz)
       end do
 
       ! The root rank will collect the diagnostic from different MPI ranks
@@ -1928,15 +1946,18 @@
        vp1msqr(iz) = droplet_diag1(iz,5)
        vp2msqr(iz) = droplet_diag1(iz,6)
        vp3msqr(iz) = droplet_diag1(iz,7)
-       Tpsrc(iz) = droplet_diag1(iz,8)
-       qvsrc(iz) = droplet_diag1(iz,9)
-       Tf(iz) = droplet_diag1(iz,10)
-       qf(iz) = droplet_diag1(iz,11)
-       Tpmean(iz) = droplet_diag1(iz,12)
-       Tpmsqr(iz) = droplet_diag1(iz,13)
-       radmean(iz) = droplet_diag1(iz,14)
-       radmsqr(iz) = droplet_diag1(iz,15)
-       qfsat(iz) = droplet_diag1(iz,16)
+       m1src(iz) = droplet_diag1(iz,8)
+       m2src(iz) = droplet_diag1(iz,9)
+       m3src(iz) = droplet_diag1(iz,10)
+       Tpsrc(iz) = droplet_diag1(iz,11)
+       qvsrc(iz) = droplet_diag1(iz,12)
+       Tf(iz) = droplet_diag1(iz,13)
+       qf(iz) = droplet_diag1(iz,14)
+       Tpmean(iz) = droplet_diag1(iz,15)
+       Tpmsqr(iz) = droplet_diag1(iz,16)
+       radmean(iz) = droplet_diag1(iz,17)
+       radmsqr(iz) = droplet_diag1(iz,18)
+       qfsat(iz) = droplet_diag1(iz,19)
        end do
  
 #endif
@@ -2078,7 +2099,7 @@
 #endif
       call writedropdiag_nc(nrec,nbins, &
            rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat, &
+           dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat, &
            bins_radius,hist_radius,hist_radius10)
 #ifdef MPI
       end if
@@ -2854,7 +2875,7 @@
 
       subroutine writedropdiag_nc(nrec,nbins,&
                                   rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,&
+                                  zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,&
                                   bins_radius,hist_radius,hist_radius10)
       use input
       use constants
@@ -2864,7 +2885,7 @@
 
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult
-      real,    intent(in)    :: zhvec(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk)
+      real,    intent(in)    :: zhvec(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk)
       integer, intent(in)    :: tnumpart,nbins
 
       real,    intent(in)    :: bins_radius(nbins),hist_radius(nbins),hist_radius10(nbins)
@@ -3044,6 +3065,18 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet mean squared w-velocity <wp^2>") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","m^2/s^2") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"m1src",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the u-velocity") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m/s^2") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"m2src",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the v-velocity") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m/s^2") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"m3src",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the w-velocity") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m/s^2") , .true. )
+
     call disp_err( nf90_def_var(ncid,"Tpsrc",nf90_float,(/zhid,timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the potential temperature") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","K/s") , .true. )
@@ -3192,6 +3225,15 @@
 
     call disp_err( nf90_inq_varid(ncid,"vp3msqr",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,vp3msqr,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"m1src",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,m1src,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"m2src",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,m2src,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"m3src",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,m3src,(/1,time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"Tpsrc",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,Tpsrc,(/1,time_index/)) , .true. )
