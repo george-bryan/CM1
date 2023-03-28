@@ -1658,14 +1658,14 @@
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult
       real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk)
 
-      integer, parameter :: nbins = 514
+      integer, parameter :: nbins = 514,num0 = 12, num1 = 16
       real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10
       real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp
       integer :: ibin
 
 #ifdef MPI
-      real, dimension(12) :: droplet_diag0     ! temporary array for MPI reduce operation
-                                               ! for the 0th-order diagnostic except rtime
+      real, dimension(num0) :: droplet_diag0     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
+      real, dimension(nz,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
 #endif
 
       !Compute the various types of droplet statistics
@@ -1871,6 +1871,7 @@
 
       end do
 
+      !Need these below for normalization
       if (stretch_x .eq. 0) then
          xl = dx*nx
       else
@@ -1885,80 +1886,63 @@
       !$acc update host (dumzf,dumzh,numconc,partnum)
 
 #ifdef MPI
+
+      !Populate the reduction array:
+      do iz=1,nk
+      droplet_diag1(iz,1) = partnum(iz)
+      droplet_diag1(iz,2) = vp1mean(iz)
+      droplet_diag1(iz,3) = vp2mean(iz)
+      droplet_diag1(iz,4) = vp3mean(iz)
+      droplet_diag1(iz,5) = vp1msqr(iz)
+      droplet_diag1(iz,6) = vp2msqr(iz)
+      droplet_diag1(iz,7) = vp3msqr(iz)
+      droplet_diag1(iz,8) = Tpsrc(iz)
+      droplet_diag1(iz,9) = qvsrc(iz)
+      droplet_diag1(iz,10) = Tf(iz)
+      droplet_diag1(iz,11) = qf(iz)
+      droplet_diag1(iz,12) = Tpmean(iz)
+      droplet_diag1(iz,13) = Tpmsqr(iz)
+      droplet_diag1(iz,14) = radmean(iz)
+      droplet_diag1(iz,15) = radmsqr(iz)
+      droplet_diag1(iz,16) = qfsat(iz)
+      end do
+
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,partnum,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,vp1mean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,vp2mean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,vp3mean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,vp1msqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,vp2msqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,vp3msqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,Tpsrc,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,qvsrc,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,Tf,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,qf,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,Tpmean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,Tpmsqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,radmean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,radmsqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(MPI_IN_PLACE,qfsat,nk,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag1,nk*num1,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(partnum,partnum,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(vp1mean,vp1mean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(vp2mean,vp2mean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(vp3mean,vp3mean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(vp1msqr,vp1msqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(vp2msqr,vp2msqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(vp3msqr,vp3msqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(Tpsrc,Tpsrc,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(qvsrc,qvsrc,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(Tf,Tf,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(qf,qf,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(Tpmean,Tpmean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(Tpmsqr,Tpmsqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(radmean,radmean,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(radmsqr,radmsqr,nk,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-         call mpi_reduce(qfsat,qfsat,nk,MPI_REAL, &
+         call mpi_reduce(droplet_diag1,droplet_diag1,nk*num1,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       end if
 
 
+      if ( myid == 0 ) then 
+
+       !Assign back to the arrays, now summed across MPI ranks
+       do iz=1,nk
+       partnum(iz) = droplet_diag1(iz,1)
+       vp1mean(iz) = droplet_diag1(iz,2)
+       vp2mean(iz) = droplet_diag1(iz,3)
+       vp3mean(iz) = droplet_diag1(iz,4)
+       vp1msqr(iz) = droplet_diag1(iz,5)
+       vp2msqr(iz) = droplet_diag1(iz,6)
+       vp3msqr(iz) = droplet_diag1(iz,7)
+       Tpsrc(iz) = droplet_diag1(iz,8)
+       qvsrc(iz) = droplet_diag1(iz,9)
+       Tf(iz) = droplet_diag1(iz,10)
+       qf(iz) = droplet_diag1(iz,11)
+       Tpmean(iz) = droplet_diag1(iz,12)
+       Tpmsqr(iz) = droplet_diag1(iz,13)
+       radmean(iz) = droplet_diag1(iz,14)
+       radmsqr(iz) = droplet_diag1(iz,15)
+       qfsat(iz) = droplet_diag1(iz,16)
+       end do
+ 
+#endif
+
       !These summed quantities need to be normalized
       !Either by the number of horizontal grid points or number of droplets (depends on quantity)
-      if ( myid == 0 ) then 
-#endif
       do iz=1,nk
          dzf = dumzf(iz+1)-dumzf(iz)
          numconc(iz) = partnum(iz)/dzf/xl/yl
