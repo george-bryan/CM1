@@ -665,7 +665,7 @@
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
-      real :: rprhs,rptmp,qstar
+      real :: rprhs,rptmp
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
       real :: sig1
@@ -731,7 +731,10 @@
       pdata(np,prvpy) = (pdata(np,prvpy) + dt*vval/taup + dt*part_grav2)/(1 + dt/taup)
       pdata(np,prvpz) = (pdata(np,prvpz) + dt*wval/taup + dt*part_grav3)/(1 + dt/taup)
 
+
+
       !Nonlinear solver for the radius and temperature:
+
 
       !Nondimensionalize parameters before the solver using 1-micron water droplet as ref
       taup_scale = rhow*(1.0e-6)**2/(18*rhoval*viscosity)
@@ -1659,11 +1662,11 @@
 
       integer :: tnumpart,tnumdrop,tnumaerosol
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult
-      real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk)
+      real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
 
-      integer, parameter :: nbins = 514,num0 = 12, num1 = 19
+      integer, parameter :: nbins = 514,num0 = 12, num1 = 20
       real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10
-      real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp
+      real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp,qstar_tmp
       integer :: ibin
 
 #ifdef MPI
@@ -1827,6 +1830,7 @@
          radmean(k) = 0.0
          radmsqr(k) = 0.0
          qfsat(k) = 0.0
+         qstarmean(k) = 0.0
       end do
       !$acc end parallel
 
@@ -1853,9 +1857,12 @@
          radmsqr(k) = radmsqr(k) + pdata(np,prrp)**2
 
          if (pdata(np,prt) .gt. 200.0) then !Avoid this breaking if the temperature is unrealistic (like at initialization; other times this is a problem, but let it break elsewhere)
-         qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
+           call calc_qstar(qstar_tmp,pdata(np,prprs),pdata(np,prrho),pdata(np,prt),pdata(np,prqv),pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+           qstarmean(k) = qstarmean(k) + qstar_tmp
+           qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
          else
-         qfsat(k) = 0.0
+           qstarmean(k) = 0.0
+           qfsat(k) = 0.0
          end if
       end do
       !$acc end parallel
@@ -1923,6 +1930,7 @@
       droplet_diag1(iz,17) = radmean(iz)
       droplet_diag1(iz,18) = radmsqr(iz)
       droplet_diag1(iz,19) = qfsat(iz)
+      droplet_diag1(iz,20) = qstarmean(iz)
       end do
 
       ! The root rank will collect the diagnostic from different MPI ranks
@@ -1958,6 +1966,7 @@
        radmean(iz) = droplet_diag1(iz,17)
        radmsqr(iz) = droplet_diag1(iz,18)
        qfsat(iz) = droplet_diag1(iz,19)
+       qstarmean(iz) = droplet_diag1(iz,20)
        end do
  
 #endif
@@ -1981,6 +1990,7 @@
             radmean(iz) = radmean(iz)/partnum(iz)
             radmsqr(iz) = radmsqr(iz)/partnum(iz)
             qfsat(iz) = qfsat(iz)/partnum(iz)
+            qstarmean(iz) = qstarmean(iz)/partnum(iz)
          else
             vp1mean(iz) = 0.0
             vp2mean(iz) = 0.0
@@ -1994,7 +2004,7 @@
             Tpmsqr(iz) = 0.0
             radmean(iz) = 0.0
             radmsqr(iz) = 0.0
-            qfsat(iz) = 0.0
+            qstarmean(iz) = 0.0
          end if
          write(6,100) 'dumzh(',iz,'):',dumzh(iz)
          write(6,100) 'numconc(',iz,'):',numconc(iz)
@@ -2099,7 +2109,7 @@
 #endif
       call writedropdiag_nc(nrec,nbins, &
            rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat, &
+           dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean, &
            bins_radius,hist_radius,hist_radius10)
 #ifdef MPI
       end if
@@ -2652,6 +2662,34 @@
 
       end subroutine ie_vrt_nd
 
+      subroutine calc_qstar(qstar,prsval,rhoval,tval,qval,Tp,m_s,radius)
+      !$acc routine seq
+      use constants
+      use input, only : viscosity,pr_num,sc_num
+      use cm1libs , only : eslf
+      implicit none
+
+      real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
+      real, intent(out) :: qstar
+
+      real :: esa,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
+      real :: diameter
+
+        !Calculate qstar, the specific humidity at the droplet surface 
+   
+        diameter = radius*2.0
+
+        esa = eslf(prsval,tval)
+        VolP = (4.0/3.0)*pi*radius**3
+        rhop = (m_s + VolP*rhow)/VolP
+
+        lhv=lv1-lv2*tval
+
+        qstar = (mw/(ru*Tp*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tp))) + ((2.0*mw*surften)/(ru*rhow*radius*Tp)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
+
+
+      end subroutine calc_qstar
+
       subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,randomNumbers,mtime)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
@@ -2875,7 +2913,7 @@
 
       subroutine writedropdiag_nc(nrec,nbins,&
                                   rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,&
+                                  zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,&
                                   bins_radius,hist_radius,hist_radius10)
       use input
       use constants
@@ -2885,7 +2923,7 @@
 
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult
-      real,    intent(in)    :: zhvec(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk)
+      real,    intent(in)    :: zhvec(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk)
       integer, intent(in)    :: tnumpart,nbins
 
       real,    intent(in)    :: bins_radius(nbins),hist_radius(nbins),hist_radius10(nbins)
@@ -3113,6 +3151,10 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged ambient saturation water vapor mixing ratio at droplet location") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","kg/kg") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"qstarmean",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged saturation water vapor mixing ratio on droplet surface") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg/kg") , .true. )
+
 
     !!Histograms (histograms of various droplet properties)
     call disp_err( nf90_def_var(ncid,"bins_radius",nf90_float,(/binsid/),varid) , .true. )
@@ -3261,6 +3303,9 @@
 
     call disp_err( nf90_inq_varid(ncid,"qfsat",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,qfsat,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"qstarmean",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,qstarmean,(/1,time_index/)) , .true. )
 
     !!Histograms
     call disp_err( nf90_inq_varid(ncid,"bins_radius",varid) , .true. )
