@@ -535,8 +535,6 @@
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
 
-    !$acc update device(pdata,pdata_locind)
-
     ! free up the memory for temporary variables
 
     deallocate(holes_ind)
@@ -565,6 +563,8 @@
 ! Requires inputting the current 10-meter wind speed
    
    if ( .not. use_wall_bc ) then  
+      !$acc update host (s10)
+
       s10_xym = 0.0
       do j=1,nj
          do i=1,ni
@@ -584,6 +584,8 @@
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
       end if
    end if
+
+   !$acc update device(pdata,pdata_locind)
 
    end subroutine droplet_driver
 
