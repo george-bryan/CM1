@@ -563,14 +563,13 @@
 ! Requires inputting the current 10-meter wind speed
    
    if ( .not. use_wall_bc ) then  
-      !$acc update host (s10)
-
-      s10_xym = 0.0
+      !$acc parallel loop gang vector reduction(+:s10_xym)
       do j=1,nj
          do i=1,ni
             s10_xym = s10_xym + s10(i,j)
          end do
       end do
+      !$acc end parallel
 #ifdef MPI
       call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
