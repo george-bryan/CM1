@@ -82,6 +82,7 @@
       use module_mp_nssl_2mom, only: ccn, lccn
       use poiss_module
       use parcel_module , only : getparcelzs
+      use droplet_module, only: initialize_droplet_histograms
 #ifdef MPI
       use mpi
 #endif
@@ -167,7 +168,6 @@
       logical :: doit
 
       real :: salinity
-
 
       ! Note:  By default, CM1 uses the same set of psuedorandom numbers 
       !        every time it is called.  To use truly random perturbations 
@@ -468,6 +468,9 @@
                 pdata(i,prqv) = 0.0
                 pdata(i,prprs) = 0.0
                 pdata(i,prrho) = 0.0
+       
+                !Start the stopwatch for each particle at 0
+                pdata(i,prtime) = 0.0
 
     
              end if ! end of if statement for prcl_droplet == 1
@@ -485,6 +488,10 @@
           end if    ! end of if statement for xf/yf check
 
         end do      ! end of loop for nparcelsInit
+
+        !Here also initialize the droplet histogram arrays
+        call initialize_droplet_histograms
+
 
 ! Original stuff:
 !        n = 0

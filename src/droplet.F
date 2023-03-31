@@ -8,13 +8,20 @@
   implicit none
 
   private
-  public :: droplet_driver,droplet_diag
+  public :: droplet_driver,droplet_diag,initialize_droplet_histograms
 
 
 
   !These are quantities which are needed in the droplet_diag output, so must be public
   integer :: num100,num1000
-  real :: u10_ssgf,num_destroyed,num_injected
+  integer, parameter :: nbins = 514  !Bins for the droplet histograms
+  real,dimension(nbins) :: bins_restime,hist_restime  !Histograms for droplet residence time
+  real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10,hist_deathradius  !Histograms for droplet radius
+  real :: restime_min,restime_max,restime_min10,restime_max10,dhres !Bin parameters for droplet residence time
+  real :: dhrad,rmin,rmax,rmin10,rmax10  !Bin parameters for droplet size
+
+  real :: u10_ssgf 
+  real :: num_destroyed,num_injected,mass_destroyed,mass_injected !Cumulative particle counts between droplet_diag calls
 
   ! If we already know that a parcel stays on the same process 
   !    in the previous time step and it is still here, we start 
@@ -44,7 +51,7 @@
       use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
           kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
-          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
+          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho,prtime, &
           timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
           ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive
       use constants
@@ -125,7 +132,6 @@
 
       type(randomNumberSequence) :: randomNumbers
 
-      real :: num_fallout_tmp  !A temporaray variable to store a real version of num_fallout
       integer :: num_fallout,idx,np_tmp                        !droplets which fell out of domain
       integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
 
@@ -410,7 +416,6 @@
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
                           neighbor,num_fallout)
 
-
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
 #endif
@@ -588,7 +593,7 @@
      u10_ssgf = u10_ssgf/real(nx*ny)
 
      !Only inject if a certain time has elapsed
-     drop_inject_elapse = 2.0
+     drop_inject_elapse = 4.0
      if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
 
         !Only start droplet injection after a specified time
@@ -597,20 +602,6 @@
         end if
 
      end if
-
-
-    !Store for statistics purposes:
-    num_fallout_tmp = real(num_fallout)
-#ifdef MPI
-      if ( myid == 0 ) then
-         call mpi_reduce(num_fallout_tmp,num_destroyed,1,mpi_real,mpi_sum,0,mpi_comm_world,ierr)
-      else
-         call mpi_reduce(num_fallout_tmp,num_destroyed,1,mpi_real,mpi_sum,0,mpi_comm_world,ierr)
-      end if
-#else
-      num_destroyed = num_fallout_tmp
-#endif
-
 
 
      !This is helpful to see in the output, but not absolutely necessary:
@@ -634,7 +625,7 @@
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho,pract, &
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho,pract,prtime,prmult, &
           ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal,myid,dx,dy
       use constants
       use comm_module
@@ -669,8 +660,8 @@
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
       real :: sig1
-      real :: top,bot
-      integer :: i,j,k
+      real :: top,bot,restime10_tmp
+      integer :: i,j,k,ibin
       real :: taup_scale,dt_nondim,guess
       double precision :: rt_zeros(2),rt_start(2)
     
@@ -782,6 +773,9 @@
       pdata(np,prrp) = rt_zeros(1)*pdata(np,prrp)
       pdata(np,prtp) = rt_zeros(2)*pdata(np,prtp)
 
+      !Update the droplet timer
+      pdata(np,prtime) = pdata(np,prtime) + dt
+
       !Finally, take care of particle BCs
 
       !Wall BCs:
@@ -800,9 +794,32 @@
             ! fall off the bottom and "die"
             z3d = 1.0e-6            !Just temporary 
             pdata(np,pract) = -1.0  !Signal this as no longer alive
+
             num_fallout = num_fallout + 1
+
+            
+            !Collect some statistics on those falling out:
+            num_destroyed = num_destroyed + pdata(np,prmult)
+            mass_destroyed = mass_destroyed + pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3
+
+ 
+            !Log this dead particle into the relevant histograms
+            restime10_tmp = log10(pdata(np,prtime))
+
+            !Figure out which bin it belongs to
+            if (restime10_tmp .gt. restime_max10 + 0.5*dhres) then
+               ibin = nbins
+            elseif (restime10_tmp .lt. restime_min10 - 0.5*dhres) then
+               ibin = 1
+            else
+               ibin = (floor((restime10_tmp-(restime_min10-0.5*dhres))/dhres)+1)+1
+            end if
+       
+            hist_restime(ibin) = hist_restime(ibin) + pdata(np,prmult)
+
          end if 
          pdata_locind(np,3) = undefined_index
+
       endif
 
       ! New for cm1r17:  if parcel exits domain,
@@ -1664,9 +1681,8 @@
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult
       real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
 
-      integer, parameter :: nbins = 514,num0 = 12, num1 = 20
-      real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10
-      real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp,qstar_tmp
+      integer, parameter :: num0 = 16, num1 = 20
+      real :: rad10_tmp,qstar_tmp
       integer :: ibin
 
 #ifdef MPI
@@ -1727,31 +1743,35 @@
       droplet_diag0(6) = qfavg
       droplet_diag0(7) = prsavg
       droplet_diag0(8) = rhoavg
-      droplet_diag0(9) = radmin
-      droplet_diag0(10) = Tpmin
-      droplet_diag0(11) = radmax
-      droplet_diag0(12) = Tpmax
+      droplet_diag0(9) = num_destroyed
+      droplet_diag0(10) = mass_destroyed
+      droplet_diag0(11) = num_injected
+      droplet_diag0(12) = mass_injected
+      droplet_diag0(13) = radmin
+      droplet_diag0(14) = Tpmin
+      droplet_diag0(15) = radmax
+      droplet_diag0(16) = Tpmax
 
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),8,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),12,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),8,MPI_REAL, &
+         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),12,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(9),2,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(13),2,MPI_REAL, &
                          MPI_MIN,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(9),droplet_diag0(9),2,MPI_REAL, &
+         call mpi_reduce(droplet_diag0(13),droplet_diag0(13),2,MPI_REAL, &
                          MPI_MIN,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(11),2,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(15),2,MPI_REAL, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(11),droplet_diag0(11),2,MPI_REAL, &
+         call mpi_reduce(droplet_diag0(15),droplet_diag0(15),2,MPI_REAL, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then 
@@ -1763,10 +1783,14 @@
          qfavg = droplet_diag0(6)
          prsavg = droplet_diag0(7)
          rhoavg = droplet_diag0(8)
-         radmin = droplet_diag0(9)
-         Tpmin = droplet_diag0(10)
-         radmax = droplet_diag0(11)
-         Tpmax = droplet_diag0(12)
+         num_destroyed = droplet_diag0(9)
+         mass_destroyed = droplet_diag0(10)
+         num_injected = droplet_diag0(11)
+         mass_injected = droplet_diag0(12)
+         radmin = droplet_diag0(13)
+         Tpmin = droplet_diag0(14)
+         radmax = droplet_diag0(15)
+         Tpmax = droplet_diag0(16)
 #endif
       if (tnumpart .gt. 0) then
       radavg = radavg/tnumpart
@@ -2040,22 +2064,8 @@
 
       ! One last type of droplet stat is the histogram
 
-      bins_radius = 0.0
       hist_radius = 0.0
       hist_radius10 = 0.0
-
-      !First set up the bin centers
-      rmin = 1.0e-8
-      rmax = 1.0e-3
-      rmin10 = log10(rmin)
-      rmax10 = log10(rmax)
-
-      dr = (rmax10-rmin10)/(nbins-1)
-
-      bins_radius(1) = rmin10-dr
-      do i=1,nbins-1
-         bins_radius(i+1) = bins_radius(i) + dr
-      end do 
 
       !Now that the bin centers are defined, loop through particles
       do np=1,nparcelsLocalActive
@@ -2063,25 +2073,20 @@
          rad10_tmp = log10(pdata(np,prrp))
         
          !Figure out which bin it belongs to
-         if (rad10_tmp .gt. rmax10 + 0.5*dr) then
+         if (rad10_tmp .gt. rmax10 + 0.5*dhrad) then
             ibin = nbins
-         elseif (rad10_tmp .lt. rmin10 - 0.5*dr) then
+         elseif (rad10_tmp .lt. rmin10 - 0.5*dhrad) then
             ibin = 1
          else
-            ibin = (floor((rad10_tmp-(rmin10-0.5*dr))/dr)+1)+1
+            ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)+1
          end if
 
-         if (ibin .gt. nbins .or. ibin .lt. 1) then
-         write (*,*) 'DHR BINS',rad10_tmp,rmin10,rmax10,dr,ibin
-         end if
- 
          !Increment that bin by the multiplicity
          !(since that is how many droplets are said to have this size)
-         !hist_radius(ibin) = hist_radius(ibin) + pdata(np,prmult)
-         hist_radius(ibin) = hist_radius(ibin) + 1.0
+         hist_radius(ibin) = hist_radius(ibin) + pdata(np,prmult)
 
          if (pdata(np,prz) .lt. 10.0) then
-           hist_radius10(ibin) = hist_radius10(ibin) + 1.0
+           hist_radius10(ibin) = hist_radius10(ibin) + pdata(np,prmult)
          end if
      
       end do
@@ -2093,10 +2098,14 @@
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
           call mpi_reduce(MPI_IN_PLACE,hist_radius10,nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(MPI_IN_PLACE,hist_restime,nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
        else
           call mpi_reduce(hist_radius,hist_radius,nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
           call mpi_reduce(hist_radius10,hist_radius10,nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(hist_restime,hist_restime,nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
        end if
 #endif
@@ -2109,12 +2118,18 @@
 #endif
       call writedropdiag_nc(nrec,nbins, &
            rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean, &
-           bins_radius,hist_radius,hist_radius10)
+           dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
 #ifdef MPI
       end if
 #endif
 #endif
+      !Now that it's done, remember to zero out the cumulative stats:
+      hist_restime = 0.0
+      hist_deathradius = 0.0
+      num_destroyed = 0.0
+      mass_destroyed = 0.0
+      num_injected = 0.0
+      mass_injected = 0.0
 
 100     format(2x,'DROPLET_DIAG1:: ',A,I0,A,1x,e13.6,1x)
 200     format(2x,'DROPLET_DIAG:: ',A10,':',1x,e13.6)
@@ -2694,7 +2709,7 @@
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
-                        prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract, &
+                        prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract,prtime, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
                         injectHMax
       use constants
@@ -2724,22 +2739,22 @@
       real :: my_reintro_tmp  !A temporaray variable to store a real version of my_reintro
       
       real :: c1,c2,c3,u14,cdn10,a,rand
-      real :: a1,a2,r80,r0,dh
+      real :: a1,a2,r80,r0,dh_ssgf
       real :: dFsdr80(100),dFmsdr0(100),dr80_dr0
       integer :: iter,nbin,num_create,j,ierr
 
       !implementing the Andreas 1998 sea spray generation function
       !Set the parameters of the two lognormals:
-      real :: rmin,rmax,rmin10,rmax10
+      real :: rmin10_ssgf,rmax10_ssgf
 
-      rmin10 = log10(2e-06)
-      rmax10 = log10(500e-06)
-      dh = 0.0242
+      rmin10_ssgf = log10(2e-06)
+      rmax10_ssgf = log10(500e-06)
+      dh_ssgf = 0.0242
 
   !   ===== update x-axis for each bin =====
-      binsdata(1) = rmin10
+      binsdata(1) = rmin10_ssgf
       do i = 1,99
-        binsdata(i+1)= dh+binsdata(i)
+        binsdata(i+1)= dh_ssgf+binsdata(i)
       end do
 
       binsdata = 1e6*(10**binsdata)
@@ -2788,7 +2803,9 @@
       zrange = injectHMax
 
       my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
-      my_reintro_tmp = real(my_reintro)
+
+      !Update the cumulative injection statistics
+      num_injected = num_injected + real(my_reintro)*drop_mult
 
    if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject,mtime
 
@@ -2796,17 +2813,9 @@
 #ifdef MPI
       !For deciding whether to inject more:
       call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
-
-      !Want to store the total number of droplets produced for droplet_diag
-      if ( myid == 0 ) then
-         call mpi_reduce(my_reintro_tmp,num_injected,1,mpi_real,mpi_sum,0,mpi_comm_world,ierr)
-      else
-         call mpi_reduce(my_reintro_tmp,num_injected,1,mpi_real,mpi_sum,0,mpi_comm_world,ierr)
-      end if
 #else
       !Calculate the total number which will occur after injection
       tot_after_reintro = my_reintro+nparcelsLocalActive
-      num_injected = my_reintro_tmp
 #endif
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected does not make the global exceed nparcelsMax
@@ -2827,11 +2836,9 @@
             endif
          enddo
 
-         rad_init = rad_init*1.0e-6
+        rad_init = rad_init*1.0e-6
 
-        !Now populate the pdata array, starting at the list
-       
-        !Random location in the loweset 8 meters
+        !Random location
         rand = getRandomReal(randomNumbers)
         pdata(np,prx) = xf(1)+rand*xrange
         rand = getRandomReal(randomNumbers)
@@ -2869,6 +2876,8 @@
         pdata(np,prqv) = 0.0
         pdata(np,prprs) = 0.0
         pdata(np,prrho) = 0.0
+
+        pdata(np,prtime) = 0.0
 
       end do
 
@@ -2908,13 +2917,58 @@
 
     end function smithssgf
 
+    subroutine initialize_droplet_histograms
+
+    implicit none
+
+    !For initializing droplet histogram stat arrays
+    integer :: i
+
+    !For the radius histograms
+    rmin = 1.0e-8
+    rmax = 1.0e-3
+    rmin10 = log10(rmin)
+    rmax10 = log10(rmax)
+
+    dhrad = (rmax10-rmin10)/(nbins-1)
+
+    bins_radius(1) = rmin10-dhrad
+    do i=1,nbins-1
+       bins_radius(i+1) = bins_radius(i) + dhrad
+    end do 
+
+
+    !For the residence time histograms
+    restime_min = 1.0e0
+    restime_max = 1.0e5
+    restime_min10 = log10(restime_min)
+    restime_max10 = log10(restime_max)
+
+    dhres = (restime_max10-restime_min10)/(nbins-1)
+
+    bins_restime(1) = restime_min10-dhres
+    do i=1,nbins-1
+       bins_restime(i+1) = bins_restime(i) + dhres
+    end do
+
+    !Initialize histogram to zero
+    !(only those which accumulate between dropdiag I/O)
+    hist_restime = 0.0
+    hist_deathradius = 0.0
+    num_destroyed = 0.0
+    mass_destroyed = 0.0
+    num_injected = 0.0
+    mass_injected = 0.0
+
+
+    end subroutine initialize_droplet_histograms
+
 
 #ifdef NETCDF
 
       subroutine writedropdiag_nc(nrec,nbins,&
                                   rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,&
-                                  bins_radius,hist_radius,hist_radius10)
+                                  zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
       use input
       use constants
       use netcdf
@@ -2925,8 +2979,6 @@
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult
       real,    intent(in)    :: zhvec(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk)
       integer, intent(in)    :: tnumpart,nbins
-
-      real,    intent(in)    :: bins_radius(nbins),hist_radius(nbins),hist_radius10(nbins)
 
       integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid,binsid
       logical :: allinfo
@@ -3066,7 +3118,11 @@
     call disp_err( nf90_put_att(ncid,varid,"units","m/s3") , .true. )
 
     call disp_err( nf90_def_var(ncid,"num_destroyed",nf90_float,timeid,varid) , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets that fell out during this time step") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets that fell out since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"mass_destroyed",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Mass droplets that fell out since last entry") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
 
     call disp_err( nf90_def_var(ncid,"num_injected",nf90_float,timeid,varid) , .true. )
@@ -3161,12 +3217,20 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","histogram bin centers for radius") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"bins_restime",nf90_float,(/binsid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","histogram bin centers for droplet residence time") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","s") , .true. )
+
     call disp_err( nf90_def_var(ncid,"hist_radius",nf90_float,(/binsid,timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each bin") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
 
     call disp_err( nf90_def_var(ncid,"hist_radius10",nf90_float,(/binsid,timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each bin only for those under 10m") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"hist_restime",nf90_float,(/binsid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each residence time bin over the past statfrq time") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
 
 
@@ -3243,6 +3307,9 @@
     call disp_err( nf90_inq_varid(ncid,"num_destroyed",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,num_destroyed,(/time_index/)) , .true. )
 
+    call disp_err( nf90_inq_varid(ncid,"mass_destroyed",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,mass_destroyed,(/time_index/)) , .true. )
+
     call disp_err( nf90_inq_varid(ncid,"num_injected",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,num_injected,(/time_index/)) , .true. )
 
@@ -3311,11 +3378,17 @@
     call disp_err( nf90_inq_varid(ncid,"bins_radius",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,bins_radius,(/1/)) , .true. )
 
+    call disp_err( nf90_inq_varid(ncid,"bins_restime",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,bins_restime,(/1/)) , .true. )
+
     call disp_err( nf90_inq_varid(ncid,"hist_radius",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,hist_radius,(/1,time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"hist_radius10",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,hist_radius10,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"hist_restime",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,hist_restime,(/1,time_index/)) , .true. )
 
     ! close file
 

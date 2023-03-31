@@ -6084,6 +6084,7 @@
         prw = npvals
 
         npvals = npvals+1
+        npvars = npvars+1
         prtime = npvals
 
         if( prcl_th.eq.1 )then

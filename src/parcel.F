@@ -1221,8 +1221,6 @@
     nploop2:  &
     DO np=1,nparcelsLocal
 
-      pdata(np,prtime) = mtime
-
       x3d = pdata(np,prx)
       y3d = pdata(np,pry)
       z3d = pdata(np,prz)
