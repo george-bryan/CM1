@@ -563,6 +563,7 @@
 ! Requires inputting the current 10-meter wind speed
    
    if ( .not. use_wall_bc ) then  
+      s10_xym = 0.0
       !$acc parallel loop gang vector reduction(+:s10_xym)
       do j=1,nj
          do i=1,ni
