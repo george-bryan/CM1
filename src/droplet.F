@@ -551,8 +551,6 @@
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
 
-    !$acc update device(pdata,pdata_locind)
-
     ! free up the memory for temporary variables
 
     deallocate(holes_ind)
@@ -582,11 +580,13 @@
 
     if ( .not. use_wall_bc ) then     
        u10_ssgf = 0.0
+      !$acc parallel loop gang vector reduction(+:u10_ssgf)
        do j=1,nj
           do i=1,ni
              u10_ssgf = u10_ssgf + s10(i,j)
           end do
        end do
+      !$acc end parallel
 #ifdef MPI
        call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
@@ -612,6 +612,8 @@
           write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
        end if
     end if
+
+   !$acc update device(pdata,pdata_locind)
 
    end subroutine droplet_driver
 
