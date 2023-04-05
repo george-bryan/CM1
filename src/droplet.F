@@ -39,8 +39,9 @@
           kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
-          timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive
+          timestats,time_droplet,time_droplet_inject, mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive, &
+          time_phys_H2D,time_phys_D2H
       use constants
       use comm_module
       use comm_droplet_module
@@ -306,6 +307,10 @@
     num100 = 0
     num1000 = 0
 
+    !print *,'HOST: nparcelsLocalActive: ',nparcelsLocalActive
+    !!$acc parallel
+    !print *,'DEVICE: nparcelsLocalActive: ',nparcelsLocalActive
+    !!$acc end parallel
 #ifdef _B4B01F
     !$acc update &
     !$acc host(pdata,xf,yf,zf,zh,sigma,sigmaf, &
@@ -428,8 +433,11 @@
     !$acc end parallel
 
     !$acc end data
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
     !$acc update host(pdata,pdata_locind)
+
+    if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
     numvec(1) = num100
     numvec(2) = num1000
@@ -446,7 +454,6 @@
 
     if (myid==0) write(*,*) 'num100,num1000 = ',numvec(1),numvec(2)
 
-    if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
@@ -481,6 +488,8 @@
    end do
 
    deallocate(holes_fallout_ind)
+
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -535,13 +544,15 @@
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
 
+    if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
+
     !$acc update device(pdata,pdata_locind)
+    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
     ! free up the memory for temporary variables
 
     deallocate(holes_ind)
 
-    if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif
 
 
@@ -566,6 +577,7 @@
    
    if ( .not. use_wall_bc ) then  
       s10_xym = 0.0
+      !$acc parallel loop gang vector reduction(+:s10_xym)
       do j=1,nj
          do i=1,ni
             s10_xym = s10_xym + s10(i,j)
@@ -584,6 +596,9 @@
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
       end if
    end if
+
+   if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
+  
 
    end subroutine droplet_driver
 
@@ -2165,6 +2180,7 @@
                 v1(2) = rt_zeros(2)
 
         end do
+        !print *,'gauss_newton_2d: iterations: ',iterations
       !These indicate that this failed -- set flag = 1 to send to LV solver
       if (iterations == iteration_max) flag = 1
       if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
@@ -2390,7 +2406,7 @@
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
-                        injectHMax
+                        time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax
       use constants
       use MersenneTwister_mod
 #ifdef MPI
@@ -2423,6 +2439,12 @@
       !implementing the Andreas 1998 sea spray generation function
       !Set the parameters of the two lognormals:
       real :: rmin,rmax,rmin10,rmax10
+
+      !JMD The following is an expensive operation. Need to port the
+      !JMD injection loop to GPU to eliminate the need to perform this
+      !JMD update.
+      !$acc update host(pdata)
+      if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
       rmin10 = log10(2e-06)
       rmax10 = log10(500e-06)
@@ -2480,7 +2502,7 @@
 
       my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
-      my_reintro = 10
+      !JMD my_reintro = 10
 
 
 #ifdef MPI
@@ -2558,6 +2580,12 @@
         pdata(np,prrho) = 0.0
 
       end do
+      if(timestats.ge.1) time_droplet=time_droplet+mytime()
+      !JMD The following is an expensive operation. Need to port the
+      !JMD previous loop to GPU to eliminate the need to perform this
+      !JMD update.
+      !$acc update device(pdata)
+      if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
       !Then once the new droplets have been added, update nparcelsLocalActive
       nparcelsLocalActive = nparcelsLocalActive + my_reintro
