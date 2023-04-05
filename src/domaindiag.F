@@ -10681,6 +10681,12 @@
           sfs(1) = sfst
           !$acc end parallel
 
+          if( bcturbs.eq.3 )then
+            !$acc parallel default(present)
+            sfs(nk+1) = sfst
+            !$acc end parallel
+          endif
+
         ELSE  sfcfl
 
           IF( bcturbs.eq.1 )THEN

@@ -3741,6 +3741,23 @@
 
 !--------------------------------------------------------------
 
+    IF( tbc.eq.4 )THEN
+
+      ! Richter and Wainwright (2023) upper boundary condition on winds:
+
+      !$omp parallel do default(shared) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      do j=1,nj+1
+      do i=1,ni+1
+        t13(i,j,nk+1) = t13(i,j,1)
+        t23(i,j,nk+1) = t23(i,j,1)
+      enddo
+      enddo
+
+    ENDIF
+
+!--------------------------------------------------------------
+
     IF( axisymm.eq.1 )THEN
       ! lateral boundary condition:
       !$omp parallel do default(shared) private(k)
