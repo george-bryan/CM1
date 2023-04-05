@@ -546,9 +546,6 @@
 
     if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 
-    !$acc update device(pdata,pdata_locind)
-    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
-
     ! free up the memory for temporary variables
 
     deallocate(holes_ind)
@@ -583,6 +580,7 @@
             s10_xym = s10_xym + s10(i,j)
          end do
       end do
+      !$acc end parallel
 #ifdef MPI
       call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
@@ -599,6 +597,9 @@
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
   
+   !$acc update device(pdata,pdata_locind)
+   if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
+   
 
    end subroutine droplet_driver
 
