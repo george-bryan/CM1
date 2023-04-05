@@ -484,6 +484,19 @@
               dumz(i,j,1) = sflux(i,j)*rf(i,j,1)
             enddo
           ENDDO
+          if( bcturbs.eq.3 )then
+
+            ! Richter and Wainwright (2023) upper boundary condition:
+
+            !$omp parallel do default(shared) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+            DO j=1,nj
+              do i=1,ni
+                dumz(i,j,nk+1) = sflux(i,j)*rf(i,j,nk+1)
+              enddo
+            ENDDO
+
+          endif
         endif
 
       ELSEIF( cm1setup.eq.3 )THEN
@@ -574,6 +587,19 @@
             dumz(i,j,1)=sflux(i,j)*rf(i,j,1)
           enddo
           enddo
+          if( bcturbs.eq.3 )then
+
+            ! Richter and Wainwright (2023) upper boundary condition:
+
+            !$omp parallel do default(shared) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+            DO j=1,nj
+              do i=1,ni
+                dumz(i,j,nk+1) = sflux(i,j)*rf(i,j,nk+1)
+              enddo
+            ENDDO
+
+          endif
         endif
       ELSEIF( cm1setup.eq.3 )THEN
         ! DNS bc:

@@ -1165,7 +1165,7 @@
         ! write descriptor file:
           string = 'cm1out_hf.ctl'
           open(unit=66,file=string)
-          string = 'cm1out_hf_%t6.dat'
+          string = 'cm1out_hf_00%y4.dat'
           write(66,101) string
           write(66,102)
           write(66,103) trim(cm1version)
