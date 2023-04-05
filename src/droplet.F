@@ -406,9 +406,9 @@
 
 
       rhval = (ru*tval*rhoval*qval)/(mw*eslf(prsval,tval))
-      if (rhval .lt. 0.5 .or. rhval .gt. 1.1) then
-      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
-      end if
+      !if (rhval .lt. 0.5 .or. rhval .gt. 1.1) then
+      !write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
+      !end if
 
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
@@ -800,7 +800,7 @@
             
             !Collect some statistics on those falling out:
             num_destroyed = num_destroyed + pdata(np,prmult)
-            mass_destroyed = mass_destroyed + pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3
+            mass_destroyed = mass_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
 
  
             !Log this dead particle into the relevant histograms
@@ -1691,11 +1691,11 @@
       real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
-      integer :: tnumpart,tnumdrop,tnumaerosol
-      real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult
+      integer :: tnumpart
+      real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop,tnumaerosol
       real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
 
-      integer, parameter :: num0 = 16, num1 = 20
+      integer, parameter :: num0 = 18, num1 = 20
       real :: rad10_tmp,qstar_tmp
       integer :: ibin
 
@@ -1711,7 +1711,9 @@
       !!!!!!! 0th order  !!!!!!!!
 
       tnumpart = 0
-      tnummult = 0
+      tnumaerosol = 0.0
+      tnumdrop = 0.0
+      tnummult = 0.0
       radavg = 0.0
       radsqr = 0.0
       Tpavg = 0.0
@@ -1732,6 +1734,19 @@
       do np=1,nparcelsLocalActive
          tnumpart = tnumpart + 1
          tnummult = tnummult + pdata(np,prmult)
+
+         !if (pdata(np,prt) .gt. 200.0) then !Avoid this breaking if the temperature is unrealistic (like at initialization; other times this is a problem, but let it break elsewhere)
+            if (pdata(np,prrp) .lt. crit_radius(pdata(np,prms),pdata(np,prt))) then
+                tnumaerosol = tnumaerosol + pdata(np,prmult)
+            else
+                tnumdrop = tnumdrop + pdata(np,prmult)
+            end if
+
+         !else
+         !   tnumaerosol = 0.0
+         !   tnumdrop = 0.0
+         !end if
+
          radavg = radavg + pdata(np,prrp)
          radsqr = radsqr + pdata(np,prrp)**2
          Tpavg = Tpavg + pdata(np,prtp)
@@ -1751,60 +1766,64 @@
 #ifdef MPI
       droplet_diag0(1) = real(tnumpart)
       droplet_diag0(2) = tnummult
-      droplet_diag0(3) = radavg
-      droplet_diag0(4) = Tpavg
-      droplet_diag0(5) = Tfavg
-      droplet_diag0(6) = qfavg
-      droplet_diag0(7) = prsavg
-      droplet_diag0(8) = rhoavg
-      droplet_diag0(9) = num_destroyed
-      droplet_diag0(10) = mass_destroyed
-      droplet_diag0(11) = num_injected
-      droplet_diag0(12) = mass_injected
-      droplet_diag0(13) = radmin
-      droplet_diag0(14) = Tpmin
-      droplet_diag0(15) = radmax
-      droplet_diag0(16) = Tpmax
+      droplet_diag0(3) = tnumaerosol
+      droplet_diag0(4) = tnumdrop
+      droplet_diag0(5) = radavg
+      droplet_diag0(6) = Tpavg
+      droplet_diag0(7) = Tfavg
+      droplet_diag0(8) = qfavg
+      droplet_diag0(9) = prsavg
+      droplet_diag0(10) = rhoavg
+      droplet_diag0(11) = num_destroyed
+      droplet_diag0(12) = mass_destroyed
+      droplet_diag0(13) = num_injected
+      droplet_diag0(14) = mass_injected
+      droplet_diag0(15) = radmin
+      droplet_diag0(16) = Tpmin
+      droplet_diag0(17) = radmax
+      droplet_diag0(18) = Tpmax
 
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),12,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),14,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),12,MPI_REAL, &
+         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),14,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      end if
-      if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(13),2,MPI_REAL, &
-                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
-      else
-         call mpi_reduce(droplet_diag0(13),droplet_diag0(13),2,MPI_REAL, &
-                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
          call mpi_reduce(MPI_IN_PLACE,droplet_diag0(15),2,MPI_REAL, &
-                         MPI_MAX,0,MPI_COMM_WORLD,ierr)
+                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
       else
          call mpi_reduce(droplet_diag0(15),droplet_diag0(15),2,MPI_REAL, &
+                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      end if
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(17),2,MPI_REAL, &
+                         MPI_MAX,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(droplet_diag0(17),droplet_diag0(17),2,MPI_REAL, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then 
          tnumpart = droplet_diag0(1)
          tnummult = droplet_diag0(2)
-         radavg = droplet_diag0(3)
-         Tpavg = droplet_diag0(4)
-         Tfavg = droplet_diag0(5)
-         qfavg = droplet_diag0(6)
-         prsavg = droplet_diag0(7)
-         rhoavg = droplet_diag0(8)
-         num_destroyed = droplet_diag0(9)
-         mass_destroyed = droplet_diag0(10)
-         num_injected = droplet_diag0(11)
-         mass_injected = droplet_diag0(12)
-         radmin = droplet_diag0(13)
-         Tpmin = droplet_diag0(14)
-         radmax = droplet_diag0(15)
-         Tpmax = droplet_diag0(16)
+         tnumaerosol = droplet_diag0(3)
+         tnumdrop = droplet_diag0(4)
+         radavg = droplet_diag0(5)
+         Tpavg = droplet_diag0(6)
+         Tfavg = droplet_diag0(7)
+         qfavg = droplet_diag0(8)
+         prsavg = droplet_diag0(9)
+         rhoavg = droplet_diag0(10)
+         num_destroyed = droplet_diag0(11)
+         mass_destroyed = droplet_diag0(12)
+         num_injected = droplet_diag0(13)
+         mass_injected = droplet_diag0(14)
+         radmin = droplet_diag0(15)
+         Tpmin = droplet_diag0(16)
+         radmax = droplet_diag0(17)
+         Tpmax = droplet_diag0(18)
 #endif
       if (tnumpart .gt. 0) then
       radavg = radavg/tnumpart
@@ -1815,7 +1834,7 @@
       qfavg = qfavg/tnumpart
       prsavg = prsavg/tnumpart
       rhoavg = rhoavg/tnumpart
-      else
+      else 
       radavg = 0
       radsqr = 0
       Tpavg = 0
@@ -1894,14 +1913,14 @@
          radmean(k) = radmean(k) + pdata(np,prrp)
          radmsqr(k) = radmsqr(k) + pdata(np,prrp)**2
 
-         if (pdata(np,prt) .gt. 200.0) then !Avoid this breaking if the temperature is unrealistic (like at initialization; other times this is a problem, but let it break elsewhere)
+         !if (pdata(np,prt) .gt. 200.0) then !Avoid this breaking if the temperature is unrealistic (like at initialization; other times this is a problem, but let it break elsewhere)
            call calc_qstar(qstar_tmp,pdata(np,prprs),pdata(np,prrho),pdata(np,prt),pdata(np,prqv),pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
            qstarmean(k) = qstarmean(k) + qstar_tmp
            qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
-         else
-           qstarmean(k) = 0.0
-           qfsat(k) = 0.0
-         end if
+         !else
+         !  qstarmean(k) = 0.0
+         !  qfsat(k) = 0.0
+         !end if
       end do
       !$acc end parallel
 
@@ -2135,7 +2154,7 @@
       if ( myid == 0 ) then
 #endif
       call writedropdiag_nc(nrec,nbins, &
-           rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
+           rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
            dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
 #ifdef MPI
       end if
@@ -2705,8 +2724,9 @@
       real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
       real, intent(out) :: qstar
 
-      real :: esa,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
+      real :: esa,Rep,taup,rprime,Tprime,qstr,Shp,Nup,lhv
       real :: diameter
+      real :: Volp,rhop
 
         !Calculate qstar, the specific humidity at the droplet surface 
    
@@ -2722,6 +2742,45 @@
 
 
       end subroutine calc_qstar
+
+      function crit_radius(m_s,Tf)
+      use constants
+      use input
+      use mpi
+      implicit none
+
+      integer :: i,maxidx(1)
+      integer, parameter :: N=1000
+      real, intent(in) :: m_s,Tf
+      double precision :: Volp,rhop
+      real :: radval(N)
+      double precision :: SS(N)
+      real :: radstart,radend,dr
+      real :: crit_radius
+
+      radstart = -8
+      radend = -3
+      dr = (radstart-radend)/N
+
+      do i=1,N
+
+
+        radval(i) = 10**(radstart - (i-1)*dr)
+
+        Volp = (4.0/3.0)*pi*radval(i)**3
+        rhop = (m_s + Volp*rhow)/Volp
+
+        SS(i) = exp((2.0*mw*surften)/(ru*rhow*radval(i)*Tf) - (ion*os*m_s*(mw/ms))/(Volp*rhop-m_s))
+
+      end do
+
+      maxidx = maxloc(SS)
+
+      crit_radius = radval(maxidx(1))
+
+
+      end function crit_radius     
+
 
       subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,randomNumbers,mtime)
       !Inject new particles according to some rule
@@ -2856,6 +2915,7 @@
 
         rad_init = rad_init*1.0e-6
 
+
         !Random location
         rand = getRandomReal(randomNumbers)
         pdata(np,prx) = xf(1)+rand*xrange
@@ -2890,12 +2950,16 @@
         pdata(np,pru) = 0.0
         pdata(np,prv) = 0.0
         pdata(np,prw) = 0.0
-        pdata(np,prt) = 0.0
-        pdata(np,prqv) = 0.0
-        pdata(np,prprs) = 0.0
-        pdata(np,prrho) = 0.0
+        !Set to something realistic so it doesn't break the stats at initiation
+        pdata(np,prt) = 302.0
+        pdata(np,prqv) = 0.01
+        pdata(np,prprs) = 101325.0
+        pdata(np,prrho) = 1.0
 
         pdata(np,prtime) = 0.0
+
+        !Update mass_injected for statistics purposes
+        mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
 
       end do
 
@@ -2985,7 +3049,7 @@
 #ifdef NETCDF
 
       subroutine writedropdiag_nc(nrec,nbins,&
-                                  rtime,tnumpart,tnummult,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
+                                  rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
                                   zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
       use input
       use constants
@@ -2994,7 +3058,7 @@
       implicit none
 
       integer, intent(inout) :: nrec
-      real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult
+      real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
       real,    intent(in)    :: zhvec(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk)
       integer, intent(in)    :: tnumpart,nbins
 
@@ -3075,6 +3139,14 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Total number of droplets in domain (including multiplicity)") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"tnumaerosol",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Total number of unactivated aerosols in domain (including multiplicity)") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"tnumdrop",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Total number of activated droplets in domain (including multiplicity)") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
+
     call disp_err( nf90_def_var(ncid,"radavg",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average droplet radius for all droplet") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
@@ -3137,15 +3209,19 @@
 
     call disp_err( nf90_def_var(ncid,"num_destroyed",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets that fell out since last entry") , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
 
     call disp_err( nf90_def_var(ncid,"mass_destroyed",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Mass droplets that fell out since last entry") , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
 
     call disp_err( nf90_def_var(ncid,"num_injected",nf90_float,timeid,varid) , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets injected this time step") , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets injected since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"mass_injected",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Total mass of droplets injected since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
 
 
     !!1st order (horizontal averages)
@@ -3281,6 +3357,12 @@
     call disp_err( nf90_inq_varid(ncid,"tnummult",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,tnummult,(/time_index/)) , .true. )
 
+    call disp_err( nf90_inq_varid(ncid,"tnumaerosol",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,tnumaerosol,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"tnumdrop",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,tnumdrop,(/time_index/)) , .true. )
+
     call disp_err( nf90_inq_varid(ncid,"radavg",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,radavg,(/time_index/)) , .true. )
 
@@ -3334,6 +3416,9 @@
 
     call disp_err( nf90_inq_varid(ncid,"num_injected",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,num_injected,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"mass_injected",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,mass_injected,(/time_index/)) , .true. )
 
     !!1st order
     call disp_err( nf90_inq_varid(ncid,"numconc",varid) , .true. )

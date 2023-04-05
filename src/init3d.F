@@ -464,10 +464,11 @@
                 pdata(i,pru) = 0.0
                 pdata(i,prv) = 0.0
                 pdata(i,prw) = 0.0
-                pdata(i,prt) = 0.0
-                pdata(i,prqv) = 0.0
-                pdata(i,prprs) = 0.0
-                pdata(i,prrho) = 0.0
+                !Set to something realistic so it doesn't break the stats at initiation
+                pdata(i,prt) = 302.0
+                pdata(i,prqv) = 0.01
+                pdata(i,prprs) = 101325.0
+                pdata(i,prrho) = 1.0
        
                 !Start the stopwatch for each particle at 0
                 pdata(i,prtime) = 0.0
