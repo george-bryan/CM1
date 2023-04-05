@@ -8831,7 +8831,7 @@
           if(output_filetype.eq.1)then
             dstring = 'cm1out_s.dat'
           elseif(output_filetype.ge.2)then
-            dstring = 'cm1out_%t6_s.dat'
+            dstring = 'cm1out_00%y4_s.dat'
           endif
           doit = .true.
           endif
@@ -8842,7 +8842,7 @@
           if(output_filetype.eq.1)then
             dstring = 'cm1out_u.dat'
           elseif(output_filetype.ge.2)then
-            dstring = 'cm1out_%t6_u.dat'
+            dstring = 'cm1out_00%y4_u.dat'
           endif
           doit = .true.
           endif
@@ -8853,7 +8853,7 @@
           if(output_filetype.eq.1)then
             dstring = 'cm1out_v.dat'
           elseif(output_filetype.ge.2)then
-            dstring = 'cm1out_%t6_v.dat'
+            dstring = 'cm1out_00%y4_v.dat'
           endif
           doit = .true.
           endif
@@ -8864,7 +8864,7 @@
           if(output_filetype.eq.1)then
             dstring = 'cm1out_w.dat'
           elseif(output_filetype.ge.2)then
-            dstring = 'cm1out_%t6_w.dat'
+            dstring = 'cm1out_00%y4_w.dat'
           endif
           doit = .true.
           endif
@@ -8875,7 +8875,7 @@
           if(output_filetype.eq.1)then
             dstring = 'cm1out_i.dat'
           elseif(output_filetype.ge.2)then
-            dstring = 'cm1out_%t6_i.dat'
+            dstring = 'cm1out_00%y4_i.dat'
           endif
           doit = .true.
           endif
