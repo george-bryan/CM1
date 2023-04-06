@@ -126,6 +126,8 @@
       real :: uval,vval,wval,qval,prsval,tval,rhoval,rhval
       real :: sigdot
 
+      integer :: my_reintro !Number of droplets created by droplet_injection routine
+
       logical, parameter :: debug = .false.
 
       integer :: values(8),local_seed
@@ -406,9 +408,9 @@
 
 
       rhval = (ru*tval*rhoval*qval)/(mw*eslf(prsval,tval))
-      !if (rhval .lt. 0.5 .or. rhval .gt. 1.1) then
-      !write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
-      !end if
+      if (rhval .lt. 0.3 .or. rhval .gt. 1.2) then
+      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
+      end if
 
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
@@ -598,7 +600,74 @@
 
         !Only start droplet injection after a specified time
         if (mtime .gt. 0.0) then
-        call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime)
+          call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
+
+
+          !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
+          !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
+          !But makes sure that the interpolated mean quantities in droplet_diag are meaningful
+          do np=nparcelsLocalActive-my_reintro+1,nparcelsLocalActive
+             x3d = pdata(np,prx)
+             y3d = pdata(np,pry)
+             if( .not. terrain_flag )then
+               z3d = pdata(np,prz)
+             else
+               sig3d = pdata(np,prsig)
+             endif
+
+             iflag = undefined_index
+             jflag = undefined_index
+             kflag = 0
+
+             IF(nx.eq.1)THEN
+               iflag = 1
+             ELSE
+               ! cm1r19:
+               call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
+             ENDIF
+  
+             IF(axisymm.eq.1.or.ny.eq.1)THEN
+               jflag = 1
+             ELSE
+               ! cm1r19:
+               call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
+             ENDIF
+
+             kflag = 1
+             if( .not. terrain_flag )then
+             !JS-KLUDGE: Somehow I have to use the zf_tmp variable 
+             !           for the find_vertical* subroutine,
+             !           otherwise the GPU code breaks for nparcels > ~2000
+!        !$acc loop seq
+!        do k = kb, ke+1
+!           zf_tmp(k) = zf(iflag,jflag,k)
+!        end do
+             do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+                kflag = kflag+1
+             enddo
+             pdata_locind(np,3) = kflag
+!         call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
+             else
+                call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
+             endif
+
+
+             call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
+                                        uval,vval,wval,tval,qval,rhoval,prsval, &
+                                        xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
+                                        ua,va,wa,ta,qa,rho,prs,sigdot)
+
+             !Now set to actual interpolated values
+             pdata(np,pru) = uval
+             pdata(np,prv) = vval
+             pdata(np,prw) = wval
+             pdata(np,prt) = tval
+             pdata(np,prtp) = tval
+             pdata(np,prqv) = qval
+             pdata(np,prprs) = prsval
+             pdata(np,prrho) = rhoval
+          end do
+
         end if
 
      end if
@@ -2784,7 +2853,7 @@
       end function crit_radius     
 
 
-      subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,randomNumbers,mtime)
+      subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,randomNumbers,mtime,my_reintro)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
@@ -2803,8 +2872,9 @@
       real, intent(in), dimension(jb:je+1) :: yf
       real, intent(in) :: dt,time_since_inject
       double precision, intent(in) :: mtime
+      integer, intent(out) :: my_reintro
     
-      integer :: i,my_reintro,np,tot_after_reintro
+      integer :: i,np,tot_after_reintro
       integer :: sum_buf(2)
       real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
       real :: binsdata(100)  !Discretized bins for cumulative SSGF
@@ -2949,10 +3019,10 @@
         pdata(np,prmult) = 1.0e9
         pdata(np,pract) = 1.0
 
+        !Set to something realistic so it doesn't break the stats at initiation
         pdata(np,pru) = 0.0
         pdata(np,prv) = 0.0
         pdata(np,prw) = 0.0
-        !Set to something realistic so it doesn't break the stats at initiation
         pdata(np,prt) = 302.0
         pdata(np,prqv) = 0.01
         pdata(np,prprs) = 101325.0
