@@ -1272,17 +1272,17 @@
 
     if( stat_cfl.eq.1 )then
 
-!      IF( adapt_dt.eq.1 )THEN
-!        stat_out = stat_out+1
-!        name_stat(stat_out) = 'cflmax'
-!        desc_stat(stat_out) = 'max Courant number (average)'
-!        unit_stat(stat_out) = 'nondimensional'
-!      ELSE
-!        stat_out = stat_out+1
-!        name_stat(stat_out) = 'cflmax'
-!        desc_stat(stat_out) = 'max Courant number'
-!        unit_stat(stat_out) = 'nondimensional'
-!      ENDIF
+      IF( adapt_dt.eq.1 )THEN
+        stat_out = stat_out+1
+        name_stat(stat_out) = 'cflmax'
+        desc_stat(stat_out) = 'max Courant number (average)'
+        unit_stat(stat_out) = 'nondimensional'
+      ELSE
+        stat_out = stat_out+1
+        name_stat(stat_out) = 'cflmax'
+        desc_stat(stat_out) = 'max Courant number'
+        unit_stat(stat_out) = 'nondimensional'
+      ENDIF
 
       IF( sgsmodel.ge.1 .or. ipbl.eq.2 .or. horizturb.eq.1 )THEN
         stat_out = stat_out+1
