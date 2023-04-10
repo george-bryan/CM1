@@ -20,7 +20,7 @@
 
   ! set this variable to ".true." to rebounce the particles
   ! falling off the bottom (i.e., conserve the total droplet number)
-  logical, parameter :: use_wall_bc = .false.
+  logical, parameter :: use_wall_bc = .true.
 
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
   logical, parameter :: random_droplets = .true.
@@ -2441,12 +2441,6 @@
       !Set the parameters of the two lognormals:
       real :: rmin,rmax,rmin10,rmax10
 
-      !JMD The following is an expensive operation. Need to port the
-      !JMD injection loop to GPU to eliminate the need to perform this
-      !JMD update.
-      !$acc update host(pdata)
-      if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
-
       rmin10 = log10(2e-06)
       rmax10 = log10(500e-06)
       dh = 0.0242
@@ -2582,11 +2576,6 @@
 
       end do
       if(timestats.ge.1) time_droplet=time_droplet+mytime()
-      !JMD The following is an expensive operation. Need to port the
-      !JMD previous loop to GPU to eliminate the need to perform this
-      !JMD update.
-      !$acc update device(pdata)
-      if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
       !Then once the new droplets have been added, update nparcelsLocalActive
       nparcelsLocalActive = nparcelsLocalActive + my_reintro
