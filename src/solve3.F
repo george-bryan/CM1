@@ -153,7 +153,7 @@
           jedk,kbdk,kedk,nkdiag,ibdp,iedp,jbdp,jedp,kbdp,kedp,npdiag,ib2d,ie2d,jb2d,je2d, &
           nout2d,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,nf,nu,nv,nw,testcase,myid,timestats, &
           psolver,dolsw,nqc,nqi,nnci,nncc,mytime,cm1setup,iusetke,sgsmodel,doimpl,iinit,ptype, &
-          time_prsrho,time_microphy,time_parcels,time_integ,time_dpc,time_poiss,time_swath, & 
+          time_prsrho,time_microphy,time_parcels,time_integ,time_dpc,time_poiss,time_swath,time_lb, & 
           ibw,ibe,ibs,ibn,imoist,irdamp,hrdamp,irbc,rdalpha,iptra,lspgrad,ierr,fcor,vmove, &
           umove,hurr_rad,difforder,idiff,nqv,eqtset,idiss,rterm,iice,nql1,nql2,nqs1,nqs2, &
           axisymm,dx,dy,dz,rdz,bbc,terrain_flag,radopt,use_pbl,tsmall,qsmall,dohturb,dovturb, &
@@ -359,12 +359,11 @@
       !print *,'solve3: point #1'
 !Begin:  message passing
           call bcs_GPU(pp3d)
-#ifdef MPI
-          call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
-#endif
-
           call bcs_GPU(th3d)
 #ifdef MPI
+          call sync()
+          if(timestats.ge.1) time_lb=time_lb+mytime()
+          call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
           call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
                                   rs31,rs32,rn31,rn32,reqs_y)
 #endif
@@ -387,6 +386,8 @@
 
       call bcs_GPU(rho)
 #ifdef MPI
+      call sync()
+      if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
       !print *,'solve3: point #4'
@@ -405,13 +406,12 @@
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
 
 
-        call bcs_GPU(rr)
+      call bcs_GPU(rr)
+      call bcs_GPU(rf)
 #ifdef MPI
+      call sync()
+      if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1s_start_GPU(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
-#endif
-
-        call bcs_GPU(rf)
-#ifdef MPI
       call comm_1s_start_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
 #endif
       !print *,'solve3: point #5'
@@ -447,6 +447,8 @@
         endif
         call bcs_GPU(ppx)
 #ifdef MPI
+        call sync()
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_1s_start_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
 #endif
 
@@ -557,6 +559,8 @@
       !call maxmin2dhalo(ni,nj,w3d(ib,jb,13),text1,text2)
 
 #ifdef MPI
+      call sync()
+      if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
                            us31,us32,un31,un32,reqs_u)
       call comm_3v_end_GPU(v3d,vw31,vw32,ve31,ve32,   &
@@ -568,10 +572,10 @@
 #ifdef MPI
       if(   sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
         call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcu2_GPU(u3d)
         call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcv2_GPU(v3d)
         call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call bcu2_GPU(u3d)
+        call bcv2_GPU(v3d)
         call bcw2_GPU(w3d)
       endif
 #endif
@@ -660,15 +664,13 @@
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
         ! bc/comms:
         call bcu_GPU(rru)
-#ifdef MPI
-        call comm_3u_start_GPU(rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
-#endif
         call bcv_GPU(rrv)
-#ifdef MPI
-        call comm_3v_start_GPU(rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
-#endif
         call bcw_GPU(rrw,1)
 #ifdef MPI
+        call sync()
+        if(timestats.ge.1) time_lb=time_lb+mytime()
+        call comm_3u_start_GPU(rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
+        call comm_3v_start_GPU(rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
         call comm_3w_start_GPU(rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
 #endif
       ENDIF
@@ -732,6 +734,8 @@
 
       if( cm1setup.eq.1 .and. iusetke )then
 #ifdef MPI
+        call sync()
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
@@ -779,6 +783,8 @@
 !----------
 
 #ifdef MPI
+      call sync()
+      if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
       call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
 #endif
@@ -826,6 +832,8 @@
 
 #ifdef MPI
         !-----
+        call sync()
+        if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
         call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcs2_GPU(rho)
@@ -1008,6 +1016,8 @@
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
           !print *,'solve3: after call to droplet_driver' 
 #ifdef MPI
+          call sync()
+          if(timestats.ge.1) time_lb=time_lb+mytime()
           call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,1))
           call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,2))
 #else
@@ -1045,12 +1055,12 @@
             enddo
             if(timestats.ge.1) time_parcels=time_parcels+mytime()
             call bcs_GPU(th3d)
-#ifdef MPI
-            call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
-                                    rs31,rs32,rn31,rn32,reqs_y)
-#endif
             call bcs_GPU(q3d(ib,jb,kb,nqv))
 #ifdef MPI
+            call sync()
+            if(timestats.ge.1) time_lb=time_lb+mytime()
+            call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
+                                    rs31,rs32,rn31,rn32,reqs_y)
             call comm_3s_start_GPU(q3d(ib,jb,kb,nqv)  &
                        ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &

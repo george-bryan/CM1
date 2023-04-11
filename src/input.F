@@ -246,7 +246,7 @@
            time_droplet_inject, time_parceli_reduce, &
            time_rad,time_pbl,time_swath,time_pdef,      &
            time_prsrho,time_restart,time_poiss,time_diag,            &
-           time_azimavg,time_hifrq,time_ercyl
+           time_azimavg,time_hifrq,time_ercyl,time_lb
       integer count_last
 
 !-----------------------------------------------------------------------

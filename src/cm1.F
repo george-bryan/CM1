@@ -4062,7 +4062,7 @@ end module cuda_rt
                     time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
-                    time_dpc+time_droplet_reduce+time_parceli_reduce+                 &
+                    time_dpc+time_droplet_reduce+time_parceli_reduce+time_lb+         &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
                     time_phys_H2D + time_phys_D2H
@@ -4387,6 +4387,10 @@ end module cuda_rt
         time_droplet = sum/float(numprocs)
 
         sum = 0.0
+        call MPI_REDUCE(time_lb ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_lb = sum/float(numprocs)
+
+        sum = 0.0
         call MPI_REDUCE(time_droplet_inject ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_droplet_inject = sum/float(numprocs)
 
@@ -4473,7 +4477,7 @@ end module cuda_rt
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                   time_mps1+time_mps3+time_mpq1+time_mptk1+                     &
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
-                  time_dpc+time_droplet_reduce+                                    &
+                  time_dpc+time_droplet_reduce+time_lb+                         &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
                   time_phys_H2D+time_phys_D2H
@@ -4567,6 +4571,7 @@ end module cuda_rt
       write(outfile,100) 'parceli ',time_parceli,time_parceli/time_solve
       write(outfile,100) 'droplet ',time_droplet,time_droplet/time_solve
       write(outfile,100) 'dropletI',time_droplet_inject,time_droplet_inject/time_solve
+      write(outfile,100) 'load-imb',time_lb,time_lb/time_solve
       if( dodomaindiag )  &
       write(outfile,100) 'domndiag',time_diag,time_diag/time_solve
       if( doazimavg )  &
