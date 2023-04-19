@@ -594,12 +594,12 @@
       !  time_dropinject = 0.0
      end if
 #ifdef MPI
-   call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+     call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
 #endif
 
-   if (myid==0) then 
-   write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
-   end if
+     if (myid==0) then 
+        write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
+     end if
 
    end if
 
@@ -1792,9 +1792,9 @@
       end do
       !$acc end parallel
 
-
       !! Number concentration
-      !$acc parallel loop gang vector default(present) reduction(partnum)
+
+      !$acc parallel loop gang vector default(present) reduction(partnum,Tf,qf,Tpmean,radmean,qfsat,)
       do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
@@ -1805,30 +1805,34 @@
          qf(k) = qf(k) + pdata(np,prqv)
          Tpmean(k) = Tpmean(k) + pdata(np,prtp)
          radmean(k) = radmean(k) + pdata(np,prrp)
-         if (pdata(np,prt) .gt. 200.0) then !Avoid this breaking if the temperature is unrealistic (like at initialization; other times this is a problem, but let it break elsewhere)
-         qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
+         if (pdata(np,prt) .gt. 200.0) then    ! Avoid this breaking if the temperature is unrealistic 
+                                               ! (like at initialization; other times this is a problem, 
+                                               ! but let it break elsewhere)
+            qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
          else
-         qfsat(k) = 0.0
+            qfsat(k) = 0.0
          end if
       end do
       !$acc end parallel
 
       !! Temperature source
+
+      !$acc parallel default(present)
+      !$acc loop gang
       do k=1,nk
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
+         !$acc loop vector reduction(Tpsrc_tmp,qvsrc_tmp)
          do j=1,nj
-         do i=1,ni
-
-            Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
-            qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
-
-         end do
+            do i=1,ni
+               Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
+               qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
+            end do
          end do
          Tpsrc(k) = Tpsrc_tmp/real(nx*ny)
          qvsrc(k) = qvsrc_tmp/real(nx*ny)
-
       end do
+      !$acc end parallel
 
       if (stretch_x .eq. 0) then
          xl = dx*nx
