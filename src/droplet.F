@@ -601,6 +601,8 @@
    write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
    end if
 
+   end if
+
    !$acc update device(pdata,pdata_locind)
 
    end subroutine droplet_driver
