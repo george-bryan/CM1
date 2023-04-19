@@ -1652,7 +1652,7 @@
 
       !Compute the various types of droplet statistics
 
-      !$acc data create (dumzh,dumzf,partnum,numconc)
+      !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf,Tf,radmean,Tpmean,qfsat)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -1822,7 +1822,7 @@
       do k=1,nk
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
-         !$acc loop vector reduction(Tpsrc_tmp,qvsrc_tmp)
+         !$acc loop vector collapse(2) reduction(Tpsrc_tmp,qvsrc_tmp)
          do j=1,nj
             do i=1,ni
                Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
@@ -1845,7 +1845,7 @@
          yl = tot_y_len
       endif
 
-      !$acc update host (dumzf,dumzh,numconc,partnum)
+      !$acc update host (dumzf,dumzh,numconc,partnum,Tpsrc,qvsrc,qf,Tf,radmean,Tpmean,qfsat)
 
 #ifdef MPI
       ! The root rank will collect the diagnostic from different MPI ranks
