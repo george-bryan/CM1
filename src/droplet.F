@@ -1794,7 +1794,7 @@
 
       !! Number concentration
 
-      !$acc parallel loop gang vector default(present) reduction(partnum,Tf,qf,Tpmean,radmean,qfsat,)
+      !$acc parallel loop gang vector default(present) reduction(partnum,Tf,qf,Tpmean,radmean,qfsat)
       do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
