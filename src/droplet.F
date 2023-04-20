@@ -1794,7 +1794,7 @@
 
       !! Number concentration
 
-      !$acc parallel loop gang vector default(present) reduction(partnum,Tf,qf,Tpmean,radmean,qfsat)
+      !$acc parallel loop gang vector default(present) reduction(+:partnum,Tf,qf,Tpmean,radmean,qfsat)
       do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
@@ -1822,7 +1822,7 @@
       do k=1,nk
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
-         !$acc loop vector collapse(2) reduction(Tpsrc_tmp,qvsrc_tmp)
+         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp)
          do j=1,nj
             do i=1,ni
                Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
@@ -2586,13 +2586,9 @@
       yrange = yf(nj+1)-yf(1)
       zrange = injectHMax
 
-      !my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
-      !my_reintro = floor(xrange*yrange*dt*totdrops/1e9)      !Number of droplets to be produced by this MPI task
       my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
    if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject,mtime
-
-      !my_reintro = 10
 
 #ifdef MPI
       call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
