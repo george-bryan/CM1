@@ -393,11 +393,6 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
-!      if (rhval .lt. 0.5 .or. rhval .gt. 1.1) then
-!      write(*,'(a8,i,6e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,mw,esa
-!      end if
-
-
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
@@ -457,35 +452,35 @@
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
 !  num_fallout already contains the number which have fallen out
 
-   allocate(holes_fallout_ind(num_fallout))
+    allocate(holes_fallout_ind(num_fallout))
 
-   !List the spots in pdata which have "dead" particles
-   idx=1
-   do np=1,nparcelsLocalActive
-      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
-         holes_fallout_ind(idx) = np
-         idx=idx+1
-      end if
-   end do
+    !List the spots in pdata which have "dead" particles
+    idx=1
+    do np=1,nparcelsLocalActive
+       if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
+          holes_fallout_ind(idx) = np
+          idx=idx+1
+       end if
+    end do
 
-   !Now transfer these to the end of the pdata list
-   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
-   do np=num_fallout,1,-1
-      if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
-         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
-      else
-         pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
-         pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
-         pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
-         nparcelsLocalActive = nparcelslocalActive-1
-      end if
-      ! reset all the information for this "dead" droplet
-      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
-      pdata(nparcelsLocalActive+1,:) = neg_huge
-      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
-   end do
+    !Now transfer these to the end of the pdata list
+    !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
+    do np=num_fallout,1,-1
+       if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
+          nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
+       else
+          pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
+          pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
+          pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
+          nparcelsLocalActive = nparcelslocalActive-1
+       end if
+       ! reset all the information for this "dead" droplet
+       pdata_locind(nparcelsLocalActive+1,:) = undefined_index
+       pdata(nparcelsLocalActive+1,:) = neg_huge
+       pdata_neighbor(nparcelsLocalActive+1) = undefined_index
+    end do
 
-   deallocate(holes_fallout_ind)
+    deallocate(holes_fallout_ind)
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -551,57 +546,52 @@
 !----------------------------------------------------------------------
 !  get height ASL:
 
-      if( terrain_flag )then
-            call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcelsLocalActive
-              ! get z from sigma:
-              ! (see Section 3 of "The governing equations for CM1", 
-              !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
-              pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
-            ENDDO
-      endif
+    if ( terrain_flag ) then
+       call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
+       DO np=1,nparcelsLocalActive
+         ! get z from sigma:
+         ! (see Section 3 of "The governing equations for CM1", 
+         !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
+         pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
+       ENDDO
+    endif
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
 ! Requires inputting the current 10-meter wind speed
-   if ( .not. use_wall_bc ) then  
-      s10_xym = 0.0
-      !$acc parallel loop gang vector reduction(+:s10_xym)
-      do j=1,nj
-         do i=1,ni
-            s10_xym = s10_xym + s10(i,j)
-         end do
-      end do
-      !$acc end parallel
+    if ( .not. use_wall_bc ) then  
+       s10_xym = 0.0
+       !$acc parallel loop gang vector reduction(+:s10_xym)
+       do j=1,nj
+          do i=1,ni
+             s10_xym = s10_xym + s10(i,j)
+          end do
+       end do
+       !$acc end parallel
 
 #ifdef MPI
-     call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+       call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
-     s10_xym = s10_xym/real(nx*ny)
-     if (myid==0) write(*,*) 'DHR U10',s10_xym
+       s10_xym = s10_xym/real(nx*ny)
+       if (myid==0) write(*,*) 'DHR U10',s10_xym
 
-     !Only inject if a certain time has elapsed
-     drop_inject_elapse = 1.0e-5
-     if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
-
-        !Only start droplet injection after a specified time
-        if (mtime .gt. 0.0) then
-        call droplet_injection(pdata,xf,yf,dt,s10_xym,drop_inject_elapse,randomNumbers,mtime)
-        end if
-
-      !  time_dropinject = 0.0
-     end if
+       !Only inject if a certain time has elapsed
+       drop_inject_elapse = 1.0e-5
+       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
+          !Only start droplet injection after a specified time
+          if (mtime .gt. 0.0) then
+          call droplet_injection(pdata,xf,yf,dt,s10_xym,drop_inject_elapse,randomNumbers,mtime)
+          end if
+       end if
 #ifdef MPI
-     call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+       call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
 #endif
-
-     if (myid==0) then 
-        write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
-     end if
-
-   end if
+       if (myid==0) then 
+          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
+       end if
+   end if  ! end of "if use_wall_bc" statement
 
    !$acc update device(pdata,pdata_locind)
 
