@@ -23,14 +23,14 @@
                         bndy,kbdy,                                        &
                         pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,ktb,kte,rmp,imp,jmp,kmp, &
-          ni,nj,nk,nsound,psolver,terrain_flag,rdx,rdy,rdz,axisymm,timestats,time_sound, &
+          ni,nj,nk,nsound,psolver,terrain_flag,rdx,rdy,rdz,axisymm,timestats,time_sound,time_lb, &
           mytime,irbc,ibw,ibe,ibs,ibn,wbc,ebc,sbc,nbc,roflux,convinit,convtime,nx,ny,myid, &
           zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,alph
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
       use bc_module, only: bcs_GPU, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
-      use comm_module, only : comm_1s_start_GPU,comm_1p_end_GPU
+      use comm_module, only : comm_1s_start_GPU,comm_1p_end_GPU,sync
       use ib_module
       implicit none
 
@@ -832,6 +832,8 @@
 !          call flush(6)
           call bcs_GPU(ppd)
 #ifdef MPI
+          call sync()
+          if(timestats.ge.1) time_lb=time_lb+mytime()
           !$acc update host(ppd)
           call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)

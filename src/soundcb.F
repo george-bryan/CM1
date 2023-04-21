@@ -26,12 +26,12 @@
           ibph,ieph,jbph,jeph,kbph,keph,ni,nj,nk,nsound,terrain_flag,rdx,rdy,rdz, &
           axisymm,timestats,time_sound,mytime,irbc,ibw,ibe,ibs,ibn,wbc,ebc,sbc,nbc, &
           roflux,convinit,convtime,nx,ny,myid,zdeep,lamx,lamy,xcent,ycent,aconv, &
-          wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
+          wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,time_lb
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge,getdiv
       use bc_module, only : bcs_GPU, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
-      use comm_module, only : comm_1p_end_GPU,comm_1s_start_GPU,comm_1s_end_GPU
+      use comm_module, only : comm_1p_end_GPU,comm_1s_start_GPU,comm_1s_end_GPU,sync
       use ib_module
       implicit none
 
@@ -507,6 +507,8 @@
         IF( n.lt.nloop )THEN
           call bcs_GPU(ppd)
 #ifdef MPI
+          call sync()
+          if(timestats.ge.1) time_lb=time_lb+mytime()
           call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif
@@ -589,6 +591,8 @@
       if(timestats.ge.1) time_sound=time_sound+mytime()
       call bcs_GPU(phi2)
 #ifdef MPI
+      call sync()
+      if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1s_start_GPU(phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       call comm_1s_end_GPU(  phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
 #endif

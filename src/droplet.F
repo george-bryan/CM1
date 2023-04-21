@@ -39,8 +39,9 @@
           kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
-          timestats,time_droplet,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive
+          timestats,time_droplet,time_droplet_inject, mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
+          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive, &
+          time_phys_H2D,time_phys_D2H
       use constants
       use comm_module
       use comm_droplet_module
@@ -428,8 +429,11 @@
     !$acc end parallel
 
     !$acc end data
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
     !$acc update host(pdata,pdata_locind)
+
+    if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
     numvec(1) = num100
     numvec(2) = num1000
@@ -446,7 +450,6 @@
 
     if (myid==0) write(*,*) 'num100,num1000 = ',numvec(1),numvec(2)
 
-    if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
@@ -481,6 +484,8 @@
     end do
 
     deallocate(holes_fallout_ind)
+
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -535,11 +540,12 @@
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
 
+    if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
+
     ! free up the memory for temporary variables
 
     deallocate(holes_ind)
 
-    if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 #endif
 
 
@@ -593,7 +599,11 @@
        end if
    end if  ! end of "if use_wall_bc" statement
 
+   if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
+  
    !$acc update device(pdata,pdata_locind)
+   if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
+   
 
    end subroutine droplet_driver
 
@@ -2486,7 +2496,7 @@
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
-                        injectHMax
+                        time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax
       use constants
       use MersenneTwister_mod
 #ifdef MPI
@@ -2578,7 +2588,7 @@
 
       my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
-   if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject,mtime
+      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject,mtime
 
 #ifdef MPI
       call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
@@ -2649,6 +2659,7 @@
         pdata(np,prrho) = 0.0
 
       end do
+      if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
       !Then once the new droplets have been added, update nparcelsLocalActive
       nparcelsLocalActive = nparcelsLocalActive + my_reintro
