@@ -92,6 +92,7 @@
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
+      real :: drop_inject_elapse
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -393,7 +394,6 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
-
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
@@ -455,35 +455,35 @@
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
 !  num_fallout already contains the number which have fallen out
 
-   allocate(holes_fallout_ind(num_fallout))
+    allocate(holes_fallout_ind(num_fallout))
 
-   !List the spots in pdata which have "dead" particles
-   idx=1
-   do np=1,nparcelsLocalActive
-      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
-         holes_fallout_ind(idx) = np
-         idx=idx+1
-      end if
-   end do
+    !List the spots in pdata which have "dead" particles
+    idx=1
+    do np=1,nparcelsLocalActive
+       if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
+          holes_fallout_ind(idx) = np
+          idx=idx+1
+       end if
+    end do
 
-   !Now transfer these to the end of the pdata list
-   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
-   do np=num_fallout,1,-1
-      if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
-         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
-      else
-         pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
-         pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
-         pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
-         nparcelsLocalActive = nparcelslocalActive-1
-      end if
-      ! reset all the information for this "dead" droplet
-      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
-      pdata(nparcelsLocalActive+1,:) = neg_huge
-      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
-   end do
+    !Now transfer these to the end of the pdata list
+    !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
+    do np=num_fallout,1,-1
+       if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
+          nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
+       else
+          pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
+          pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
+          pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
+          nparcelsLocalActive = nparcelslocalActive-1
+       end if
+       ! reset all the information for this "dead" droplet
+       pdata_locind(nparcelsLocalActive+1,:) = undefined_index
+       pdata(nparcelsLocalActive+1,:) = neg_huge
+       pdata_neighbor(nparcelsLocalActive+1) = undefined_index
+    end do
 
-   deallocate(holes_fallout_ind)
+    deallocate(holes_fallout_ind)
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
@@ -552,44 +552,52 @@
 !----------------------------------------------------------------------
 !  get height ASL:
 
-      if( terrain_flag )then
-            call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
-            DO np=1,nparcelsLocalActive
-              ! get z from sigma:
-              ! (see Section 3 of "The governing equations for CM1", 
-              !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
-              pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
-            ENDDO
-      endif
+    if ( terrain_flag ) then
+       call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
+       DO np=1,nparcelsLocalActive
+         ! get z from sigma:
+         ! (see Section 3 of "The governing equations for CM1", 
+         !  http://www2.mmm.ucar.edu/people/bryan/cm1/cm1_equations.pdf)
+         pdata(np,prz) = pdata(np,przs) + pdata(np,prsig)*((zt-pdata(np,przs))*rzt)
+       ENDDO
+    endif
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 !----------------------------------------------------------------------
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
 ! Requires inputting the current 10-meter wind speed
-   
-   if ( .not. use_wall_bc ) then  
-      s10_xym = 0.0
-      !$acc parallel loop gang vector reduction(+:s10_xym)
-      do j=1,nj
-         do i=1,ni
-            s10_xym = s10_xym + s10(i,j)
-         end do
-      end do
-      !$acc end parallel
+    if ( .not. use_wall_bc ) then  
+       s10_xym = 0.0
+       !$acc parallel loop gang vector reduction(+:s10_xym)
+       do j=1,nj
+          do i=1,ni
+             s10_xym = s10_xym + s10(i,j)
+          end do
+       end do
+       !$acc end parallel
+
 #ifdef MPI
-      call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+       call mpi_allreduce(mpi_in_place,s10_xym,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
-      s10_xym = s10_xym/real(nx*ny)
-      if (myid==0) write(*,*) 'DHR U10',s10_xym
-      call droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
+       s10_xym = s10_xym/real(nx*ny)
+       if (myid==0) write(*,*) 'DHR U10',s10_xym
+
+       !Only inject if a certain time has elapsed
+       drop_inject_elapse = 1.0e-5
+       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
+          !Only start droplet injection after a specified time
+          if (mtime .gt. 0.0) then
+          call droplet_injection(pdata,xf,yf,dt,s10_xym,drop_inject_elapse,randomNumbers,mtime)
+          end if
+       end if
 #ifdef MPI
-      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+       call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
 #endif
-      if (myid==0) then 
-         write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
-      end if
-   end if
+       if (myid==0) then 
+          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
+       end if
+   end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
   
@@ -641,15 +649,15 @@
       real :: k1xp1,k1xp2,k1xp3,k1vp1,k1vp2,k1vp3
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
-      real :: rprhs,rptmp,qstar,einf,estar
+      real :: rprhs,rptmp,qstar
       real :: taup,Rep,Shp,diffnorm
       real :: rhop,volp,tp0,volp0
       real :: sig1
       real :: top,bot
       integer :: i,j,k
-      real :: taup_scale,dt_nondim
+      real :: taup_scale,dt_nondim,guess
       double precision :: rt_zeros(2),rt_start(2)
-      real :: guess
+    
       integer :: mflag,flag
 
       integer :: num_fallout
@@ -665,8 +673,6 @@
       pdata(np,prprs) = prsval
       pdata(np,prrho) = rhoval
 
-
-      estar = eslf(prsval,tval)  !Saturation humidity based on interpolated temp,pressure
 
 !-----------------------------------------------------
 !  Update droplet position, velocity, etc.
@@ -725,7 +731,7 @@
 
       !Nondimensionalize the guesses
       if (mflag.eq.0) then
-         rt_start(1) = guess/dble(pdata(np,prrp))
+         rt_start(1) = dble(guess)/dble(pdata(np,prrp))
          rt_start(2) = dble(tval)/dble(pdata(np,prtp))
       else
          rt_start(1) = 1.0
@@ -1609,9 +1615,11 @@
 
       end subroutine project_feedback
 
-      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
+      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
 
       use input
+      use constants
+      use cm1libs , only : eslf
       !use input, only : nparcels,npvals,prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho
 #ifdef MPI
       use mpi
@@ -1623,18 +1631,20 @@
 
       integer, intent(inout) :: nrec
       real, intent(in) :: rtime
+      real, intent(in), dimension(ib:ie,jb:je,kb:ke,2) :: dpten
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
       real, intent(in), dimension(ib:ie,jb:je,kb:ke+1) :: zf
 
-      integer :: np,iz,k
+      integer :: np,iz,i,j,k
       integer :: kflag
       real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
+      real :: Tpsrc_tmp,qvsrc_tmp
 
       integer :: tnumpart,tnumdrop,tnumaerosol
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
-      real :: partnum(nk),numconc(nk)
+      real :: partnum(nk),numconc(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),Tpmean(nk),qfsat(nk)
 #ifdef MPI
       real, dimension(11) :: droplet_diag0     ! temporary array for MPI reduce operation
                                                ! for the 0th-order diagnostic except rtime
@@ -1642,7 +1652,7 @@
 
       !Compute the various types of droplet statistics
 
-      !$acc data create (dumzh,dumzf,partnum,numconc)
+      !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf,Tf,radmean,Tpmean,qfsat)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -1755,6 +1765,7 @@
 #endif
 
       !!!!!!! 1st order  !!!!!!!!
+
       !$acc parallel loop gang vector default(present)
       do iz=kb,ke
          dumzh(iz) = zh(1,1,iz)
@@ -1771,15 +1782,55 @@
       do k = 1, nk
          partnum(k) = 0.0
          numconc(k) = 0.0
+         Tpsrc(k) = 0.0
+         qvsrc(k) = 0.0
+         Tf(k) = 0.0
+         qf(k) = 0.0
+         Tpmean(k) = 0.0
+         radmean(k) = 0.0
+         qfsat(k) = 0.0
       end do
       !$acc end parallel
 
-      !$acc parallel loop gang vector default(present) reduction(partnum)
+      !! Number concentration
+
+      !$acc parallel loop gang vector default(present) reduction(+:partnum,Tf,qf,Tpmean,radmean,qfsat)
       do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
          call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
+
          partnum(k) = partnum(k) + 1.0
+         Tf(k) = Tf(k) + pdata(np,prt)
+         qf(k) = qf(k) + pdata(np,prqv)
+         Tpmean(k) = Tpmean(k) + pdata(np,prtp)
+         radmean(k) = radmean(k) + pdata(np,prrp)
+         if (pdata(np,prt) .gt. 200.0) then    ! Avoid this breaking if the temperature is unrealistic 
+                                               ! (like at initialization; other times this is a problem, 
+                                               ! but let it break elsewhere)
+            qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
+         else
+            qfsat(k) = 0.0
+         end if
+      end do
+      !$acc end parallel
+
+      !! Temperature source
+
+      !$acc parallel default(present)
+      !$acc loop gang
+      do k=1,nk
+         Tpsrc_tmp = 0.0
+         qvsrc_tmp = 0.0
+         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp)
+         do j=1,nj
+            do i=1,ni
+               Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
+               qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
+            end do
+         end do
+         Tpsrc(k) = Tpsrc_tmp/real(nx*ny)
+         qvsrc(k) = qvsrc_tmp/real(nx*ny)
       end do
       !$acc end parallel
 
@@ -1794,22 +1845,65 @@
          yl = tot_y_len
       endif
 
-      !$acc update host (dumzf,dumzh,numconc,partnum)
+      !$acc update host (dumzf,dumzh,numconc,partnum,Tpsrc,qvsrc,qf,Tf,radmean,Tpmean,qfsat)
 
 #ifdef MPI
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
          call mpi_reduce(MPI_IN_PLACE,partnum,nk,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,Tpsrc,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,qvsrc,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,Tf,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,qf,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,Tpmean,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,radmean,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,qfsat,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
          call mpi_reduce(partnum,partnum,nk,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(Tpsrc,Tpsrc,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(qvsrc,qvsrc,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(Tf,Tf,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(qf,qf,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(Tpmean,Tpmean,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(radmean,radmean,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(qfsat,qfsat,nk,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
       end if
+
+
       if ( myid == 0 ) then 
 #endif
       do iz=1,nk
          dzf = dumzf(iz+1)-dumzf(iz)
          numconc(iz) = partnum(iz)/dzf/xl/yl
+         if (abs(partnum(iz)) .gt. 1.0e-10) then
+            Tf(iz) = Tf(iz)/partnum(iz)
+            qf(iz) = qf(iz)/partnum(iz)
+            Tpmean(iz) = Tpmean(iz)/partnum(iz)
+            radmean(iz) = radmean(iz)/partnum(iz)
+            qfsat(iz) = qfsat(iz)/partnum(iz)
+         else
+            Tf(iz) = 0.0
+            qf(iz) = 0.0
+            Tpmean(iz) = 0.0
+            radmean(iz) = 0.0
+            qfsat(iz) = 0.0
+         end if
          write(6,100) 'dumzh(',iz,'):',dumzh(iz)
          write(6,100) 'numconc(',iz,'):',numconc(iz)
       end do
@@ -1846,7 +1940,7 @@
 #endif
       call writedropdiag_nc(nrec, &
            rtime,tnumpart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc)
+           dumzh,numconc,Tpsrc,qvsrc,Tf,qf,Tpmean,radmean,qfsat)
 #ifdef MPI
       end if
 #endif
@@ -2253,14 +2347,14 @@
         !Solve for correction vector
         correct(1) = invg(1,1)*gradC(1)+invg(1,2)*gradC(2)
         correct(2) = invg(2,1)*gradC(1)+invg(2,2)*gradC(2)
-        
+
+        rt_zeros(1) = v1(1) - correct(1)
+        rt_zeros(2) = v1(2) - correct(2)
+
         !Successful convergence if correction is small
         if (sqrt(correct(1)*correct(1)+correct(2)*correct(2)) < error) then
            EXIT
         end if
-
-        rt_zeros(1) = v1(1) - correct(1)
-        rt_zeros(2) = v1(2) - correct(2)
 
         !Failed if temperature or radius goes negative
         if (rt_zeros(1)<0.0 .OR. rt_zeros(2)<0.0) then
@@ -2270,6 +2364,7 @@
 
         !Use the RHS to update the lambda parameter
         call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+
         newC(1) = 0.5*fv2(1)*fv2(1)
         newC(2) = 0.5*fv2(2)*fv2(2)
 
@@ -2280,7 +2375,6 @@
         else
            lambda = lambda*lup
         end if
-
 
         end do
 
@@ -2396,7 +2490,7 @@
 
       end subroutine ie_vrt_nd
 
-      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,randomNumbers)
+      subroutine droplet_injection(pdata,xf,yf,dt,s10_xym,time_since_inject,randomNumbers,mtime)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
@@ -2413,7 +2507,8 @@
       type(randomNumberSequence),intent(inout) :: randomNumbers
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je+1) :: yf
-      real, intent(in) :: dt,s10_xym
+      real, intent(in) :: dt,s10_xym,time_since_inject
+      double precision, intent(in) :: mtime
     
       integer :: i,my_reintro,np,tot_after_reintro
       integer :: sum_buf(2)
@@ -2486,12 +2581,14 @@
       totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
 
       !Define these here
+      !These are the LOCAL area for EACH processor
       xrange = xf(ni+1)-xf(1)
       yrange = yf(nj+1)-yf(1)
       zrange = injectHMax
 
-      my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
+      my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
+      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject,mtime
 
 #ifdef MPI
       call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
@@ -2499,10 +2596,6 @@
       !Calculate the total number which will occur after injection
       tot_after_reintro = my_reintro+nparcelsLocalActive
 #endif
-
-
-
-   if (myid==0) write(*,'(a15,i,6e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected does not make the global exceed nparcelsMax
 
@@ -2526,8 +2619,6 @@
 
         !Now populate the pdata array, starting at the list
        
-        !!!!!!!! if (nparcelsActive+myreintro .lt. nparcelsActive_max)
-
         !Random location in the loweset 8 meters
         rand = getRandomReal(randomNumbers)
         pdata(np,prx) = xf(1)+rand*xrange

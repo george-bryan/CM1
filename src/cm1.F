@@ -2328,7 +2328,8 @@ end module cuda_rt
                   tha,th3d,thten,thten1,qa,q3d,qten,                &
                   kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                   pta,pt3d,ptten,                                   &
-                  pdata,cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans)
+                  pdata,cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,      &
+                  trans)
 
 !----------------------------------------------------------------------
 
@@ -3537,7 +3538,7 @@ end module cuda_rt
         !     The second method is expected to avoid the creation of an
         !     array with size "nparcels*npvals" (saving memory space) 
         !     and thus implemented below 
-        call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind)
+        call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
 
         nrec = nrec + 1
         nstatout = nstatout + 1
