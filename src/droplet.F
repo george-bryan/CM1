@@ -2177,7 +2177,6 @@
                 v1(2) = rt_zeros(2)
 
         end do
-        !print *,'gauss_newton_2d: iterations: ',iterations
       !These indicate that this failed -- set flag = 1 to send to LV solver
       if (iterations == iteration_max) flag = 1
       if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
