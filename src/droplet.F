@@ -2493,8 +2493,6 @@
 
       my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
-      !JMD my_reintro = 10
-
 
 #ifdef MPI
       call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)

@@ -2487,17 +2487,6 @@
 
     ENDIF
      
-!    if( nstep.eq.0 .and. myid.eq.0 )then
-!      !$acc update host (grdscl)
-!      print *
-!      print *,'  zf,grdscl:'
-!      i = 1
-!      j = 1
-!      do k=2,nk
-!        print *,k,(zf(i,j,k)-zf(i,j,1)),grdscl(i,j,k)
-!      enddo
-!    endif
-
       if(timestats.ge.1) time_turb=time_turb+mytime()
 
 !------------------------------------------------------------
