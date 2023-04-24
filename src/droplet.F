@@ -1645,7 +1645,7 @@
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg
       real :: partnum(nk),numconc(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),Tpmean(nk),qfsat(nk)
 
-      integer, parameter :: nbins = 514
+      integer, parameter :: nbins = 514   !Number of bins to use for the droplet_diag histograms
       real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10
       real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp
       integer :: ibin
