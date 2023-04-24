@@ -1769,8 +1769,6 @@
       end if
 #endif
 
-
-
       !!!!!!! 1st order  !!!!!!!!
 
       !$acc parallel loop gang vector default(present)
@@ -1941,8 +1939,6 @@
       end if
 #endif
 
-
-
       !!!!!!! HISTOGRAMS  !!!!!!!!
 
       ! One last type of droplet stat is the histogram
@@ -1963,6 +1959,8 @@
       do i=1,nbins-1
          bins_radius(i+1) = bins_radius(i) + dr
       end do 
+
+      !$acc update host (pdata)
 
       !Now that the bin centers are defined, loop through particles
       do np=1,nparcelsLocalActive
@@ -1994,18 +1992,18 @@
       end do
 
 #ifdef MPI
-       !Sum up the histograms across MPI processes
-       if (myid == 0) then
-          call mpi_reduce(MPI_IN_PLACE,hist_radius,nbins,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-          call mpi_reduce(MPI_IN_PLACE,hist_radius10,nbins,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-       else
-          call mpi_reduce(hist_radius,hist_radius,nbins,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-          call mpi_reduce(hist_radius10,hist_radius10,nbins,MPI_REAL, &
-                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
-       end if
+      !Sum up the histograms across MPI processes
+      if (myid == 0) then
+         call mpi_reduce(MPI_IN_PLACE,hist_radius,nbins,MPI_REAL, &
+                        MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(MPI_IN_PLACE,hist_radius10,nbins,MPI_REAL, &
+                        MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(hist_radius,hist_radius,nbins,MPI_REAL, &
+                        MPI_SUM,0,MPI_COMM_WORLD,ierr)
+         call mpi_reduce(hist_radius10,hist_radius10,nbins,MPI_REAL, &
+                        MPI_SUM,0,MPI_COMM_WORLD,ierr)
+      end if
 #endif
 
 #ifdef NETCDF
