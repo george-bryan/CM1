@@ -701,7 +701,7 @@
           qd_dbz,rdx,rdy,nx,ny,myi,myj,nodex,nodey,myid,nip1,njp1,nkp1,axisymm,nnc1, &
           umove,vmove,prth,prt,prqsl,prqsi,prvpg,prb,prprs,prrho,prpt1,prqv,prq1,prnc1, &
           prkm,prkh,prtke,prdbz,przv,prx,pry,prz,prtime,prq2,prnc2,prznt,prust,pru,prv, &
-          prw,prsig,time_parceli_reduce,terrain_flag
+          prw,prsig,time_parceli_reduce,time_lb,terrain_flag
       use constants
       use cm1libs , only : rslf,rsif
       use bc_module, only: bcu2_GPU, bcv2_GPU, bcw2_GPU
@@ -963,14 +963,14 @@
 !  (may not parallelize correctly if this is not done)
 
 #ifdef MPI
-      !!$acc update device(u3d,v3d,w3d)
+      call sync()
+      if(timestats.ge.1) time_lb=time_lb+mytime()
       call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call bcu2_GPU(u3d)
       call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call bcv2_GPU(v3d)
       call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call bcu2_GPU(u3d)
+      call bcv2_GPU(v3d)
       call bcw2_GPU(w3d)
-      !!$acc update host(u3d,v3d,w3d)
 #endif
 
 !----------------------------------------------------------------------

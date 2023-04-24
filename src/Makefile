@@ -104,7 +104,7 @@ ifeq (${FC},nvfortran)
             #     -Minfo=accel    Provides verbose output for accelerator compilation phase
             #     -Mpcast         Enables the use of PCAST functionality
             ifeq (${GPU_TYPE_L},a100)
-                OPTS += -acc -gpu=cc80,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
+                OPTS += -acc -gpu=cc80,lineinfo,nofma,math_uniform -Minfo=accel
             else
                 OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
             endif
@@ -352,6 +352,7 @@ bcast.o:
 cm1.o: constants.o input.o param.o base.o init3d.o misclibs.o solve1.o solve2.o solve3.o diff2.o turb.o statpack.o writeout.o restart.o radiation_driver.o radtrns3d.o domaindiag.o azimavg.o hifrq.o parcel.o init_physics.o init_surface.o mp_driver.o ib_module.o eddy_recycle.o lsnudge.o nvtx_mod.o
 cm1libs.o: input.o constants.o
 comm.o: input.o bc.o
+comm_droplet.o: input.o constants.o
 diff2.o: constants.o input.o
 domaindiag.o: constants.o input.o interp_routines.o cm1libs.o getcape.o sfcphys.o turb.o lsnudge.o writeout_nc.o
 eddy_recycle.o: constants.o input.o
