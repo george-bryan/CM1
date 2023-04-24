@@ -57,7 +57,16 @@
   public :: comm_1s2d_start,comm_1s2d_end
   public :: getcorneru3,getcornerv3,getcorner3_2d,getcorner
 
+  public :: sync
+
   CONTAINS
+
+! Synchronization routine 
+     subroutine sync()
+      use mpi
+      integer :: ierr
+      call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+     end subroutine
 
 !-----------------------------------------------------------------------
 !  message passing routines
