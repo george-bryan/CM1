@@ -584,7 +584,7 @@
        if (myid==0) write(*,*) 'DHR U10',s10_xym
 
        !Only inject if a certain time has elapsed
-       drop_inject_elapse = 2.0
+       drop_inject_elapse = 1.0e-5
        if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
           !Only start droplet injection after a specified time
           if (mtime .gt. 0.0) then
