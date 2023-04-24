@@ -20,7 +20,7 @@
 
   ! set this variable to ".true." to rebounce the particles
   ! falling off the bottom (i.e., conserve the total droplet number)
-  logical, parameter :: use_wall_bc = .false.
+  logical, parameter :: use_wall_bc = .true.
 
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
   logical, parameter :: random_droplets = .true.
@@ -39,9 +39,9 @@
           kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho, &
-          timestats,time_droplet,time_droplet_inject, mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
+          timestats,time_droplet,time_droplet_inject, mytime,ierr,maxx,maxy,maxz, &
           ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive, &
-          time_phys_H2D,time_phys_D2H
+          time_phys_H2D,time_phys_D2H,time_dropC1,time_dropC2,time_dropC3,time_dropC4
       use constants
       use comm_module
       use comm_droplet_module
@@ -122,6 +122,8 @@
 !      real, dimension(kb:ke+1) :: zf_tmp
 
       integer :: num_fallout,idx,np_tmp                        !droplets which fell out of domain
+      integer :: numDepartN, numDepartS, numDepartE, numDepartW, &
+                 numDepartSW,numDepartSE,numDepartNE,numDepartNW
       integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
 
 #ifdef MPI 
@@ -134,6 +136,8 @@
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
+
+      integer :: numHoles
 
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
@@ -149,6 +153,14 @@
       randomNumbers = new_RandomNumberSequence(seed = local_seed)
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
+      numDepartN  = 0
+      numDepartS  = 0
+      numDepartE  = 0
+      numDepartW  = 0
+      numDepartNW = 0
+      numDepartNE = 0
+      numDepartSW = 0
+      numDepartSE = 0
 
 !----------------------------------------------------------------------
 !  apply bottom/top boundary conditions:
@@ -314,7 +326,9 @@
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
-    !$acc loop gang vector reduction(+:num_fallout)
+    !$acc loop gang vector reduction(+:num_fallout) &
+    !$acc reduction(+:numDepartN,numDepartS,numDepartE,numDepartW) &
+    !$acc reduction(+:numDepartNW,numDepartSW,numDepartNE,numDepartSE)
 #endif
     nploop:  &
     DO np=1,nparcelsLocalActive
@@ -402,6 +416,23 @@
 
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
+      if(neighbor .eq. mynorth) then 
+         numDepartN=numDepartN+1
+      else if(neighbor .eq. mysouth) then 
+         numDepartS=numDepartS+1
+      else if(neighbor .eq. mywest) then 
+         numDepartW=numDepartW+1
+      else if(neighbor .eq. myeast) then 
+         numDepartE=numDepartE+1
+      else if(neighbor .eq. mynw) then 
+         numDepartNW=numDepartNW+1
+      else if(neighbor .eq. myne) then 
+         numDepartNE=numDepartNE+1
+      else if(neighbor .eq. mysw) then 
+         numDepartSW=numDepartSW+1
+      else if(neighbor .eq. myse) then 
+         numDepartSE=numDepartSE+1
+      endif
 #endif
 
 !-----------------------------------------------------
@@ -450,81 +481,58 @@
 
     if (myid==0) write(*,*) 'num100,num1000 = ',numvec(1),numvec(2)
 
+    Depart(inorth) = numDepartN
+    Depart(isouth) = numDepartS
+    Depart(ieast)  = numDepartE
+    Depart(iwest)  = numDepartW
+    Depart(inw)    = numDepartNW
+    Depart(ine)    = numDepartNE
+    Depart(isw)    = numDepartSW
+    Depart(ise)    = numDepartSE
 
-!----------------------------------------------------------------------
-!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
-!  num_fallout already contains the number which have fallen out
 
-   allocate(holes_fallout_ind(num_fallout))
 
-   !List the spots in pdata which have "dead" particles
-   idx=1
-   do np=1,nparcelsLocalActive
-      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
-         holes_fallout_ind(idx) = np
-         idx=idx+1
-      end if
-   end do
-
-   !Now transfer these to the end of the pdata list
-   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
-   do np=num_fallout,1,-1
-      if (holes_fallout_ind(np) .eq. nparcelsLocalActive) then
-         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
-      else
-         pdata(holes_fallout_ind(np),:) = pdata(nparcelsLocalActive,:)
-         pdata_locind(holes_fallout_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
-         pdata_neighbor(holes_fallout_ind(np)) = pdata_neighbor(nparcelsLocalActive)
-         nparcelsLocalActive = nparcelslocalActive-1
-      end if
-      ! reset all the information for this "dead" droplet
-      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
-      pdata(nparcelsLocalActive+1,:) = neg_huge
-      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
-   end do
-
-   deallocate(holes_fallout_ind)
-
-    if(timestats.ge.1) time_droplet=time_droplet+mytime()
+    numHoles = SUM(Depart) + num_fallout + (nparcelsLocal-nparcelsLocalActive)
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
-#ifdef MPI
 
     ! JS: send/receive the droplet information through MPI;
     !     all the calculations below are done on CPU
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Step 1: Count the "num_holes", which is the number of "holes" in "pdata" !
-    !         at the beginning of this time step + the number of droplets      !
-    !         leaving this MPI region at this time step                        !
+    ! Step 1: Allocate and assign the "hole" index array and initialize  it
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    num_holes = 0
+    allocate(holes_ind(numHoles))
+    do np = 1, numHoles
+       holes_ind(np) = undefined_index
+    end do
+
+    i=1
     do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
-          num_holes = num_holes + 1
+          holes_ind(i) = np
+          i = i + 1
        end if
     end do
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Step 2: Allocate "hole" index array and initialize it ! 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    allocate(holes_ind(num_holes))
-    do np = 1, num_holes
-       holes_ind(np) = undefined_index
-    end do
+    if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
+
+#ifdef MPI
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 3: Exchange the number of droplets that will enter/leave !
     !         the current MPI region with its nearest neighbor      !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_number(holes_ind,Depart,Arrive,pdata, &
+    call comm_droplet_number(numHoles,Depart,Arrive,pdata, &
                              pdata_locind,pdata_neighbor)
+
+    if(timestats.ge.1) time_dropC3=time_dropC3+mytime()
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 4: Exchange the detailed information of the droplets that will  !
@@ -534,19 +542,56 @@
     call comm_droplet_value(holes_ind,Depart,Arrive,pdata, &
                             pdata_locind,pdata_neighbor)
 
+    if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
 
-    if(timestats.ge.1) time_droplet_reduce=time_droplet_reduce+mytime()
 
-    ! free up the memory for temporary variables
 
-    deallocate(holes_ind)
+#else
+
+!----------------------------------------------------------------------
+!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
+!  num_fallout already contains the number which have fallen out
+
+!   allocate(holes_fallout_ind(num_fallout))
+
+!   !List the spots in pdata which have "dead" particles
+!   idx=1
+!   do np=1,nparcelsLocalActive
+!      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
+!         holes_fallout_ind(idx) = np
+!         idx=idx+1
+!      end if
+!   end do
+
+   !Now transfer these to the end of the pdata list
+   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
+   do np=numHoles,1,-1
+      if (holes_ind(np) .eq. nparcelsLocalActive) then
+         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
+      else
+         pdata(holes_ind(np),:) = pdata(nparcelsLocalActive,:)
+         pdata_locind(holes_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
+         pdata_neighbor(holes_ind(np)) = pdata_neighbor(nparcelsLocalActive)
+         nparcelsLocalActive = nparcelslocalActive-1
+      end if
+      ! reset all the information for this "dead" droplet
+      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
+      pdata(nparcelsLocalActive+1,:) = neg_huge
+      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
+   end do
+
+    if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 #endif
+
+    ! free up the memory for temporary variables
+    deallocate(holes_ind)
 
 
 !----------------------------------------------------------------------
@@ -1340,6 +1385,7 @@
 
       !$acc atomic update
       uten(i,j,k)       = uten(i,j,k)       - partmass/rhoval*(dvpdt1-part_grav1)*w1/dV*pdata(np,prmult)
+      !$acc end atomic
       !$acc atomic update
       uten(i+1,j,k)     = uten(i+1,j,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w2/dV*pdata(np,prmult)
       !$acc atomic update
@@ -2492,8 +2538,6 @@
       zrange = injectHMax
 
       my_reintro = floor(xrange*yrange*dt*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
-
-      !JMD my_reintro = 10
 
 
 #ifdef MPI

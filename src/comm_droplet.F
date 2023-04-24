@@ -17,7 +17,7 @@ contains
 
 #ifdef MPI
 
-  subroutine comm_droplet_number(holes_ind,Depart,Arrive,pdata, &
+  subroutine comm_droplet_number(numHoles,Depart,Arrive,pdata, &
                                  pdata_locind,pdata_neighbor)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
@@ -29,10 +29,8 @@ contains
 
     implicit none
 
-    integer, intent(inout), dimension(:) :: holes_ind                    ! location index in "pdata" that can 
-                                                                         ! add a new droplet;
-                                                                         ! not a fixed-size array but we do 
-                                                                         ! not need to know its size
+    integer, intent(in) :: numHoles                                      ! Current number of holes available 
+
     integer, intent(out) :: Depart(num_nn)                               ! Number of droplets that will enter each 
                                                                          ! nearest neighbor at different directions
     integer, intent(out) :: Arrive(num_nn)                               ! Number of droplets that will enter the 
@@ -60,46 +58,6 @@ contains
     tag_sw = 1006
     tag_ne = 1007
     tag_se = 1008
-
-    do i = 1, num_nn
-       Depart(i) = 0
-    end do
-
-    ! find out how many droplets will leave the 
-    ! current MPI region and to which neighbor
-
-    i = 1
-    do n = 1, nparcelsLocal
-       if ( (pdata_locind(n,1) .eq. undefined_index) .and. &
-            (pdata_locind(n,2) .eq. undefined_index) ) then
-          ! record the location index that can be used to store the new droplet
-          ! information after the old drolpet leaves the current MPI region
-          holes_ind(i) = n
-          i = i + 1
-          if ( n .le. nparcelsLocalActive ) then
-             if ( pdata_neighbor(n) .eq. mynorth ) then
-                Depart(inorth) = Depart(inorth) + 1
-             else if ( pdata_neighbor(n) .eq. mysouth ) then
-                Depart(isouth) = Depart(isouth) + 1
-             else if ( pdata_neighbor(n) .eq. mywest ) then
-                Depart(iwest) = Depart(iwest) + 1
-             else if ( pdata_neighbor(n) .eq. myeast ) then
-                Depart(ieast) = Depart(ieast) + 1
-             else if ( pdata_neighbor(n) .eq. mynw ) then
-                Depart(inw) = Depart(inw) + 1
-             else if ( pdata_neighbor(n) .eq. myne ) then
-                Depart(ine) = Depart(ine) + 1
-             else if ( pdata_neighbor(n) .eq. mysw ) then
-                Depart(isw) = Depart(isw) + 1
-             else if ( pdata_neighbor(n) .eq. myse ) then
-                Depart(ise) = Depart(ise) + 1
-             else
-                cycle  ! this is an existing "hole" of "pdata"
-                       ! no action is needed
-             end if
-          end if
-       end if
-    end do
 
     ! initiate the MPI non-blocking receive interface to 
     ! know how many droplets from the nearest neighbors
@@ -179,7 +137,7 @@ contains
     !               and exceed the number of "holes", stop the program
     !               with an error message
 
-    if ( sum(Arrive) .gt. size(holes_ind) ) then
+    if ( sum(Arrive) .gt. numHoles ) then
         write(*,*) "Too many new droplets will enter the MPI rank: ", myid
         stop "Stop the program ..."
     end if
@@ -229,7 +187,10 @@ contains
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
-                      pract,nparcelsLocalActive
+                      pract,nparcelsLocalActive, &
+                      timestats,mytime, &
+      time_dropC4a,time_dropC4b,time_dropC4c, &
+      time_dropC4d,time_dropC4e,time_dropC4f
     use constants, only: undefined_index,neg_huge,num_nn,inorth, &
                          isouth,iwest,ieast,inw,ine,isw,ise
     use mpi
@@ -296,6 +257,8 @@ contains
     if ( Depart(isw) .ne. 0 ) allocate(droplet_sw1(Depart(isw),npvals))
     if ( Depart(ise) .ne. 0 ) allocate(droplet_se1(Depart(ise),npvals))
 
+    if(timestats.ge.1) time_dropC4a=time_dropC4a+mytime()
+
     ! extract the information of droplets that will leave the current MPI region 
     ! and reset the corresponding "pdata" record to a large negative value
 
@@ -334,6 +297,8 @@ contains
        end do
     end if
 
+    if(timestats.ge.1) time_dropC4b=time_dropC4b+mytime()
+
     ! allocate temporary arrays if there are new droplets from the nearest neighbor
 
     if ( Arrive(inorth) .ne. 0 ) allocate(droplet_n2(Arrive(inorth),npvals))
@@ -347,6 +312,7 @@ contains
 
     ! initiate the MPI non-blocking receive interface to 
     ! obtain new droplet information from the nearest neighbors
+    if(timestats.ge.1) time_dropC4c=time_dropC4c+mytime()
 
     n_recv   = 0
     if ( Arrive(inorth) .ne. 0 ) then
@@ -496,6 +462,7 @@ contains
        end if
        n = n + 1
     end do
+    if(timestats.ge.1) time_dropC4d=time_dropC4d+mytime()
 
     ! make sure that all the non-blocking MPI send operations are complete
 
@@ -539,6 +506,7 @@ contains
           end if
        end do
     end if
+    if(timestats.ge.1) time_dropC4e=time_dropC4e+mytime()
 
     ! free up the memory for temporary variables
 
@@ -558,6 +526,8 @@ contains
     if (allocated(droplet_se2)) deallocate(droplet_se2)
     if (allocated(droplet_sw1)) deallocate(droplet_sw1)
     if (allocated(droplet_sw2)) deallocate(droplet_sw2)
+
+    if(timestats.ge.1) time_dropC4f=time_dropC4f+mytime()
 
   end subroutine comm_droplet_value
 
