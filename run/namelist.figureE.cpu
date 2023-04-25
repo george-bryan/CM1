@@ -82,7 +82,8 @@
  npt       =  1,
  pdtra     =  1,
  iprcl     =  1,  !This turns on the parcels, and with prcl_droplet=1 below, makes them droplets
- nparcels  =  8000000,  !I do at least 1000 just to get a variety
+ nparcelsInit = 36000000,   ! initial number of particles over the whole domain
+ nparcelsMax  = 40000000,   ! the total allowable number of particles over the whole domain
  /
 
  &param3
