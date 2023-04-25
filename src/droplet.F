@@ -1678,7 +1678,10 @@
 
       !Compute the various types of droplet statistics
 
-      !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf,Tf,radmean,Tpmean,qfsat)
+      !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf, &
+      !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
+      !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqr, &
+      !$acc              Tpmsqr,m1src,m2src,m3src)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -1835,7 +1838,10 @@
 
       !! Number concentration
 
-      !$acc parallel loop gang vector default(present) reduction(+:partnum,Tf,qf,Tpmean,radmean,qfsat)
+      !$acc parallel loop gang vector default(present) &
+      !$acc          reduction(+:partnum,Tf,qf,Tpmean,radmean,qfsat, &
+      !$acc                      vp1mean,vp2mean,vp3mean,vp1msqr, &
+      !$acc                      vp2msqr,vp3msqr,Tpmsqr,radmsqr)
       do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
@@ -1855,8 +1861,9 @@
          radmean(k) = radmean(k) + pdata(np,prrp)
          radmsqr(k) = radmsqr(k) + pdata(np,prrp)**2
 
-         if (pdata(np,prt) .gt. 200.0) then !Avoid this breaking if the temperature is unrealistic (like at initialization; other times this is a problem, but let it break elsewhere)
-         qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
+         if (pdata(np,prt) .gt. 200.0) then    ! Avoid this breaking if the temperature is unrealistic 
+                                               ! (like at initialization; other times this is a problem, but let it break elsewhere)
+            qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
          else
             qfsat(k) = 0.0
          end if
@@ -1873,17 +1880,15 @@
          m3src_tmp = 0.0
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
-         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp)
+         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp)
          do j=1,nj
-         do i=1,ni
-
-            m1src_tmp = m1src_tmp + uten(i,j,k)
-            m2src_tmp = m2src_tmp + vten(i,j,k)
-            m3src_tmp = m3src_tmp + wten(i,j,k)
-            Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
-            qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
-
-         end do
+            do i=1,ni
+               m1src_tmp = m1src_tmp + uten(i,j,k)
+               m2src_tmp = m2src_tmp + vten(i,j,k)
+               m3src_tmp = m3src_tmp + wten(i,j,k)
+               Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
+               qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
+            end do
          end do
          m1src(k) = m1src_tmp/real(nx*ny)
          m2src(k) = m2src_tmp/real(nx*ny)
@@ -1905,31 +1910,34 @@
          yl = tot_y_len
       endif
 
-      !$acc update host (dumzf,dumzh,numconc,partnum,Tpsrc,qvsrc,qf,Tf,radmean,Tpmean,qfsat)
+      !$acc update host (dumzf,dumzh,numconc,partnum,Tpsrc,qvsrc,qf, &
+      !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
+      !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqr, &
+      !$acc              Tpmsqr,m1src,m2src,m3src)
 
 #ifdef MPI
 
       !Populate the reduction array:
       do iz=1,nk
-      droplet_diag1(iz,1) = partnum(iz)
-      droplet_diag1(iz,2) = vp1mean(iz)
-      droplet_diag1(iz,3) = vp2mean(iz)
-      droplet_diag1(iz,4) = vp3mean(iz)
-      droplet_diag1(iz,5) = vp1msqr(iz)
-      droplet_diag1(iz,6) = vp2msqr(iz)
-      droplet_diag1(iz,7) = vp3msqr(iz)
-      droplet_diag1(iz,8) = m1src(iz)
-      droplet_diag1(iz,9) = m2src(iz)
-      droplet_diag1(iz,10) = m3src(iz)
-      droplet_diag1(iz,11) = Tpsrc(iz)
-      droplet_diag1(iz,12) = qvsrc(iz)
-      droplet_diag1(iz,13) = Tf(iz)
-      droplet_diag1(iz,14) = qf(iz)
-      droplet_diag1(iz,15) = Tpmean(iz)
-      droplet_diag1(iz,16) = Tpmsqr(iz)
-      droplet_diag1(iz,17) = radmean(iz)
-      droplet_diag1(iz,18) = radmsqr(iz)
-      droplet_diag1(iz,19) = qfsat(iz)
+         droplet_diag1(iz,1) = partnum(iz)
+         droplet_diag1(iz,2) = vp1mean(iz)
+         droplet_diag1(iz,3) = vp2mean(iz)
+         droplet_diag1(iz,4) = vp3mean(iz)
+         droplet_diag1(iz,5) = vp1msqr(iz)
+         droplet_diag1(iz,6) = vp2msqr(iz)
+         droplet_diag1(iz,7) = vp3msqr(iz)
+         droplet_diag1(iz,8) = m1src(iz)
+         droplet_diag1(iz,9) = m2src(iz)
+         droplet_diag1(iz,10) = m3src(iz)
+         droplet_diag1(iz,11) = Tpsrc(iz)
+         droplet_diag1(iz,12) = qvsrc(iz)
+         droplet_diag1(iz,13) = Tf(iz)
+         droplet_diag1(iz,14) = qf(iz)
+         droplet_diag1(iz,15) = Tpmean(iz)
+         droplet_diag1(iz,16) = Tpmsqr(iz)
+         droplet_diag1(iz,17) = radmean(iz)
+         droplet_diag1(iz,18) = radmsqr(iz)
+         droplet_diag1(iz,19) = qfsat(iz)
       end do
 
       ! The root rank will collect the diagnostic from different MPI ranks
@@ -1944,68 +1952,67 @@
 
       if ( myid == 0 ) then 
 
-       !Assign back to the arrays, now summed across MPI ranks
-       do iz=1,nk
-       partnum(iz) = droplet_diag1(iz,1)
-       vp1mean(iz) = droplet_diag1(iz,2)
-       vp2mean(iz) = droplet_diag1(iz,3)
-       vp3mean(iz) = droplet_diag1(iz,4)
-       vp1msqr(iz) = droplet_diag1(iz,5)
-       vp2msqr(iz) = droplet_diag1(iz,6)
-       vp3msqr(iz) = droplet_diag1(iz,7)
-       m1src(iz) = droplet_diag1(iz,8)
-       m2src(iz) = droplet_diag1(iz,9)
-       m3src(iz) = droplet_diag1(iz,10)
-       Tpsrc(iz) = droplet_diag1(iz,11)
-       qvsrc(iz) = droplet_diag1(iz,12)
-       Tf(iz) = droplet_diag1(iz,13)
-       qf(iz) = droplet_diag1(iz,14)
-       Tpmean(iz) = droplet_diag1(iz,15)
-       Tpmsqr(iz) = droplet_diag1(iz,16)
-       radmean(iz) = droplet_diag1(iz,17)
-       radmsqr(iz) = droplet_diag1(iz,18)
-       qfsat(iz) = droplet_diag1(iz,19)
-       end do
+         !Assign back to the arrays, now summed across MPI ranks
+         do iz=1,nk
+            partnum(iz) = droplet_diag1(iz,1)
+            vp1mean(iz) = droplet_diag1(iz,2)
+            vp2mean(iz) = droplet_diag1(iz,3)
+            vp3mean(iz) = droplet_diag1(iz,4)
+            vp1msqr(iz) = droplet_diag1(iz,5)
+            vp2msqr(iz) = droplet_diag1(iz,6)
+            vp3msqr(iz) = droplet_diag1(iz,7)
+            m1src(iz) = droplet_diag1(iz,8)
+            m2src(iz) = droplet_diag1(iz,9)
+            m3src(iz) = droplet_diag1(iz,10)
+            Tpsrc(iz) = droplet_diag1(iz,11)
+            qvsrc(iz) = droplet_diag1(iz,12)
+            Tf(iz) = droplet_diag1(iz,13)
+            qf(iz) = droplet_diag1(iz,14)
+            Tpmean(iz) = droplet_diag1(iz,15)
+            Tpmsqr(iz) = droplet_diag1(iz,16)
+            radmean(iz) = droplet_diag1(iz,17)
+            radmsqr(iz) = droplet_diag1(iz,18)
+            qfsat(iz) = droplet_diag1(iz,19)
+         end do
  
 #endif
-
-      !These summed quantities need to be normalized
-      !Either by the number of horizontal grid points or number of droplets (depends on quantity)
-      do iz=1,nk
-         dzf = dumzf(iz+1)-dumzf(iz)
-         numconc(iz) = partnum(iz)/dzf/xl/yl
-         if (abs(partnum(iz)) .gt. 1.0e-10) then
-            vp1mean(iz) = vp1mean(iz)/partnum(iz)
-            vp2mean(iz) = vp2mean(iz)/partnum(iz)
-            vp3mean(iz) = vp3mean(iz)/partnum(iz)
-            vp1msqr(iz) = vp1msqr(iz)/partnum(iz)
-            vp2msqr(iz) = vp2msqr(iz)/partnum(iz)
-            vp3msqr(iz) = vp3msqr(iz)/partnum(iz)
-            Tf(iz) = Tf(iz)/partnum(iz)
-            qf(iz) = qf(iz)/partnum(iz)
-            Tpmean(iz) = Tpmean(iz)/partnum(iz)
-            Tpmsqr(iz) = Tpmsqr(iz)/partnum(iz)
-            radmean(iz) = radmean(iz)/partnum(iz)
-            radmsqr(iz) = radmsqr(iz)/partnum(iz)
-            qfsat(iz) = qfsat(iz)/partnum(iz)
-         else
-            vp1mean(iz) = 0.0
-            vp2mean(iz) = 0.0
-            vp3mean(iz) = 0.0
-            vp1msqr(iz) = 0.0
-            vp2msqr(iz) = 0.0
-            vp3msqr(iz) = 0.0
-            Tf(iz) = 0.0
-            qf(iz) = 0.0
-            Tpmean(iz) = 0.0
-            Tpmsqr(iz) = 0.0
-            radmean(iz) = 0.0
-            radmsqr(iz) = 0.0
-            qfsat(iz) = 0.0
-         end if
-         write(6,100) 'dumzh(',iz,'):',dumzh(iz)
-         write(6,100) 'numconc(',iz,'):',numconc(iz)
-      end do
+         !These summed quantities need to be normalized
+         !Either by the number of horizontal grid points or number of droplets (depends on quantity)
+         do iz=1,nk
+            dzf = dumzf(iz+1)-dumzf(iz)
+            numconc(iz) = partnum(iz)/dzf/xl/yl
+            if (abs(partnum(iz)) .gt. 1.0e-10) then
+               vp1mean(iz) = vp1mean(iz)/partnum(iz)
+               vp2mean(iz) = vp2mean(iz)/partnum(iz)
+               vp3mean(iz) = vp3mean(iz)/partnum(iz)
+               vp1msqr(iz) = vp1msqr(iz)/partnum(iz)
+               vp2msqr(iz) = vp2msqr(iz)/partnum(iz)
+               vp3msqr(iz) = vp3msqr(iz)/partnum(iz)
+               Tf(iz) = Tf(iz)/partnum(iz)
+               qf(iz) = qf(iz)/partnum(iz)
+               Tpmean(iz) = Tpmean(iz)/partnum(iz)
+               Tpmsqr(iz) = Tpmsqr(iz)/partnum(iz)
+               radmean(iz) = radmean(iz)/partnum(iz)
+               radmsqr(iz) = radmsqr(iz)/partnum(iz)
+               qfsat(iz) = qfsat(iz)/partnum(iz)
+            else
+               vp1mean(iz) = 0.0
+               vp2mean(iz) = 0.0
+               vp3mean(iz) = 0.0
+               vp1msqr(iz) = 0.0
+               vp2msqr(iz) = 0.0
+               vp3msqr(iz) = 0.0
+               Tf(iz) = 0.0
+               qf(iz) = 0.0
+               Tpmean(iz) = 0.0
+               Tpmsqr(iz) = 0.0
+               radmean(iz) = 0.0
+               radmsqr(iz) = 0.0
+               qfsat(iz) = 0.0
+            end if
+            write(6,100) 'dumzh(',iz,'):',dumzh(iz)
+            write(6,100) 'numconc(',iz,'):',numconc(iz)
+         end do
 #ifdef MPI
       end if
 #endif
