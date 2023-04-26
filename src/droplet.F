@@ -31,6 +31,8 @@
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
   logical, parameter :: random_droplets = .true.
 
+  !$acc declare create(num100,num1000)
+
   CONTAINS
 
       subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
@@ -312,6 +314,7 @@
 
     num100 = 0
     num1000 = 0
+    !$acc update device(num100,num1000)
 
 #ifdef _B4B01F
     !$acc update &
@@ -1681,7 +1684,7 @@
       !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqr, &
-      !$acc              Tpmsqr,m1src,m2src,m3src)
+      !$acc              Tpmsqr,m1src,m2src,m3src,hist_radius,hist_radius10)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -1838,33 +1841,44 @@
 
       !! Number concentration
 
-      !$acc parallel loop gang vector default(present) &
-      !$acc          reduction(+:partnum,Tf,qf,Tpmean,radmean,qfsat, &
-      !$acc                      vp1mean,vp2mean,vp3mean,vp1msqr, &
-      !$acc                      vp2msqr,vp3msqr,Tpmsqr,radmsqr)
+      !$acc parallel loop gang vector default(present)
       do np=1,nparcelsLocalActive
          kflag = 1
          k = pdata_locind(np,3)   ! JS: do not mess up the "pdata_locind"
          call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
-
+         !$acc atomic update
          partnum(k) = partnum(k) + 1.0
+         !$acc atomic update
          vp1mean(k) = vp1mean(k) + pdata(np,prvpx)
+         !$acc atomic update
          vp2mean(k) = vp2mean(k) + pdata(np,prvpy)
+         !$acc atomic update
          vp3mean(k) = vp3mean(k) + pdata(np,prvpz)
+         !$acc atomic update
          vp1msqr(k) = vp1msqr(k) + pdata(np,prvpx)**2
+         !$acc atomic update
          vp2msqr(k) = vp2msqr(k) + pdata(np,prvpy)**2
+         !$acc atomic update
          vp3msqr(k) = vp3msqr(k) + pdata(np,prvpz)**2
+         !$acc atomic update
          Tf(k) = Tf(k) + pdata(np,prt)
+         !$acc atomic update
          qf(k) = qf(k) + pdata(np,prqv)
+         !$acc atomic update
          Tpmean(k) = Tpmean(k) + pdata(np,prtp)
+         !$acc atomic update
          Tpmsqr(k) = Tpmsqr(k) + pdata(np,prtp)**2
+         !$acc atomic update
          radmean(k) = radmean(k) + pdata(np,prrp)
+         !$acc atomic update
          radmsqr(k) = radmsqr(k) + pdata(np,prrp)**2
 
          if (pdata(np,prt) .gt. 200.0) then    ! Avoid this breaking if the temperature is unrealistic 
                                                ! (like at initialization; other times this is a problem, but let it break elsewhere)
+            !$acc atomic update
             qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
          else
+            !$acc atomic write 
             qfsat(k) = 0.0
          end if
       end do
@@ -2046,6 +2060,8 @@
       hist_radius = 0.0
       hist_radius10 = 0.0
 
+      !$acc update device (hist_radius,hist_radius10)
+
       !First set up the bin centers
       rmin = 1.0e-8
       rmax = 1.0e-3
@@ -2059,9 +2075,9 @@
          bins_radius(i+1) = bins_radius(i) + dr
       end do 
 
-      !$acc update host (pdata)
-
       !Now that the bin centers are defined, loop through particles
+
+      !$acc parallel loop gang vector default(present)
       do np=1,nparcelsLocalActive
 
          rad10_tmp = log10(pdata(np,prrp))
@@ -2082,13 +2098,19 @@
          !Increment that bin by the multiplicity
          !(since that is how many droplets are said to have this size)
          !hist_radius(ibin) = hist_radius(ibin) + pdata(np,prmult)
+
+         !$acc atomic update
          hist_radius(ibin) = hist_radius(ibin) + 1.0
 
          if (pdata(np,prz) .lt. 10.0) then
-           hist_radius10(ibin) = hist_radius10(ibin) + 1.0
+            !$acc atomic update
+            hist_radius10(ibin) = hist_radius10(ibin) + 1.0
          end if
      
       end do
+      !$acc end parallel
+
+      !$acc update host (hist_radius,hist_radius10)
 
 #ifdef MPI
       !Sum up the histograms across MPI processes
