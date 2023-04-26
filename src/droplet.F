@@ -38,6 +38,12 @@
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
   logical, parameter :: random_droplets = .true.
 
+  !$acc declare create (hist_restime,hist_radius,hist_radius10, &
+  !$acc                 hist_fallrad,restime_min,restime_max, &
+  !$acc                 restime_min10,restime_max10,dhres,dhrad, &
+  !$acc                 rmin,rmax,rmin10,rmax10,num_destroyed, &
+  !$acc                 num_injected,mass_destroyed,mass_injected)
+
   CONTAINS
 
       subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
@@ -798,14 +804,12 @@
             ! fall off the bottom and "die"
             z3d = 1.0e-6            !Just temporary 
             pdata(np,pract) = -1.0  !Signal this as no longer alive
-
             num_fallout = num_fallout + 1
-
-            
             !Collect some statistics on those falling out:
+            !$acc atomic update
             num_destroyed = num_destroyed + pdata(np,prmult)
+            !$acc atomic update
             mass_destroyed = mass_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
-
  
             !Log this dead particle into the relevant histograms
             !First residence time
@@ -819,8 +823,8 @@
                ibin = (floor((restime10_tmp-(restime_min10-0.5*dhres))/dhres)+1)+1
             end if
        
+            !$acc atomic update
             hist_restime(ibin) = hist_restime(ibin) + pdata(np,prmult)
-
 
             !The the droplet size at fallout
             rad10_tmp = log10(pdata(np,prrp))
@@ -833,6 +837,7 @@
                ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)+1
             end if
 
+            !$acc atomic update
             hist_fallrad(ibin) = hist_fallrad(ibin) + pdata(np,prmult)
 
          end if 
@@ -845,8 +850,6 @@
       ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
 
 #ifdef MPI
-
-
       ! determine which new MPI region this droplet 
       ! enters or stays for the next time step
 
@@ -1712,10 +1715,14 @@
 
       !Compute the various types of droplet statistics
 
+      !!!!! update module variable first !!!!!
+
+      !$acc update host (num_destroyed,mass_destroyed,num_injected,mass_injected)
+
       !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqr, &
-      !$acc              Tpmsqr,m1src,m2src,m3src)
+      !$acc              Tpmsqr,m1src,m2src,m3src,qstarmean)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -1737,25 +1744,17 @@
       Tpmax = -1000.0
 
       !$acc parallel loop gang vector default(present) &
-      !$acc          reduction(+:tnumpart,tnummult,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
+      !$acc          reduction(+:tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,Tpavg,Tpsqr,Tfavg,qfavg,prsavg,rhoavg) &
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
       do np=1,nparcelsLocalActive
          tnumpart = tnumpart + 1
          tnummult = tnummult + pdata(np,prmult)
-
-         !if (pdata(np,prt) .gt. 200.0) then !Avoid this breaking if the temperature is unrealistic (like at initialization; other times this is a problem, but let it break elsewhere)
-            if (pdata(np,prrp) .lt. crit_radius(pdata(np,prms),pdata(np,prt))) then
-                tnumaerosol = tnumaerosol + pdata(np,prmult)
-            else
-                tnumdrop = tnumdrop + pdata(np,prmult)
-            end if
-
-         !else
-         !   tnumaerosol = 0.0
-         !   tnumdrop = 0.0
-         !end if
-
+         if (pdata(np,prrp) .lt. crit_radius(pdata(np,prms),pdata(np,prt))) then
+             tnumaerosol = tnumaerosol + pdata(np,prmult)
+         else
+             tnumdrop = tnumdrop + pdata(np,prmult)
+         end if
          radavg = radavg + pdata(np,prrp)
          radsqr = radsqr + pdata(np,prrp)**2
          Tpavg = Tpavg + pdata(np,prtp)
@@ -1926,6 +1925,7 @@
          if (pdata(np,prt) .gt. 200.0) then    ! Avoid this breaking if the temperature is unrealistic 
                                                ! (like at initialization; other times this is a problem, but let it break elsewhere)
             call calc_qstar(qstar_tmp,pdata(np,prprs),pdata(np,prrho),pdata(np,prt),pdata(np,prqv),pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
+            !$acc atomic update
             qstarmean(k) = qstarmean(k) + qstar_tmp
             qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
          else
@@ -1977,7 +1977,7 @@
       !$acc update host (dumzf,dumzh,numconc,partnum,Tpsrc,qvsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqr, &
-      !$acc              Tpmsqr,m1src,m2src,m3src)
+      !$acc              Tpmsqr,m1src,m2src,m3src,qstarmean)
 
 #ifdef MPI
 
@@ -2113,7 +2113,11 @@
       hist_radius = 0.0
       hist_radius10 = 0.0
 
+      !$acc update device (hist_radius,hist_radius10)
+
       !Now that the bin centers are defined, loop through particles
+
+      !$acc parallel loop gang vector default(present)
       do np=1,nparcelsLocalActive
 
          rad10_tmp = log10(pdata(np,prrp))
@@ -2129,13 +2133,19 @@
 
          !Increment that bin by the multiplicity
          !(since that is how many droplets are said to have this size)
+       
+         !$acc atomic update
          hist_radius(ibin) = hist_radius(ibin) + pdata(np,prmult)
 
          if (pdata(np,prz) .lt. 10.0) then
-           hist_radius10(ibin) = hist_radius10(ibin) + pdata(np,prmult)
+            !$acc atomic update
+            hist_radius10(ibin) = hist_radius10(ibin) + pdata(np,prmult)
          end if
      
       end do
+      !$acc end parallel
+
+      !$acc update host (hist_radius,hist_radius10,hist_restime,hist_fallrad)
 
 #ifdef MPI
        !Sum up the histograms across MPI processes
@@ -2180,6 +2190,9 @@
       mass_destroyed = 0.0
       num_injected = 0.0
       mass_injected = 0.0
+
+      !$acc update device (hist_restime,hist_fallrad,num_destroyed, &
+      !$acc                mass_destroyed,num_injected,mass_injected)
 
 100     format(2x,'DROPLET_DIAG1:: ',A,I0,A,1x,e13.6,1x)
 200     format(2x,'DROPLET_DIAG:: ',A10,':',1x,e13.6)
@@ -3032,7 +3045,6 @@
        bins_radius(i+1) = bins_radius(i) + dhrad
     end do 
 
-
     !For the residence time histograms
     restime_min = 1.0e0
     restime_max = 1.0e5
@@ -3055,6 +3067,11 @@
     num_injected = 0.0
     mass_injected = 0.0
 
+    !$acc update device(hist_restime,hist_fallrad,restime_min, &
+    !$acc               restime_max,restime_min10,restime_max10, &
+    !$acc               dhres,dhrad,rmin,rmax,rmin10,rmax10, &
+    !$acc               num_destroyed,mass_destroyed,num_injected, &
+    !$acc               mass_injected)
 
     end subroutine initialize_droplet_histograms
 
