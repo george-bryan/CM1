@@ -2131,11 +2131,11 @@
       rmin10 = log10(rmin)
       rmax10 = log10(rmax)
 
-      dr = (rmax10-rmin10)/(nbins-1)
+      dhrad = (rmax10-rmin10)/(nbins-1)
 
-      bins_radius(1) = rmin10-dr
+      bins_radius(1) = rmin10-dhrad
       do i=1,nbins-1
-         bins_radius(i+1) = bins_radius(i) + dr
+         bins_radius(i+1) = bins_radius(i) + dhrad
       end do 
 
       !Now that the bin centers are defined, loop through particles
@@ -2793,6 +2793,7 @@
       end subroutine calc_qstar
 
       function crit_radius(m_s,Tf)
+      !$acc routine seq
       use constants
       use input
       use mpi
@@ -2812,24 +2813,15 @@
       dr = (radstart-radend)/N
 
       do i=1,N
-
-
         radval(i) = 10**(radstart - (i-1)*dr)
-
         Volp = (4.0/3.0)*pi*radval(i)**3
         rhop = (m_s + Volp*rhow)/Volp
-
         SS(i) = exp((2.0*mw*surften)/(ru*rhow*radval(i)*Tf) - (ion*os*m_s*(mw/ms))/(Volp*rhop-m_s))
-
       end do
-
-      maxidx = maxloc(SS)
-
+      maxidx = maxloc(real(SS))
       crit_radius = radval(maxidx(1))
 
-
       end function crit_radius     
-
 
       subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,randomNumbers,mtime)
       !Inject new particles according to some rule
