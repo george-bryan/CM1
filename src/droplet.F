@@ -1699,10 +1699,8 @@
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop,tnumaerosol
       real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
 
-      integer, parameter :: nbins = 514   !Number of bins to use for the droplet_diag histograms
       integer, parameter :: num0 = 18, num1 = 20   !Number of 0th and 1st order statistics in droplet_diag
-      real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10
-      real :: dr,rmin,rmax,rmin10,rmax10,rad10_tmp,qstar_tmp
+      real :: rad10_tmp,qstar_tmp
       integer :: ibin
 
 #ifdef MPI
