@@ -1853,16 +1853,15 @@
 !!!101     format(i6.6)
 
         if(dowr) write(outfile,*) string
-        open(unit=61,file=string,form='unformatted',access='direct',   &
-             recl=4*npvals*nparcelstot,status='unknown')
+        open(unit=61,file=string,form='unformatted',status='unknown')
 
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  pdata prec = ',prec
 
 #ifdef MPI
-        write(61,rec=prec) ((rbuf(np,n),np=0,nparcelstot-1),n=0,npvals-1)
+        write(61) rbuf(0:nparcelstot-1,0:npvals-1)
 #else
-        write(61,rec=prec) ((pdata(np,n),np=1,nparcelstot),n=1,npvals)
+        write(61) pdata(1:nparcelsLocalActive,1:npvals)
 #endif
 
         close(unit=61)
