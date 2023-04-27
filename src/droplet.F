@@ -42,7 +42,8 @@
   !$acc                 hist_fallrad,restime_min,restime_max, &
   !$acc                 restime_min10,restime_max10,dhres,dhrad, &
   !$acc                 rmin,rmax,rmin10,rmax10,num_destroyed, &
-  !$acc                 num_injected,mass_destroyed,mass_injected)
+  !$acc                 num_injected,mass_destroyed,mass_injected, &
+  !$acc                 num100,num1000)
 
   CONTAINS
 
@@ -2125,21 +2126,6 @@
 
       !$acc update device (hist_radius,hist_radius10)
 
-      !First set up the bin centers
-      rmin = 1.0e-8
-      rmax = 1.0e-3
-      rmin10 = log10(rmin)
-      rmax10 = log10(rmax)
-
-      dhrad = (rmax10-rmin10)/(nbins-1)
-
-      bins_radius(1) = rmin10-dhrad
-      do i=1,nbins-1
-         bins_radius(i+1) = bins_radius(i) + dhrad
-      end do 
-
-      !Now that the bin centers are defined, loop through particles
-
       !$acc parallel loop gang vector default(present)
       do np=1,nparcelsLocalActive
 
@@ -2799,7 +2785,7 @@
       use mpi
       implicit none
 
-      integer :: i,maxidx(1)
+      integer :: i,maxidx
       integer, parameter :: N=1000
       real, intent(in) :: m_s,Tf
       double precision :: Volp,rhop
@@ -2811,15 +2797,20 @@
       radstart = -8
       radend = -3
       dr = (radstart-radend)/N
+      maxidx = 1
 
       do i=1,N
         radval(i) = 10**(radstart - (i-1)*dr)
         Volp = (4.0/3.0)*pi*radval(i)**3
         rhop = (m_s + Volp*rhow)/Volp
         SS(i) = exp((2.0*mw*surften)/(ru*rhow*radval(i)*Tf) - (ion*os*m_s*(mw/ms))/(Volp*rhop-m_s))
+        if (i > 1) then
+           if (SS(i) > SS(maxidx)) then
+              maxidx = i 
+           end if
+        end if
       end do
-      maxidx = maxloc(real(SS))
-      crit_radius = radval(maxidx(1))
+      crit_radius = radval(maxidx)
 
       end function crit_radius     
 
