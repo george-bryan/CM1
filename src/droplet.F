@@ -734,10 +734,7 @@
       pdata(np,prvpy) = (pdata(np,prvpy) + dt*vval/taup + dt*part_grav2)/(1 + dt/taup)
       pdata(np,prvpz) = (pdata(np,prvpz) + dt*wval/taup + dt*part_grav3)/(1 + dt/taup)
 
-
-
       !Nonlinear solver for the radius and temperature:
-
 
       !Nondimensionalize parameters before the solver using 1-micron water droplet as ref
       taup_scale = rhow*(1.0e-6)**2/(18*rhoval*viscosity)
@@ -745,7 +742,6 @@
       dt_nondim = dt/taup_scale
       
       guess = 0.0
-
 
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
@@ -759,7 +755,6 @@
          rt_start(1) = 1.0
          rt_start(2) = 1.0
       end if
-
 
       !Start using the standard Gauss-Newton algorithm
       call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
@@ -841,10 +836,8 @@
 
             !$acc atomic update
             hist_fallrad(ibin) = hist_fallrad(ibin) + pdata(np,prmult)
-
          end if 
          pdata_locind(np,3) = undefined_index
-
       endif
 
       ! New for cm1r17:  if parcel exits domain,
@@ -1833,26 +1826,25 @@
          radmax = droplet_diag0(17)
          Tpmax = droplet_diag0(18)
 #endif
-      if (tnumpart .gt. 0) then
-      radavg = radavg/tnumpart
-      radsqr = radsqr/tnumpart
-      Tpavg = Tpavg/tnumpart
-      Tpsqr = Tpsqr/tnumpart
-      Tfavg = Tfavg/tnumpart
-      qfavg = qfavg/tnumpart
-      prsavg = prsavg/tnumpart
-      rhoavg = rhoavg/tnumpart
-      else 
-      radavg = 0
-      radsqr = 0
-      Tpavg = 0
-      Tpsqr = 0
-      Tfavg = 0
-      qfavg = 0
-      prsavg = 0
-      rhoavg = 0
-      end if
-       
+         if (tnumpart .gt. 0) then
+            radavg = radavg/tnumpart
+            radsqr = radsqr/tnumpart
+            Tpavg = Tpavg/tnumpart
+            Tpsqr = Tpsqr/tnumpart
+            Tfavg = Tfavg/tnumpart
+            qfavg = qfavg/tnumpart
+            prsavg = prsavg/tnumpart
+            rhoavg = rhoavg/tnumpart
+         else 
+            radavg = 0
+            radsqr = 0
+            Tpavg = 0
+            Tpsqr = 0
+            Tfavg = 0
+            qfavg = 0
+            prsavg = 0
+            rhoavg = 0
+         end if
 #ifdef MPI
       end if
 #endif
@@ -2101,18 +2093,18 @@
 #ifdef MPI
       if ( myid == 0 ) then
 #endif
-      write(6,200) 'rtime', rtime
-      write(6,200) 'tnumpart',real(tnumpart)
-      write(6,200) 'radavg',radavg
-      write(6,200) 'radmin',radmin
-      write(6,200) 'radmax',radmax
-      write(6,200) 'Tpavg',Tpavg
-      write(6,200) 'Tpmin',Tpmin
-      write(6,200) 'Tpmax',Tpmax
-      write(6,200) 'Tfavg',Tfavg
-      write(6,200) 'qfavg',qfavg
-      write(6,200) 'prsavg',prsavg
-      write(6,200) 'rhoavg',rhoavg
+         write(6,200) 'rtime', rtime
+         write(6,200) 'tnumpart',real(tnumpart)
+         write(6,200) 'radavg',radavg
+         write(6,200) 'radmin',radmin
+         write(6,200) 'radmax',radmax
+         write(6,200) 'Tpavg',Tpavg
+         write(6,200) 'Tpmin',Tpmin
+         write(6,200) 'Tpmax',Tpmax
+         write(6,200) 'Tfavg',Tfavg
+         write(6,200) 'qfavg',qfavg
+         write(6,200) 'prsavg',prsavg
+         write(6,200) 'rhoavg',rhoavg
 #ifdef MPI
       end if
 #endif
@@ -2763,18 +2755,18 @@
       real :: diameter
       real :: Volp,rhop
 
-        !Calculate qstar, the specific humidity at the droplet surface 
+      !Calculate qstar, the specific humidity at the droplet surface 
    
-        diameter = radius*2.0
+      diameter = radius*2.0
 
-        esa = eslf(prsval,tval)
-        VolP = (4.0/3.0)*pi*radius**3
-        rhop = (m_s + VolP*rhow)/VolP
+      esa = eslf(prsval,tval)
+      VolP = (4.0/3.0)*pi*radius**3
+      rhop = (m_s + VolP*rhow)/VolP
 
-        lhv=lv1-lv2*tval
+      lhv=lv1-lv2*tval
 
-        qstar = (mw/(ru*Tp*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tp))) + ((2.0*mw*surften)/(ru*rhow*radius*Tp)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
-
+      qstar = (mw/(ru*Tp*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tp))) + &
+              ((2.0*mw*surften)/(ru*rhow*radius*Tp)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
 
       end subroutine calc_qstar
 
@@ -2799,6 +2791,7 @@
       dr = (radstart-radend)/N
       maxidx = 1
 
+      !$acc loop seq
       do i=1,N
         radval(i) = 10**(radstart - (i-1)*dr)
         Volp = (4.0/3.0)*pi*radval(i)**3
@@ -2877,30 +2870,29 @@
       c3 = c2*(100**5.2)
       dFssum(1) = 0
       do i = 1,100
-        r0 = binsdata(i)
-        ! calculate radius at 80%RH
-        r80 = 0.518*r0**0.976;
+         r0 = binsdata(i)
+         ! calculate radius at 80%RH
+         r80 = 0.518*r0**0.976;
  
-     ! now apply these to Eqs. 3.5 in Andreas 1998
-        if (r80 .lt. 10) then
-          dFsdr80(i) =  smithssgf(u10,r80,0.4)
-        elseif ((r80 .ge. 10) .and. (r80 .lt. 37.5)) then
-          dFsdr80(i) = c1/r80
-        elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100)) then
-          dFSdr80(i) = c2*r80**-2.8
-        elseif ((r80 .ge. 100) .and. (r80 .lt. 250)) then
-          dFsdr80(i) = c3*r80**-8
-        endif
+         ! now apply these to Eqs. 3.5 in Andreas 1998
+         if (r80 .lt. 10) then
+           dFsdr80(i) =  smithssgf(u10,r80,0.4)
+         elseif ((r80 .ge. 10) .and. (r80 .lt. 37.5)) then
+           dFsdr80(i) = c1/r80
+         elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100)) then
+           dFSdr80(i) = c2*r80**-2.8
+         elseif ((r80 .ge. 100) .and. (r80 .lt. 250)) then
+           dFsdr80(i) = c3*r80**-8
+         endif
  
-       ! apply eq. 3.8 from Andreas 1998
-       dFmsdr0(i) = 3.5*dFsdr80(i)*0.506*r0**-0.024
+         ! apply eq. 3.8 from Andreas 1998
+         dFmsdr0(i) = 3.5*dFsdr80(i)*0.506*r0**-0.024
  
-       if (i==1) then
-         dFssum(i+1) = dFmsdr0(i)
-       elseif (i .gt. 1) then
-         dFssum(i+1) = dFssum(i) + dFmsdr0(i)
-       endif
-  
+         if (i==1) then
+           dFssum(i+1) = dFmsdr0(i)
+         elseif (i .gt. 1) then
+           dFssum(i+1) = dFssum(i) + dFmsdr0(i)
+         endif
       end do
 
       totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
@@ -2926,82 +2918,61 @@
       tot_after_reintro = my_reintro+nparcelsLocalActive
 #endif
 
-      if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected does not make the global exceed nparcelsMax
-
-      do np=nparcelsLocalActive+1,nparcelsLocalActive+my_reintro
-
-         if (random_droplets) then
-         rand = getRandomReal(randomNumbers)
-         a = totdrops*rand
-
-         !Set the droplet radius based on the sea spray generation function (SSGF)
-         !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
-         !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
-         do i = 1,100
-            if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
+      if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
+                                                     !does not make the global exceed nparcelsMax
+         do np=nparcelsLocalActive+1,nparcelsLocalActive+my_reintro
+            if (random_droplets) then
                rand = getRandomReal(randomNumbers)
-               rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
-            endif
-         enddo
-
-        rad_init = rad_init*1.0e-6
-
-
-        !Random location
-        rand = getRandomReal(randomNumbers)
-        pdata(np,prx) = xf(1)+rand*xrange
-        rand = getRandomReal(randomNumbers)
-        pdata(np,pry) = yf(1)+rand*yrange
-        rand = getRandomReal(randomNumbers)
-        pdata(np,prz) = rand*zrange
-
-        else
-
-        rad_init = 10.0e-6
-        pdata(np,prx) = xf(1) + xrange/2.0
-        pdata(np,pry) = yf(1) + yrange/2.0
-        pdata(np,prz) = injectHMax
-
-        end if
-
-        pdata(np,prvpx) = 0.0
-        pdata(np,prvpy) = 0.0
-        pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
-
-        pdata(np,prrp) = rad_init
-
-
-        salinity = 0.034
-        pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
- 
-        pdata(np,prtp) = 302.0
-        pdata(np,prmult) = 1.0e9
-        pdata(np,pract) = 1.0
-
-        pdata(np,pru) = 0.0
-        pdata(np,prv) = 0.0
-        pdata(np,prw) = 0.0
-        !Set to something realistic so it doesn't break the stats at initiation
-        pdata(np,prt) = 302.0
-        pdata(np,prqv) = 0.01
-        pdata(np,prprs) = 101325.0
-        pdata(np,prrho) = 1.0
-
-        pdata(np,prtime) = 0.0
-
-        !Update mass_injected for statistics purposes
-        mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
-
-      end do
-      if(timestats.ge.1) time_droplet=time_droplet+mytime()
-
-      !Then once the new droplets have been added, update nparcelsLocalActive
-      nparcelsLocalActive = nparcelsLocalActive + my_reintro
-
+               a = totdrops*rand
+               !Set the droplet radius based on the sea spray generation function (SSGF)
+               !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
+               !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
+               do i = 1,100
+                  if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
+                     rand = getRandomReal(randomNumbers)
+                     rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
+                  end if
+               end do
+               rad_init = rad_init*1.0e-6
+               !Random location
+               rand = getRandomReal(randomNumbers)
+               pdata(np,prx) = xf(1)+rand*xrange
+               rand = getRandomReal(randomNumbers)
+               pdata(np,pry) = yf(1)+rand*yrange
+               rand = getRandomReal(randomNumbers)
+               pdata(np,prz) = rand*zrange
+            else
+               rad_init = 10.0e-6
+               pdata(np,prx) = xf(1) + xrange/2.0
+               pdata(np,pry) = yf(1) + yrange/2.0
+               pdata(np,prz) = injectHMax
+            end if
+            pdata(np,prvpx) = 0.0
+            pdata(np,prvpy) = 0.0
+            pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
+            pdata(np,prrp) = rad_init
+            salinity = 0.034
+            pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+            pdata(np,prtp) = 302.0
+            pdata(np,prmult) = 1.0e9
+            pdata(np,pract) = 1.0
+            pdata(np,pru) = 0.0
+            pdata(np,prv) = 0.0
+            pdata(np,prw) = 0.0
+            !Set to something realistic so it doesn't break the stats at initiation
+            pdata(np,prt) = 302.0
+            pdata(np,prqv) = 0.01
+            pdata(np,prprs) = 101325.0
+            pdata(np,prrho) = 1.0
+            pdata(np,prtime) = 0.0
+            !Update mass_injected for statistics purposes
+            mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
+         end do
+         if(timestats.ge.1) time_droplet=time_droplet+mytime()
+         !Then once the new droplets have been added, update nparcelsLocalActive
+         nparcelsLocalActive = nparcelsLocalActive + my_reintro
       else
-
-        if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
-
+         if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
       end if
 
     end subroutine droplet_injection
