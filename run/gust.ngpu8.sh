@@ -11,4 +11,5 @@ module load nvhpc cuda cray-mpich
 
 export MPICH_GPU_SUPPORT_ENABLED=1
 export MPICH_GPU_MANAGED_MEMORY_SUPPORT_ENABLED=1
-mpiexec -n 8 -ppn 4 get_local_rank ./cm1.exe --namelist namelist.small.gpu >& gust.ngpu8.small.512x512.log
+# mpiexec -n 8 -ppn 4 get_local_rank ./cm1.exe --namelist namelist.small.gpu >& gust.ngpu8.small.512x512.log
+mpiexec -n 8 -ppn 4 get_local_rank ./gpu.exe --namelist namelist.figureE.gpu >& gust.ngpu8.figureE.512x512c.log

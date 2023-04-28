@@ -6254,7 +6254,7 @@
       if(dowr) write(outfile,*)
 
       !$acc update device (prvpx,prvpy,prvpz,prrp,prms,prtp,prx, &
-      !$acc                pry,prz,prsig,prmult,pract)
+      !$acc                pry,prz,prsig,prmult,pract,prtime)
 
 !--------------------------------------------------------------
 !  Get identity
