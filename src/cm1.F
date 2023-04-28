@@ -3665,7 +3665,6 @@ end module cuda_rt
             enddo
             !$acc end parallel
           ENDIF
-!#if 0
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
                         name_output,desc_output,unit_output,grid_output,cmpr_output,           &
@@ -3700,7 +3699,6 @@ end module cuda_rt
                         bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                                     &
                         nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,myi1p,myi2p,myj1p,myj2p)
                         ! end_writeout
-!#endif
                         
           if(n.eq.1)then
             srec = frec
