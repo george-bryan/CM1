@@ -122,6 +122,7 @@
 !      real, dimension(kb:ke+1) :: zf_tmp
 
       integer :: num_fallout,idx,np_tmp                        !droplets which fell out of domain
+      integer :: numDepart
       integer :: numDepartN, numDepartS, numDepartE, numDepartW, &
                  numDepartSW,numDepartSE,numDepartNE,numDepartNW
       integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
@@ -129,15 +130,19 @@
 #ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
+      integer, dimension(:), allocatable :: Depart_ind     ! Index location in "pdata" of a point that is departing
       integer :: Depart(num_nn)                            ! Number of droplets that will enter each nearest 
                                                            ! neighbor at different directions
       integer :: Arrive(num_nn)                            ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
+      integer :: ptrDepart(num_nn)                         ! Points to the begining of Depart_ind for various departure buffers
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
       integer :: numHoles
+
+      integer :: n_idx,s_idx,e_idx,w_idx,sw_idx,nw_idx,se_idx,ne_idx
 
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
@@ -490,37 +495,104 @@
     Depart(isw)    = numDepartSW
     Depart(ise)    = numDepartSE
 
+    numDepart=SUM(Depart)
+    if(numDepart .gt. 0) allocate(Depart_ind(numDepart))
 
-
-    numHoles = SUM(Depart) + num_fallout + (nparcelsLocal-nparcelsLocalActive)
+    numHoles = numDepart + num_fallout + (nparcelsLocal-nparcelsLocalActive)
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
 
 
-    ! JS: send/receive the droplet information through MPI;
-    !     all the calculations below are done on CPU
+     ! JS: send/receive the droplet information through MPI;
+     !     all the calculations below are done on CPU
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ! Step 1: Allocate and assign the "hole" index array and initialize  it
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Step 1: Allocate and assign the "hole" index array and initialize  it
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    allocate(holes_ind(numHoles))
-    do np = 1, numHoles
+     allocate(holes_ind(numHoles))
+     !!$acc parallel loop gang vector default(present)
+     do np = 1, numHoles
        holes_ind(np) = undefined_index
-    end do
+     end do
 
-    i=1
-    do np = 1, nparcelsLocal
+     i=1
+     !!$acc parallel loop gang vector default(present)
+     do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
+          !!$acc atomic capture
           holes_ind(i) = np
           i = i + 1
+          !!$acc end atomic
        end if
-    end do
+     end do
 
+     if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
-    if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Step 2: Setup the indirect addresses for the droplets that are departing
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+     call setupDepartDroplet(Depart_ind,Depart,ptrDepart,pdata_neighbor)
+
+#if 0
+    ptrDepart(inorth)=1
+    n_idx  = ptrDepart(inorth)
+
+    ptrDepart(isouth) = ptrDepart(inorth)+Depart(inorth)
+    s_idx  = ptrDepart(isouth)
+
+    ptrDepart(ieast) = ptrDepart(isouth)+Depart(isouth)
+    e_idx  = ptrDepart(ieast)
+
+    ptrDepart(iwest) = ptrDepart(ieast)+Depart(ieast)
+    w_idx  = ptrDepart(iwest)
+
+    ptrDepart(inw) = ptrDepart(iwest)+Depart(iwest)
+    nw_idx = ptrDepart(inw)
+
+    ptrDepart(ine) = ptrDepart(inw)+Depart(inw)
+    ne_idx = ptrDepart(ine)
+
+    ptrDepart(isw) = ptrDepart(ine)+Depart(ine)
+    sw_idx = ptrDepart(isw)
+
+    ptrDepart(ise) = ptrDepart(isw)+Depart(isw)
+    se_idx = ptrDepart(ise)
+    
+
+    do np=1, nparcelsLocalActive
+       if(pdata_neighbor(np) .eq. mynorth) then 
+         Depart_ind(n_idx) = np
+         n_idx=n_idx+1
+      else if(pdata_neighbor(np) .eq. mysouth) then 
+         Depart_ind(s_idx) = np
+         s_idx=s_idx+1
+      else if(pdata_neighbor(np) .eq. mywest) then 
+         Depart_ind(w_idx) = np
+         w_idx=w_idx+1
+      else if(pdata_neighbor(np) .eq. myeast) then 
+         Depart_ind(e_idx) = np
+         e_idx=e_idx+1
+      else if(pdata_neighbor(np) .eq. mynw) then 
+         Depart_ind(nw_idx) = np
+         nw_idx=nw_idx+1
+      else if(pdata_neighbor(np) .eq. myne) then 
+         Depart_ind(ne_idx) = np
+         ne_idx=ne_idx+1
+      else if(pdata_neighbor(np) .eq. mysw) then 
+         Depart_ind(sw_idx) = np
+         sw_idx=sw_idx+1
+      else if(pdata_neighbor(np) .eq. myse) then 
+         Depart_ind(se_idx) = np
+         se_idx=se_idx+1
+      endif
+    enddo
+#endif
+
+    if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
 #ifdef MPI
 
@@ -539,8 +611,8 @@
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_value(holes_ind,Depart,Arrive,pdata, &
-                            pdata_locind,pdata_neighbor)
+    call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
+                            ptrDepart, pdata, pdata_locind,pdata_neighbor)
 
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
@@ -592,6 +664,7 @@
 
     ! free up the memory for temporary variables
     deallocate(holes_ind)
+    if(allocated(Depart_ind)) deallocate(Depart_ind)
 
 
 !----------------------------------------------------------------------
@@ -640,6 +713,7 @@
   
    !$acc update device(pdata,pdata_locind)
    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
+
    
 
    end subroutine droplet_driver

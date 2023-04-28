@@ -11,7 +11,7 @@ implicit none
 
 private
 
-public :: comm_droplet_number,comm_droplet_value
+public :: comm_droplet_number,comm_droplet_value,setupDepartDroplet
 
 contains
 
@@ -182,8 +182,8 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-  subroutine comm_droplet_value(holes_ind,Depart,Arrive,pdata, &
-                                pdata_locind,pdata_neighbor)
+  subroutine comm_droplet_value(holes_ind,Depart_ind,Depart,Arrive, &
+                ptrDepart, pdata, pdata_locind,pdata_neighbor)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
@@ -201,11 +201,14 @@ contains
                                                                          ! add a new droplet;
                                                                          ! not a fixed-size array but we do 
                                                                          ! not need to know its size
+    integer, intent(in), dimension(:) :: Depart_ind                      ! location index in "pdata" of droplets
+                                                                         ! that  are departing
     integer, intent(in) :: Depart(num_nn)                                ! Number of droplets that will enter each 
                                                                          ! nearest neighbor at different directions
     integer, intent(in) :: Arrive(num_nn)                                ! Number of droplets that will enter the 
                                                                          ! current MPI region from each nearest 
                                                                          ! neighbor at different directions
+    integer, intent(in) :: ptrDepart(num_nn)                             ! location index into Depart_ind 
     real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata        ! droplet information
     integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind   ! x/y/z location index of each droplet
     integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor      ! array to store the new MPI region 
@@ -219,12 +222,15 @@ contains
                                          droplet_n2, droplet_s2, droplet_w2, &     ! 2 means receiving array
                                          droplet_e2, droplet_nw2, droplet_ne2, &
                                          droplet_sw2, droplet_se2
+
+    real, dimension(:,:), allocatable :: droplet_n1b
+
     integer :: n_idx,s_idx,w_idx,e_idx,nw_idx,ne_idx,sw_idx,se_idx
     integer :: reqs(16),tag(num_nn,2)
     integer :: index_n,index_s,index_w,index_e,index_nw,index_ne, &
                index_sw,index_se,n_recv,n_send
     integer, dimension(mpi_status_size,16) :: status1
-    integer :: i,k,n,indx
+    integer :: i,j,k,n,indx
     integer :: numDepart,numArrive,num_holes,last_active
 
     ! initialize some MPI related variables
@@ -248,7 +254,10 @@ contains
 
     ! allocate spaces to store the droplets that will leave the current MPI region
 
-    if ( Depart(inorth) .ne. 0 ) allocate(droplet_n1(Depart(inorth),npvals))
+    if ( Depart(inorth) .ne. 0 ) then 
+       allocate(droplet_n1(Depart(inorth),npvals))
+       allocate(droplet_n1b(Depart(inorth),npvals))
+    endif
     if ( Depart(isouth) .ne. 0 ) allocate(droplet_s1(Depart(isouth),npvals))
     if ( Depart(iwest) .ne. 0 ) allocate(droplet_w1(Depart(iwest),npvals))
     if ( Depart(ieast) .ne. 0 ) allocate(droplet_e1(Depart(ieast),npvals))
@@ -262,6 +271,40 @@ contains
     ! extract the information of droplets that will leave the current MPI region 
     ! and reset the corresponding "pdata" record to a large negative value
 
+
+
+
+#if 1
+    ! pack up droplet send buffers and mark departed droplets in pdata
+    if(Depart(inorth) .gt. 0) &
+        call packDroplets(inorth, Depart, ptrDepart, Depart_ind, pdata, droplet_n1)
+
+    if(Depart(isouth) .gt. 0) &
+        call packDroplets(isouth, Depart, ptrDepart, Depart_ind, pdata, droplet_s1)
+
+    if(Depart(iwest) .gt. 0) &
+        call packDroplets(iwest, Depart, ptrDepart, Depart_ind, pdata, droplet_w1)
+
+    if(Depart(ieast) .gt. 0) &
+        call packDroplets(ieast, Depart, ptrDepart, Depart_ind, pdata, droplet_e1)
+
+    if(Depart(inw) .gt. 0) &
+        call packDroplets(inw, Depart, ptrDepart, Depart_ind, pdata, droplet_nw1)
+
+    if(Depart(ine) .gt. 0) &
+        call packDroplets(ine, Depart, ptrDepart, Depart_ind, pdata, droplet_ne1)
+
+    if(Depart(isw) .gt. 0) &
+        call packDroplets(isw, Depart,  ptrDepart, Depart_ind, pdata, droplet_sw1)
+
+    if(Depart(ise) .gt. 0) &
+        call packDroplets(ise, Depart, ptrDepart, Depart_ind, pdata, droplet_se1)
+
+#else
+    ! pack up droplet send buffers and mark departed droplets in pdata
+    if(Depart(inorth) .gt. 0) &
+        call packDroplets(inorth, Depart, ptrDepart, Depart_ind, pdata, droplet_n1b)
+
     n_idx  = 1
     s_idx  = 1
     w_idx  = 1
@@ -271,7 +314,6 @@ contains
     sw_idx = 1
     se_idx = 1
     i = 1
-
     if ( numDepart .ne. 0 ) then
        do n = 1, nparcelsLocalActive
           if ( pdata_neighbor(n) .eq. mynorth ) then
@@ -296,6 +338,16 @@ contains
           end if
        end do
     end if
+    if(Depart(inorth) .gt. 0) then 
+       do i=1,Depart(inorth) 
+          do j=1,npvals
+          if(droplet_n1(i,j) .ne. droplet_n1b(i,j)) then 
+            print *,'ERROR: inconsistency in North buffer: ',i,j,droplet_n1(i,j),droplet_n1b(i,j)
+          endif
+          enddo
+       enddo
+    endif
+#endif
 
     if(timestats.ge.1) time_dropC4b=time_dropC4b+mytime()
 
@@ -510,7 +562,10 @@ contains
 
     ! free up the memory for temporary variables
 
-    if (allocated(droplet_n1))  deallocate(droplet_n1)
+    if (allocated(droplet_n1)) then 
+       deallocate(droplet_n1)
+       deallocate(droplet_n1b)
+    endif
     if (allocated(droplet_n2))  deallocate(droplet_n2)
     if (allocated(droplet_s1))  deallocate(droplet_s1)
     if (allocated(droplet_s2))  deallocate(droplet_s2)
@@ -561,6 +616,137 @@ contains
   leave_idx = leave_idx + 1
 
   end subroutine record_leaving_droplet
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+  subroutine packDroplets( dir_idx, Depart, ptrDepart, Depart_ind, &
+                                      pdata, droplet_buffer )
+
+  ! this subroutine is used to:
+  !      1. save the information of a droplet in "pdata" that will 
+  !         leave the current MPI region to a buffer
+  !      2. reset the corresponding slot in "pdata" to a negative value
+  !      3. record this "hole" index in "pdata"
+
+  use input, only : npvals,nparcelsLocal
+  use constants, only: neg_huge
+
+  implicit none
+
+  integer, intent(in)    :: dir_idx                              ! neighbor's directional index 
+  integer, intent(in), dimension(:) :: Depart                   ! number of droplets departing 
+  integer, intent(in), dimension(:) :: ptrDepart                ! Pointer into the departure index "Depart_ind"
+  integer, intent(in), dimension(:) :: Depart_ind                !  Departure indices
+  real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata  ! the "pdata" with droplet information
+  real, intent(out), dimension(:,:) :: droplet_buffer            ! array to save the information of leaving droplet
+  integer :: i,iv,numDepart,np,iptr
+
+  iptr = ptrDepart(dir_idx)
+  numDepart   = Depart(dir_idx)
+  !!$acc parallel loop gang vector collapse(2) default(present)
+  do i=1,numDepart
+    do iv=1,npvals
+      np = Depart_ind(iptr+i-1)
+      droplet_buffer(i,iv) = pdata(np,iv)
+      pdata(np,iv) = neg_huge
+    enddo
+  enddo
+
+  end subroutine packDroplets
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    subroutine setupDepartDroplet(Depart_ind,Depart,ptrDepart,pdata_neighbor)
+
+      use input, only : mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth, &
+        nparcelsLocalActive
+      use constants, only: num_nn,inorth,isouth, &
+                         iwest,ieast,inw,ine,isw,ise
+
+      integer, intent(inout) :: ptrDepart(num_nn)
+      integer, intent(inout) :: Depart(num_nn)
+      integer, intent(inout) :: Depart_ind(:)
+      integer, intent(in) :: pdata_neighbor(:)
+
+      ! local variables
+      integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
+      integer np
+
+      ptrDepart(inorth)=1
+      n_idx  = ptrDepart(inorth)
+
+      ptrDepart(isouth) = ptrDepart(inorth)+Depart(inorth)
+      s_idx  = ptrDepart(isouth)
+
+      ptrDepart(ieast) = ptrDepart(isouth)+Depart(isouth)
+      e_idx  = ptrDepart(ieast)
+
+      ptrDepart(iwest) = ptrDepart(ieast)+Depart(ieast)
+      w_idx  = ptrDepart(iwest)
+
+      ptrDepart(inw) = ptrDepart(iwest)+Depart(iwest)
+      nw_idx = ptrDepart(inw)
+
+      ptrDepart(ine) = ptrDepart(inw)+Depart(inw)
+      ne_idx = ptrDepart(ine)
+
+      ptrDepart(isw) = ptrDepart(ine)+Depart(ine)
+      sw_idx = ptrDepart(isw)
+
+      ptrDepart(ise) = ptrDepart(isw)+Depart(isw)
+      se_idx = ptrDepart(ise)
+
+      !!$acc update device(ptrDepart)
+
+      !!$acc parallel loop gang vector default(present)
+      do np=1, nparcelsLocalActive
+        if(pdata_neighbor(np) .eq. mynorth) then
+          !!$acc atomic capture
+          Depart_ind(n_idx) = np
+          n_idx=n_idx+1
+          !!$acc end atomic
+        else if(pdata_neighbor(np) .eq. mysouth) then
+          !!$acc atomic capture
+          Depart_ind(s_idx) = np
+          s_idx=s_idx+1
+          !!$acc end atomic
+        else if(pdata_neighbor(np) .eq. mywest) then
+          !!$acc atomic capture
+          Depart_ind(w_idx) = np
+          w_idx=w_idx+1
+          !!$acc end atomic
+        else if(pdata_neighbor(np) .eq. myeast) then
+          !!$acc atomic capture
+          Depart_ind(e_idx) = np
+          e_idx=e_idx+1
+          !!$acc end atomic
+        else if(pdata_neighbor(np) .eq. mynw) then
+          !!$acc atomic capture
+          Depart_ind(nw_idx) = np
+          nw_idx=nw_idx+1
+          !!$acc end atomic
+        else if(pdata_neighbor(np) .eq. myne) then
+          !!$acc atomic capture
+          Depart_ind(ne_idx) = np
+          ne_idx=ne_idx+1
+          !!$acc end atomic
+        else if(pdata_neighbor(np) .eq. mysw) then
+          !!$acc atomic capture
+          Depart_ind(sw_idx) = np
+          sw_idx=sw_idx+1
+          !!$acc end atomic
+        else if(pdata_neighbor(np) .eq. myse) then
+          !!$acc atomic capture
+          Depart_ind(se_idx) = np
+          se_idx=se_idx+1
+          !!$acc end atomic
+        endif
+      enddo
+
+     end subroutine setupDepartDroplet
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
