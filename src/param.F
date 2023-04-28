@@ -6084,6 +6084,7 @@
         prw = npvals
 
         npvals = npvals+1
+        npvars = npvars+1
         prtime = npvals
 
         if( prcl_th.eq.1 )then
@@ -6253,7 +6254,7 @@
       if(dowr) write(outfile,*)
 
       !$acc update device (prvpx,prvpy,prvpz,prrp,prms,prtp,prx, &
-      !$acc                pry,prz,prsig,prmult,pract)
+      !$acc                pry,prz,prsig,prmult,pract,prtime)
 
 !--------------------------------------------------------------
 !  Get identity
