@@ -10677,28 +10677,28 @@
           enddo
           !$acc end parallel
 
-          !$acc parallel default(present)
+          !$acc serial default(present)
           sfs(1) = sfst
-          !$acc end parallel
+          !$acc end serial
 
           if( bcturbs.eq.3 )then
-            !$acc parallel default(present)
+            !$acc serial default(present)
             sfs(nk+1) = sfst
-            !$acc end parallel
+            !$acc end serial
           endif
 
         ELSE  sfcfl
 
           IF( bcturbs.eq.1 )THEN
-            !$acc parallel default(present)
+            !$acc serial default(present)
             sfs(1) = 0.0
             sfs(nk+1) = 0.0
-            !$acc end parallel
+            !$acc end serial
           ELSEIF( bcturbs.eq.2 )THEN
-            !$acc parallel default(present)
+            !$acc serial default(present)
             sfs(1) = sfs(2)
             sfs(nk+1) = sfs(nk)
-            !$acc end parallel
+            !$acc end serial
           ENDIF
 
         ENDIF  sfcfl

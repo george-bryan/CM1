@@ -3707,7 +3707,7 @@
       ! Richter and Wainwright (2023) upper boundary condition on winds:
 
       !$omp parallel do default(shared) private(i,j)
-      !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+      !$acc parallel loop gang vector collapse(2) default(present)
       do j=1,nj+1
       do i=1,ni+1
         t13(i,j,nk+1) = t13(i,j,1)

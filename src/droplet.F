@@ -604,85 +604,84 @@
 #ifdef MPI
        call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
-     u10_ssgf = u10_ssgf/real(nx*ny)
+       u10_ssgf = u10_ssgf/real(nx*ny)
 
-     !Only inject if a certain time has elapsed
-     drop_inject_elapse = 1.0e-5
-     if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
+       !Only inject if a certain time has elapsed
+       drop_inject_elapse = 1.0e-5
+       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
+          !Only start droplet injection after a specified time
+          if (mtime .gt. 0.0) then
+            call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
+            !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
+            !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
+            !But makes sure that the interpolated mean quantities in droplet_diag are meaningful
 
-        !Only start droplet injection after a specified time
-        if (mtime .gt. 0.0) then
-          call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
+            !$acc parallel
+            do np=nparcelsLocalActive-my_reintro+1,nparcelsLocalActive
+               x3d = pdata(np,prx)
+               y3d = pdata(np,pry)
+               if( .not. terrain_flag )then
+                 z3d = pdata(np,prz)
+               else
+                 sig3d = pdata(np,prsig)
+               endif
 
+               iflag = undefined_index
+               jflag = undefined_index
+               kflag = 0
 
-          !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
-          !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
-          !But makes sure that the interpolated mean quantities in droplet_diag are meaningful
-          do np=nparcelsLocalActive-my_reintro+1,nparcelsLocalActive
-             x3d = pdata(np,prx)
-             y3d = pdata(np,pry)
-             if( .not. terrain_flag )then
-               z3d = pdata(np,prz)
-             else
-               sig3d = pdata(np,prsig)
-             endif
-
-             iflag = undefined_index
-             jflag = undefined_index
-             kflag = 0
-
-             IF(nx.eq.1)THEN
-               iflag = 1
-             ELSE
-               ! cm1r19:
-               call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
-             ENDIF
+               IF(nx.eq.1)THEN
+                 iflag = 1
+               ELSE
+                 ! cm1r19:
+                 call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
+               ENDIF
   
-             IF(axisymm.eq.1.or.ny.eq.1)THEN
-               jflag = 1
-             ELSE
-               ! cm1r19:
-               call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
-             ENDIF
+               IF(axisymm.eq.1.or.ny.eq.1)THEN
+                 jflag = 1
+               ELSE
+                 ! cm1r19:
+                 call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
+               ENDIF
 
-             kflag = 1
-             if( .not. terrain_flag )then
-             !JS-KLUDGE: Somehow I have to use the zf_tmp variable 
-             !           for the find_vertical* subroutine,
-             !           otherwise the GPU code breaks for nparcels > ~2000
-!        !$acc loop seq
-!        do k = kb, ke+1
-!           zf_tmp(k) = zf(iflag,jflag,k)
-!        end do
-             do while( z3d.gt.zf(iflag,jflag,kflag+1) )
-                kflag = kflag+1
-             enddo
-             pdata_locind(np,3) = kflag
-!         call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
-             else
-                call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
-             endif
+               kflag = 1
+               if( .not. terrain_flag )then
+               !JS-KLUDGE: Somehow I have to use the zf_tmp variable 
+               !           for the find_vertical* subroutine,
+               !           otherwise the GPU code breaks for nparcels > ~2000
+!          !$acc loop seq
+!          do k = kb, ke+1
+!             zf_tmp(k) = zf(iflag,jflag,k)
+!          end do
+               do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+                  kflag = kflag+1
+               enddo
+               pdata_locind(np,3) = kflag
+!           call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
+               else
+                  call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
+               endif
 
 
-             call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
-                                        uval,vval,wval,tval,qval,rhoval,prsval, &
-                                        xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
-                                        ua,va,wa,ta,qa,rho,prs,sigdot)
+               call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
+                                          uval,vval,wval,tval,qval,rhoval,prsval, &
+                                          xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
+                                          ua,va,wa,ta,qa,rho,prs,sigdot)
 
-             !Now set to actual interpolated values
-             pdata(np,pru) = uval
-             pdata(np,prv) = vval
-             pdata(np,prw) = wval
-             pdata(np,prt) = tval
-             pdata(np,prtp) = tval
-             pdata(np,prqv) = qval
-             pdata(np,prprs) = prsval
-             pdata(np,prrho) = rhoval
-          end do
+               !Now set to actual interpolated values
+               pdata(np,pru) = uval
+               pdata(np,prv) = vval
+               pdata(np,prw) = wval
+               pdata(np,prt) = tval
+               pdata(np,prtp) = tval
+               pdata(np,prqv) = qval
+               pdata(np,prprs) = prsval
+               pdata(np,prrho) = rhoval
+            end do
 
-        end if
+          end if
 
-     end if
+       end if
 
 
      !This is helpful to see in the output, but not absolutely necessary:
@@ -3009,63 +3008,45 @@
                      rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
                   end if
                end do
-
-        rad_init = rad_init*1.0e-6
-
-        !DHR TEST, to make sure that droplets that destabilize numerics don't get produced
-        rad_init = min(rad_init,250.0e-6)
-
-
-        !Random location
-        rand = getRandomReal(randomNumbers)
-        pdata(np,prx) = xf(1)+rand*xrange
-        rand = getRandomReal(randomNumbers)
-        pdata(np,pry) = yf(1)+rand*yrange
-        rand = getRandomReal(randomNumbers)
-        pdata(np,prz) = rand*zrange
-
-        else
-
-        rad_init = 10.0e-6
-        pdata(np,prx) = xf(1) + xrange/2.0
-        pdata(np,pry) = yf(1) + yrange/2.0
-        pdata(np,prz) = injectHMax
-
-        end if
-
-        pdata(np,prvpx) = 0.0
-        pdata(np,prvpy) = 0.0
-        pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
-
-        pdata(np,prrp) = rad_init
-
-
-        salinity = 0.034
-        pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
-
-        pdata(np,prtp) = 302.0
-        pdata(np,prmult) = 1.0e9
-        pdata(np,pract) = 1.0
-
-        !Set to something realistic so it doesn't break the stats at initiation
-        pdata(np,pru) = 0.0
-        pdata(np,prv) = 0.0
-        pdata(np,prw) = 0.0
-        pdata(np,prt) = 302.0
-        pdata(np,prqv) = 0.01
-        pdata(np,prprs) = 101325.0
-        pdata(np,prrho) = 1.0
-
-        pdata(np,prtime) = 0.0
-
-        !Update mass_injected for statistics purposes
-        mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
-
-      end do
-
-      !Then once the new droplets have been added, update nparcelsLocalActive
-      nparcelsLocalActive = nparcelsLocalActive + my_reintro
-
+               rad_init = rad_init*1.0e-6
+               !DHR TEST, to make sure that droplets that destabilize numerics don't get produced
+               rad_init = min(rad_init,250.0e-6)
+               !Random location
+               rand = getRandomReal(randomNumbers)
+               pdata(np,prx) = xf(1)+rand*xrange
+               rand = getRandomReal(randomNumbers)
+               pdata(np,pry) = yf(1)+rand*yrange
+               rand = getRandomReal(randomNumbers)
+               pdata(np,prz) = rand*zrange
+            else
+               rad_init = 10.0e-6
+               pdata(np,prx) = xf(1) + xrange/2.0
+               pdata(np,pry) = yf(1) + yrange/2.0
+               pdata(np,prz) = injectHMax
+            end if
+            pdata(np,prvpx) = 0.0
+            pdata(np,prvpy) = 0.0
+            pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
+            pdata(np,prrp) = rad_init
+            salinity = 0.034
+            pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+            pdata(np,prtp) = 302.0
+            pdata(np,prmult) = 1.0e9
+            pdata(np,pract) = 1.0
+            !Set to something realistic so it doesn't break the stats at initiation
+            pdata(np,pru) = 0.0
+            pdata(np,prv) = 0.0
+            pdata(np,prw) = 0.0
+            pdata(np,prt) = 302.0
+            pdata(np,prqv) = 0.01
+            pdata(np,prprs) = 101325.0
+            pdata(np,prrho) = 1.0
+            pdata(np,prtime) = 0.0
+            !Update mass_injected for statistics purposes
+            mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
+         end do
+         !Then once the new droplets have been added, update nparcelsLocalActive
+         nparcelsLocalActive = nparcelsLocalActive + my_reintro
       else
          if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
       end if

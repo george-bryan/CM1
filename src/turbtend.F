@@ -489,7 +489,7 @@
             ! Richter and Wainwright (2023) upper boundary condition:
 
             !$omp parallel do default(shared) private(i,j)
-            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present)
             DO j=1,nj
               do i=1,ni
                 dumz(i,j,nk+1) = sflux(i,j)*rf(i,j,nk+1)
@@ -592,7 +592,7 @@
             ! Richter and Wainwright (2023) upper boundary condition:
 
             !$omp parallel do default(shared) private(i,j)
-            !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
+            !$acc parallel loop gang vector collapse(2) default(present)
             DO j=1,nj
               do i=1,ni
                 dumz(i,j,nk+1) = sflux(i,j)*rf(i,j,nk+1)
