@@ -177,8 +177,7 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      !$acc data create  (ta) &
-      !$acc      copyout (pdata_neighbor) &
+      !$acc data copyout (pdata_neighbor) &
       !$acc      copyin  (randomNumbers,randomNumbers%state)
 
       !$acc parallel loop gang vector default(present)
@@ -187,9 +186,9 @@
       end do
       !$acc end parallel
 #else
-      !$acc data create  (ta) &
-      !$acc      copyin  (randomNumbers,randomNumbers%state)
+      !$acc data copyin (randomNumbers,randomNumbers%state)
 #endif
+      !$acc enter data create (ta)
 
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
@@ -415,11 +414,12 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
-      !Temporary for testing purposes:
-      rhval = (ru*tval*rhoval*qval)/(mw*eslf(prsval,tval))
-      if (rhval .lt. 0.3 .or. rhval .gt. 1.2) then
-      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
-      end if
+!      !Temporary for testing purposes; comment out for GPU run as
+!      "write" function is not supported on the GPU
+!      rhval = (ru*tval*rhoval*qval)/(mw*eslf(prsval,tval))
+!      if (rhval .lt. 0.3 .or. rhval .gt. 1.2) then
+!      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
+!      end if
 
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
@@ -457,7 +457,7 @@
     !$acc end data
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-    !$acc update host(pdata,pdata_locind)
+    !$acc update host(pdata,pdata_locind,ua,va,wa,ta,qa,rho,prs)
 
     if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
@@ -591,32 +591,30 @@
 !----------------------------------------------------------------------
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
 ! Requires inputting the current 10-meter wind speed
-    if ( .not. use_wall_bc ) then  
-       u10_ssgf = 0.0
-       !$acc parallel loop gang vector reduction(+:u10_ssgf)
-       do j=1,nj
-          do i=1,ni
-             u10_ssgf = u10_ssgf + s10(i,j)
-          end do
-       end do
-       !$acc end parallel
+   if ( .not. use_wall_bc ) then  
+      u10_ssgf = 0.0
+      !$acc parallel loop gang vector reduction(+:u10_ssgf)
+      do j=1,nj
+         do i=1,ni
+            u10_ssgf = u10_ssgf + s10(i,j)
+         end do
+      end do
+      !$acc end parallel
 
 #ifdef MPI
-       call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+      call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
 #endif
-       u10_ssgf = u10_ssgf/real(nx*ny)
+      u10_ssgf = u10_ssgf/real(nx*ny)
 
-       !Only inject if a certain time has elapsed
-       drop_inject_elapse = 1.0e-5
-       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
-          !Only start droplet injection after a specified time
-          if (mtime .gt. 0.0) then
+      !Only inject if a certain time has elapsed
+      drop_inject_elapse = 1.0e-5
+      if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
+         !Only start droplet injection after a specified time
+         if (mtime .gt. 0.0) then
             call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
             !But makes sure that the interpolated mean quantities in droplet_diag are meaningful
-
-            !$acc parallel
             do np=nparcelsLocalActive-my_reintro+1,nparcelsLocalActive
                x3d = pdata(np,prx)
                y3d = pdata(np,pry)
@@ -625,49 +623,34 @@
                else
                  sig3d = pdata(np,prsig)
                endif
-
                iflag = undefined_index
                jflag = undefined_index
                kflag = 0
-
                IF(nx.eq.1)THEN
                  iflag = 1
                ELSE
                  ! cm1r19:
                  call find_horizontal_location_index (pdata_locind(np,1), x3d, ib, ie+1, xf, ni+1, iflag) 
                ENDIF
-  
                IF(axisymm.eq.1.or.ny.eq.1)THEN
                  jflag = 1
                ELSE
                  ! cm1r19:
                  call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
                ENDIF
-
                kflag = 1
                if( .not. terrain_flag )then
-               !JS-KLUDGE: Somehow I have to use the zf_tmp variable 
-               !           for the find_vertical* subroutine,
-               !           otherwise the GPU code breaks for nparcels > ~2000
-!          !$acc loop seq
-!          do k = kb, ke+1
-!             zf_tmp(k) = zf(iflag,jflag,k)
-!          end do
-               do while( z3d.gt.zf(iflag,jflag,kflag+1) )
-                  kflag = kflag+1
-               enddo
-               pdata_locind(np,3) = kflag
-!           call find_vertical_location_index (pdata_locind(np,3), z3d, kb, ke+1, zf_tmp, kflag, .TRUE.)
+                 do while( z3d.gt.zf(iflag,jflag,kflag+1) )
+                    kflag = kflag+1
+                 enddo
+                 pdata_locind(np,3) = kflag
                else
                   call find_vertical_location_index (pdata_locind(np,3), sig3d, kb, ke+1, sigmaf, kflag, .TRUE.)
                endif
-
-
                call interpolate_to_parcel(np,iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
                                           uval,vval,wval,tval,qval,rhoval,prsval, &
                                           xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                           ua,va,wa,ta,qa,rho,prs,sigdot)
-
                !Now set to actual interpolated values
                pdata(np,pru) = uval
                pdata(np,prv) = vval
@@ -678,26 +661,23 @@
                pdata(np,prprs) = prsval
                pdata(np,prrho) = rhoval
             end do
-
-          end if
-
-       end if
-
-
-     !This is helpful to see in the output, but not absolutely necessary:
+         end if ! if mtime > 0
+      end if    ! if floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse) 
+      !This is helpful to see in the output, but not absolutely necessary:
 #ifdef MPI
-       call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
 #endif
-       if (myid==0) then 
-          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
-       end if
+      if (myid==0) then 
+         write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
+      end if
    end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
   
    !$acc update device(pdata,pdata_locind)
+   !$acc exit data delete (ta)
+
    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
-   
 
    end subroutine droplet_driver
 
