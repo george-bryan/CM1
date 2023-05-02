@@ -499,6 +499,7 @@
     if(numDepart .gt. 0) allocate(Depart_ind(numDepart))
 
     numHoles = numDepart + num_fallout + (nparcelsLocal-nparcelsLocalActive)
+    print *,'num_fallout: ',num_fallout
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -595,7 +596,10 @@
     if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
 #ifdef MPI
-
+    if(myid.eq.0) then 
+      print *,'numHoles: ',numHoles
+      write(*,'(a10,2x,8i6)') 'Depart: ',Depart
+    endif
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 3: Exchange the number of droplets that will enter/leave !
     !         the current MPI region with its nearest neighbor      !
@@ -612,7 +616,7 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
-                            ptrDepart, pdata, pdata_locind,pdata_neighbor)
+                            ptrDepart, pdata, pdata_locind,pdata_neighbor,num_fallout)
 
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
@@ -1004,6 +1008,7 @@
          neighbor = undefined_index
          pdata_locind(np,1) = undefined_index
          pdata_locind(np,2) = undefined_index
+         !pdata(np,:) = neg_huge
       end if
 
       if (pdata_locind(np,1) .eq. undefined_index .or. &

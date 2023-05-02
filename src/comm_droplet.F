@@ -183,7 +183,7 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
   subroutine comm_droplet_value(holes_ind,Depart_ind,Depart,Arrive, &
-                ptrDepart, pdata, pdata_locind,pdata_neighbor)
+                ptrDepart, pdata, pdata_locind,pdata_neighbor,num_fallout)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
@@ -213,6 +213,7 @@ contains
     integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind   ! x/y/z location index of each droplet
     integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor      ! array to store the new MPI region 
                                                                          ! info for all the droplets
+    integer, intent(in) :: num_fallout 
 
     ! Local variables
 
@@ -232,6 +233,7 @@ contains
     integer, dimension(mpi_status_size,16) :: status1
     integer :: i,j,k,n,indx
     integer :: numDepart,numArrive,num_holes,last_active
+    integer :: num_tmp
 
     ! initialize some MPI related variables
 
@@ -338,6 +340,7 @@ contains
           end if
        end do
     end if
+#if 0
     if(Depart(inorth) .gt. 0) then 
        do i=1,Depart(inorth) 
           do j=1,npvals
@@ -347,6 +350,7 @@ contains
           enddo
        enddo
     endif
+#endif
 #endif
 
     if(timestats.ge.1) time_dropC4b=time_dropC4b+mytime()
@@ -529,13 +533,14 @@ contains
     ! compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots) 
 
-    if ( numArrive .lt. numDepart ) then
-       num_holes = numDepart - numArrive        ! number of "holes" we need to fill
+    num_tmp = numDepart+num_fallout
+    if ( numArrive .lt. num_tmp ) then
+       num_holes = num_tmp - numArrive        ! number of "holes" we need to fill
                                                 ! to make the active dropelts in 
                                                 ! the "pdata" contiguous
        last_active = nparcelsLocalActive
        i = 0
-       do n = 1, numDepart
+       do n = 1, num_tmp
           indx = holes_ind(n)
           if ( pdata(indx,pract) .lt. 0.0 ) then   ! this "hole" is not filled yet
              do k = last_active, indx, -1
