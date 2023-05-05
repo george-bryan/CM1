@@ -61,7 +61,7 @@
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho,prtime, &
           timestats,time_droplet,time_droplet_inject,mytime,ierr,time_droplet_reduce,maxx,maxy,maxz, &
           ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive, &
-          time_phys_H2D,time_phys_D2H
+          time_phys_H2D,time_phys_D2H,drop_inject_elapse,drop_inject_time
       use constants
       use comm_module
       use comm_droplet_module
@@ -112,7 +112,6 @@
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
-      real :: drop_inject_elapse
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -606,11 +605,10 @@
 #endif
       u10_ssgf = u10_ssgf/real(nx*ny)
 
-      !Only inject if a certain time has elapsed
-      drop_inject_elapse = 1.0e-5
+      !Only inject if a certain time has elapsed (specified in the namelist file)
       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
          !Only start droplet injection after a specified time
-         if (mtime .gt. 0.0) then
+         if (mtime .gt. drop_inject_time) then  !Only inject if past a certain time (specified in the namelist file)
             call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
@@ -2867,7 +2865,7 @@
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract,prtime, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
-                        time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax
+                        time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax,drop_w_init,drop_mult
       use constants
       use MersenneTwister_mod
 #ifdef MPI
@@ -3006,7 +3004,7 @@
             end if
             pdata(np,prvpx) = 0.0
             pdata(np,prvpy) = 0.0
-            pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
+            pdata(np,prvpz) = drop_w_init   !Specified in namelist file
             pdata(np,prrp) = rad_init
             salinity = 0.034
             pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3

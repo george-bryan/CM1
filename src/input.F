@@ -202,7 +202,8 @@
            rad_solcon,rad_jday,rad_zenangle,rad_declin,rad_hrang,             &
            adapt_move_frq,                                                    &
            base_pbot,base_ptop,base_thbot,base_thtop,base_qvbot,base_qvtop,   &
-           base_tbot,base_ttop,base_pibot,base_pitop,injectHMax
+           base_tbot,base_ttop,base_pibot,base_pitop,injectHMax,drop_mult,    &
+           drop_inject_elapse,drop_inject_time,drop_w_init
 
       !$acc declare create (dx,dy,zt,rzt,umove,vmove,viscosity,pr_num,sc_num, &
       !$acc                 minx,maxx,miny,maxy,maxz)
@@ -266,7 +267,8 @@
           wbc,ebc,sbc,nbc,bbc,tbc,irbc,roflux,nudgeobc,                 &
           isnd,iwnd,itern,iinit,                                        &
           irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,        &
-          iprcl,nparcelsInit,nparcelsMax,injectHMax
+          iprcl,nparcelsInit,nparcelsMax,injectHMax,                    &
+          drop_mult,drop_inject_elapse,drop_inject_time,drop_w_init
       namelist /param3/ kdiff2,kdiff6,fcor,kdiv,alph,rdalpha,zd,xhd,alphobc, &
                         umove,vmove,v_t,l_h,lhref1,lhref2,l_inf,ndcnst
       namelist /param4/ stretch_x,dx_inner,dx_outer,nos_x_len,tot_x_len
