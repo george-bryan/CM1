@@ -167,7 +167,7 @@
       !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,     &
       !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,        &
       !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw,       &
-      !$acc                 prmult,pract)
+      !$acc                 prmult,pract,prtime)
 
 !-----------------------------------------------------------------------
 
