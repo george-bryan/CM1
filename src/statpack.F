@@ -20,7 +20,7 @@
 
       use input
       use constants
-      use maxmin_module
+      use maxmin_module, only : maxmin2d, maxmin => maxmin_orig
       use misclibs
       use cm1libs , only : rslf,rsif
 #ifdef NETCDF
