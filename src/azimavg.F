@@ -1764,9 +1764,9 @@
           endif
           open(unit=66,file=string)
           if( nfile.eq.1 )then
-            string = 'cm1out_azimavg_%t6_s.dat'
+            string = 'cm1out_azimavg_00%y4_s.dat'
           elseif( nfile.eq.2 )then
-            string = 'cm1out_azimavg_%t6_w.dat'
+            string = 'cm1out_azimavg_00%y4_w.dat'
           endif
           write(66,101) string
           write(66,102)

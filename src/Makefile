@@ -349,7 +349,7 @@ azimavg.o: input.o constants.o cm1libs.o writeout_nc.o comm.o bc.o
 base.o: constants.o input.o bc.o comm.o goddard.o cm1libs.o getcape.o turb.o
 bc.o: constants.o input.o
 bcast.o:
-cm1.o: constants.o input.o param.o base.o init3d.o misclibs.o solve1.o solve2.o solve3.o diff2.o turb.o statpack.o writeout.o restart.o radiation_driver.o radtrns3d.o domaindiag.o azimavg.o hifrq.o parcel.o init_physics.o init_surface.o mp_driver.o ib_module.o eddy_recycle.o lsnudge.o nvtx_mod.o
+cm1.o: constants.o input.o param.o base.o init3d.o misclibs.o solve1.o solve2.o solve3.o diff2.o turb.o statpack.o writeout.o restart.o radiation_driver.o radtrns3d.o domaindiag.o azimavg.o hifrq.o parcel.o init_physics.o init_surface.o mp_driver.o ib_module.o eddy_recycle.o lsnudge.o nvtx_mod.o droplet.o
 cm1libs.o: input.o constants.o
 comm.o: input.o bc.o
 comm_droplet.o: input.o constants.o
@@ -359,7 +359,7 @@ eddy_recycle.o: constants.o input.o
 goddard.o: constants.o input.o cm1libs.o
 hifrq.o: input.o constants.o cm1libs.o adv_routines.o ib_module.o writeout_nc.o adv.o comm.o
 ib_module.o: input.o constants.o bc.o comm.o
-init3d.o:  constants.o input.o misclibs.o cm1libs.o bc.o comm.o module_mp_nssl_2mom.o poiss.o parcel.o ib_module.o turb.o mersennetwister_mod.o
+init3d.o:  constants.o input.o misclibs.o cm1libs.o bc.o comm.o module_mp_nssl_2mom.o poiss.o parcel.o ib_module.o turb.o mersennetwister_mod.o droplet.o
 init_physics.o: constants.o input.o sfclay.o sfclayrev.o slab.o radtrns3d.o irrad3d.o goddard.o module_ra_rrtmg_lw.o module_ra_rrtmg_sw.o module_sf_gfdl.o module_sf_mynn.o module_bl_mynn.o module_sf_myjsfc.o
 init_surface.o: constants.o input.o oml.o 
 init_terrain.o: constants.o input.o bc.o comm.o adv_routines.o

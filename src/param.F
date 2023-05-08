@@ -1305,12 +1305,12 @@
       ENDIF
       ENDIF
       !-----
-      IF(bcturbs.lt.1.or.bcturbs.gt.2)THEN
+      IF(bcturbs.lt.1.or.bcturbs.gt.3)THEN
         if(myid.eq.0)then
         print *
         print *,'  bcturbs = ',bcturbs
         print *
-        print *,'  bcturbs must be 1 or 2'
+        print *,'  bcturbs must be 1 or 2 or 3'
         print *
         print *,'   stopping model .... '
         print *
@@ -1354,12 +1354,12 @@
         call stopcm1
       ENDIF
       !-----
-      IF( tbc.lt.1 .or. tbc.gt.3 )THEN
+      IF( tbc.lt.1 .or. tbc.gt.4 )THEN
         if(myid.eq.0)then
         print *
         print *,'  tbc = ',tbc
         print *
-        print *,'  tbc must be 1,2,3'
+        print *,'  tbc must be 1,2,3,4'
         print *
         print *,'   stopping model .... '
         print *
@@ -6084,6 +6084,7 @@
         prw = npvals
 
         npvals = npvals+1
+        npvars = npvars+1
         prtime = npvals
 
         if( prcl_th.eq.1 )then
@@ -6253,7 +6254,7 @@
       if(dowr) write(outfile,*)
 
       !$acc update device (prvpx,prvpy,prvpz,prrp,prms,prtp,prx, &
-      !$acc                pry,prz,prsig,prmult,pract)
+      !$acc                pry,prz,prsig,prmult,pract,prtime)
 
 !--------------------------------------------------------------
 !  Get identity
