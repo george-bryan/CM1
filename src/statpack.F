@@ -20,7 +20,7 @@
 
       use input
       use constants
-      use maxmin_module
+      use maxmin_module, only: maxmin2d, maxmin => maxmin_orig
       use misclibs
       use cm1libs , only : rslf,rsif
 #ifdef NETCDF
@@ -349,6 +349,7 @@
 
         if(stat_rh.eq.1)then
           call maxmin(ni,nj,nk,dum2,nstat,rstat,kmin,kmax,'RHMAX ','RHMIN ')
+!          call maxmin_host(ni,nj,nk,dum2,nstat,rstat,kmin,kmax,'RHMAXh','RHMINh')
         endif
 
         if(iice.eq.1 .and. stat_rhi.eq.1)then
