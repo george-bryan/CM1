@@ -71,7 +71,8 @@
                         tha,th3d,thten,thten1,qa,q3d,qten,                &
                         kmh,kmv,khh,khv,tkea,tke3d,tketen,                &
                         pta,pt3d,ptten,                                   &
-                        pdata,cfb,cfa,cfc,ad1,ad2,pdt,lgbth,lgbph,rhs,trans)
+                        pdata,cfb,cfa,cfc,ad1,ad2,pdt,lgbth,lgbph,rhs,    &
+                        trans)
 
       use input
       use constants
@@ -81,6 +82,7 @@
       use module_mp_nssl_2mom, only: ccn, lccn
       use poiss_module
       use parcel_module , only : getparcelzs
+      use droplet_module, only: initialize_droplet_histograms
 #ifdef MPI
       use mpi
 #endif
@@ -166,7 +168,6 @@
       logical :: doit
 
       real :: salinity
-
 
       ! Note:  By default, CM1 uses the same set of psuedorandom numbers 
       !        every time it is called.  To use truly random perturbations 
@@ -463,10 +464,14 @@
                 pdata(i,pru) = 0.0
                 pdata(i,prv) = 0.0
                 pdata(i,prw) = 0.0
-                pdata(i,prt) = 0.0
-                pdata(i,prqv) = 0.0
-                pdata(i,prprs) = 0.0
-                pdata(i,prrho) = 0.0
+                !Set to something realistic so it doesn't break the stats at initiation
+                pdata(i,prt) = 302.0
+                pdata(i,prqv) = 0.01
+                pdata(i,prprs) = 101325.0
+                pdata(i,prrho) = 1.0
+       
+                !Start the stopwatch for each particle at 0
+                pdata(i,prtime) = 0.0
 
     
              end if ! end of if statement for prcl_droplet == 1
@@ -484,6 +489,10 @@
           end if    ! end of if statement for xf/yf check
 
         end do      ! end of loop for nparcelsInit
+
+        !Here also initialize the droplet histogram arrays
+        call initialize_droplet_histograms
+
 
 ! Original stuff:
 !        n = 0

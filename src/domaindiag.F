@@ -10033,9 +10033,9 @@
             string(i:i) = ' '
           enddo
           if( nfile.eq.1 )then
-            string = 'cm1out_diag_%t6_s.dat'
+            string = 'cm1out_diag_00%y4_s.dat'
           elseif( nfile.eq.2 )then
-            string = 'cm1out_diag_%t6_w.dat'
+            string = 'cm1out_diag_00%y4_w.dat'
           endif
           write(66,101) string
           write(66,102)
@@ -10677,22 +10677,28 @@
           enddo
           !$acc end parallel
 
-          !$acc parallel default(present)
+          !$acc serial default(present)
           sfs(1) = sfst
-          !$acc end parallel
+          !$acc end serial
+
+          if( bcturbs.eq.3 )then
+            !$acc serial default(present)
+            sfs(nk+1) = sfst
+            !$acc end serial
+          endif
 
         ELSE  sfcfl
 
           IF( bcturbs.eq.1 )THEN
-            !$acc parallel default(present)
+            !$acc serial default(present)
             sfs(1) = 0.0
             sfs(nk+1) = 0.0
-            !$acc end parallel
+            !$acc end serial
           ELSEIF( bcturbs.eq.2 )THEN
-            !$acc parallel default(present)
+            !$acc serial default(present)
             sfs(1) = sfs(2)
             sfs(nk+1) = sfs(nk)
-            !$acc end parallel
+            !$acc end serial
           ENDIF
 
         ENDIF  sfcfl
