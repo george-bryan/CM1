@@ -137,6 +137,7 @@
       integer :: Arrive(num_nn)                            ! Number of droplets that will enter the current
                                                            ! MPI region from each nearest neighbor
       integer :: ptrDepart(num_nn)                         ! Points to the begining of Depart_ind for various departure buffers
+      integer :: ptrArrive(num_nn)                         ! Points to the begining of holes_ind for various arrival buffers
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
@@ -499,7 +500,6 @@
     if(numDepart .gt. 0) allocate(Depart_ind(numDepart))
 
     numHoles = numDepart + num_fallout + (nparcelsLocal-nparcelsLocalActive)
-    print *,'num_fallout: ',num_fallout
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
@@ -513,20 +513,22 @@
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      allocate(holes_ind(numHoles))
-     !!$acc parallel loop gang vector default(present)
+
+     !NEW !$acc data create(Depart_ind,holes_ind)
+     !NEW !$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
      end do
 
      i=1
-     !!$acc parallel loop gang vector default(present)
+     !NEW !$acc parallel loop gang vector default(present)
      do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
-          !!$acc atomic capture
+          !NEW !$acc atomic capture
           holes_ind(i) = np
           i = i + 1
-          !!$acc end atomic
+          !NEW !$acc end atomic
        end if
      end do
 
@@ -536,70 +538,23 @@
      ! Step 2: Setup the indirect addresses for the droplets that are departing
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-     call setupDepartDroplet(Depart_ind,Depart,ptrDepart,pdata_neighbor)
+    call setupIndexPointers(Depart,ptrDepart)
 
-#if 0
-    ptrDepart(inorth)=1
-    n_idx  = ptrDepart(inorth)
-
-    ptrDepart(isouth) = ptrDepart(inorth)+Depart(inorth)
-    s_idx  = ptrDepart(isouth)
-
-    ptrDepart(ieast) = ptrDepart(isouth)+Depart(isouth)
-    e_idx  = ptrDepart(ieast)
-
-    ptrDepart(iwest) = ptrDepart(ieast)+Depart(ieast)
-    w_idx  = ptrDepart(iwest)
-
-    ptrDepart(inw) = ptrDepart(iwest)+Depart(iwest)
-    nw_idx = ptrDepart(inw)
-
-    ptrDepart(ine) = ptrDepart(inw)+Depart(inw)
-    ne_idx = ptrDepart(ine)
-
-    ptrDepart(isw) = ptrDepart(ine)+Depart(ine)
-    sw_idx = ptrDepart(isw)
-
-    ptrDepart(ise) = ptrDepart(isw)+Depart(isw)
-    se_idx = ptrDepart(ise)
-    
-
-    do np=1, nparcelsLocalActive
-       if(pdata_neighbor(np) .eq. mynorth) then 
-         Depart_ind(n_idx) = np
-         n_idx=n_idx+1
-      else if(pdata_neighbor(np) .eq. mysouth) then 
-         Depart_ind(s_idx) = np
-         s_idx=s_idx+1
-      else if(pdata_neighbor(np) .eq. mywest) then 
-         Depart_ind(w_idx) = np
-         w_idx=w_idx+1
-      else if(pdata_neighbor(np) .eq. myeast) then 
-         Depart_ind(e_idx) = np
-         e_idx=e_idx+1
-      else if(pdata_neighbor(np) .eq. mynw) then 
-         Depart_ind(nw_idx) = np
-         nw_idx=nw_idx+1
-      else if(pdata_neighbor(np) .eq. myne) then 
-         Depart_ind(ne_idx) = np
-         ne_idx=ne_idx+1
-      else if(pdata_neighbor(np) .eq. mysw) then 
-         Depart_ind(sw_idx) = np
-         sw_idx=sw_idx+1
-      else if(pdata_neighbor(np) .eq. myse) then 
-         Depart_ind(se_idx) = np
-         se_idx=se_idx+1
-      endif
-    enddo
-#endif
+    call setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
 
     if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
 #ifdef MPI
-    if(myid.eq.0) then 
-      print *,'numHoles: ',numHoles
-      write(*,'(a10,2x,8i6)') 'Depart: ',Depart
-    endif
+    !if(verbose) then 
+    !  if(num_fallout .ne.0) then
+    !    write(*,*) 'num_fallout: ',num_fallout,'myid: ',myid
+    !    call flush(6)
+    !  endif
+    !
+    !  write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ',myid,' numHoles: ',numHoles
+    !  write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Depart: ',Depart
+    !  call flush(6)
+    !endif
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 3: Exchange the number of droplets that will enter/leave !
     !         the current MPI region with its nearest neighbor      !
@@ -607,6 +562,8 @@
 
     call comm_droplet_number(numHoles,Depart,Arrive,pdata, &
                              pdata_locind,pdata_neighbor)
+
+    call setupIndexPointers(Arrive,ptrArrive)
 
     if(timestats.ge.1) time_dropC3=time_dropC3+mytime()
 
@@ -616,7 +573,7 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
-                            ptrDepart, pdata, pdata_locind,pdata_neighbor,num_fallout)
+                            ptrDepart,ptrArrive, pdata, pdata_locind,pdata_neighbor,num_fallout)
 
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
@@ -666,6 +623,7 @@
 
 #endif
 
+    !NEW $acc end data 
     ! free up the memory for temporary variables
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
