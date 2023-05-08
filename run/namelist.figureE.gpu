@@ -82,7 +82,7 @@
  npt       =  1,
  pdtra     =  1,
  iprcl     =  1,  !This turns on the parcels, and with prcl_droplet=1 below, makes them droplets
- nparcelsInit = 36000000,   ! initial number of particles over the whole domain
+ nparcelsInit = 32000000,   ! initial number of particles over the whole domain
  nparcelsMax  = 36000000,   ! the total allowable number of particles over the whole domain
  /
 

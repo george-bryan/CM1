@@ -8,11 +8,11 @@
 
 
 module --force purge
-module load ncarenv/23.03
+module load ncarenv/23.04
 module load nvhpc/23.1
 module load ncarcompilers/0.8.0
 module load cray-mpich/8.1.25
 
-mpiexec -n 1024 ./cpu.exe --namelist namelist.figureE.cpu >& gust.node8.figureE.512x512c.log
+mpiexec -n 1024 ./cpu.exe --namelist namelist.figureEe.cpu >& gust.node8.figureEe.512x512d.log
 #mpiexec ./cpu.exe --namelist namelist.figureD.cpu >& node=8.figureD.256.log
 #mpiexec ./cm1.exe --namelist namelist.figureA.cpu >& gust.node8.figureA.256.log
