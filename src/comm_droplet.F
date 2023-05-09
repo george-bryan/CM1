@@ -12,12 +12,13 @@ implicit none
 private
 
 public :: comm_droplet_number,comm_droplet_value
+public :: setupIndexPointers, setupDepartDroplet
 
 contains
 
 #ifdef MPI
 
-  subroutine comm_droplet_number(holes_ind,Depart,Arrive,pdata, &
+  subroutine comm_droplet_number(numHoles,Depart,Arrive,pdata, &
                                  pdata_locind,pdata_neighbor)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
@@ -29,10 +30,8 @@ contains
 
     implicit none
 
-    integer, intent(inout), dimension(:) :: holes_ind                    ! location index in "pdata" that can 
-                                                                         ! add a new droplet;
-                                                                         ! not a fixed-size array but we do 
-                                                                         ! not need to know its size
+    integer, intent(in) :: numHoles                                      ! Current number of holes available 
+
     integer, intent(out) :: Depart(num_nn)                               ! Number of droplets that will enter each 
                                                                          ! nearest neighbor at different directions
     integer, intent(out) :: Arrive(num_nn)                               ! Number of droplets that will enter the 
@@ -61,46 +60,8 @@ contains
     tag_ne = 1007
     tag_se = 1008
 
-    do i = 1, num_nn
-       Depart(i) = 0
-    end do
-
-    ! find out how many droplets will leave the 
-    ! current MPI region and to which neighbor
-
-    i = 1
-    do n = 1, nparcelsLocal
-       if ( (pdata_locind(n,1) .eq. undefined_index) .and. &
-            (pdata_locind(n,2) .eq. undefined_index) ) then
-          ! record the location index that can be used to store the new droplet
-          ! information after the old drolpet leaves the current MPI region
-          holes_ind(i) = n
-          i = i + 1
-          if ( n .le. nparcelsLocalActive ) then
-             if ( pdata_neighbor(n) .eq. mynorth ) then
-                Depart(inorth) = Depart(inorth) + 1
-             else if ( pdata_neighbor(n) .eq. mysouth ) then
-                Depart(isouth) = Depart(isouth) + 1
-             else if ( pdata_neighbor(n) .eq. mywest ) then
-                Depart(iwest) = Depart(iwest) + 1
-             else if ( pdata_neighbor(n) .eq. myeast ) then
-                Depart(ieast) = Depart(ieast) + 1
-             else if ( pdata_neighbor(n) .eq. mynw ) then
-                Depart(inw) = Depart(inw) + 1
-             else if ( pdata_neighbor(n) .eq. myne ) then
-                Depart(ine) = Depart(ine) + 1
-             else if ( pdata_neighbor(n) .eq. mysw ) then
-                Depart(isw) = Depart(isw) + 1
-             else if ( pdata_neighbor(n) .eq. myse ) then
-                Depart(ise) = Depart(ise) + 1
-             else
-                cycle  ! this is an existing "hole" of "pdata"
-                       ! no action is needed
-             end if
-          end if
-       end if
-    end do
-
+    ! We are just exchanging some integers, so just use the correct
+    ! version that is already present on the host
     ! initiate the MPI non-blocking receive interface to 
     ! know how many droplets from the nearest neighbors
 
@@ -179,7 +140,7 @@ contains
     !               and exceed the number of "holes", stop the program
     !               with an error message
 
-    if ( sum(Arrive) .gt. size(holes_ind) ) then
+    if ( sum(Arrive) .gt. numHoles ) then
         write(*,*) "Too many new droplets will enter the MPI rank: ", myid
         write(*,*) "Arriving, holes to fill: ", sum(Arrive),size(holes_ind)
         stop "Stop the program ..."
@@ -225,12 +186,15 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-  subroutine comm_droplet_value(holes_ind,Depart,Arrive,pdata, &
-                                pdata_locind,pdata_neighbor)
+  subroutine comm_droplet_value(holes_ind,Depart_ind,Depart,Arrive, &
+                ptrDepart, ptrArrive, pdata, pdata_locind,pdata_neighbor,num_fallout)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
-                      pract,nparcelsLocalActive
+                      pract,nparcelsLocalActive, &
+                      timestats,mytime, &
+      time_dropC4a,time_dropC4b,time_dropC4c, &
+      time_dropC4d,time_dropC4e,time_dropC4f
     use constants, only: undefined_index,neg_huge,num_nn,inorth, &
                          isouth,iwest,ieast,inw,ine,isw,ise
     use mpi
@@ -241,15 +205,20 @@ contains
                                                                          ! add a new droplet;
                                                                          ! not a fixed-size array but we do 
                                                                          ! not need to know its size
+    integer, intent(in), dimension(:) :: Depart_ind                      ! location index in "pdata" of droplets
+                                                                         ! that  are departing
     integer, intent(in) :: Depart(num_nn)                                ! Number of droplets that will enter each 
                                                                          ! nearest neighbor at different directions
     integer, intent(in) :: Arrive(num_nn)                                ! Number of droplets that will enter the 
                                                                          ! current MPI region from each nearest 
                                                                          ! neighbor at different directions
+    integer, intent(in) :: ptrArrive(num_nn)                             ! location index into holes_ind 
+    integer, intent(in) :: ptrDepart(num_nn)                             ! location index into Depart_ind 
     real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata        ! droplet information
     integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind   ! x/y/z location index of each droplet
     integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor      ! array to store the new MPI region 
                                                                          ! info for all the droplets
+    integer, intent(in) :: num_fallout 
 
     ! Local variables
 
@@ -259,13 +228,15 @@ contains
                                          droplet_n2, droplet_s2, droplet_w2, &     ! 2 means receiving array
                                          droplet_e2, droplet_nw2, droplet_ne2, &
                                          droplet_sw2, droplet_se2
+
     integer :: n_idx,s_idx,w_idx,e_idx,nw_idx,ne_idx,sw_idx,se_idx
     integer :: reqs(16),tag(num_nn,2)
     integer :: index_n,index_s,index_w,index_e,index_nw,index_ne, &
                index_sw,index_se,n_recv,n_send
     integer, dimension(mpi_status_size,16) :: status1
-    integer :: i,k,n,indx
+    integer :: i,j,k,n,indx
     integer :: numDepart,numArrive,num_holes,last_active
+    integer :: num_tmp
 
     ! initialize some MPI related variables
 
@@ -297,43 +268,41 @@ contains
     if ( Depart(isw) .ne. 0 ) allocate(droplet_sw1(Depart(isw),npvals))
     if ( Depart(ise) .ne. 0 ) allocate(droplet_se1(Depart(ise),npvals))
 
+    if(timestats.ge.1) time_dropC4a=time_dropC4a+mytime()
+
     ! extract the information of droplets that will leave the current MPI region 
     ! and reset the corresponding "pdata" record to a large negative value
+    !NEW !$acc data create(droplet_n1,droplet_s1,droplet_w1,droplet_e1,     &
+    !NEW !$acc             droplet_nw1,droplet_ne1,droplet_sw1,droplet_se1) &
+    !NEW !$acc     copyout(droplet_n2,droplet_s2,droplet_w2,droplet_e2,     &
+    !NEW !$acc             droplet_nw2,droplet_ne2,droplet_sw2,droplet_se2)
 
-    n_idx  = 1
-    s_idx  = 1
-    w_idx  = 1
-    e_idx  = 1
-    nw_idx = 1
-    ne_idx = 1
-    sw_idx = 1
-    se_idx = 1
-    i = 1
+    ! pack up droplet send buffers and mark departed droplets in pdata
+    if(Depart(inorth) .gt. 0) &
+        call packDroplets(inorth, Depart, ptrDepart, Depart_ind, pdata, droplet_n1)
 
-    if ( numDepart .ne. 0 ) then
-       do n = 1, nparcelsLocalActive
-          if ( pdata_neighbor(n) .eq. mynorth ) then
-             call record_leaving_droplet ( n, n_idx, i, pdata, droplet_n1 )
-          else if ( pdata_neighbor(n) .eq. mysouth ) then
-             call record_leaving_droplet ( n, s_idx, i, pdata, droplet_s1 )
-          else if ( pdata_neighbor(n) .eq. mywest ) then
-             call record_leaving_droplet ( n, w_idx, i, pdata, droplet_w1 )
-          else if ( pdata_neighbor(n) .eq. myeast ) then
-             call record_leaving_droplet ( n, e_idx, i, pdata, droplet_e1 )
-          else if ( pdata_neighbor(n) .eq. mynw ) then
-             call record_leaving_droplet ( n, nw_idx, i, pdata, droplet_nw1 )
-          else if ( pdata_neighbor(n) .eq. myne ) then
-             call record_leaving_droplet ( n, ne_idx, i, pdata, droplet_ne1 )
-          else if ( pdata_neighbor(n) .eq. mysw ) then
-             call record_leaving_droplet ( n, sw_idx, i, pdata, droplet_sw1 )
-          else if ( pdata_neighbor(n) .eq. myse ) then
-             call record_leaving_droplet ( n, se_idx, i, pdata, droplet_se1 )
-          else
-             cycle   ! this droplet stays at the same MPI region or this is a "hole";
-                     ! no action is needed
-          end if
-       end do
-    end if
+    if(Depart(isouth) .gt. 0) &
+        call packDroplets(isouth, Depart, ptrDepart, Depart_ind, pdata, droplet_s1)
+
+    if(Depart(iwest) .gt. 0) &
+        call packDroplets(iwest, Depart, ptrDepart, Depart_ind, pdata, droplet_w1)
+
+    if(Depart(ieast) .gt. 0) &
+        call packDroplets(ieast, Depart, ptrDepart, Depart_ind, pdata, droplet_e1)
+
+    if(Depart(inw) .gt. 0) &
+        call packDroplets(inw, Depart, ptrDepart, Depart_ind, pdata, droplet_nw1)
+
+    if(Depart(ine) .gt. 0) &
+        call packDroplets(ine, Depart, ptrDepart, Depart_ind, pdata, droplet_ne1)
+
+    if(Depart(isw) .gt. 0) &
+        call packDroplets(isw, Depart,  ptrDepart, Depart_ind, pdata, droplet_sw1)
+
+    if(Depart(ise) .gt. 0) &
+        call packDroplets(ise, Depart, ptrDepart, Depart_ind, pdata, droplet_se1)
+
+    if(timestats.ge.1) time_dropC4b=time_dropC4b+mytime()
 
     ! allocate temporary arrays if there are new droplets from the nearest neighbor
 
@@ -348,62 +317,79 @@ contains
 
     ! initiate the MPI non-blocking receive interface to 
     ! obtain new droplet information from the nearest neighbors
+    if(timestats.ge.1) time_dropC4c=time_dropC4c+mytime()
 
     n_recv   = 0
     if ( Arrive(inorth) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(inorth,2)  = 1000 + Arrive(inorth)
+       !NEW !$acc host_data use_device(droplet_n2)
        call mpi_irecv(droplet_n2,Arrive(inorth)*npvals,MPI_REAL, &
                       mynorth,tag(inorth,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_n = n_recv
     end if
     if ( Arrive(isouth) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(isouth,2)  = 1000 + Arrive(isouth)
+       !NEW !$acc host_data use_device(droplet_s2)
        call mpi_irecv(droplet_s2,Arrive(isouth)*npvals,MPI_REAL, &
                       mysouth,tag(isouth,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_s = n_recv
     end if
     if ( Arrive(iwest) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(iwest,2)  = 1000 + Arrive(iwest)
+       !NEW !$acc host_data use_device(droplet_w2)
        call mpi_irecv(droplet_w2,Arrive(iwest)*npvals,MPI_REAL, &
                       mywest,tag(iwest,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_w = n_recv
     end if
     if ( Arrive(ieast) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(ieast,2)  = 1000 + Arrive(ieast)
+       !NEW !$acc host_data use_device(droplet_e2)
        call mpi_irecv(droplet_e2,Arrive(ieast)*npvals,MPI_REAL, &
                       myeast,tag(ieast,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_e = n_recv
     end if
     if ( Arrive(inw) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(inw,2) = 1000 + Arrive(inw)
+       !NEW !$acc host_data use_device(droplet_nw2)
        call mpi_irecv(droplet_nw2,Arrive(inw)*npvals,MPI_REAL, &
                       mynw,tag(inw,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_nw = n_recv
     end if
     if ( Arrive(ine) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(ine,2) = 1000 + Arrive(ine)
+       !NEW !$acc host_data use_device(droplet_ne2)
        call mpi_irecv(droplet_ne2,Arrive(ine)*npvals,MPI_REAL, &
                       myne,tag(ine,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_ne = n_recv
     end if
     if ( Arrive(isw) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(isw,2) = 1000 + Arrive(isw)
+       !NEW !$acc host_data use_device(droplet_sw2)
        call mpi_irecv(droplet_sw2,Arrive(isw)*npvals,MPI_REAL, &
                       mysw,tag(isw,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_sw = n_recv
     end if
     if ( Arrive(ise) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(ise,2) = 1000 + Arrive(ise)
+       !NEW !$acc host_data use_device(droplet_se2)
        call mpi_irecv(droplet_se2,Arrive(ise)*npvals,MPI_REAL, &
                       myse,tag(ise,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
+       !NEW !$acc end host_device
        index_se = n_recv
     end if
 
@@ -414,51 +400,68 @@ contains
     if ( Depart(inorth) .ne. 0 ) then
        n_send = n_send + 1
        tag(isouth,1) = 1000 + Depart(inorth)
+       !NEW !$acc host_data use_device(droplet_n1)
        call mpi_isend(droplet_n1,Depart(inorth)*npvals,MPI_REAL, &
                       mynorth,tag(isouth,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
     if ( Depart(isouth) .ne. 0 ) then
        n_send = n_send + 1
        tag(inorth,1) = 1000 + Depart(isouth)
+       !NEW !$acc host_data use_device(droplet_s1)
        call mpi_isend(droplet_s1,Depart(isouth)*npvals,MPI_REAL, &
                       mysouth,tag(inorth,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
     if ( Depart(iwest) .ne. 0 ) then
        n_send = n_send + 1
        tag(ieast,1) = 1000 + Depart(iwest)
+       !NEW !$acc host_data use_device(droplet_w1)
        call mpi_isend(droplet_w1,Depart(iwest)*npvals,MPI_REAL, &
                       mywest,tag(ieast,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
     if ( Depart(ieast) .ne. 0 ) then
        n_send = n_send + 1
        tag(iwest,1) = 1000 + Depart(ieast)
+       !NEW !$acc host_data use_device(droplet_e1)
        call mpi_isend(droplet_e1,Depart(ieast)*npvals,MPI_REAL, &
                       myeast,tag(iwest,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
     if ( Depart(inw) .ne. 0 ) then
        n_send = n_send + 1
        tag(ise,1) = 1000 + Depart(inw)
+       !NEW !$acc host_data use_device(droplet_nw1)
        call mpi_isend(droplet_nw1,Depart(inw)*npvals,MPI_REAL, &
                       mynw,tag(ise,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
     if ( Depart(ine) .ne. 0 ) then
        n_send = n_send + 1
        tag(isw,1) = 1000 + Depart(ine)
+       !NEW !$acc host_data use_device(droplet_ne1)
        call mpi_isend(droplet_ne1,Depart(ine)*npvals,MPI_REAL, &
                       myne,tag(isw,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
     if ( Depart(isw) .ne. 0 ) then
        n_send = n_send + 1
        tag(ine,1) = 1000 + Depart(isw)
+       !NEW !$acc host_data use_device(droplet_sw1)
        call mpi_isend(droplet_sw1,Depart(isw)*npvals,MPI_REAL, &
                       mysw,tag(ine,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
     if ( Depart(ise) .ne. 0 ) then
        n_send = n_send + 1
        tag(inw,1) = 1000 + Depart(ise)
+       !NEW !$acc host_data use_device(droplet_se1)
        call mpi_isend(droplet_se1,Depart(ise)*npvals,MPI_REAL, &
                       myse,tag(inw,1),MPI_COMM_WORLD,reqs(n_send),ierr)
+       !NEW !$acc end host_device
     end if
+    !NEW !$acc end data
 
     ! update the "holes" in "pdata" with the new droplets that
     ! enter the current MPI region from the nearest neighbors
@@ -468,28 +471,28 @@ contains
     do while( n .le. n_recv )
        call mpi_waitany(n_recv,reqs(1:n_recv),indx,MPI_STATUS_IGNORE,ierr)
        if ( indx .eq. index_n ) then
-          call update_new_droplet ( holes_ind, k, Arrive(inorth), &
+          call update_new_droplet ( holes_ind, ptrArrive(inorth), Arrive(inorth), &
                                     droplet_n2, pdata )
        else if ( indx .eq. index_s ) then
-          call update_new_droplet ( holes_ind, k, Arrive(isouth), &
+          call update_new_droplet ( holes_ind, ptrArrive(isouth), Arrive(isouth), &
                                     droplet_s2, pdata )
        else if ( indx .eq. index_w ) then
-          call update_new_droplet ( holes_ind, k, Arrive(iwest), &
+          call update_new_droplet ( holes_ind, ptrArrive(iwest), Arrive(iwest), &
                                     droplet_w2, pdata )
        else if ( indx .eq. index_e ) then
-          call update_new_droplet ( holes_ind, k, Arrive(ieast), &
+          call update_new_droplet ( holes_ind, ptrArrive(ieast), Arrive(ieast), &
                                     droplet_e2, pdata )
        else if ( indx .eq. index_nw ) then
-          call update_new_droplet ( holes_ind, k, Arrive(inw), &
+          call update_new_droplet ( holes_ind, ptrArrive(inw), Arrive(inw), &
                                     droplet_nw2, pdata )
        else if ( indx .eq. index_ne ) then
-          call update_new_droplet ( holes_ind, k, Arrive(ine), &
+          call update_new_droplet ( holes_ind, ptrArrive(ine), Arrive(ine), &
                                     droplet_ne2, pdata )
        else if ( indx .eq. index_sw ) then
-          call update_new_droplet ( holes_ind, k, Arrive(isw), &
+          call update_new_droplet ( holes_ind, ptrArrive(isw), Arrive(isw), &
                                     droplet_sw2, pdata )
        else if ( indx .eq. index_se ) then
-          call update_new_droplet ( holes_ind, k, Arrive(ise), &
+          call update_new_droplet ( holes_ind, ptrArrive(ise), Arrive(ise), &
                                     droplet_se2, pdata )
        else
           write(*,*) indx," is not a nearest neighbor for myid = ",myid
@@ -497,6 +500,7 @@ contains
        end if
        n = n + 1
     end do
+    if(timestats.ge.1) time_dropC4d=time_dropC4d+mytime()
 
     ! make sure that all the non-blocking MPI send operations are complete
 
@@ -511,13 +515,14 @@ contains
     ! compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots) 
 
-    if ( numArrive .lt. numDepart ) then
-       num_holes = numDepart - numArrive        ! number of "holes" we need to fill
+    num_tmp = numDepart+num_fallout
+    if ( numArrive .lt. num_tmp ) then
+       num_holes = num_tmp - numArrive        ! number of "holes" we need to fill
                                                 ! to make the active dropelts in 
                                                 ! the "pdata" contiguous
        last_active = nparcelsLocalActive
        i = 0
-       do n = 1, numDepart
+       do n = 1, num_tmp
           indx = holes_ind(n)
           if ( pdata(indx,pract) .lt. 0.0 ) then   ! this "hole" is not filled yet
              do k = last_active, indx, -1
@@ -540,6 +545,7 @@ contains
           end if
        end do
     end if
+    if(timestats.ge.1) time_dropC4e=time_dropC4e+mytime()
 
     ! free up the memory for temporary variables
 
@@ -560,13 +566,15 @@ contains
     if (allocated(droplet_sw1)) deallocate(droplet_sw1)
     if (allocated(droplet_sw2)) deallocate(droplet_sw2)
 
+    if(timestats.ge.1) time_dropC4f=time_dropC4f+mytime()
+
   end subroutine comm_droplet_value
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-  subroutine record_leaving_droplet ( np, neighbor_idx, leave_idx, &
+  subroutine packDroplets( dir_idx, Depart, ptrDepart, Depart_ind, &
                                       pdata, droplet_buffer )
 
   ! this subroutine is used to:
@@ -580,46 +588,156 @@ contains
 
   implicit none
 
-  integer, intent(in) :: np                                             ! droplet index in "pdata"
-  integer, intent(inout) :: neighbor_idx                                ! idx-th droplet to enter a certain neighbor 
-  integer, intent(inout) :: leave_idx                                   ! idx-th droplet leaves the current MPI region
-  real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata         ! the "pdata" with droplet information
-  real, intent(out), dimension(:,:) :: droplet_buffer                   ! array to save the information of leaving droplet
+  integer, intent(in)    :: dir_idx                              ! neighbor's directional index 
+  integer, intent(in), dimension(:) :: Depart                    ! number of droplets departing 
+  integer, intent(in), dimension(:) :: ptrDepart                 ! Pointer into the departure index "Depart_ind"
+  integer, intent(in), dimension(:) :: Depart_ind                !  Departure indices
+  real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata  ! the "pdata" with droplet information
+  real, intent(out), dimension(:,:) :: droplet_buffer            ! array to save the information of leaving droplet
+  integer :: i,iv,numDepart,np,iptr
 
-  droplet_buffer(neighbor_idx,:) = pdata(np,:)
-  neighbor_idx = neighbor_idx + 1
-  pdata(np,:) = neg_huge
-  leave_idx = leave_idx + 1
+  iptr = ptrDepart(dir_idx)
+  numDepart   = Depart(dir_idx)
+  !NEW !$acc parallel loop gang vector collapse(2) default(present)
+  do i=1,numDepart
+    do iv=1,npvals
+      np = Depart_ind(iptr+i-1)
+      droplet_buffer(i,iv) = pdata(np,iv)
+      pdata(np,iv) = neg_huge
+    enddo
+  enddo
 
-  end subroutine record_leaving_droplet
+  end subroutine packDroplets
+
+    subroutine setupIndexPointers(Cnt,ptrCnt)
+
+      use constants, only: num_nn,inorth,isouth, &
+                         iwest,ieast,inw,ine,isw,ise
+      implicit none
+
+      integer, intent(in) :: Cnt(num_nn) 
+      integer, intent(inout) :: ptrCnt(num_nn)
+
+      ! local variables
+      integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
+
+      ptrCnt(inorth) = 1
+      ptrCnt(isouth) = ptrCnt(inorth) + Cnt(inorth)
+      ptrCnt(ieast)  = ptrCnt(isouth) + Cnt(isouth)
+      ptrCnt(iwest)  = ptrCnt(ieast)  + Cnt(ieast)
+      ptrCnt(inw)    = ptrCnt(iwest)  + Cnt(iwest)
+      ptrCnt(ine)    = ptrCnt(inw)    + Cnt(inw)
+      ptrCnt(isw)    = ptrCnt(ine)    + Cnt(ine)
+      ptrCnt(ise)    = ptrCnt(isw)    + Cnt(isw)
+
+    end subroutine setupIndexPointers
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    subroutine setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
+
+      use input, only : mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth, &
+        nparcelsLocalActive
+      use constants, only: num_nn,inorth,isouth, &
+                         iwest,ieast,inw,ine,isw,ise,undefined_index
+
+      integer, intent(inout) :: ptrDepart(num_nn)
+!      integer, intent(inout) :: Depart(num_nn)
+
+      integer, intent(inout) :: Depart_ind(:)
+!      integer, intent(in) :: pdata_locind(:,:)
+      integer, intent(in) :: pdata_neighbor(:)
+
+      ! local variables
+      integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
+      integer np
+
+      n_idx  = ptrDepart(inorth)
+      s_idx  = ptrDepart(isouth)
+      e_idx  = ptrDepart(ieast)
+      w_idx  = ptrDepart(iwest)
+      nw_idx = ptrDepart(inw)
+      ne_idx = ptrDepart(ine)
+      sw_idx = ptrDepart(isw)
+      se_idx = ptrDepart(ise)
+
+      !NEW !$acc parallel loop gang vector default(present)
+      do np=1, nparcelsLocalActive
+        if(pdata_neighbor(np) .eq. mynorth) then
+          !NEW !$acc atomic capture
+          Depart_ind(n_idx) = np
+          n_idx=n_idx+1
+          !NEW !$acc end atomic
+        else if(pdata_neighbor(np) .eq. mysouth) then
+          !NEW !$acc atomic capture
+          Depart_ind(s_idx) = np
+          s_idx=s_idx+1
+          !NEW !$acc end atomic
+        else if(pdata_neighbor(np) .eq. mywest) then
+          !NEW !$acc atomic capture
+          Depart_ind(w_idx) = np
+          w_idx=w_idx+1
+          !NEW !$acc end atomic
+        else if(pdata_neighbor(np) .eq. myeast) then
+          !NEW !$acc atomic capture
+          Depart_ind(e_idx) = np
+          e_idx=e_idx+1
+          !NEW !$acc end atomic
+        else if(pdata_neighbor(np) .eq. mynw) then
+          !NEW !$acc atomic capture
+          Depart_ind(nw_idx) = np
+          nw_idx=nw_idx+1
+          !NEW !$acc end atomic
+        else if(pdata_neighbor(np) .eq. myne) then
+          !NEW !$acc atomic capture
+          Depart_ind(ne_idx) = np
+          ne_idx=ne_idx+1
+          !NEW !$acc end atomic
+        else if(pdata_neighbor(np) .eq. mysw) then
+          !NEW !$acc atomic capture
+          Depart_ind(sw_idx) = np
+          sw_idx=sw_idx+1
+          !NEW !$acc end atomic
+        else if(pdata_neighbor(np) .eq. myse) then
+          !NEW !$acc atomic capture
+          Depart_ind(se_idx) = np
+          se_idx=se_idx+1
+          !NEW !$acc end atomic
+        endif
+      enddo
+
+     end subroutine setupDepartDroplet
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-  subroutine update_new_droplet ( holes_ind, hole_idx, new_count, &
-                                  droplet_buffer, pdata )
+     subroutine update_new_droplet ( holes_ind, hole_idx, new_count, &
+                              droplet_buffer, pdata )
 
-  ! this subroutine is used to update the new droplet information
-  ! to the "pdata" array on a particular MPI rank after the MPI communication
+     ! this subroutine is used to update the new droplet information
+     ! to the "pdata" array on a particular MPI rank after the MPI communication
 
-  use input, only : npvals,nparcelsLocal
+     use input, only : npvals,nparcelsLocal
 
-  implicit none
+     implicit none
 
-  integer, intent(in), dimension(:) :: holes_ind                        ! array to store the location index of "holes" in "pdata"
-  integer, intent(inout) :: hole_idx                                    ! hole_idx-th "hole" index in "pdata"
-  integer, intent(in) :: new_count                                      ! number of new droplets entering the current
-                                                                        ! MPI region from a particular neighbor
-  real, intent(in), dimension(:,:) :: droplet_buffer                    ! array to save the information of new droplets
-  real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata         ! the "pdata" with droplet information
+     integer, intent(in), dimension(:) :: holes_ind                  ! array to store the location index of "holes" in "pdata"
+     integer, intent(in) :: hole_idx                              ! Pointer to the begining of the holes_ind
+     integer, intent(in) :: new_count                                ! number of new droplets entering the current
+                                                                     ! MPI region from a particular neighbor
+     real, intent(in), dimension(:,:) :: droplet_buffer              ! array to save the information of new droplets
+     real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata   ! the "pdata" with droplet information
 
-  integer :: i
+     integer :: i,iptr,iv
 
-  do i = 1, new_count
-     pdata(holes_ind(hole_idx),:) = droplet_buffer(i,:)
-     hole_idx = hole_idx + 1
-  end do
+     !NEW !$acc parallel loop gang vector collapse(2) default(present)
+     do i = 1, new_count
+       do iv=1,npvals
+         iptr = holes_ind(hole_idx+i-1)
+         pdata(iptr,iv) = droplet_buffer(i,iv)
+       end do
+     end do
 
   end subroutine update_new_droplet
 

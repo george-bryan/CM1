@@ -3666,7 +3666,6 @@ end module cuda_rt
             enddo
             !$acc end parallel
           ENDIF
-!#if 0
           call          writeout(frec,urec,vrec,wrec,mrec,rtime,dt,fnum,nwrite,qname,qunit,    &
                         nstep,mtime,adt,ndt,                                                   &
                         name_output,desc_output,unit_output,grid_output,cmpr_output,           &
@@ -3701,7 +3700,6 @@ end module cuda_rt
                         bndy,kbdy,hflxw,hflxe,hflxs,hflxn,                                     &
                         nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,myi1p,myi2p,myj1p,myj2p)
                         ! end_writeout
-!#endif
                         
           if(n.eq.1)then
             srec = frec
@@ -4063,7 +4061,9 @@ end module cuda_rt
                     time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                     time_mps1+time_mps3+time_mpq1+time_mptk1+                         &
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
-                    time_dpc+time_droplet_reduce+time_parceli_reduce+time_lb+         &
+                    time_dpc+time_parceli_reduce+time_lb+         &
+                    time_dropC1+time_dropC2+time_dropC3+time_dropC4+ &
+                    time_dropC4a+time_dropC4b+time_dropC4c+time_dropC4d+time_dropC4e+time_dropC4f+ &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
                     time_phys_H2D + time_phys_D2H
@@ -4396,8 +4396,17 @@ end module cuda_rt
         time_droplet_inject = sum/float(numprocs)
 
         sum = 0.0
-        call MPI_REDUCE(time_droplet_reduce ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
-        time_droplet_reduce = sum/float(numprocs)
+        call MPI_REDUCE(time_dropC1 ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_dropC1 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_dropC2 ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_dropC2 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_dropC3 ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_dropC3 = sum/float(numprocs)
+        sum = 0.0
+        call MPI_REDUCE(time_dropC4 ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_dropC4 = sum/float(numprocs)
 
         sum = 0.0
         call MPI_REDUCE(time_parceli_reduce ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
@@ -4478,7 +4487,9 @@ end module cuda_rt
                   time_mpu2+time_mpv2+time_mpw2+time_mpp2+                &
                   time_mps1+time_mps3+time_mpq1+time_mptk1+                     &
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
-                  time_dpc+time_droplet_reduce+time_lb+                         &
+                  time_dpc+time_lb+                         &
+                  time_dropC1+time_dropC2+time_dropC3+time_dropC4+ &
+                  time_dropC4a+time_dropC4b+time_dropC4c+time_dropC4d+time_dropC4e+time_dropC4f+ &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
                   time_phys_H2D+time_phys_D2H
@@ -4601,7 +4612,16 @@ end module cuda_rt
       write(outfile,100) 'mptk1   ',time_mptk1,time_mptk1/time_solve
       write(outfile,100) 'mptk2   ',time_mptk2,time_mptk2/time_solve
       write(outfile,100) 'mpb     ',time_mpb,time_mpb/time_solve
-      write(outfile,100) 'dropletA',time_droplet_reduce,time_droplet_reduce/time_solve
+      write(outfile,100) 'dropC1  ',time_dropC1,time_dropC1/time_solve
+      write(outfile,100) 'dropC2  ',time_dropC2,time_dropC2/time_solve
+      write(outfile,100) 'dropC3  ',time_dropC3,time_dropC3/time_solve
+      write(outfile,100) 'dropC4  ',time_dropC4,time_dropC4/time_solve
+      write(outfile,100) 'dropC4a ',time_dropC4a,time_dropC4a/time_solve
+      write(outfile,100) 'dropC4b ',time_dropC4b,time_dropC4b/time_solve
+      write(outfile,100) 'dropC4c ',time_dropC4c,time_dropC4c/time_solve
+      write(outfile,100) 'dropC4d ',time_dropC4d,time_dropC4d/time_solve
+      write(outfile,100) 'dropC4e ',time_dropC4e,time_dropC4e/time_solve
+      write(outfile,100) 'dropC4f ',time_dropC4f,time_dropC4f/time_solve
       write(outfile,100) 'parceliA',time_parceli_reduce,time_parceli_reduce/time_solve
       write(outfile,100) 'dpc     ',time_dpc,time_dpc/time_solve
 #endif

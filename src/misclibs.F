@@ -4474,7 +4474,9 @@
           time_misc17,time_misc18,time_misc19,time_misc20,time_misc21,time_misc22, &
           time_misc23,time_integ,time_rdamp,time_divx,time_write,time_nvtx,time_restart, &
           time_ttend,time_cor,time_fall,time_satadj,time_sfcphys,time_parcels,time_parceli, &
-          time_droplet,time_droplet_reduce,time_droplet_inject, time_parceli_reduce,time_rad,time_pbl,time_swath, &
+          time_droplet,time_dropC1,time_dropC2,time_dropC3,time_dropC4, &
+          time_dropC4a,time_dropC4b,time_dropC4c,time_dropC4d,time_dropC4e,time_dropC4f, &
+          time_droplet_inject, time_parceli_reduce,time_rad,time_pbl,time_swath, &
           time_pdef,time_prsrho,time_diag,time_azimavg,time_hifrq,time_ercyl,time_mpu1, &
           time_mpv1,time_mpw1,time_mpp1,time_mpu2,time_mpv2,time_mpw2,time_mpp2,time_mps1, &
           time_mps3,time_mpq1,time_mptk1,time_mptk2,time_mps2,time_mps4,time_mpq2,time_mpb, &
@@ -4542,7 +4544,16 @@
       time_parcels=0.0
       time_parceli=0.0
       time_droplet=0.0
-      time_droplet_reduce=0.0
+      time_dropC1=0.0
+      time_dropC2=0.0
+      time_dropC3=0.0
+      time_dropC4=0.0
+      time_dropC4a=0.0
+      time_dropC4b=0.0
+      time_dropC4c=0.0
+      time_dropC4d=0.0
+      time_dropC4e=0.0
+      time_dropC4f=0.0
       time_droplet_inject=0.0
       time_parceli_reduce=0.0
       time_rad=0.0
