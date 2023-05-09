@@ -722,7 +722,7 @@ contains
      implicit none
 
      integer, intent(in), dimension(:) :: holes_ind                  ! array to store the location index of "holes" in "pdata"
-     integer, intent(inout) :: hole_idx                              ! Pointer to the begining of the holes_ind
+     integer, intent(in) :: hole_idx                              ! Pointer to the begining of the holes_ind
      integer, intent(in) :: new_count                                ! number of new droplets entering the current
                                                                      ! MPI region from a particular neighbor
      real, intent(in), dimension(:,:) :: droplet_buffer              ! array to save the information of new droplets
