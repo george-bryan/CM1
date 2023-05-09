@@ -453,6 +453,17 @@
     ENDDO  nploop
     !$acc end parallel
 
+
+    !Now that the tendency terms are computed, need to adjust the thten by the exner function:
+    do k=kb,ke
+    do j=jb,je
+    do i=ib,ie
+       thten(i,j,k) = thten(i,j,k)*pi0(i,j,k)
+    enddo
+    enddo
+    enddo
+   
+
     !$acc end data
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 

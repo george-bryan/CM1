@@ -1855,6 +1855,7 @@
 
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  pdata prec = ',prec
+        if(dowr) write(outfile,*) '  writing for total number of parcels:',nparcelstot
 
 #ifdef MPI
         write(61) rbuf(0:nparcelstot-1,0:npvals-1)
