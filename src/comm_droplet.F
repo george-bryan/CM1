@@ -182,6 +182,7 @@ contains
     if ( sum(Arrive) .gt. size(holes_ind) ) then
         write(*,*) "Too many new droplets will enter the MPI rank: ", myid
         write(*,*) "Arriving, holes to fill: ", sum(Arrive),size(holes_ind)
+        write(*,*) "nparcelsLocalActive,nparcelsLocal",nparcelsLocalActive,nparcelsLocal
         stop "Stop the program ..."
     end if
 
