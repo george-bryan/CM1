@@ -33,7 +33,7 @@
 
   ! set this variable to ".true." to rebounce the particles
   ! falling off the bottom (i.e., conserve the total droplet number)
-  logical, parameter :: use_wall_bc = .true.
+  logical, parameter :: use_wall_bc = .false.
 
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
   logical, parameter :: random_droplets = .true.
