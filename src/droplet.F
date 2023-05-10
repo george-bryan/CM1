@@ -166,6 +166,7 @@
 
       integer :: n_idx,s_idx,e_idx,w_idx,sw_idx,nw_idx,se_idx,ne_idx
 
+      logical, parameter :: verbose=.true.
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
 #endif
@@ -537,23 +538,28 @@
 
      allocate(holes_ind(numHoles))
 
-     !NEW !$acc data create(Depart_ind,holes_ind)
-     !NEW !$acc parallel loop gang vector default(present)
+     i=1
+     !JMD !$acc data copyin(i) copy(holes_ind)
+
+     !JMD !$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
      end do
 
-     i=1
-     !NEW !$acc parallel loop gang vector default(present)
+     !JMD The following is correct but super slow
+     !JMD !$acc parallel default(present)
+     !JMD !$acc loop seq
      do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
-          !NEW !$acc atomic capture
+          !!$acc atomic capture
           holes_ind(i) = np
           i = i + 1
-          !NEW !$acc end atomic
+          !!$acc end atomic
        end if
      end do
+     !JMD !$acc end parallel
+     !JMD !$acc end data 
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
@@ -561,23 +567,13 @@
      ! Step 2: Setup the indirect addresses for the droplets that are departing
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call setupIndexPointers(Depart,ptrDepart)
+     call setupIndexPointers(Depart,ptrDepart)
 
-    call setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
+     call setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
 
-    if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
+     if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
 #ifdef MPI
-    !if(verbose) then 
-    !  if(num_fallout .ne.0) then
-    !    write(*,*) 'num_fallout: ',num_fallout,'myid: ',myid
-    !    call flush(6)
-    !  endif
-    !
-    !  write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ',myid,' numHoles: ',numHoles
-    !  write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Depart: ',Depart
-    !  call flush(6)
-    !endif
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 3: Exchange the number of droplets that will enter/leave !
     !         the current MPI region with its nearest neighbor      !
@@ -587,6 +583,18 @@
                              pdata_locind,pdata_neighbor)
 
     call setupIndexPointers(Arrive,ptrArrive)
+
+    if(verbose) then 
+      if(num_fallout .ne.0) then
+        write(*,*) 'num_fallout: ',num_fallout,'myid: ',myid
+        call flush(6)
+      endif
+    
+      write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ',myid,' numHoles: ',numHoles
+      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Depart: ',Depart
+      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Arrive: ',Arrive
+      call flush(6)
+    endif
 
     if(timestats.ge.1) time_dropC3=time_dropC3+mytime()
 
@@ -646,10 +654,11 @@
 
 #endif
 
-    !NEW $acc end data 
+    !NEW !$acc end data 
     ! free up the memory for temporary variables
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
+
 
 
 !----------------------------------------------------------------------
@@ -755,6 +764,7 @@
   
    !$acc update device(pdata,pdata_locind)
    !$acc exit data delete (ta)
+
 
    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
