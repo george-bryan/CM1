@@ -603,9 +603,7 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
-
-
+    nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
 
 #else
 
