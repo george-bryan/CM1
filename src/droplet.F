@@ -539,16 +539,15 @@
      allocate(holes_ind(numHoles))
 
      i=1
-     !JMD !$acc data copyin(i) copy(holes_ind)
+     !$acc data copyin(i) copy(holes_ind)
 
-     !JMD !$acc parallel loop gang vector default(present)
+     !$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
      end do
 
-     !JMD The following is correct but super slow
-     !JMD !$acc parallel default(present)
-     !JMD !$acc loop seq
+     !$acc parallel default(present)
+     !$acc loop seq
      do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
@@ -558,8 +557,8 @@
           !!$acc end atomic
        end if
      end do
-     !JMD !$acc end parallel
-     !JMD !$acc end data 
+     !$acc end parallel
+     !$acc end data 
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
@@ -569,7 +568,9 @@
 
      call setupIndexPointers(Depart,ptrDepart)
 
+     !$acc data copyin(ptrDepart,pdata_neighbor) copy(Depart_ind)
      call setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
+     !$acc end data
 
      if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
@@ -579,8 +580,7 @@
     !         the current MPI region with its nearest neighbor      !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    call comm_droplet_number(numHoles,Depart,Arrive,pdata, &
-                             pdata_locind,pdata_neighbor)
+    call comm_droplet_number(numHoles,Depart,Arrive)
 
     call setupIndexPointers(Arrive,ptrArrive)
 
@@ -604,7 +604,7 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
-                            ptrDepart,ptrArrive, pdata, pdata_locind,pdata_neighbor,num_fallout)
+                            ptrDepart,ptrArrive, pdata, pdata_locind,num_fallout)
 
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
