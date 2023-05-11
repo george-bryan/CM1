@@ -64,7 +64,7 @@
 
       integer, parameter :: undefined_index = -100
 
-      real, parameter :: pdata_buffer = 0.10      ! additional storage space for pdata from
+      real, parameter :: pdata_buffer = 0.50      ! additional storage space for pdata from
                                                   ! each MPI rank to account for the droplet
                                                   ! communication between MPI ranks;
                                                   ! this is a percent of
