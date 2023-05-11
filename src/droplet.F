@@ -487,21 +487,24 @@
                             sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                             rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
 
-    ENDDO  nploop
+    END DO ! nploop
     !$acc end parallel
 
-
     !Now that the tendency terms are computed, need to adjust the thten by the exner function:
+
+    !$acc parallel default(present)
+    !$acc loop gang vector collapse(3)
     do k=kb,ke
-    do j=jb,je
-    do i=ib,ie
-       thten(i,j,k) = thten(i,j,k)*pi0(i,j,k)
-    enddo
-    enddo
-    enddo
-   
+       do j=jb,je
+          do i=ib,ie
+             thten(i,j,k) = thten(i,j,k)*pi0(i,j,k)
+          end do
+       end do
+    end do
+    !$acc end parallel   
 
     !$acc end data
+
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
     !$acc update host(pdata,pdata_locind,ua,va,wa,ta,qa,rho,prs)
@@ -536,14 +539,13 @@
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
-
-
+!  note Step 1 
      ! JS: send/receive the droplet information through MPI;
      !     all the calculations below are done on CPU
 
-     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     ! Step 1: Allocate and assign the "hole" index array and initialize  it
-     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Step 1: Allocate and assign the "hole" index array and initialize it !
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      allocate(holes_ind(numHoles))
 
@@ -567,8 +569,9 @@
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
+#ifdef MPI
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     ! Step 2: Setup the indirect addresses for the droplets that are departing
+     ! Step 2: Setup the indirect addresses for the droplets that are departing !
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     call setupIndexPointers(Depart,ptrDepart)
@@ -577,17 +580,6 @@
 
     if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
-#ifdef MPI
-    !if(verbose) then 
-    !  if(num_fallout .ne.0) then
-    !    write(*,*) 'num_fallout: ',num_fallout,'myid: ',myid
-    !    call flush(6)
-    !  endif
-    !
-    !  write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ',myid,' numHoles: ',numHoles
-    !  write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Depart: ',Depart
-    !  call flush(6)
-    !endif
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 3: Exchange the number of droplets that will enter/leave !
     !         the current MPI region with its nearest neighbor      !
@@ -622,19 +614,10 @@
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
 !  num_fallout already contains the number which have fallen out
 
-!   allocate(holes_fallout_ind(num_fallout))
-
-!   !List the spots in pdata which have "dead" particles
-!   idx=1
-!   do np=1,nparcelsLocalActive
-!      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
-!         holes_fallout_ind(idx) = np
-!         idx=idx+1
-!      end if
-!   end do
-
    !Now transfer these to the end of the pdata list
    !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
+
+   ! JS: need to gpu-enable the following code section for a non-MPI run
    do np=numHoles,1,-1
       if (holes_ind(np) .eq. nparcelsLocalActive) then
          nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
@@ -655,10 +638,10 @@
 #endif
 
     !NEW $acc end data 
+
     ! free up the memory for temporary variables
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
-
 
 !----------------------------------------------------------------------
 !  get height ASL:
