@@ -5358,7 +5358,6 @@
         !$acc parallel loop vector collapse(2) default(present) reduction(+:ustbar,zntbar)
         do j=1,nj
         do i=1,ni
-!!!          ustbar = ustbar + ust(i,j)
           ustbar = ustbar + sqrt(sqrt( (0.5*(s13(i,j,1)+s13(i+1,j,1)))**2  &
                                       +(0.5*(s23(i,j,1)+s23(i,j+1,1)))**2  &
                                      )/rf(i,j,1))
@@ -5377,8 +5376,6 @@
         ustbar = ustbar*teme
         zntbar = zntbar*teme
 
-
-        !print *,'t2pcode: point #3'
         !$acc parallel loop gang vector default(present) private(k)
         do k=1,(ntwk+1)
           wspa(k) = (ustbar/karman)*alog( sngl(zh(1,1,k)/zntbar) )
@@ -5392,10 +5389,8 @@
   ! GHB, 220308:  NOTE: open-acc is probably broken now (sorry)
   !
 
-        !print *,'t2pcode: point #4'
       !$acc parallel default(present) private(i,j) &
       !$acc reduction(+:t13avgt,t23avgt,rfavgt)
-
       !$acc loop gang
       kloop1:  &
       DO k=1,(ntwk-1)
@@ -5422,7 +5417,6 @@
       ENDDO  kloop1
       !$acc end parallel
 
-        !print *,'t2pcode: point #5'
 #ifdef MPI
         !$acc host_data use_device(t13avg,t23avg,rfavg)
         call MPI_ALLREDUCE(MPI_IN_PLACE,t13avg,ntwk-1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
@@ -5447,7 +5441,6 @@
       ufw = 0.0
       vfw = 0.0
 
-        !print *,'t2pcode: point #6'
 !!!  GHB, 220309: commented out open-acc commands. This will be difficult to
 !!!               parallelize, because of the "marching" mentioned above.  But
 !!!               it's a small calculation, so probably not a big deal...?
@@ -5489,9 +5482,7 @@
       enddo
       !$acc end parallel
 
-
     !-------------------------------------------
-        !print *,'t2pcode: point #7'
 
     endif  doingt2p
     !$acc end data
