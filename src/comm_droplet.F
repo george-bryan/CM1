@@ -251,7 +251,7 @@ contains
     numDepart = sum(Depart)
     numArrive = sum(Arrive)
 
-    ! allocate spaces to store the droplets that will leave the current MPI region
+     ! allocate spaces to store the droplets that will leave the current MPI region
 
      if ( Depart(inorth) .ne. 0 ) allocate(droplet_n1(Depart(inorth),npvals))
      if ( Depart(isouth) .ne. 0 ) allocate(droplet_s1(Depart(isouth),npvals))
@@ -262,14 +262,26 @@ contains
      if ( Depart(isw) .ne. 0 ) allocate(droplet_sw1(Depart(isw),npvals))
      if ( Depart(ise) .ne. 0 ) allocate(droplet_se1(Depart(ise),npvals))
 
-     !$acc update device(pdata)
+     ! allocate temporary arrays if there are new droplets from the nearest neighbor
+
+     if ( Arrive(inorth) .ne. 0 ) allocate(droplet_n2(Arrive(inorth),npvals))
+     if ( Arrive(isouth) .ne. 0 ) allocate(droplet_s2(Arrive(isouth),npvals))
+     if ( Arrive(iwest) .ne. 0 ) allocate(droplet_w2(Arrive(iwest),npvals))
+     if ( Arrive(ieast) .ne. 0 ) allocate(droplet_e2(Arrive(ieast),npvals))
+     if ( Arrive(inw) .ne. 0 ) allocate(droplet_nw2(Arrive(inw),npvals))
+     if ( Arrive(ine) .ne. 0 ) allocate(droplet_ne2(Arrive(ine),npvals))
+     if ( Arrive(isw) .ne. 0 ) allocate(droplet_sw2(Arrive(isw),npvals))
+     if ( Arrive(ise) .ne. 0 ) allocate(droplet_se2(Arrive(ise),npvals))
+
+     !$acc data create(droplet_n1,droplet_s1,droplet_w1,droplet_e1,     &
+     !$acc             droplet_nw1,droplet_ne1,droplet_sw1,droplet_se1, &
+     !$acc             droplet_n2,droplet_s2,droplet_w2,droplet_e2,     &
+     !$acc             droplet_nw2,droplet_ne2,droplet_sw2,droplet_se2)
+
      if(timestats.ge.1) time_dropC4a=time_dropC4a+mytime()
 
      ! extract the information of droplets that will leave the current MPI region 
      ! and reset the corresponding "pdata" record to a large negative value
-     !!$acc data create(droplet_n1,droplet_s1,droplet_w1,droplet_e1,     &
-     !!$acc             droplet_nw1,droplet_ne1,droplet_sw1,droplet_se1)
-
      ! pack up droplet send buffers and mark departed droplets in pdata
      if(Depart(inorth) .gt. 0) &
         call packDroplets(inorth, Depart, ptrDepart, Depart_ind, pdata, droplet_n1)
@@ -297,94 +309,82 @@ contains
 
      if(timestats.ge.1) time_dropC4b=time_dropC4b+mytime()
 
-     ! allocate temporary arrays if there are new droplets from the nearest neighbor
-
-     if ( Arrive(inorth) .ne. 0 ) allocate(droplet_n2(Arrive(inorth),npvals))
-     if ( Arrive(isouth) .ne. 0 ) allocate(droplet_s2(Arrive(isouth),npvals))
-     if ( Arrive(iwest) .ne. 0 ) allocate(droplet_w2(Arrive(iwest),npvals))
-     if ( Arrive(ieast) .ne. 0 ) allocate(droplet_e2(Arrive(ieast),npvals))
-     if ( Arrive(inw) .ne. 0 ) allocate(droplet_nw2(Arrive(inw),npvals))
-     if ( Arrive(ine) .ne. 0 ) allocate(droplet_ne2(Arrive(ine),npvals))
-     if ( Arrive(isw) .ne. 0 ) allocate(droplet_sw2(Arrive(isw),npvals))
-     if ( Arrive(ise) .ne. 0 ) allocate(droplet_se2(Arrive(ise),npvals))
 
      ! initiate the MPI non-blocking receive interface to 
      ! obtain new droplet information from the nearest neighbors
-     !!$acc data create(droplet_n2,droplet_s2,droplet_w2,droplet_e2,     &
-     !!$acc             droplet_nw2,droplet_ne2,droplet_sw2,droplet_se2)
      if(timestats.ge.1) time_dropC4c=time_dropC4c+mytime()
 
      n_recv   = 0
      if ( Arrive(inorth) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(inorth,2)  = 1000 + Arrive(inorth)
-       !!$acc host_data use_device(droplet_n2)
+       !$acc host_data use_device(droplet_n2)
        call mpi_irecv(droplet_n2,Arrive(inorth)*npvals,MPI_REAL, &
                       mynorth,tag(inorth,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_n = n_recv
      end if
      if ( Arrive(isouth) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(isouth,2)  = 1000 + Arrive(isouth)
-       !!$acc host_data use_device(droplet_s2)
+       !$acc host_data use_device(droplet_s2)
        call mpi_irecv(droplet_s2,Arrive(isouth)*npvals,MPI_REAL, &
                       mysouth,tag(isouth,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_s = n_recv
      end if
      if ( Arrive(iwest) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(iwest,2)  = 1000 + Arrive(iwest)
-       !!$acc host_data use_device(droplet_w2)
+       !$acc host_data use_device(droplet_w2)
        call mpi_irecv(droplet_w2,Arrive(iwest)*npvals,MPI_REAL, &
                       mywest,tag(iwest,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_w = n_recv
      end if
      if ( Arrive(ieast) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(ieast,2)  = 1000 + Arrive(ieast)
-       !!$acc host_data use_device(droplet_e2)
+       !$acc host_data use_device(droplet_e2)
        call mpi_irecv(droplet_e2,Arrive(ieast)*npvals,MPI_REAL, &
                       myeast,tag(ieast,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_e = n_recv
      end if
      if ( Arrive(inw) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(inw,2) = 1000 + Arrive(inw)
-       !!$acc host_data use_device(droplet_nw2)
+       !$acc host_data use_device(droplet_nw2)
        call mpi_irecv(droplet_nw2,Arrive(inw)*npvals,MPI_REAL, &
                       mynw,tag(inw,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_nw = n_recv
      end if
      if ( Arrive(ine) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(ine,2) = 1000 + Arrive(ine)
-       !!$acc host_data use_device(droplet_ne2)
+       !$acc host_data use_device(droplet_ne2)
        call mpi_irecv(droplet_ne2,Arrive(ine)*npvals,MPI_REAL, &
                       myne,tag(ine,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_ne = n_recv
      end if
      if ( Arrive(isw) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(isw,2) = 1000 + Arrive(isw)
-       !!$acc host_data use_device(droplet_sw2)
+       !$acc host_data use_device(droplet_sw2)
        call mpi_irecv(droplet_sw2,Arrive(isw)*npvals,MPI_REAL, &
                       mysw,tag(isw,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_sw = n_recv
      end if
      if ( Arrive(ise) .ne. 0 ) then
        n_recv = n_recv + 1
        tag(ise,2) = 1000 + Arrive(ise)
-       !!$acc host_data use_device(droplet_se2)
+       !$acc host_data use_device(droplet_se2)
        call mpi_irecv(droplet_se2,Arrive(ise)*npvals,MPI_REAL, &
                       myse,tag(ise,2),MPI_COMM_WORLD,reqs(n_recv),ierr)
-       !!$acc end host_device
+       !$acc end host_data
        index_se = n_recv
      end if
 
@@ -395,66 +395,66 @@ contains
      if ( Depart(inorth) .ne. 0 ) then
        n_send = n_send + 1
        tag(isouth,1) = 1000 + Depart(inorth)
-       !!$acc host_data use_device(droplet_n1)
+       !$acc host_data use_device(droplet_n1)
        call mpi_isend(droplet_n1,Depart(inorth)*npvals,MPI_REAL, &
                       mynorth,tag(isouth,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
      if ( Depart(isouth) .ne. 0 ) then
        n_send = n_send + 1
        tag(inorth,1) = 1000 + Depart(isouth)
-       !!$acc host_data use_device(droplet_s1)
+       !$acc host_data use_device(droplet_s1)
        call mpi_isend(droplet_s1,Depart(isouth)*npvals,MPI_REAL, &
                       mysouth,tag(inorth,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
      if ( Depart(iwest) .ne. 0 ) then
        n_send = n_send + 1
        tag(ieast,1) = 1000 + Depart(iwest)
-       !!$acc host_data use_device(droplet_w1)
+       !$acc host_data use_device(droplet_w1)
        call mpi_isend(droplet_w1,Depart(iwest)*npvals,MPI_REAL, &
                       mywest,tag(ieast,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
      if ( Depart(ieast) .ne. 0 ) then
        n_send = n_send + 1
        tag(iwest,1) = 1000 + Depart(ieast)
-       !!$acc host_data use_device(droplet_e1)
+       !$acc host_data use_device(droplet_e1)
        call mpi_isend(droplet_e1,Depart(ieast)*npvals,MPI_REAL, &
                       myeast,tag(iwest,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
      if ( Depart(inw) .ne. 0 ) then
        n_send = n_send + 1
        tag(ise,1) = 1000 + Depart(inw)
-       !!$acc host_data use_device(droplet_nw1)
+       !$acc host_data use_device(droplet_nw1)
        call mpi_isend(droplet_nw1,Depart(inw)*npvals,MPI_REAL, &
                       mynw,tag(ise,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
      if ( Depart(ine) .ne. 0 ) then
        n_send = n_send + 1
        tag(isw,1) = 1000 + Depart(ine)
-       !!$acc host_data use_device(droplet_ne1)
+       !$acc host_data use_device(droplet_ne1)
        call mpi_isend(droplet_ne1,Depart(ine)*npvals,MPI_REAL, &
                       myne,tag(isw,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
      if ( Depart(isw) .ne. 0 ) then
        n_send = n_send + 1
        tag(ine,1) = 1000 + Depart(isw)
-       !!$acc host_data use_device(droplet_sw1)
+       !$acc host_data use_device(droplet_sw1)
        call mpi_isend(droplet_sw1,Depart(isw)*npvals,MPI_REAL, &
                       mysw,tag(ine,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
      if ( Depart(ise) .ne. 0 ) then
        n_send = n_send + 1
        tag(inw,1) = 1000 + Depart(ise)
-       !!$acc host_data use_device(droplet_se1)
+       !$acc host_data use_device(droplet_se1)
        call mpi_isend(droplet_se1,Depart(ise)*npvals,MPI_REAL, &
                       myse,tag(inw,1),MPI_COMM_WORLD,reqs(n_send),ierr)
-       !!$acc end host_device
+       !$acc end host_data
      end if
 
      ! update the "holes" in "pdata" with the new droplets that
@@ -485,8 +485,8 @@ contains
        end if
        n = n + 1
      end do
-     !$acc update host(pdata)
      if(timestats.ge.1) time_dropC4d=time_dropC4d+mytime()
+     !$acc update host(pdata)
 
     ! make sure that all the non-blocking MPI send operations are complete
 
@@ -534,6 +534,7 @@ contains
      if(timestats.ge.1) time_dropC4e=time_dropC4e+mytime()
 
      ! free up the memory for temporary variables
+     !$acc end data
 
      if (allocated(droplet_n1))  deallocate(droplet_n1)
      if (allocated(droplet_n2))  deallocate(droplet_n2)
@@ -582,7 +583,6 @@ contains
   real, intent(out), dimension(:,:) :: droplet_buffer            ! array to save the information of leaving droplet
   integer :: i,iv,numDepart,np,iptr
 
-     !$acc data copyin(Depart_ind,Depart,ptrDepart) copy(droplet_buffer)
      iptr = ptrDepart(dir_idx)
      numDepart   = Depart(dir_idx)
      !$acc parallel loop gang vector collapse(2) default(present)
@@ -593,7 +593,6 @@ contains
          pdata(np,iv) = neg_huge
        enddo
      enddo
-     !$acc end data
 
   end subroutine packDroplets
 
@@ -642,7 +641,6 @@ contains
 
       !JMD Do we need to sort the Depart_ind to reproduce order to
       !JMD make debugging easier?
-      !!$acc data copyin(ptrDepart) copy(Depart_ind)
       !$acc parallel default(present)
       n_idx  = ptrDepart(inorth)
       s_idx  = ptrDepart(isouth)
@@ -697,7 +695,6 @@ contains
         endif
       enddo
       !$acc end parallel
-      !!$acc end data
 
      end subroutine setupDepartDroplet
 
@@ -726,7 +723,6 @@ contains
 
      ptr = ptrArrive(dir_idx)
      numArrive = Arrive(dir_idx)
-     !$acc data copyin(holes_ind,ptr,numArrive,droplet_buffer(:numArrive,:npvals))
      !$acc parallel loop gang vector collapse(2) default(present)
      do i = 1, numArrive
        do iv=1,npvals
@@ -734,7 +730,6 @@ contains
          pdata(iptr,iv) = droplet_buffer(i,iv)
        end do
      end do
-     !$acc end data
 
   end subroutine update_new_droplet
 

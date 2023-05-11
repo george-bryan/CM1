@@ -495,7 +495,7 @@
     !$acc end data
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-    !$acc update host(pdata,pdata_locind,ua,va,wa,ta,qa,rho,prs)
+    !$acc update host(pdata_locind,ua,va,wa,ta,qa,rho,prs)
 
     if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
@@ -539,15 +539,15 @@
      allocate(holes_ind(numHoles))
 
      i=1
-     !$acc data copyin(i) copy(holes_ind)
+     !!$acc data copyin(i) copy(holes_ind)
 
-     !$acc parallel loop gang vector default(present)
+     !!$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
      end do
 
-     !$acc parallel default(present)
-     !$acc loop seq
+     !!$acc parallel default(present)
+     !!$acc loop seq
      do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
@@ -557,8 +557,8 @@
           !!$acc end atomic
        end if
      end do
-     !$acc end parallel
-     !$acc end data 
+     !!$acc end parallel
+     !!$acc end data 
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
@@ -590,9 +590,9 @@
         call flush(6)
       endif
     
-      write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ',myid,' numHoles: ',numHoles
-      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Depart: ',Depart
-      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Arrive: ',Arrive
+      write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ', myid, ' numHoles: ', numHoles
+      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ', myid, ' Depart: ', Depart
+      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ', myid, ' Arrive: ', Arrive
       call flush(6)
     endif
 
@@ -602,10 +602,12 @@
     ! Step 4: Exchange the detailed information of the droplets that will  !
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !$acc data copyin(holes_ind,Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
 
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
                             ptrDepart,ptrArrive, pdata, pdata_locind,num_fallout)
 
+    !$acc end data
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -613,8 +615,6 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
-
-
 
 #else
 
