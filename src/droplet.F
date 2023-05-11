@@ -487,7 +487,7 @@
                             sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                             rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
 
-    END DO ! nploop
+    END DO nploop
     !$acc end parallel
 
     !Now that the tendency terms are computed, need to adjust the thten by the exner function:
