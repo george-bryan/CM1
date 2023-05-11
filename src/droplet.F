@@ -539,7 +539,8 @@
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
-!  note Step 1 
+!  note Step 1 is also needed for a non-MPI run
+
      ! JS: send/receive the droplet information through MPI;
      !     all the calculations below are done on CPU
 
