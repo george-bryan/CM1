@@ -13,6 +13,7 @@ private
 
 public :: comm_droplet_number,comm_droplet_value
 public :: setupIndexPointers, setupDepartDroplet
+public :: makeContiguous
 
 contains
 
@@ -181,7 +182,7 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
   subroutine comm_droplet_value(holes_ind,Depart_ind,Depart,Arrive, &
-                ptrDepart, ptrArrive, pdata, pdata_locind,num_fallout)
+                ptrDepart, ptrArrive, pdata, pdata_locind)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
@@ -212,7 +213,6 @@ contains
     integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind   ! x/y/z location index of each droplet
     ! integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor      ! array to store the new MPI region 
     !                                                                      ! info for all the droplets
-    integer, intent(in) :: num_fallout 
 
     ! Local variables
 
@@ -486,7 +486,6 @@ contains
        n = n + 1
      end do
      if(timestats.ge.1) time_dropC4d=time_dropC4d+mytime()
-     !$acc update host(pdata)
 
     ! make sure that all the non-blocking MPI send operations are complete
 
@@ -495,47 +494,6 @@ contains
        call mpi_waitall(n_send,reqs(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
     end if
 
-    ! there will be remaining "holes" in the "pdata" only when more
-    !     droplets leave rather than enter the current MPI region;
-    !
-    ! compress the new "pdata" to make sure that all the active
-    !     droplets are contiguous (no "holes" between "pdata" slots) 
-
-#if 0
-    num_tmp = numDepart+num_fallout
-    if ( numArrive .lt. num_tmp ) then
-       num_holes = num_tmp - numArrive        ! number of "holes" we need to fill
-                                                ! to make the active dropelts in 
-                                                ! the "pdata" contiguous
-       last_active = nparcelsLocalActive
-       i = 0
-       do n = 1, num_tmp
-          indx = holes_ind(n)
-          if ( pdata(indx,pract) .lt. 0.0 ) then   ! this "hole" is not filled yet
-             do k = last_active, indx, -1
-                if ( pdata(k,pract) .gt. 0.0 ) then
-                   pdata(indx,:) = pdata(k,:)
-                   pdata_locind(indx,:) = pdata_locind(k,:)
-                   pdata(k,:) = neg_huge
-                   pdata_locind(k,:) = undefined_index
-                   last_active = k - 1
-                   i = i + 1
-                   exit
-                end if
-             end do
-             if ( k .lt. indx ) exit            ! the active dropelts in the 
-                                                ! "pdata" are already contiguous
-                                                ! and no action is needed
-             if ( i .eq. num_holes ) exit       ! now the active dropelts in 
-                                                ! the "pdata" are contiguous
-                                                ! after filling the "holes"
-          end if
-       end do
-    end if
-#else
-     ! Move droplets around to make sure that the pdata array is contiguous
-     call makeContiguous(Depart,Arrive,num_fallout,holes_ind,pdata,pdata_locind)
-#endif
      if(timestats.ge.1) time_dropC4e=time_dropC4e+mytime()
 
      ! free up the memory for temporary variables
@@ -595,6 +553,7 @@ contains
                                                     ! to make the active dropelts in
                                                     ! the "pdata" contiguous
         last_active = nparcelsLocalActive           ! index of end droplet
+        !$acc parallel loop gang vector default(present)
         do n=1,num_holes
            indx = holes_ind(numArrive+n)            ! index of hole to be filled
            k    = last_active-n+1                   ! index of droplet to move into hole

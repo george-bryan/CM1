@@ -603,9 +603,18 @@
     !$acc data copyin(holes_ind,Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
 
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
-                            ptrDepart,ptrArrive, pdata, pdata_locind,num_fallout)
+                            ptrDepart,ptrArrive, pdata, pdata_locind)
+
+    ! there will be remaining "holes" in the "pdata" only when more
+    !     droplets leave rather than enter the current MPI region;
+    !
+    ! compress the new "pdata" to make sure that all the active
+    !     droplets are contiguous (no "holes" between "pdata" slots)
+    !!$acc update host(pdata)
+    call makeContiguous(Depart,Arrive,num_fallout,holes_ind,pdata,pdata_locind)
 
     !$acc end data
+
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -613,6 +622,7 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
+    !!$acc update device(pdata,pdata_locind)
 
 #else
 
@@ -652,6 +662,7 @@
 
 #endif
 
+
     !!$acc end data 
     ! free up the memory for temporary variables
 
@@ -679,6 +690,7 @@
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
 ! Requires inputting the current 10-meter wind speed
    if ( .not. use_wall_bc ) then  
+      !$acc update host(pdata)
       u10_ssgf = 0.0
       !$acc parallel loop gang vector reduction(+:u10_ssgf)
       do j=1,nj
@@ -757,11 +769,11 @@
       if (myid==0) then 
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
       end if
+   !$acc update device(pdata,pdata_locind)
    end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
   
-   !$acc update device(pdata,pdata_locind)
    !$acc exit data delete (ta)
 
 
