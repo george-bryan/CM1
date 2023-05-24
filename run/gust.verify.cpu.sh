@@ -10,4 +10,4 @@
 module --force purge
 module load ncarenv intel cray-mpich ncarcompilers
 
-mpiexec -n 2 -ppn 2 ./cpu.exe --namelist namelist.restC >& gust.mpi.ifort.namelist.restC.log
+mpiexec -n 2 -ppn 2 ./cpu.exe --namelist namelist_ASD.input >& gust.mpi.ifort.namelist.ASD.log

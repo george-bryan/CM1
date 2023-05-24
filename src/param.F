@@ -300,6 +300,10 @@
       call bcast_int(nparcelsInit) ! DEVICE
       call bcast_int(nparcelsMax)
       call bcast_real(injectHMax)
+      call bcast_real(drop_inject_elapse)
+      call bcast_real(drop_inject_time)
+      call bcast_real(drop_w_init)
+      call bcast_real(drop_mult)
       call bcast_real(kdiff2)
       call bcast_real(kdiff6)
       call bcast_real(fcor)

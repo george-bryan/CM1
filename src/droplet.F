@@ -33,7 +33,7 @@
 
   ! set this variable to ".true." to rebounce the particles
   ! falling off the bottom (i.e., conserve the total droplet number)
-  logical, parameter :: use_wall_bc = .true.
+  logical, parameter :: use_wall_bc = .false.
 
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
   logical, parameter :: random_droplets = .true.
@@ -61,7 +61,7 @@
           prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho,prtime, &
           timestats,time_droplet,time_droplet_inject,mytime,ierr,maxx,maxy,maxz, &
           ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive, &
-          time_phys_H2D,time_phys_D2H,time_dropC1,time_dropC2,time_dropC3,time_dropC4
+          time_phys_H2D,time_phys_D2H,drop_inject_elapse,drop_inject_time,time_dropC1,time_dropC2,time_dropC3,time_dropC4
       use constants
       use comm_module
       use comm_droplet_module
@@ -112,7 +112,6 @@
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
-      real :: drop_inject_elapse
 
       !Need to compute the true temperature
       real, dimension(ib:ie,jb:je,kb:ke) :: ta
@@ -488,10 +487,24 @@
                             sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                             rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
 
-    ENDDO  nploop
+    END DO nploop
     !$acc end parallel
 
+    !Now that the tendency terms are computed, need to adjust the thten by the exner function:
+
+    !$acc parallel default(present)
+    !$acc loop gang vector collapse(3)
+    do k=kb,ke
+       do j=jb,je
+          do i=ib,ie
+             thten(i,j,k) = thten(i,j,k)*pi0(i,j,k)
+          end do
+       end do
+    end do
+    !$acc end parallel   
+
     !$acc end data
+
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
     !$acc update host(pdata,pdata_locind,ua,va,wa,ta,qa,rho,prs)
@@ -526,14 +539,14 @@
 
 !----------------------------------------------------------------------
 !  communicate data  (for MPI runs)
-
+!  note Step 1 is also needed for a non-MPI run
 
      ! JS: send/receive the droplet information through MPI;
      !     all the calculations below are done on CPU
 
-     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     ! Step 1: Allocate and assign the "hole" index array and initialize  it
-     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Step 1: Allocate and assign the "hole" index array and initialize it !
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      allocate(holes_ind(numHoles))
 
@@ -557,8 +570,9 @@
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
+#ifdef MPI
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     ! Step 2: Setup the indirect addresses for the droplets that are departing
+     ! Step 2: Setup the indirect addresses for the droplets that are departing !
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     call setupIndexPointers(Depart,ptrDepart)
@@ -567,17 +581,6 @@
 
     if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
-#ifdef MPI
-    !if(verbose) then 
-    !  if(num_fallout .ne.0) then
-    !    write(*,*) 'num_fallout: ',num_fallout,'myid: ',myid
-    !    call flush(6)
-    !  endif
-    !
-    !  write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ',myid,' numHoles: ',numHoles
-    !  write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ',myid,' Depart: ',Depart
-    !  call flush(6)
-    !endif
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Step 3: Exchange the number of droplets that will enter/leave !
     !         the current MPI region with its nearest neighbor      !
@@ -604,9 +607,7 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
-
-
+    nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
 
 #else
 
@@ -614,19 +615,10 @@
 !  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
 !  num_fallout already contains the number which have fallen out
 
-!   allocate(holes_fallout_ind(num_fallout))
-
-!   !List the spots in pdata which have "dead" particles
-!   idx=1
-!   do np=1,nparcelsLocalActive
-!      if (pdata(np,pract) .lt. 0.0) then  !If it has been flagged as falling out
-!         holes_fallout_ind(idx) = np
-!         idx=idx+1
-!      end if
-!   end do
-
    !Now transfer these to the end of the pdata list
    !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
+
+   ! JS: need to gpu-enable the following code section for a non-MPI run
    do np=numHoles,1,-1
       if (holes_ind(np) .eq. nparcelsLocalActive) then
          nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
@@ -647,10 +639,10 @@
 #endif
 
     !NEW $acc end data 
+
     ! free up the memory for temporary variables
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
-
 
 !----------------------------------------------------------------------
 !  get height ASL:
@@ -685,11 +677,10 @@
 #endif
       u10_ssgf = u10_ssgf/real(nx*ny)
 
-      !Only inject if a certain time has elapsed
-      drop_inject_elapse = 1.0e-5
+      !Only inject if a certain time has elapsed (specified in the namelist file)
       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
          !Only start droplet injection after a specified time
-         if (mtime .gt. 0.0) then
+         if (mtime .gt. drop_inject_time) then  !Only inject if past a certain time (specified in the namelist file)
             call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
@@ -2948,7 +2939,7 @@
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract,prtime, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
-                        time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax
+                        time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax,drop_w_init,drop_mult
       use constants
       use MersenneTwister_mod
 #ifdef MPI
@@ -3087,7 +3078,7 @@
             end if
             pdata(np,prvpx) = 0.0
             pdata(np,prvpy) = 0.0
-            pdata(np,prvpz) = 3.0  !RANDOM UPWARD VELOCITY?
+            pdata(np,prvpz) = drop_w_init   !Specified in namelist file
             pdata(np,prrp) = rad_init
             salinity = 0.034
             pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3

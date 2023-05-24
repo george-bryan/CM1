@@ -2276,6 +2276,9 @@ end module cuda_rt
           ! number of droplets read from / write to a restart file
           ! initialize its value as "nparcelsInit"
           nparcelsRest = nparcelsInit
+
+
+          if(dowr) write(outfile,*) 'PDATA: padding,nparcelsLocal,nparcelsMax',padding,nparcelsLocal,nparcelsMax
       end if
 
       !$acc update device (nparcelsLocal)
@@ -3739,6 +3742,7 @@ end module cuda_rt
       IF( doprclout )THEN
       
 
+        if (prcl_droplet.ne.1) then   !Only do this if in parcel mode (not droplet)
         call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
                                zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
                                zs,sigma,sigmaf,rds,gz,                 &
@@ -3751,6 +3755,7 @@ end module cuda_rt
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
+        end if
 
 
         call  parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
