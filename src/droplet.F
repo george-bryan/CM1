@@ -538,8 +538,8 @@
 
      allocate(holes_ind(numHoles))
 
-     i=1
-     !!$acc data copyin(i) copy(holes_ind)
+     i=0
+     !!$acc data copyin(i) create(holes_ind)
 
      !!$acc parallel loop gang vector default(present)
      do np = 1, numHoles
@@ -547,18 +547,18 @@
      end do
 
      !!$acc parallel default(present)
-     !!$acc loop seq
+     !!$acc loop gang vector
      do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
-          !!$acc atomic capture
-          holes_ind(i) = np
+          !$acc atomic update
           i = i + 1
-          !!$acc end atomic
+          holes_ind(i) = np
        end if
      end do
      !!$acc end parallel
-     !!$acc end data 
+
+     ! call quicksort(holes_ind2,1,numHoles)
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
@@ -568,9 +568,7 @@
 
      call setupIndexPointers(Depart,ptrDepart)
 
-     !$acc data copyin(ptrDepart,pdata_neighbor) copy(Depart_ind)
      call setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
-     !$acc end data
 
      if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
@@ -654,8 +652,9 @@
 
 #endif
 
-    !NEW !$acc end data 
+    !!$acc end data 
     ! free up the memory for temporary variables
+
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
 
@@ -3670,5 +3669,31 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+recursive subroutine quicksort(a, first, last)
+     implicit none
+  integer  a(:), x, t
+  integer first, last
+  integer i, j
+
+  x = a( (first+last) / 2 )
+  i = first
+  j = last
+  do
+     do while (a(i) < x)
+        i=i+1
+     end do
+     do while (x < a(j))
+        j=j-1
+     end do
+     if (i >= j) exit
+     t = a(i);  a(i) = a(j);  a(j) = t
+     i=i+1
+     j=j-1
+  end do
+  if (first < i-1) call quicksort(a, first, i-1)
+  if (j+1 < last)  call quicksort(a, j+1, last)
+end subroutine quicksort
+
 
   END MODULE droplet_module

@@ -501,6 +501,7 @@ contains
     ! compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots) 
 
+#if 0
     num_tmp = numDepart+num_fallout
     if ( numArrive .lt. num_tmp ) then
        num_holes = num_tmp - numArrive        ! number of "holes" we need to fill
@@ -531,6 +532,10 @@ contains
           end if
        end do
     end if
+#else
+     ! Move droplets around to make sure that the pdata array is contiguous
+     call makeContiguous(Depart,Arrive,num_fallout,holes_ind,pdata,pdata_locind)
+#endif
      if(timestats.ge.1) time_dropC4e=time_dropC4e+mytime()
 
      ! free up the memory for temporary variables
@@ -556,6 +561,51 @@ contains
      if(timestats.ge.1) time_dropC4f=time_dropC4f+mytime()
 
   end subroutine comm_droplet_value
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine makeContiguous(Depart,Arrive,num_fallout,holes_ind,pdata,pdata_locind)
+
+      use input, only : nparcelsLocalActive,nparcelsLocal,npvals
+      use constants, only : num_nn,undefined_index,neg_huge
+
+      integer, intent(in) :: Depart(num_nn)                              ! Number of droplets that will enter each
+                                                                         ! nearest neighbor at different directions
+      integer, intent(in) :: Arrive(num_nn)                              ! Number of droplets that will enter the
+                                                                         ! current MPI region from each nearest
+      integer, intent(in), dimension(:) :: holes_ind                     ! location index in "pdata" that can 
+                                                                         ! add a new droplet;
+                                                                         ! not a fixed-size array but we do 
+                                                                         ! not need to know its size
+                                                                         ! neighbor at different directions
+      integer, intent(in) :: num_fallout
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata      ! droplet information
+      integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind ! x/y/z location index of each droplet
+
+      integer :: num_tmp,numArrive,numDepart,last_active,num_holes,indx,k,n
+
+      !simplified code that fills the holes
+      numDepart = SUM(Depart)
+      numArrive = SUM(Arrive)
+      num_tmp = numDepart+num_fallout
+      if ( numArrive .lt. num_tmp ) then
+        num_holes = num_tmp - numArrive             ! number of remaining "holes" we need to fill
+                                                    ! to make the active dropelts in
+                                                    ! the "pdata" contiguous
+        last_active = nparcelsLocalActive           ! index of end droplet
+        do n=1,num_holes
+           indx = holes_ind(numArrive+n)            ! index of hole to be filled
+           k    = last_active-n+1                   ! index of droplet to move into hole
+           pdata(indx,:) = pdata(k,:)
+           pdata_locind(indx,:) = pdata_locind(k,:)
+           pdata(k,:) = neg_huge
+           pdata_locind(k,:) = undefined_index
+        enddo
+      end if
+
+      end subroutine makeContiguous
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -641,7 +691,6 @@ contains
 
       !JMD Do we need to sort the Depart_ind to reproduce order to
       !JMD make debugging easier?
-      !$acc parallel default(present)
       n_idx  = ptrDepart(inorth)
       s_idx  = ptrDepart(isouth)
       e_idx  = ptrDepart(ieast)
@@ -650,51 +699,33 @@ contains
       ne_idx = ptrDepart(ine)
       sw_idx = ptrDepart(isw)
       se_idx = ptrDepart(ise)
-      !$acc loop seq
       do np=1, nparcelsLocalActive
         if(pdata_neighbor(np) .eq. mynorth) then
-          !!$acc atomic capture
           Depart_ind(n_idx) = np
           n_idx=n_idx+1
-          !!$acc end atomic
         else if(pdata_neighbor(np) .eq. mysouth) then
-          !!$acc atomic capture
           Depart_ind(s_idx) = np
           s_idx=s_idx+1
-          !!$acc end atomic
         else if(pdata_neighbor(np) .eq. mywest) then
-          !!$acc atomic capture
           Depart_ind(w_idx) = np
           w_idx=w_idx+1
-          !!$acc end atomic
         else if(pdata_neighbor(np) .eq. myeast) then
-          !!$acc atomic capture
           Depart_ind(e_idx) = np
           e_idx=e_idx+1
-          !!$acc end atomic
         else if(pdata_neighbor(np) .eq. mynw) then
-          !!$acc atomic capture
           Depart_ind(nw_idx) = np
           nw_idx=nw_idx+1
-          !!$acc end atomic
         else if(pdata_neighbor(np) .eq. myne) then
-          !!$acc atomic capture
           Depart_ind(ne_idx) = np
           ne_idx=ne_idx+1
-          !!$acc end atomic
         else if(pdata_neighbor(np) .eq. mysw) then
-          !!$acc atomic capture
           Depart_ind(sw_idx) = np
           sw_idx=sw_idx+1
-          !!$acc end atomic
         else if(pdata_neighbor(np) .eq. myse) then
-          !!$acc atomic capture
           Depart_ind(se_idx) = np
           se_idx=se_idx+1
-          !!$acc end atomic
         endif
       enddo
-      !$acc end parallel
 
      end subroutine setupDepartDroplet
 
