@@ -138,6 +138,8 @@ contains
 
     if ( sum(Arrive) .gt. numHoles ) then
         write(*,*) "Too many new droplets will enter the MPI rank: ", myid
+        write(*,*) "nparcelsLocalActive,nparcelsLocal",nparcelsLocalActive,nparcelsLocal
+        write(*,*) "Arriving, holes to fill: ", sum(Arrive), numHoles
         stop "Stop the program ..."
     end if
 

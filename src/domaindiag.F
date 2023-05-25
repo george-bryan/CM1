@@ -4270,10 +4270,10 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(nm(ib,jb,kb),savg)
-        !$acc parallel default(present)
+        !$acc serial default(present)
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end parallel
+        !$acc end serial
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
 
