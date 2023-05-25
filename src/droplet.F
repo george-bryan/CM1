@@ -610,7 +610,6 @@
     !
     ! compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots)
-    !!$acc update host(pdata)
     call makeContiguous(Depart,Arrive,num_fallout,holes_ind,pdata,pdata_locind)
 
     !$acc end data
@@ -622,7 +621,6 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart)
-    !!$acc update device(pdata,pdata_locind)
 
 #else
 
@@ -769,7 +767,7 @@
       if (myid==0) then 
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
       end if
-   !$acc update device(pdata,pdata_locind)
+      !$acc update device(pdata,pdata_locind)
    end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
