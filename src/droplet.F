@@ -161,9 +161,10 @@
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
-      integer :: numHoles
+      integer :: numHoles,numBackfill
 
       integer :: n_idx,s_idx,e_idx,w_idx,sw_idx,nw_idx,se_idx,ne_idx
+      integer, dimension(:), allocatable :: backfill_ind   ! indicies of valid droplets to backfill with
 
       logical, parameter :: verbose=.true.
 #ifdef _VERIFY_FIND_LOC
@@ -575,7 +576,6 @@
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
-#ifdef MPI
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      ! Step 2: Setup the indirect addresses for the droplets that are departing !
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -596,15 +596,26 @@
 
     call setupIndexPointers(Arrive,ptrArrive)
 
+    numBackfill = sum(Depart) + num_fallout - sum(Arrive) 
+
+    if (numBackfill .gt. 0) then 
+       allocate(backfill_ind(numBackfill))
+       np = nparcelsLocalActive
+       i=0
+       do while (i.lt. numBackfill) 
+         if ( .not. ((pdata_locind(np,1) .eq. undefined_index) .and. &
+           (pdata_locind(np,2) .eq. undefined_index)) ) then
+           i=i+1
+           backfill_ind(i) = np
+         end if
+         np=np-1
+       enddo
+    endif
+       
+
     if(verbose) then 
-      if(num_fallout .ne.0) then
-        write(*,*) 'num_fallout: ',num_fallout,'myid: ',myid
-        call flush(6)
-      endif
-    
-      write(*,'(f8.2,a6,i4,a12,i8)')  mtime, ' myid: ', myid, ' numHoles: ', numHoles
-      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ', myid, ' Depart: ', Depart
-      write(*,'(f8.2,a6,i4,a12,8i6)') mtime, ' myid: ', myid, ' Arrive: ', Arrive
+      write(*,'(f8.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Depart: ', Depart
+      write(*,'(f8.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Arrive: ', Arrive
       call flush(6)
     endif
 
@@ -614,7 +625,7 @@
     ! Step 4: Exchange the detailed information of the droplets that will  !
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !$acc data copyin(holes_ind,Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
+    !$acc data copyin(holes_ind,backfill_ind,Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
 
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
                             ptrDepart,ptrArrive, pdata, pdata_locind)
@@ -624,7 +635,7 @@
     !
     ! compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots)
-    call makeContiguous(Depart,Arrive,num_fallout,holes_ind,pdata,pdata_locind)
+    call makeContiguous(Depart,Arrive,num_fallout,holes_ind,backfill_ind,pdata,pdata_locind)
 
     !$acc end data
 
@@ -634,7 +645,13 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    write(*,105) mtime,myid,nparcelsLocalActive, &
+        (nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout), &
+        sum(Arrive),sum(Depart),num_fallout
+    call flush(6) 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
+ 105     format(f8.3,' myid: ',i4,' nlocalAct: ',2(i6),' num{Arrive,Depart,Fall}: ',3(i6))
+
 
 #else
 
@@ -671,11 +688,15 @@
 
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
+    if(allocated(backfill_ind)) deallocate(backfill_ind)
 
 !----------------------------------------------------------------------
 !  get height ASL:
 
     if ( terrain_flag ) then
+#ifdef _OPENACC
+       print *,'WARNING: entering code that has not been ported to OpenACC'
+#endif
        call getparcelzs(xh,uh,ruh,xf,yh,vh,rvh,yf,zs,pdata)
        DO np=1,nparcelsLocalActive
          ! get z from sigma:
@@ -691,7 +712,6 @@
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
 ! Requires inputting the current 10-meter wind speed
    if ( .not. use_wall_bc ) then  
-      !$acc update host(pdata)
       u10_ssgf = 0.0
       !$acc parallel loop gang vector reduction(+:u10_ssgf)
       do j=1,nj
@@ -699,7 +719,6 @@
             u10_ssgf = u10_ssgf + s10(i,j)
          end do
       end do
-      !$acc end parallel
 
 #ifdef MPI
       call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
@@ -710,6 +729,7 @@
       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
          !Only start droplet injection after a specified time
          if (mtime .gt. drop_inject_time) then  !Only inject if past a certain time (specified in the namelist file)
+            !$acc update host(pdata,pdata_locind)
             call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
@@ -760,6 +780,7 @@
                pdata(np,prprs) = prsval
                pdata(np,prrho) = rhoval
             end do
+            !$acc update device(pdata,pdata_locind)
          end if ! if mtime > 0
       end if    ! if floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse) 
       !This is helpful to see in the output, but not absolutely necessary:
@@ -769,7 +790,6 @@
       if (myid==0) then 
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
       end if
-      !$acc update device(pdata,pdata_locind)
    end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()

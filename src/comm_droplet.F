@@ -526,9 +526,9 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine makeContiguous(Depart,Arrive,num_fallout,holes_ind,pdata,pdata_locind)
+      subroutine makeContiguous(Depart,Arrive,num_fallout,holes_ind,backfill_ind,pdata,pdata_locind)
 
-      use input, only : nparcelsLocalActive,nparcelsLocal,npvals
+      use input, only : myid,nparcelsLocalActive,nparcelsLocal,npvals,pract
       use constants, only : num_nn,undefined_index,neg_huge
 
       integer, intent(in) :: Depart(num_nn)                              ! Number of droplets that will enter each
@@ -540,11 +540,14 @@ contains
                                                                          ! not a fixed-size array but we do 
                                                                          ! not need to know its size
                                                                          ! neighbor at different directions
+      integer, intent(in), dimension(:) :: backfill_ind
       integer, intent(in) :: num_fallout
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata      ! droplet information
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind ! x/y/z location index of each droplet
 
-      integer :: num_tmp,numArrive,numDepart,last_active,num_holes,indx,k,n
+      integer :: num_tmp,numArrive,numDepart,num_holes,indx,k,n
+      integer :: iv
+      logical, parameter :: Debug=.false.
 
       !simplified code that fills the holes
       numDepart = SUM(Depart)
@@ -554,17 +557,35 @@ contains
         num_holes = num_tmp - numArrive             ! number of remaining "holes" we need to fill
                                                     ! to make the active dropelts in
                                                     ! the "pdata" contiguous
-        last_active = nparcelsLocalActive           ! index of end droplet
+
         !$acc parallel loop gang vector default(present)
         do n=1,num_holes
            indx = holes_ind(numArrive+n)            ! index of hole to be filled
-           k    = last_active-n+1                   ! index of droplet to move into hole
-           pdata(indx,:) = pdata(k,:)
-           pdata_locind(indx,:) = pdata_locind(k,:)
-           pdata(k,:) = neg_huge
-           pdata_locind(k,:) = undefined_index
+           k    = backfill_ind(n)                   ! index of droplet to move into hole
+           if(indx .lt. k) then 
+             if (Debug) then 
+               write(*,*) ' backfilled droplet # ',indx,' with droplet # ',k
+               call flush(6)
+             endif
+             !if ( pdata(k,pract) .le. 0.0 ) then
+             !  write(*,*) 'Warning in makeContiguous: pdata(pract) .le.  0.0)'
+             !  write(*,*) 'makeContiguous: pdata(pract): ',k,pdata(k,pract)
+             !endif
+             !$acc loop seq
+             do iv=1,npvals
+               pdata(indx,iv) = pdata(k,iv)
+               pdata(k,iv)    = neg_huge
+             enddo
+             pdata_locind(indx,1) = pdata_locind(k,1)
+             pdata_locind(indx,2) = pdata_locind(k,2)
+             pdata_locind(indx,3) = pdata_locind(k,3)
+             pdata_locind(k,1) = undefined_index
+             pdata_locind(k,2) = undefined_index
+             pdata_locind(k,3) = undefined_index
+           endif
         enddo
       end if
+
 
       end subroutine makeContiguous
 
@@ -582,7 +603,7 @@ contains
   !      3. record this "hole" index in "pdata"
 
   use input, only : npvals,nparcelsLocal
-  use constants, only: neg_huge
+  use constants, only: undefined_index, neg_huge
 
   implicit none
 
@@ -699,7 +720,7 @@ contains
      ! this subroutine is used to update the new droplet information
      ! to the "pdata" array on a particular MPI rank after the MPI communication
 
-     use input, only : npvals,nparcelsLocal,pract
+     use input, only : npvals,nparcelsLocal
 
      implicit none
 
