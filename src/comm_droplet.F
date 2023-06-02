@@ -527,6 +527,13 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine makeContiguous(Depart,Arrive,num_fallout,holes_ind,backfill_ind,pdata,pdata_locind)
+      ! =================================================================
+      ! The GPU-enabled makeCongiguous subroutine will fill in "holes" in
+      ! the pdata array such that the all active droplets are
+      ! contained in the first part of the "pdata" array. This
+      ! is achieved by moving droplets from the end of the "pdata" 
+      ! array to fill in any remaining holes.
+      ! =================================================================
 
       use input, only : myid,nparcelsLocalActive,nparcelsLocal,npvals,pract
       use constants, only : num_nn,undefined_index,neg_huge
@@ -567,10 +574,6 @@ contains
                write(*,*) ' backfilled droplet # ',indx,' with droplet # ',k
                call flush(6)
              endif
-             !if ( pdata(k,pract) .le. 0.0 ) then
-             !  write(*,*) 'Warning in makeContiguous: pdata(pract) .le.  0.0)'
-             !  write(*,*) 'makeContiguous: pdata(pract): ',k,pdata(k,pract)
-             !endif
              !$acc loop seq
              do iv=1,npvals
                pdata(indx,iv) = pdata(k,iv)
@@ -671,8 +674,6 @@ contains
       integer np
 
 
-      !JMD Do we need to sort the Depart_ind to reproduce order to
-      !JMD make debugging easier?
       n_idx  = ptrDepart(inorth)
       s_idx  = ptrDepart(isouth)
       e_idx  = ptrDepart(ieast)

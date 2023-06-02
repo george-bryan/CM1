@@ -161,10 +161,12 @@
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
-      integer :: numHoles,numBackfill
+      integer :: numHoles                                  ! total number of empty holes in pdata 
+      integer :: numBackfill                               ! total number of droplets to backfill into "pdata" array holes
 
-      integer :: n_idx,s_idx,e_idx,w_idx,sw_idx,nw_idx,se_idx,ne_idx
-      integer, dimension(:), allocatable :: backfill_ind   ! indicies of valid droplets to backfill with
+      integer, dimension(:), allocatable :: backfill_ind   ! indicies of valid droplets to backfill into 
+                                                           ! holes  in "pdata" array created by droplet 
+                                                           ! fall-out or departure
 
       logical, parameter :: verbose=.true.
 #ifdef _VERIFY_FIND_LOC
@@ -553,26 +555,18 @@
      allocate(holes_ind(numHoles))
 
      i=0
-     !!$acc data copyin(i) create(holes_ind)
 
-     !!$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
      end do
 
-     !!$acc parallel default(present)
-     !!$acc loop gang vector
      do np = 1, nparcelsLocal
        if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
             (pdata_locind(np,2) .eq. undefined_index) ) then
-          !$acc atomic update
           i = i + 1
           holes_ind(i) = np
        end if
      end do
-     !!$acc end parallel
-
-     ! call quicksort(holes_ind2,1,numHoles)
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
@@ -580,8 +574,12 @@
      ! Step 2: Setup the indirect addresses for the droplets that are departing !
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+     ! On the CPU, assign pointers (ptrDepart) into indirect address 
+     ! array (Depart_ind) for deprting droplets
      call setupIndexPointers(Depart,ptrDepart)
 
+     ! On the CPU, assign the indirect address array (Depart_ind)
+     ! for departing droplets
      call setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
 
      if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
@@ -592,12 +590,20 @@
     !         the current MPI region with its nearest neighbor      !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    ! On the CPU determine the number of arriving droplet
     call comm_droplet_number(numHoles,Depart,Arrive)
 
+    
+    ! On the CPU assigns pointers (ptrArrive) into indirect address 
+    ! array (holes_ind) for arriving droplets
     call setupIndexPointers(Arrive,ptrArrive)
 
+    ! number of holes in "pdata" to fill after the arrival droplets have
+    ! been assigned a location
     numBackfill = sum(Depart) + num_fallout - sum(Arrive) 
 
+    ! Determine which droplets to relocated from the end of 
+    ! the "pdata" array to the remaining holes
     if (numBackfill .gt. 0) then 
        allocate(backfill_ind(numBackfill))
        np = nparcelsLocalActive
@@ -625,15 +631,15 @@
     ! Step 4: Exchange the detailed information of the droplets that will  !
     !         enter/leave the current MPI region with its nearest neighbor !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! Most of the indirect address arrays are calculated on the CPU.
+    ! So copy them to the GPU
     !$acc data copyin(holes_ind,backfill_ind,Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
 
+    ! On the GPU, move droplets between different MPI ranks.
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
                             ptrDepart,ptrArrive, pdata, pdata_locind)
 
-    ! there will be remaining "holes" in the "pdata" only when more
-    !     droplets leave rather than enter the current MPI region;
-    !
-    ! compress the new "pdata" to make sure that all the active
+    ! On the GPU, compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots)
     call makeContiguous(Depart,Arrive,num_fallout,holes_ind,backfill_ind,pdata,pdata_locind)
 
@@ -683,7 +689,6 @@
 #endif
 
 
-    !!$acc end data 
     ! free up the memory for temporary variables
 
     deallocate(holes_ind)
