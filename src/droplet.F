@@ -614,8 +614,8 @@
        
 
     if(verbose) then 
-      write(*,'(f8.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Depart: ', Depart
-      write(*,'(f8.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Arrive: ', Arrive
+      write(*,'(f10.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Depart: ', Depart
+      write(*,'(f10.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Arrive: ', Arrive
       call flush(6)
     endif
 
@@ -650,7 +650,7 @@
         sum(Arrive),sum(Depart),num_fallout
     call flush(6) 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
- 105     format(f8.3,' myid: ',i4,' nlocalAct: ',2(i6),' num{Arrive,Depart,Fall}: ',3(i6))
+ 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',3(i6))
 
 
 #else
@@ -795,7 +795,6 @@
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
   
    !$acc exit data delete (ta)
-
 
    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
