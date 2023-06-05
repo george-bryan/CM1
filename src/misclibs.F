@@ -2977,7 +2977,7 @@
         write(6,100) 'CFLMAX',fmax,imax,jmax,kmax
         rstat(nstat) = fmax
       ENDIF
-100   format(2x,'stat:: ',a6,':',1x,f13.6,i5,i5,i5)
+100   format(2x,'stat:: ',a6,':',1x,f13.6,i6,1x,i6,1x,i6)
     ENDIF
 
 #ifdef MPI
@@ -3159,14 +3159,17 @@
         write(6,100) 'CFLMAX',fmax,imax,jmax,kmax
         rstat(nstat) = fmax
       ENDIF
-100   format(2x,'stat:: ',a6,':',1x,f13.6,i5,i5,i5)
+100   format(2x,'stat:: ',a6,':',1x,f13.6,i6,1x,i6,1x,i6)
     ENDIF
 
 #ifdef MPI
       endif
 #endif
 
-      if(fmax.ge.1.50) stopit=.true.
+      if(fmax.ge.1.50) then 
+        stopit=.true.
+        print *,'calccfl_fold: fmax: ',fmax
+      endif
  
       if(timestats.ge.1) time_stat=time_stat+mytime()
 
@@ -3252,11 +3255,9 @@
           enddo
         enddo
       endif
-      !print *,'calccflquick: ',fmax
       !$acc end parallel
 
       cflmax = fmax
-      !print *,'calccflquick: afterloop: ',cflmax
 #ifdef MPI
      call MPI_IALLREDUCE(MPI_IN_PLACE,cflmax,1,MPI_REAL,MPI_MAX,MPI_COMM_WORLD,reqc,ierr)
 !     call mpi_wait(reqc,mpi_status_ignore,ierr)
