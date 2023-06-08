@@ -168,7 +168,7 @@
                                                            ! holes  in "pdata" array created by droplet 
                                                            ! fall-out or departure
 
-      logical, parameter :: verbose=.true.
+      logical, parameter :: verbose=.false.
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
 #endif
