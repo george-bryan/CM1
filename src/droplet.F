@@ -3108,7 +3108,7 @@
                !Set the droplet radius based on the sea spray generation function (SSGF)
                !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
                !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
-               do i = 1,100
+               do i = 1,99
                   if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
                      rand = getRandomReal(randomNumbers)
                      rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
