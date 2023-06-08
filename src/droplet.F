@@ -168,7 +168,7 @@
                                                            ! holes  in "pdata" array created by droplet 
                                                            ! fall-out or departure
 
-      logical, parameter :: verbose=.true.
+      logical, parameter :: verbose=.false.
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
 #endif
@@ -606,18 +606,26 @@
     ! the "pdata" array to the remaining holes
     if (numBackfill .gt. 0) then 
        allocate(backfill_ind(numBackfill))
-       np = nparcelsLocalActive
-       i=0
-       do while (i.lt. numBackfill) 
-         if ( .not. ((pdata_locind(np,1) .eq. undefined_index) .and. &
-           (pdata_locind(np,2) .eq. undefined_index)) ) then
-           i=i+1
-           backfill_ind(i) = np
-         end if
-         np=np-1
-       enddo
-    endif
-       
+       if ((nparcelsLocalActive - numBackfill) .eq. 0) then
+          ! Set backfill_ind to 1 to handle an exception case, 
+          ! where all the active droplets fall out or leave
+          ! the current MPI domain
+          do i = 1, numBackfill
+             backfill_ind(i) = 1
+          end do
+       else
+          np = nparcelsLocalActive
+          i=0
+          do while (i.lt. numBackfill) 
+            if ( .not. ((pdata_locind(np,1) .eq. undefined_index) .and. &
+              (pdata_locind(np,2) .eq. undefined_index)) ) then
+              i=i+1
+              backfill_ind(i) = np
+            end if
+            np=np-1
+          enddo
+       end if
+    end if
 
     if(verbose) then 
       write(*,'(f10.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Depart: ', Depart
@@ -3108,7 +3116,7 @@
                !Set the droplet radius based on the sea spray generation function (SSGF)
                !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
                !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
-               do i = 1,100
+               do i = 1,99
                   if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
                      rand = getRandomReal(randomNumbers)
                      rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
