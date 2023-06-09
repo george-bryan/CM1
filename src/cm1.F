@@ -2259,26 +2259,30 @@ end module cuda_rt
       allocate( reqt(d3t) )
       reqt = 0
 
-      if ( nparcelsInit .gt. nparcelsMax ) then
-          if ( myid .eq. 0 ) print *,' WARNING: nparcelsInit exceeds allowed max. Check nparcelsMax. Exiting...'
+      if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
+         if ( nparcelsInit .gt. nparcelsMax ) then
+            if ( myid .eq. 0 ) print *,' WARNING: nparcelsInit exceeds allowed max. Check nparcelsMax. Exiting...'
 #ifdef MPI
-          call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+            call MPI_BARRIER (MPI_COMM_WORLD,ierr)
 #endif
-          call stopcm1
-      else
+            call stopcm1
+         else
 #ifdef MPI
-          padding = max(pdata_buffer*nparcelsMax/numprocs,500.0)
-          nparcelsLocal = int(nparcelsMax/numprocs+padding)
+            padding = max(pdata_buffer*nparcelsMax/numprocs,500.0)
+            nparcelsLocal = int(nparcelsMax/numprocs+padding)
 #else
-          padding = max(pdata_buffer*nparcelsMax,100.0)
-          nparcelsLocal = int(nparcelsMax+padding)
+            padding = max(pdata_buffer*nparcelsMax,100.0)
+            nparcelsLocal = int(nparcelsMax+padding)
 #endif
-          ! number of droplets read from / write to a restart file
-          ! initialize its value as "nparcelsInit"
-          nparcelsRest = nparcelsInit
-
-
-          if(dowr) write(outfile,*) 'PDATA: padding,nparcelsLocal,nparcelsMax',padding,nparcelsLocal,nparcelsMax
+            ! number of droplets read from / write to a restart file
+            ! initialize its value as "nparcelsInit"
+            nparcelsRest = nparcelsInit
+            if(dowr) write(outfile,*) 'PDATA: padding,nparcelsLocal,nparcelsMax',padding,nparcelsLocal,nparcelsMax
+         end if
+      else   ! if no parcels
+         nparcelsLocal = 1
+         padding = 1
+         nparcelsRest = 1
       end if
 
       !$acc update device (nparcelsLocal)
@@ -3541,7 +3545,9 @@ end module cuda_rt
         !     The second method is expected to avoid the creation of an
         !     array with size "nparcels*npvals" (saving memory space) 
         !     and thus implemented below 
-        call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten,uten,vten,wten)
+        if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
+           call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten,uten,vten,wten)
+        end if
 
         nrec = nrec + 1
         nstatout = nstatout + 1
@@ -3732,53 +3738,48 @@ end module cuda_rt
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
 
-
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
 
+      if ( iprcl.eq.1 ) then
+         if ( doprclout ) then
+            if ( prcl_droplet.ne.1 ) then   !Only do this if in parcel mode (not droplet)
+               call parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
+                                  zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
+                                  zs,sigma,sigmaf,rds,gz,                 &
+                                  pi0,th0,thv0,qv0,qc0,qi0,rth0,          &
+                                  dum1,dum2,dum3,dum4,dum5,dum6,prs,rho,  &
+                                  dum7,dum8,wten,wten1,                   &
+                                  u3d,v3d,w3d,pp3d,thten,thten1,th3d,q3d, &
+                                  kmh,kmv,khh,khv,tke3d,pt3d,pdata,       &
+                                  tdiag,qdiag,                            &
+                                  pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
+                                  nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
+                                  tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
 
-      if(iprcl.eq.1)then
-      IF( doprclout )THEN
-      
+               call parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
 
-        if (prcl_droplet.ne.1) then   !Only do this if in parcel mode (not droplet)
-        call     parcel_interp(dt,mtime,xh,uh,ruh,xf,uf,yh,vh,rvh,yf,vf, &
-                               zh,mh,rmh,zf,mf,zntmp,ust,c1,c2,        &
-                               zs,sigma,sigmaf,rds,gz,                 &
-                               pi0,th0,thv0,qv0,qc0,qi0,rth0,          &
-                               dum1,dum2,dum3,dum4,dum5,dum6,prs,rho,  &
-                               dum7,dum8,wten,wten1,                   &
-                               u3d,v3d,w3d,pp3d,thten,thten1,th3d,q3d, &
-                               kmh,kmv,khh,khv,tke3d,pt3d,pdata,       &
-                               tdiag,qdiag,                            &
-                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
-                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
-                               tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
-        end if
-
-
-        call  parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-
-        prec = prec+1
-        if(prclfrq.gt.0.0)then
-          doit = .true.
-          do while( doit )
-            prcltim = prcltim+prclfrq
-            if( prcltim.gt.mtime )then
-              doit = .false.
-            endif
-          enddo
-        endif
-        if(myid.eq.0) print *,'  next prcltim = ',prcltim
-        !if(timestats.ge.1) time_parcels=time_parcels+mytime()
-      ELSE
-        if( startup )then
-          if(myid.eq.0) print *
-          if(myid.eq.0) print *,'  NOTE:  skipping parcel_write '
-          if(myid.eq.0) print *
-        endif
-      ENDIF
+               prec = prec+1
+               if ( prclfrq.gt.0.0 ) then
+                  doit = .true.
+                  do while( doit )
+                     prcltim = prcltim+prclfrq
+                     if ( prcltim.gt.mtime )then
+                        doit = .false.
+                     end if
+                  end do
+               end if
+               if (myid.eq.0) print *,'  next prcltim = ',prcltim
+               !if(timestats.ge.1) time_parcels=time_parcels+mytime()
+            end if
+         else
+           if ( startup ) then
+             if (myid.eq.0) print *
+             if (myid.eq.0) print *,'  NOTE:  skipping parcel_write '
+             if (myid.eq.0) print *
+           end if
+         end if
       endif
 
       !cccccccccccccccccccccccccccccccccccccccccccccccccccccccc!
