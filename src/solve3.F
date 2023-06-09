@@ -356,7 +356,6 @@
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      !print *,'solve3: point #1'
 !Begin:  message passing
           call bcs_GPU(pp3d)
           call bcs_GPU(th3d)
@@ -367,10 +366,8 @@
           call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
                                   rs31,rs32,rn31,rn32,reqs_y)
 #endif
-      !print *,'solve3: point #2'
 
       IF( imoist.eq.1 )THEN
-          !print *,'numq: ',numq
           DO n=1,numq
             call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI
@@ -381,7 +378,6 @@
 #endif
           ENDDO
       ENDIF
-      !print *,'solve3: point #3'
 
 
       call bcs_GPU(rho)
@@ -390,7 +386,6 @@
       if(timestats.ge.1) time_lb=time_lb+mytime()
       call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
-      !print *,'solve3: point #4'
 
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
         !$omp parallel do default(shared) private(i,j,k)
@@ -414,7 +409,6 @@
       call comm_1s_start_GPU(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
       call comm_1s_start_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
 #endif
-      !print *,'solve3: point #5'
 
       IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
         ! 180212: moved this out of sound,sounde,soundcb
@@ -453,7 +447,6 @@
 #endif
 
       ENDIF
-      !print *,'solve3: point #6'
 !-----------------------------------------------------------------
 
 !Done:  message passing
@@ -739,7 +732,6 @@
         call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
                                tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
-      !print *,'solve3: point #10'
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k) 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
@@ -763,7 +755,6 @@
                 reqs_t(1,n))
           enddo
 #endif
-      !print *,'solve3: point #11'
           print *, 'Here 16 -- Not being executed'
           !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n)
           !$omp parallel do default(shared)  &
@@ -788,7 +779,6 @@
       call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
       call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
 #endif
-      !print *,'solve3: point #12'
 
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
       !$omp parallel do default(shared)  &
@@ -813,7 +803,6 @@
                      ,reqs_q(1,n) )
         ENDDO
 #endif
-      !print *,'solve3: point #13'
         !$acc parallel loop gang vector collapse(4) default(present) private(i,j,k,n) 
         !$omp parallel do default(shared)  &
         !$omp private(i,j,k)
@@ -847,7 +836,6 @@
         call bcs2_GPU(rf)
         !-----
 #endif
-      !print *,'solve3: point #14'
 
         ! meh 1 
       !$acc parallel loop gang vector collapse(2) default(present) private(i,j)
@@ -865,7 +853,6 @@
           call comm_1p_end_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
         ENDIF
 #endif
-      !print *,'solve3: point #15'
 
 !-----------------------------------------------------------------
 
@@ -889,7 +876,6 @@
         call bcv2_GPU(rrv)
         call bcw2_GPU(rrw)
 #endif
-      !print *,'solve3: point #16'
         prltrn:  &
         if(terrain_flag)then
           ! 180713:  get sigma-dot
@@ -1003,7 +989,6 @@
           enddo
           !$acc end parallel
 
-          !print *,'solve3: before call to droplet_driver' 
           call   droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,s10,pdata,              &
                                tha,qa,th0,pi0,ppi,prs,                                    &
@@ -1014,7 +999,6 @@
                                uten,vten,wten,dpten(ib,jb,kb,1),dpten(ib,jb,kb,2),        &
                                pdata_locind)
           if(timestats.ge.1) time_parcels=time_parcels+mytime()
-          !print *,'solve3: after call to droplet_driver' 
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -1071,7 +1055,6 @@
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
 #endif
-      !print *,'solve3: point #18'
             !$omp parallel do default(shared) private(i,j,k)
             !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
             do k=1,nk

@@ -162,8 +162,10 @@ contains
   ! Public (but hidden) functions
   ! --------------------
   function initialize_scalar(seed) result(twister)
+    !$acc routine seq
     integer,       intent(in   ) :: seed
     type(randomNumberSequence)                :: twister
+    
 
     integer :: i
     ! See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. In the previous versions,

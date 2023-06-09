@@ -165,6 +165,7 @@
       !$acc                 axisymm,terrain_flag,ni,nj,nip1,nk,nkp1,imoist,   &
       !$acc                 nqv,bbc,imove,prvpx,prvpy,prvpz,prrp,prms,prtp,   &
       !$acc                 prx,pry,prz,prsig,ngxy,ngz,ptype,pru,prv,prw,     &
+      !$acc                 ibw,ibe,ibs,ibn,                                  &
       !$acc                 prt,prqv,prprs,prrho,nparcelsLocal,mywest,        &
       !$acc                 myeast,mynorth,mysouth,myne,myse,mysw,mynw,       &
       !$acc                 prmult,pract,prtime)
@@ -206,7 +207,7 @@
            drop_inject_elapse,drop_inject_time,drop_w_init
 
       !$acc declare create (dx,dy,zt,rzt,umove,vmove,viscosity,pr_num,sc_num, &
-      !$acc                 minx,maxx,miny,maxy,maxz)
+      !$acc                 minx,maxx,miny,maxy,maxz,drop_w_init)
 
 !-----------------------------------------------------------------------
 

@@ -1,3 +1,4 @@
+#define _VERIFY 1
 #define TROUBLE 0
 #define PITER 1048576
 #ifdef _B4B
@@ -511,7 +512,7 @@
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-    !$acc update host(pdata_locind,ua,va,wa,ta,qa,rho,prs)
+    !$acc update host(pdata_locind)
 
     if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
@@ -718,7 +719,13 @@
 ! Requires inputting the current 10-meter wind speed
    if ( .not. use_wall_bc ) then  
       u10_ssgf = 0.0
+      ! If _VERIFY macro is enabled than perform the following sum on
+      ! the CPU 
+#ifdef _VERIFY
+      !$acc update host(s10)
+#else
       !$acc parallel loop gang vector reduction(+:u10_ssgf)
+#endif
       do j=1,nj
          do i=1,ni
             u10_ssgf = u10_ssgf + s10(i,j)
@@ -734,11 +741,11 @@
       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
          !Only start droplet injection after a specified time
          if (mtime .gt. drop_inject_time) then  !Only inject if past a certain time (specified in the namelist file)
-            !$acc update host(pdata,pdata_locind)
-            call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,randomNumbers,mtime,my_reintro)
+            call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,mtime,my_reintro)
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
             !But makes sure that the interpolated mean quantities in droplet_diag are meaningful
+            !$acc parallel loop gang vector default(present)
             do np=nparcelsLocalActive-my_reintro+1,nparcelsLocalActive
                x3d = pdata(np,prx)
                y3d = pdata(np,pry)
@@ -785,7 +792,6 @@
                pdata(np,prprs) = prsval
                pdata(np,prrho) = rhoval
             end do
-            !$acc update device(pdata,pdata_locind)
          end if ! if mtime > 0
       end if    ! if floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse) 
       !This is helpful to see in the output, but not absolutely necessary:
@@ -2987,7 +2993,7 @@
 
       end function crit_radius     
 
-      subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,randomNumbers,mtime,my_reintro)
+      subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,mtime,my_reintro)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
@@ -3001,7 +3007,6 @@
 #endif
 
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
-      type(randomNumberSequence),intent(inout) :: randomNumbers
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je+1) :: yf
       real, intent(in) :: dt,time_since_inject
@@ -3016,6 +3021,7 @@
       real :: totdrops  !Total number being produced during this call to droplet_injection
       real :: rad_init  !Initial radius, being calculated one at a time according to SSGF
       real :: u10
+      type(randomNumberSequence) :: randomNumbers
 
       real :: xrange,yrange,zrange
       real :: salinity
@@ -3029,6 +3035,7 @@
       !implementing the Andreas 1998 sea spray generation function
       !Set the parameters of the two lognormals:
       real :: rmin10_ssgf,rmax10_ssgf
+      integer :: local_seed
 
       rmin10_ssgf = log10(2e-06)
       rmax10_ssgf = log10(500e-06)
@@ -3101,16 +3108,24 @@
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
                                                      !does not make the global exceed nparcelsMax
-         do np=nparcelsLocalActive+1,nparcelsLocalActive+my_reintro
+         !$acc data copyin(dFssum,binsdata)
+         !$acc parallel loop gang vector default(present) reduction(+:mass_injected)
+         do j=1,my_reintro
+            np=nparcelsLocalActive+j
             if (random_droplets) then
+               ! initialize a new random number generator for each
+               ! injected droplet
+               local_seed = (1000 * int(mtime)) + (10000*myid) + j
+               randomNumbers = new_RandomNumberSequence(seed = local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
                !Set the droplet radius based on the sea spray generation function (SSGF)
                !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
                !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
-               do i = 1,100
+               rand = getRandomReal(randomNumbers)
+               !$acc loop seq
+               do i = 1,99
                   if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
-                     rand = getRandomReal(randomNumbers)
                      rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
                   end if
                end do
@@ -3151,6 +3166,8 @@
             !Update mass_injected for statistics purposes
             mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
          end do
+         !$acc end data
+         !!$acc update device(pdata)
          !Then once the new droplets have been added, update nparcelsLocalActive
          nparcelsLocalActive = nparcelsLocalActive + my_reintro
       else
