@@ -604,10 +604,6 @@ end module cuda_rt
       ni = nx / nodex
       nj = ny / nodey
       nk = nz
-      nip1 = ni+1
-      njp1 = nj+1
-      nkp1 = nk+1
-      nkm1 = nk-1
 
       nimax = ni
       njmax = nj
@@ -777,6 +773,12 @@ end module cuda_rt
 
 !-----------------------------------------------
 #endif
+
+      ! Now they are known for MPI runs 
+      nip1 = ni+1
+      njp1 = nj+1
+      nkp1 = nk+1
+      nkm1 = nk-1
 
       call wenocheck
 
