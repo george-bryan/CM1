@@ -176,6 +176,7 @@
       logical, parameter :: use_truly_random_pert  =  .false.
 
       real :: tmpx, tmpy, tmpz
+      integer :: np_tmp
 
 !--------------------------
 
@@ -427,16 +428,17 @@
           tmpz = rand*injectHMax
 
           ! check if this parcel falls into this MPI region
-          if ( tmpx .ge. xf(1) .and. tmpx .le. xf(ni+1) .and. &
-               tmpy .ge. yf(1) .and. tmpy .le. yf(nj+1) ) then
+          ! if parcel is on a tile boundary, let the eastmost/northmost tile own it
+          if ( tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1) .and. &
+               tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1) ) then
 
              pdata(i,prx) = tmpx
              pdata(i,pry) = tmpy
              pdata(i,prz) = tmpz
 
-             if(MODULO(n,100)==0) then 
-               if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
-             endif
+!             if(MODULO(n,100)==0) then 
+!               if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
+!             endif
 
              if (prcl_droplet.eq.1) then
     
@@ -489,6 +491,20 @@
           end if    ! end of if statement for xf/yf check
 
         end do      ! end of loop for nparcelsInit
+
+#ifdef MPI
+        ! Sanity check
+        call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+        if ( np_tmp .ne. nparcelsInit ) then
+           print *
+           print *,'  Error: nparcelsInit does not equal np_tmp '
+           print *
+           print *,'  nparcelsInit = ',nparcelsInit
+           print *,'  np_tmp       = ',np_tmp
+           print *
+           stop 3333
+        end if
+#endif
 
         !Here also initialize the droplet histogram arrays
         call initialize_droplet_histograms
