@@ -815,7 +815,7 @@ end module cuda_rt
       kb =  1 - ngz
       ke = nk + ngz
 
-      !$acc update device(ib,ie,jb,je,kb,ke,ni,nj,nip1,nk,nkp1,ngxy,ngz)
+      !$acc update device(ib,ie,jb,je,kb,ke,ni,nj,nip1,njp1,nk,nkp1,nkm1,ngxy,ngz)
 
       allocate(    xh(ib:ie) )
       xh = 0.0
