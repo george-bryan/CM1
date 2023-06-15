@@ -170,6 +170,7 @@
                                                            ! fall-out or departure
 
       logical, parameter :: verbose=.false.
+      integer :: errcode
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
 #endif
@@ -181,9 +182,10 @@
       ! 2) Otherwise, use David's original form with date and time to achieve
       !    more randomness but unmatched results between initial and restart runs
       local_seed = int(mtime) * 1000 + myid          ! -(myid+values(8)+values(7)+values(6))
-      randomNumbers = new_RandomNumberSequence(seed = local_seed)
+      call new_RandomNumberSequence(randomNumbers, local_seed)
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
+      errcode     = 0  ! Number of errors that occurred in the index search 
       numDepartN  = 0
       numDepartS  = 0
       numDepartE  = 0
@@ -357,7 +359,7 @@
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
-    !$acc loop gang vector reduction(+:num_fallout) &
+    !$acc loop gang vector reduction(+:num_fallout) reduction(max:errcode) &
     !$acc reduction(+:numDepartN,numDepartS,numDepartE,numDepartW) &
     !$acc reduction(+:numDepartNW,numDepartSW,numDepartNE,numDepartSE)
 #endif
@@ -448,7 +450,7 @@
       call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
-                          neighbor,num_fallout)
+                          neighbor,num_fallout,errcode)
 
 #ifdef MPI
       pdata_neighbor(np) = neighbor 
@@ -494,6 +496,9 @@
 
     END DO nploop
     !$acc end parallel
+    if(errcode .gt. 0) then 
+      stop 'FATAL error occurred in the index search BE_integration'
+    endif
 
     !Now that the tendency terms are computed, need to adjust the thten by the exner function:
 
@@ -665,7 +670,7 @@
         sum(Arrive),sum(Depart),num_fallout
     call flush(6) 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
- 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',3(i6))
+ 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',i10,2x,i10,2x,i10)
 
 
 #else
@@ -825,7 +830,7 @@
                                 z3d,sig3d,uval,vval,wval,qval,rhoval, &
                                 prsval,tval,Nup,rhop0,taup0,rp0, &
                                 part_grav1,part_grav2,part_grav3, &
-                                debug,neighbor,num_fallout)
+                                debug,neighbor,num_fallout,errcode)
       !$acc routine seq
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
@@ -851,8 +856,10 @@
       real, intent(out) :: Nup
       real, intent(inout) :: rhop0,taup0,rp0
       real, intent(in) :: dt,part_grav1,part_grav2,part_grav3
-      integer, intent(out), optional :: neighbor  ! indicate which MPI region a droplet 
-                                                  ! stays after this time step 
+      integer, intent(out) :: neighbor  ! indicate which MPI region a droplet 
+                                        ! stays after this time step 
+      integer, intent(inout) :: num_fallout
+      integer, intent(inout) :: errcode
 
       real :: dt2
       real :: xrhs1,xrhs2,xrhs3,vrhs1,vrhs2,vrhs3
@@ -871,7 +878,6 @@
     
       integer :: mflag,flag
 
-      integer :: num_fallout
 
 
       !Store interpolated quantities for the sake of statistics
@@ -1046,46 +1052,58 @@
                                         ! stays within the same MPI region
       else if ( (x3d .lt. xf(1)) .and. (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
            if ( x3d .lt. xf(1)-dx*ni ) then
-              stop "Jump over the west nearest neighbor"
+              print *,'BE_integration: Droplet jumped over west nearest neighbor'
+              errcode = 50
            end if
            neighbor = mywest
       else if ( (x3d .lt. xf(1)) .and. (y3d .lt. yf(1)) ) then
            if ( (x3d .lt. xf(1)-dx*ni) .or. (y3d .lt. yf(1)-dy*nj) ) then
-              stop "Jump over the southwest nearest neighbor"
+              print *,'BE_integration: Droplet jumped over southwest nearest neighbor'
+              errcode = 50
            end if
            neighbor = mysw
       else if ( (x3d .lt. xf(1)) .and. (y3d .gt. yf(nj+1)) ) then
            if ( (x3d .lt. xf(1)-dx*ni) .or. (y3d .gt. yf(nj+1)+dy*nj) ) then
-              stop "Jump over the northwest nearest neighbor"
+              print *,'BE_integration: Droplet jumped over northwest nearest neighbor'
+              errcode = 50
            end if
            neighbor = mynw
       else if ( (x3d .gt. xf(ni+1)) .and. (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
            if ( x3d .gt. xf(ni+1)+dx*ni ) then
-              stop "Jump over the east nearest neighbor"
+              print *,'BE_integration: Droplet jumped over east nearest neighbor'
+              errcode = 50
            end if
            neighbor = myeast
       else if ( (x3d .gt. xf(ni+1)) .and. (y3d .lt. yf(1)) ) then
            if ( (x3d .gt. xf(ni+1)+dx*ni) .or. (y3d .lt. yf(1)-dy*nj) ) then
-              stop "Jump over the southeast nearest neighbor"
+              print *,'BE_integration: Droplet jumped over southeast nearest neighbor'
+              errcode = 50
            end if
            neighbor = myse
       else if ( (x3d .gt. xf(ni+1)) .and. (y3d .gt. yf(nj+1)) ) then
            if ( (x3d .gt. xf(ni+1)+dx*ni) .or. (y3d .gt. yf(nj+1)+dy*nj) ) then
-              stop "Jump over the northeast nearest neighbor"
+              print *,'BE_integration: Droplet jumped over northeast nearest neighbor'
+              errcode = 50
            end if
            neighbor = myne
       else if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and. (y3d .lt. yf(1)) ) then
            if ( y3d .lt. yf(1)-dy*nj ) then
-              stop "Jump over the south nearest neighbor"
+              print *,'BE_integration: Droplet jumped over south nearest neighbor'
+              errcode = 50
            end if
            neighbor = mysouth
       else if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and. (y3d .gt. yf(nj+1)) ) then
            if ( y3d .gt. yf(nj+1)+dy*nj ) then
-              stop "Jump over the north nearest neighbor"
+              print *,'BE_integration: Droplet jumped over north nearest neighbor'
+              errcode = 50
            end if
            neighbor = mynorth
       else
-           stop "This section should be never entered!"
+           ! This condition should never be entered
+           errcode=200
+           if((x3d.ne.x3d) .or. (y3d.ne.y3d)) then 
+               print *,'BE_integration: x or y position of droplet is invalid: x3d,y3d: ',x3d,y3d
+           endif
       end if
 
       if ( neighbor .ne. undefined_index ) then
@@ -3116,15 +3134,15 @@
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
                                                      !does not make the global exceed nparcelsMax
-         !$acc data copyin(dFssum,binsdata)
-         !$acc parallel loop gang vector default(present) reduction(+:mass_injected)
+         !$acc data copyin(dFssum,binsdata) create(randomNumbers,randomNumbers%state)
+         !$acc parallel loop gang vector default(present) reduction(+:mass_injected) private(randomNumbers)
          do j=1,my_reintro
             np=nparcelsLocalActive+j
             if (random_droplets) then
                ! initialize a new random number generator for each
                ! injected droplet
-               local_seed = (1000 * int(mtime)) + (10000*myid) + j
-               randomNumbers = new_RandomNumberSequence(seed = local_seed)
+               local_seed = int(29.*mtime) + (97*myid) + (7*j)
+               call new_RandomNumberSequence(randomNumbers, local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
                !Set the droplet radius based on the sea spray generation function (SSGF)
@@ -3173,9 +3191,9 @@
             pdata(np,prtime) = 0.0
             !Update mass_injected for statistics purposes
             mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
+            call finalize_randomNumberSequence(randomNumbers)
          end do
          !$acc end data
-         !!$acc update device(pdata)
          !Then once the new droplets have been added, update nparcelsLocalActive
          nparcelsLocalActive = nparcelsLocalActive + my_reintro
       else

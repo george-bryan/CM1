@@ -3085,17 +3085,13 @@ end module cuda_rt
                    dotbud,doqbud,doubud,dovbud,dowbud,donudge,       &
                    doazimwrite,dorestart)
         ! end_solve1
-       ! stop 'cm1: after solve1' 
 #ifdef _NVTX
         call nvtxEndRange
 #endif
-       !print *,'cm1: after solve1'
-       !call flush(6)
 
 #ifdef _NVTX
         call nvtxStartRange("solve2",id=1)
 #endif
-       !print *,'cm1: before solve2'
         ! solve2: RK loop and pressure solver
         ! (advection, buoyancy, pressure gradient)
         call     solve2(nstep,rbufsz,num_soil_layers,                  &
@@ -3171,7 +3167,6 @@ end module cuda_rt
 #ifdef _NVTX
         call nvtxEndRange
 #endif
-      !print *,'cm1: after call to solve2'
 
       IF(imoist.eq.1)THEN
 
@@ -3209,8 +3204,6 @@ end module cuda_rt
         if(timestats.ge.1) time_nvtx=time_nvtx+mytime()
         ! solve3: finish primary dynamical solver
         ! (finish comms, update arrays, move surface)
-
-!print *,'cm1: before call to solve3'
 
         call     solve3(nstep,rbufsz,num_soil_layers,                  &
                    dt,dtlast,mtime,dbldt,mass1,mass2,                 &
@@ -3283,9 +3276,6 @@ end module cuda_rt
 #ifdef _NVTX
         call nvtxEndRange
 #endif
-
-!print *,'cm1: after call to solve3'
-
 
 
         !--------------------------------
