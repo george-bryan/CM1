@@ -168,7 +168,7 @@
                                                            ! holes  in "pdata" array created by droplet 
                                                            ! fall-out or departure
 
-      logical, parameter :: verbose=.true.
+      logical, parameter :: verbose=.false.
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
 #endif
@@ -651,12 +651,12 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    write(*,105) mtime,myid,nparcelsLocalActive, &
-        (nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout), &
-        sum(Arrive),sum(Depart),num_fallout
-    call flush(6) 
+!    write(*,105) mtime,myid,nparcelsLocalActive, &
+!        (nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout), &
+!        sum(Arrive),sum(Depart),num_fallout
+!    call flush(6) 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
- 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',3(i6))
+! 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',3(i6))
 
 
 #else
@@ -1870,7 +1870,8 @@
 
       integer :: np,iz,i,j,k
       integer :: kflag
-      real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
+      !real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
+      real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
       integer :: tnumpart
@@ -1883,7 +1884,7 @@
 
 #ifdef MPI
       real, dimension(num0) :: droplet_diag0     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
-      real, dimension(nz,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
+      real, dimension(nk,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
 #endif
 
       !Compute the various types of droplet statistics
@@ -2032,7 +2033,7 @@
       !!!!!!! 1st order  !!!!!!!!
 
       !$acc parallel loop gang vector default(present)
-      do iz=1,nz
+      do iz=1,nk
          dumzh(iz) = zh(1,1,iz)
       enddo
       !$acc end parallel
@@ -3116,7 +3117,7 @@
                end do
                rad_init = rad_init*1.0e-6
                !DHR TEST, to make sure that droplets that destabilize numerics don't get produced
-               rad_init = min(rad_init,250.0e-6)
+               !rad_init = min(rad_init,250.0e-6)
                !Random location
                rand = getRandomReal(randomNumbers)
                pdata(np,prx) = xf(1)+rand*xrange

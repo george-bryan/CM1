@@ -406,7 +406,7 @@
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  Parcels ! '
         if(dowr) write(outfile,*) '  npvals,nparcelsLocal = ',npvals,nparcelsLocal
-        if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
+        !if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
 
         ! Use the deterministic random number generator from CESM:
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
@@ -434,9 +434,9 @@
              pdata(i,pry) = tmpy
              pdata(i,prz) = tmpz
 
-             if(MODULO(n,100)==0) then 
-               if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
-             endif
+             !if(MODULO(n,100)==0) then 
+             !  if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
+             !endif
 
              if (prcl_droplet.eq.1) then
     
