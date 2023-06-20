@@ -427,10 +427,19 @@
           rand = getRandomReal(randomNumbers)
           tmpz = rand*injectHMax
 
-          ! check if this parcel falls into this MPI region
-          ! if parcel is on a tile boundary, let the eastmost/northmost tile own it
-          if ( tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1) .and. &
-               tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1) ) then
+          ! Check if this parcel falls into this MPI region
+          ! Exception case:
+          !   - if parcel is on a tile boundary, let the eastmost/northmost tile own it
+          !   - if parcel is on the northmost or eastmost boundary of the whole domain,
+          !     let the MPI rank which inclues that boundary owns it
+          if ( (tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1) .and. &
+                tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1)) .or. &
+               (tmpx .eq. xfref(nx+1) .and. xf(ni+1) .eq. xfref(nx+1) .and. & 
+                tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1)) .or. & 
+               (tmpy .eq. yfref(ny+1) .and. yf(nj+1) .eq. yfref(ny+1) .and. &
+                tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1)) .or. & 
+               (tmpx .eq. xfref(nx+1) .and. tmpy .eq. yfref(ny+1) .and. &
+                xf(ni+1) .eq. xfref(nx+1) .and. yf(nj+1) .eq. yfref(ny+1)) ) then
 
              pdata(i,prx) = tmpx
              pdata(i,pry) = tmpy
