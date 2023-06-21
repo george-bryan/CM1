@@ -8198,11 +8198,14 @@
       if(dowr) write(outfile,*) '  maxz = ',maxz
       if(dowr) write(outfile,*)
 
+!$acc update device(ibw,ibe,ibs,ibn)
+
       if(dowr) write(outfile,*) '  ibw =',ibw
       if(dowr) write(outfile,*) '  ibe =',ibe
       if(dowr) write(outfile,*) '  ibs =',ibs
       if(dowr) write(outfile,*) '  ibn =',ibn
       if(dowr) write(outfile,*)
+
 
 !-----------------------------------------------------------------------
 !  Get min/max dx,dy,dz on grid

@@ -3037,10 +3037,13 @@
       dtdy=0.5*dt*rdy
       dtdz=0.5*dt*rdz
 
-      cfl = -1.0
-      imaxt = 0
-      jmaxt = 0
-      kmaxt = 0
+      !$acc parallel loop gang vector default(present)
+      do index=1,ni*nj
+        cfl(index) = -99999.0
+        imaxt(index) = 0
+        jmaxt(index) = 0
+        kmaxt(index) = 0
+      enddo
 
       if(nx.gt.1.and.ny.gt.1)then
 !! Each thread runs a serial loop and finds the max from that "stripe".
@@ -3614,13 +3617,10 @@
       dtdy=dt*rdy*rdy
       dtdz=dt*rdz*rdz
 
-!$acc parallel loop gang vector collapse(2) default(present)
-      do j=1,nj
-      do i=1,ni
-          index=(j-1)*ni+i
+!$acc parallel loop gang vector  default(present)
+      do index=1,ni*nj
           ksh(index) = -99999.0
           ksv(index) = -99999.0
-      enddo
       enddo
 
 !$omp parallel do default(shared)  &

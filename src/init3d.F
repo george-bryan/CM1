@@ -176,6 +176,7 @@
       logical, parameter :: use_truly_random_pert  =  .false.
 
       real :: tmpx, tmpy, tmpz
+      integer :: np_tmp
 
 !--------------------------
 
@@ -412,7 +413,7 @@
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
         !
         ! The generated random number is independent of compilers and MPI ranks
-        randomNumbers = new_RandomNumberSequence(seed = nparcelsMax)
+        call new_RandomNumberSequence(randomNumbers, nparcelsMax)
 
         i = 1
         nparcelsLocalActive = 0
@@ -426,17 +427,27 @@
           rand = getRandomReal(randomNumbers)
           tmpz = rand*injectHMax
 
-          ! check if this parcel falls into this MPI region
-          if ( tmpx .ge. xf(1) .and. tmpx .le. xf(ni+1) .and. &
-               tmpy .ge. yf(1) .and. tmpy .le. yf(nj+1) ) then
+          ! Check if this parcel falls into this MPI region
+          ! Exception case:
+          !   - if parcel is on a tile boundary, let the eastmost/northmost tile own it
+          !   - if parcel is on the northmost or eastmost boundary of the whole domain,
+          !     let the MPI rank which inclues that boundary owns it
+          if ( (tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1) .and. &
+                tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1)) .or. &
+               (tmpx .eq. xfref(nx+1) .and. xf(ni+1) .eq. xfref(nx+1) .and. & 
+                tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1)) .or. & 
+               (tmpy .eq. yfref(ny+1) .and. yf(nj+1) .eq. yfref(ny+1) .and. &
+                tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1)) .or. & 
+               (tmpx .eq. xfref(nx+1) .and. tmpy .eq. yfref(ny+1) .and. &
+                xf(ni+1) .eq. xfref(nx+1) .and. yf(nj+1) .eq. yfref(ny+1)) ) then
 
              pdata(i,prx) = tmpx
              pdata(i,pry) = tmpy
              pdata(i,prz) = tmpz
 
-             !if(MODULO(n,100)==0) then 
-             !  if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
-             !endif
+!             if(MODULO(n,100)==0) then 
+!               if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
+!             endif
 
              if (prcl_droplet.eq.1) then
     
@@ -489,6 +500,20 @@
           end if    ! end of if statement for xf/yf check
 
         end do      ! end of loop for nparcelsInit
+
+#ifdef MPI
+        ! Sanity check
+        call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+        if ( np_tmp .ne. nparcelsInit ) then
+           print *
+           print *,'  Error: nparcelsInit does not equal np_tmp '
+           print *
+           print *,'  nparcelsInit = ',nparcelsInit
+           print *,'  np_tmp       = ',np_tmp
+           print *
+           stop 3333
+        end if
+#endif
 
         !Here also initialize the droplet histogram arrays
         call initialize_droplet_histograms
@@ -1557,7 +1582,7 @@
           !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
           !
           ! The generated random number is independent of compilers and MPI ranks
-          randomNumbers = new_RandomNumberSequence(seed = (nx+1)*(ny+1))
+          call new_RandomNumberSequence(randomNumbers, (nx+1)*(ny+1))
           do jj = 0,ny+1
           do ii = 0,nx+1
             rand = getRandomReal(randomNumbers)

@@ -106,6 +106,7 @@ contains
   ! Private functions
   ! ---------------------------
   function mixbits(u, v)
+    !$acc routine seq
     integer, intent( in) :: u, v
     integer              :: mixbits
 
@@ -161,9 +162,11 @@ contains
   ! -------------------------------------------------------------
   ! Public (but hidden) functions
   ! --------------------
-  function initialize_scalar(seed) result(twister)
+  subroutine initialize_scalar(twister, seed)
+    !$acc routine seq
     integer,       intent(in   ) :: seed
     type(randomNumberSequence)                :: twister
+    
 
     integer :: i
     ! See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. In the previous versions,
@@ -177,16 +180,16 @@ contains
        twister%state(i) = iand(twister%state(i), -1) ! for >32 bit machines
     end do
     twister%currentElement = blockSize
-  end function initialize_scalar
+  end subroutine initialize_scalar
   ! -------------------------------------------------------------
-  function initialize_vector(seed) result(twister)
+  subroutine initialize_vector(twister, seed)
     integer, dimension(0:), intent(in) :: seed
     type(randomNumberSequence)                      :: twister
 
     integer :: i, j, k, nFirstLoop, nWraps
 
     nWraps  = 0
-    twister = initialize_scalar(19650218)
+    call initialize_scalar(twister, 19650218)
 
     nFirstLoop = max(blockSize, size(seed))
     do k = 1, nFirstLoop
@@ -231,7 +234,7 @@ contains
     twister%state(0) = UMASK
     twister%currentElement = blockSize
 
-  end function initialize_vector
+  end subroutine initialize_vector
   ! -------------------------------------------------------------
   ! Public functions
   ! --------------------
@@ -287,6 +290,7 @@ contains
   end function getRandomReal
   ! --------------------
   subroutine finalize_RandomNumberSequence(twister)
+    !$acc routine seq
     type(randomNumberSequence), intent(inout) :: twister
 
     twister%currentElement = blockSize

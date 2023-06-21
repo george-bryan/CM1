@@ -1859,9 +1859,6 @@
                                 rs31,rs32,rn31,rn32,reqs_y)
 #endif
         IF(imoist.eq.1)THEN
-          !print *,'numq: ',numq
-        !call flush(6)
-        !print *,'solve2: before bcs_GPU #6'
           do n=1,numq
             call bcs_GPU(q3d(ib,jb,kb,n))
 #ifdef MPI
@@ -2010,7 +2007,6 @@
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-      !print *,'solve2: after advs'
 
         !$omp parallel do default(shared) private(i,j,k)
         !$acc parallel loop gang vector collapse(3) default(present)
@@ -2118,7 +2114,6 @@
                      ,reqs_t(1,n) )
 #endif
       ENDIF
-        !print *,'solve2: point #26'
 
     ENDDO
     endif
@@ -2210,8 +2205,6 @@
 !  (using final value of rho)
 
     if(iptra.eq.1)then
-        !call flush(6)
-        !print *,'solve2: before bcs_GPU #9'
       DO n=1,npt
         if( pdtra.eq.1 ) then 
             call pdefq2_GPU(0.0,afoo,ruh,rvh,rmh,rho,pt3d(ib,jb,kb,n))
