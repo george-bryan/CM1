@@ -2273,9 +2273,9 @@
       double precision, dimension(numq,0:numprocs-1) :: csq,dsq
       real, dimension(:,:), allocatable :: pfoo
       real, dimension(:), allocatable :: dumx,dumy
-      real, dimension(:,:), allocatable :: rbuf
+      real, dimension(:,:), allocatable :: rbuf, tmp_buf
 #ifdef MPI
-      integer :: proc,index,count,req1,req2,req3,reqp
+      integer :: proc,index,count,req1,req2,req3,reqp,tag
       integer :: beg_loc, end_loc
       integer :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank
                                               ! that is read in from the restart file
@@ -3738,7 +3738,7 @@
                      allocate( tmp_buf(nparcels_per_mpi(i+1),npvars) )
                      beg_loc = sum(nparcels_per_mpi(1:i))+1
                      end_loc = beg_loc+nparcels_per_mpi(i+1)-1
-                     tmp_buf(:,:) = rbuf(beg_loc:end_loc,:))
+                     tmp_buf(:,:) = rbuf(beg_loc:end_loc,:)
                      tag = 98765 + i
                      call mpi_send(tmp_buf,nparcels_per_mpi(i+1)*npvars, &
                                    MPI_REAL,i,tag,MPI_COMM_WORLD,ierr)
