@@ -386,7 +386,7 @@ module_mp_jensen_ishmael.o: input.o module_ra_etc.o
 mp_driver.o: constants.o input.o misclibs.o kessler.o goddard.o thompson.o lfoice.o morrison.o module_mp_nssl_2mom.o module_mp_p3.o module_mp_jensen_ishmael.o
 param.o: constants.o input.o init_terrain.o bc.o comm.o bcast.o thompson.o morrison.o module_mp_nssl_2mom.o goddard.o lfoice.o module_mp_p3.o module_mp_jensen_ishmael.o ib_module.o eddy_recycle.o lsnudge.o
 parcel.o: constants.o input.o cm1libs.o misclibs.o bc.o comm.o writeout_nc.o
-droplet.o: constants.o input.o cm1libs.o bc.o comm.o comm_droplet.o parcel.o mersennetwister_mod.o
+droplet.o: constants.o input.o cm1libs.o bc.o comm.o comm_droplet.o parcel.o mersennetwister_mod.o writeout_nc.o
 pdef.o: input.o bc.o comm.o
 pdcomp.o: constants.o input.o adv.o poiss.o ib_module.o
 poiss.o: input.o singleton.o
@@ -396,7 +396,7 @@ restart.o: constants.o input.o writeout_nc.o lsnudge.o goddard.o lfoice.o
 sfcphys.o: constants.o input.o cm1libs.o
 solve1.o: constants.o input.o bc.o comm.o diff2.o turbtend.o misclibs.o testcase_simple_phys.o ib_module.o eddy_recycle.o lsnudge.o
 solve2.o: constants.o input.o bc.o comm.o adv.o adv_routines.o sound.o sounde.o soundns.o soundcb.o anelp.o misclibs.o module_mp_nssl_2mom.o ib_module.o eddy_recycle.o
-solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o pdcomp.o lsnudge.o ib_module.o droplet.o
+solve3.o: constants.o input.o bc.o comm.o adv_routines.o misclibs.o parcel.o pdcomp.o lsnudge.o ib_module.o droplet.o maxmin.o
 sorad3d.o: radlib3d.o
 sound.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o
 sounde.o: constants.o input.o misclibs.o bc.o comm.o ib_module.o maxmin.o

@@ -191,7 +191,7 @@ end module cuda_rt
       integer, dimension(:), allocatable :: reqt
       integer :: reqc,reqk
       real, dimension(:,:), allocatable :: pdata,ploc
-      real, dimension(:,:,:,:), allocatable :: dpten
+      double precision, dimension(:,:,:,:), allocatable :: dpten
       logical, dimension(:,:,:), allocatable :: flag
 
 !--- arrays for MPI ---
@@ -2294,7 +2294,7 @@ end module cuda_rt
       allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
-      allocate( dpten(ib:ie,jb:je,kb:ke,2) )
+      allocate( dpten(ib:ie,jb:je,kb:ke,6) )
       dpten = 0.0
 
       allocate( flag(ib:ie,jb:je,kb:ke) )
