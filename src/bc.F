@@ -10,7 +10,7 @@
   public :: ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn, bcs_tend_halo
 
   !CPU only 
-  public :: bcs, bcs2
+  public :: bcs
 
   !MPI + GPU enabled
   public :: bcs2_GPU, bct2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_gpu
@@ -3413,6 +3413,7 @@
  
       end subroutine bcw_GPU
 
+#if 0
 
    subroutine bcs2(s)
       use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
@@ -3536,17 +3537,21 @@
 
       end subroutine bcs2
 
-      subroutine bcs2_GPU(s)
+#endif
+
+      subroutine bcs2_GPU(s,device)
       use input, only : ib,ie,jb,je,kb,ke,ngxy,ni,nj,nk,wbc,ebc,sbc,nbc, &
           ibw,ibe,ibs,ibn,timestats,time_bcs2,mytime,patchsww,patchnww, &
           patchsee,patchnee,patchsws,patchses,patchnwn,patchnen
       implicit none
 
       real s(ib:ie,jb:je,kb:ke)
+      logical, optional :: device
 
       integer i,j,k
+      logical :: openacc
 
-      !$acc data present(s)
+      call SetGPUParams(openacc,device)
 
 !---------------------------------------------------------
 !  This subroutine sets the corner points
@@ -3556,8 +3561,8 @@
 
         if(patchsww)then
           j=0
-!$omp parallel do default(shared)  private(i,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared)  private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do i=1-ngxy,0
                 s(i,j,k)=s(1,j,k)
@@ -3567,8 +3572,8 @@
 
         if(patchnww)then
           j=nj+1
-!$omp parallel do default(shared) private(i,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared) private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do i=1-ngxy,0
                 s(i,j,k)=s(1,j,k)
@@ -3582,8 +3587,8 @@
 
         if(patchsee)then
           j=0
-!$omp parallel do default(shared) private(i,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared) private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do i=ni+1,ni+ngxy
                 s(i,j,k)=s(ni,j,k)
@@ -3593,8 +3598,8 @@
 
         if(patchnee)then
           j=nj+1
-!$omp parallel do default(shared) private(i,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared) private(i,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do i=ni+1,ni+ngxy
                 s(i,j,k)=s(ni,j,k)
@@ -3608,8 +3613,8 @@
 
         if(patchsws)then
           i=0
-!$omp parallel do default(shared) private(j,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared) private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do j=1-ngxy,0
                 s(i,j,k)=s(i,1,k)
@@ -3619,8 +3624,8 @@
 
         if(patchses)then
           i=ni+1
-!$omp parallel do default(shared) private(j,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared) private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do j=1-ngxy,0
                 s(i,j,k)=s(i,1,k)
@@ -3634,8 +3639,8 @@
 
         if(patchnwn)then
           i=0
-!$omp parallel do default(shared) private(j,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared) private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do j=nj+1,nj+ngxy
                 s(i,j,k)=s(i,nj,k)
@@ -3645,8 +3650,8 @@
 
         if(patchnen)then
           i=ni+1
-!$omp parallel do default(shared) private(j,k)
-          !$acc parallel loop gang vector default(present) collapse(2)
+          !$omp parallel do default(shared) private(j,k)
+          !$acc parallel loop gang vector default(present) collapse(2) if(openacc)
           do k=1,nk
              do j=nj+1,nj+ngxy
                 s(i,j,k)=s(i,nj,k)
@@ -3656,10 +3661,26 @@
 
       endif
       
-      !$acc end data
-
       if(timestats.ge.1) time_bcs2=time_bcs2+mytime()
 
       end subroutine bcs2_GPU
+
+      subroutine SetGPUParams(openacc,device)
+
+         logical, intent(inout) :: openacc
+         logical, optional :: device
+
+      if(present(device)) then
+         if(device) then
+            openacc = .true.
+         else
+            openacc = .false.
+         endif
+      else
+         openacc = .true.
+      endif
+
+      end subroutine SetGPUParams
+
 
   END MODULE bc_module
