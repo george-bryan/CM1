@@ -414,7 +414,6 @@ end module cuda_rt
                   endif
           end select
       end do 
-      print *, 'Using the namelist input file: ', namelist_input
 
 !----------------------------------------------------------------------
 !  For arbitrary 3d output array:  
@@ -458,10 +457,10 @@ end module cuda_rt
 #ifdef _OPENACC
       ndev = acc_get_num_devices(acc_device_nvidia)
       idev = mod(myid,ndev)
-      print *,'myid: ',myid
-      print *,'numprocs: ',numprocs
-      print *,'Total # of GPU: ',ndev 
-      print *,'Using GPU: ',idev 
+      write(*,*) 'numprocs: ',numprocs
+      write(*,*) 'Total # of GPU: ',ndev 
+      write(*,*) 'Using GPU: ',idev 
+      call flush(6)
       
       call acc_set_device_num(idev,acc_device_nvidia)
 #endif

@@ -54,7 +54,7 @@
     use constants
     use cm1libs , only : rslf,rsif
     use adv_module , only : advs
-    use bc_module, only: bcs
+    use bc_module, only: bcs_GPU
     use ib_module
 #ifdef NETCDF
     use writeout_nc_module , only : writehifrq_nc
@@ -934,10 +934,10 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-      call bcs(sadv)
+      call bcs_GPU(sadv,device=.false.)
 #ifdef MPI
-      call comm_3s_start(sadv,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
-      call comm_3s_end(  sadv,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s)
+      call comm_3s_start_GPU(sadv,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,device=.false.)
+      call comm_3s_end_GPU(sadv,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,device=.false.)
 #endif
 
     if( td_hadv.ge.1 .and. td_vadv.ge.1 )then

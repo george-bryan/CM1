@@ -17,7 +17,7 @@
 
       use input
       use constants
-      use bc_module, only: bc2d_GPU, bcs2_2d
+      use bc_module, only: bc2d_GPU, bcs2_2d_GPU
       use adv_routines , only : zsgrad
       use comm_module
 #ifdef MPI
@@ -169,7 +169,7 @@
                               south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(zs,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(zs,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d(zs)
+        call bcs2_2d_GPU(zs,device=.false.)
         !$acc data copy(zs)
         call bc2d_GPU(zs)
         !$acc end data
@@ -217,7 +217,7 @@
                                 south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(dzdx,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(dzdx,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d(dzdx)
+        call bcs2_2d_GPU(dzdx,device=.false.)
         !$acc data copy(dzdx)
         call bc2d_GPU(dzdx)
         !$acc end data
@@ -227,7 +227,7 @@
                                 south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(dzdy,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(dzdy,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d(dzdy)
+        call bcs2_2d_GPU(dzdy,device=.false.)
         !$acc data copy(dzdy)
         call bc2d_GPU(dzdy)
         !$acc end data
@@ -252,7 +252,7 @@
                                south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(rgz,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(rgz,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d(rgz)
+        call bcs2_2d_GPU(rgz,device=.false.)
         !$acc data copy(rgz)
         call bc2d_GPU(rgz)
         !$acc end data

@@ -2605,7 +2605,7 @@
 
       use input
       use constants
-      use bc_module, only: bc2d_GPU, bcs2_2d
+      use bc_module, only: bc2d_GPU, bcs2_2d_GPU
 #ifdef MPI
       use comm_module
       use mpi
@@ -2652,7 +2652,7 @@
                                          south,newsouth,north,newnorth,reqs)
         call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
         call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
-        call bcs2_2d(dum1(ib,jb,1))
+        call bcs2_2d_GPU(dum1(ib,jb,1),device=.false.)
         call comm_2d_corner(dum1(ib,jb,1))
 #endif
 
@@ -2683,7 +2683,7 @@
                                          south,newsouth,north,newnorth,reqs)
         call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
         call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
-        call bcs2_2d(dum1(ib,jb,1))
+        call bcs2_2d_GPU(dum1(ib,jb,1),device=.false.)
         call comm_2d_corner(dum1(ib,jb,1))
 #endif
 
