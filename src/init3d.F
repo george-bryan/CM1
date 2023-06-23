@@ -427,8 +427,6 @@
           rand = getRandomReal(randomNumbers)
           tmpz = rand*injectHMax
 
-          if(myid.eq.0) print *,n,tmpx,tmpy,tmpz
-
           ! Check if this parcel falls into this MPI region
           ! Exception case:
           !   - if parcel is on a tile boundary, let the eastmost/northmost tile own it
