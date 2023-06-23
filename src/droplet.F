@@ -2964,6 +2964,7 @@
         ! quantities come in already non-dimensionalized, so must be converted back;
         rnext = tempr*radius
         Tnext = tempt*Tp
+        Tnext = max(Tnext,1.0d-12) !To avoid divide by zero if the solution starts to diverge; gets flagged later
         dnext = rnext*2.0d0
 
         esa = deslf(prsval,tval)
