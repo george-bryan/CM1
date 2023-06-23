@@ -26,7 +26,7 @@
           zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
-      use bc_module, only: bcs_GPU, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
+      use bc_module, only: bcs, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
       use poiss_module
       implicit none
@@ -248,7 +248,7 @@
                        cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans,dttmp)
 
         !$acc data copy(phi2)
-        call bcs_GPU(phi2)
+        call bcs(phi2)
         !$acc end data
 
 !---------------------------------------------------------------------

@@ -17,7 +17,7 @@
 
       use input
       use constants
-      use bc_module, only: bc2d_GPU, bcs2_2d_GPU
+      use bc_module, only: bc2d, bcs2_2d
       use adv_routines , only : zsgrad
       use comm_module
 #ifdef MPI
@@ -158,7 +158,7 @@
 !--------------------------------------------------------------
 
         !$acc data copy(zs)
-        call bc2d_GPU(zs)
+        call bc2d(zs)
         !$acc end data
 #ifdef MPI
         nf=0
@@ -169,9 +169,9 @@
                               south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(zs,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(zs,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d_GPU(zs,device=.false.)
+        call bcs2_2d(zs,device=.false.)
         !$acc data copy(zs)
-        call bc2d_GPU(zs)
+        call bc2d(zs)
         !$acc end data
         call getcorner3_2d(zs)
 #endif
@@ -208,8 +208,8 @@
 !  set boundary points
 
         !$acc data copy(dzdx,dzdy)
-        call bc2d_GPU(dzdx)
-        call bc2d_GPU(dzdy)
+        call bc2d(dzdx)
+        call bc2d(dzdy)
         !$acc end data
 
 #ifdef MPI
@@ -217,9 +217,9 @@
                                 south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(dzdx,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(dzdx,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d_GPU(dzdx,device=.false.)
+        call bcs2_2d(dzdx,device=.false.)
         !$acc data copy(dzdx)
-        call bc2d_GPU(dzdx)
+        call bc2d(dzdx)
         !$acc end data
         call getcorner3_2d(dzdx)
 
@@ -227,9 +227,9 @@
                                 south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(dzdy,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(dzdy,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d_GPU(dzdy,device=.false.)
+        call bcs2_2d(dzdy,device=.false.)
         !$acc data copy(dzdy)
-        call bc2d_GPU(dzdy)
+        call bc2d(dzdy)
         !$acc end data
         call getcorner3_2d(dzdy)
 #endif
@@ -245,16 +245,16 @@
         enddo
 
         !$acc data copy(rgz)
-        call bc2d_GPU(rgz)
+        call bc2d(rgz)
         !$acc end data
 #ifdef MPI
         call comm_2d_start(rgz,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(rgz,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(rgz,south,newsouth,north,newnorth,reqs_p)
-        call bcs2_2d_GPU(rgz,device=.false.)
+        call bcs2_2d(rgz,device=.false.)
         !$acc data copy(rgz)
-        call bc2d_GPU(rgz)
+        call bc2d(rgz)
         !$acc end data
         call getcorner3_2d(rgz)
 #endif

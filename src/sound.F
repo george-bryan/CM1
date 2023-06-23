@@ -28,7 +28,7 @@
           zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,alph
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
-      use bc_module, only: bcs_GPU, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
+      use bc_module, only: bcs, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
       use comm_module, only : comm_1s_start_GPU,comm_1p_end_GPU,sync
       use ib_module
@@ -830,7 +830,7 @@
           if(timestats.ge.1) time_sound=time_sound+mytime()
           
 !          call flush(6)
-          call bcs_GPU(ppd)
+          call bcs(ppd)
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()

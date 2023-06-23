@@ -31,7 +31,7 @@
         rmp,cmp,jmp,imp,ni,nj,nk,nx,ny,nz,dx,testcase,miny,maxy,minx,maxx,ierr, &
         myid,dowr,nf,nu,nv,nw,centerx,centery,dowr,outfile
     use constants
-    use bc_module, only: bc2d_GPU, bcs2_2d_GPU
+    use bc_module, only: bc2d, bcs2_2d
     use comm_module
 #ifdef MPI
     use mpi
@@ -185,9 +185,7 @@
 
     !---  DO NOT CHANGE ANYTHING BELOW HERE  ---!
 
-        !$acc data copy(zsfoo)
-        call bc2d_GPU(zsfoo)
-        !$acc end data
+        call bc2d(zsfoo,device=.false.)
 #ifdef MPI
       nf=0
       nu=0
@@ -198,8 +196,8 @@
       call comm_2dew_end(zsfoo,west,newwest,east,neweast,reqs_p)
       call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p)
       !$acc data copy(zsfoo)
-      call bcs2_2d_GPU(zsfoo)
-      call bc2d_GPU(zsfoo)
+      call bcs2_2d(zsfoo)
+      call bc2d(zsfoo)
       !$acc end data
       call getcorner3_2d(zsfoo)
 #endif

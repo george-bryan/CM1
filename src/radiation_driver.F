@@ -130,7 +130,7 @@
           if(dowr) write(outfile,*) '  Calculating radiation tendency:'
           if(timestats.ge.1) time_rad=time_rad+mytime()
           !$acc data copy(prs)
-          call bcs_GPU(prs)
+          call bcs(prs)
           !$acc end data
           CALL zenangl( ni,nj,      zf(1,1,1),    &
                 rad2d(1,1,ncosz), rad2d(1,1,ncosss), radsw,              &

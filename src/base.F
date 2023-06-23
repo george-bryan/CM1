@@ -34,8 +34,8 @@
                       sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
       use input
       use constants
-      use bc_module, only: bcu_GPU, bcv_GPU, bcs_GPU, extrapbcs, &
-          bcu2_GPU, bcv2_GPU
+      use bc_module, only: bcu, bcv, bcs, extrapbcs, &
+          bcu2, bcv2
       use comm_module
       use goddard_module, only : T0K,T00K,RT0
       use cm1libs , only : rslf,rsif
@@ -2028,13 +2028,13 @@
 !  fill in ghost cells
 
       !$acc data copy(pi0,prs0,th0,qv0,qc0,qi0,rh0)
-      call bcs_GPU(pi0)
-      call bcs_GPU(prs0)
-      call bcs_GPU(th0)
-      call bcs_GPU(qv0)
-      call bcs_GPU(qc0)
-      call bcs_GPU(qi0)
-      call bcs_GPU(rh0)
+      call bcs(pi0)
+      call bcs(prs0)
+      call bcs(th0)
+      call bcs(qv0)
+      call bcs(qc0)
+      call bcs(qi0)
+      call bcs(rh0)
       !$acc end data
        
 
@@ -2129,7 +2129,7 @@
     enddo
 
       !$acc data copy(rho0)
-      call bcs_GPU(rho0)
+      call bcs(rho0)
       !$acc end data
 #ifdef MPI
       call comm_all_s(rho0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
@@ -2660,8 +2660,8 @@
 !  Fill in ghost cells
 
       !$acc data copy(u0,v0)
-      call bcu_GPU(u0)
-      call bcv_GPU(v0)
+      call bcu(u0)
+      call bcv(v0)
       !$acc end data
 
       !--------
@@ -2673,7 +2673,7 @@
       call getcorneru3(u0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                           s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
       !$acc data copy(u0)
-      call bcu2_GPU(u0)
+      call bcu2(u0)
       !$acc end data
 #endif
 !$omp parallel do default(shared)   &
@@ -2693,7 +2693,7 @@
       call getcornerv3(v0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                           s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
       !$acc data copy(v0)
-      call bcv2_GPU(v0)
+      call bcv2(v0)
       !$acc end data
 #endif
 !$omp parallel do default(shared)   &

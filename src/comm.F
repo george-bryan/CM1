@@ -9090,7 +9090,7 @@
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
-      use bc_module, only: bcs2_GPU
+      use bc_module, only: bcs2
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -9103,7 +9103,7 @@
       call comm_3s_end_GPU( s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,device=.false.)
       call getcorner3(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
                         s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      call bcs2_GPU(s,device=.false.)
+      call bcs2(s,device=.false.)
 
       end subroutine comm_all_s
 
@@ -9115,7 +9115,7 @@
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
-      use bc_module, only: bcs2_GPU
+      use bc_module, only: bcs2
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -9134,7 +9134,7 @@
       call comm_3s_end_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,gpudirect=.false.)
       call getcorner3_GPU(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
                         s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      call bcs2_GPU(s)
+      call bcs2(s)
 
       !$acc end data
       end subroutine comm_all_s_GPU
@@ -9148,7 +9148,7 @@
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
-      use bc_module, only: bcs_GPU,bcs2_GPU
+      use bc_module, only: bcs,bcs2
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -9170,7 +9170,7 @@
 !--------------------------------------------!
 
       IF( comm.eq.1 )THEN
-        call bcs_GPU(s)
+        call bcs(s)
       ENDIF
 #ifdef MPI
       if(Debug) print *,'prepcorners_GPU point #1'
@@ -9181,7 +9181,7 @@
       if(Debug) print *,'prepcorners_GPU point #2'
       call getcorner_GPU(s,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       if(Debug) print *,'prepcorners_GPU point #3'
-      call bcs2_GPU(s)
+      call bcs2(s)
       if(Debug) print *,'prepcorners_GPU point #4'
 #endif
 
@@ -9219,7 +9219,7 @@
                                 n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
-      use bc_module, only: bcs_GPU
+      use bc_module, only: bcs
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -9235,7 +9235,7 @@
 
 
       IF( comm.eq.1 )THEN
-        call bcs_GPU(s)
+        call bcs(s)
 #ifdef MPI
         call comm_all_s_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
@@ -9279,7 +9279,7 @@
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
-      use bc_module, only: bcw_GPU, bct2_GPU
+      use bc_module, only: bcw, bct2
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: t
@@ -9300,7 +9300,7 @@
 
       if(Debug) print *,'prepcornert_GPU'
       IF( comm.eq.1 )THEN
-        call bcw_GPU(t,0)
+        call bcw(t,0)
       ENDIF
 #ifdef MPI
       IF( comm.eq.1 )THEN
@@ -9308,7 +9308,7 @@
         call comm_1t_end_GPU(  t,tkw1(1,1,1),tkw2(1,1,1),tke1(1,1,1),tke2(1,1,1),tks1(1,1,1),tks2(1,1,1),tkn1(1,1,1),tkn2(1,1,1),reqs_p)
       ENDIF
       call getcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2_GPU(t)
+      call bct2(t)
 #endif
 
       !$acc end data
