@@ -36,7 +36,8 @@
       use constants
       use bc_module, only: bcu, bcv, bcs, extrapbcs, &
           bcu2, bcv2
-      use comm_module
+      use comm_module, only: comm_all_s_GPU, getcorneru3,getcornerv3, &
+          comm_3u_start,comm_3u_end,comm_3v_start,comm_3v_end
       use goddard_module, only : T0K,T00K,RT0
       use cm1libs , only : rslf,rsif
       use turb_module , only : ramp_up_turb
@@ -2043,20 +2044,20 @@
       nu=0
       nv=0
       nw=0
-     call comm_all_s( pi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call comm_all_s(prs0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call comm_all_s( th0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call comm_all_s( qv0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call comm_all_s( qc0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call comm_all_s( qi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call comm_all_s( rh0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
+     call comm_all_s_GPU( pi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
+      call comm_all_s_GPU(prs0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
+      call comm_all_s_GPU( th0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
+      call comm_all_s_GPU( qv0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
+      call comm_all_s_GPU( qc0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
+      call comm_all_s_GPU( qi0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
+      call comm_all_s_GPU( rh0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
 #endif
 
       !$acc data copy(pi0,prs0,th0,qv0,qc0,qi0,rh0)
@@ -2132,8 +2133,8 @@
       call bcs(rho0)
       !$acc end data
 #ifdef MPI
-      call comm_all_s(rho0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
+      call comm_all_s_GPU(rho0,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+                         n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
 #endif
       !$acc data copy(rho0)
       call extrapbcs(rho0)

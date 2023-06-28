@@ -23,12 +23,12 @@
   public :: getcorneru_GPU,getcornerv_GPU,getcornert_GPU,getcornerw_GPU,getcorner_GPU
   public :: getcorneru3_GPU,getcornerv3_GPU,getcornerw3_GPU
   public :: prepcorners3_GPU,prepcornert_GPU,prepcorners_GPU
+  public :: comm_all_s_GPU
 
   !CPU only routines
   public :: comm_2d_start, comm_2dns_end,comm_2dew_end
-  public :: comm_2d_corner,comm_all_s
+  public :: comm_2d_corner
   public :: comm_1s_start,comm_1s_end
-!  public :: comm_3s_start,comm_3s_end
   public :: comm_3t_start,comm_3t_end
   public :: comm_3u_start,comm_3u_end
   public :: comm_3v_start,comm_3v_end
@@ -1269,213 +1269,11 @@
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
       end subroutine getcornerw_GPU
 
-
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine getcorner3(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
-          cmp,nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
-      use mpi
-      implicit none
- 
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
-      real, intent(inout), dimension(cmp,cmp,nk) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
- 
-      integer :: i,j,k,nn,nr,index
-      integer :: index_nw,index_sw,index_ne,index_se
-      integer reqs(8)
-      integer tag1,tag2,tag3,tag4
-
-!-----
-
-      nr = 0
-      index_nw = -1
-      index_sw = -1
-      index_ne = -1
-      index_se = -1
-
-!------------------------------------------------------------------
-
-      tag1=5001
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        nr = nr + 1
-        call mpi_irecv(nw2,cmp*cmp*nk,MPI_REAL,mynw,tag1,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-        index_nw = nr
-      endif
-
-!-----
-
-      tag2=5002
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        nr = nr + 1
-        call mpi_irecv(sw2,cmp*cmp*nk,MPI_REAL,mysw,tag2,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-        index_sw = nr
-      endif
-
-!-----
-
-      tag3=5003
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        nr = nr + 1
-        call mpi_irecv(ne2,cmp*cmp*nk,MPI_REAL,myne,tag3,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-        index_ne = nr
-      endif
-
-!-----
-
-      tag4=5004
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        nr = nr + 1
-        call mpi_irecv(se2,cmp*cmp*nk,MPI_REAL,myse,tag4,MPI_COMM_WORLD,   &
-                       reqs(nr),ierr)
-        index_se = nr
-      endif
-
-!------------------------------------------------------------------
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          se1(i,j,k)=s(ni,1,k)
-          se1(i,j,k)=s(ni-cmp+i,j,k)
-        enddo
-        enddo
-        enddo
-        call mpi_isend(se1,cmp*cmp*nk,MPI_REAL,myse,tag1,MPI_COMM_WORLD,   &
-                       reqs(5),ierr)
-      endif
- 
-!-----
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          ne1(i,j,k)=s(ni,nj,k)
-          ne1(i,j,k)=s(ni-cmp+i,nj-cmp+j,k)
-        enddo
-        enddo
-        enddo
-        call mpi_isend(ne1,cmp*cmp*nk,MPI_REAL,myne,tag2,MPI_COMM_WORLD,   &
-                       reqs(6),ierr)
-      endif
- 
-!-----
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          sw1(i,j,k)=s(1,1,k)
-          sw1(i,j,k)=s(i,j,k)
-        enddo
-        enddo
-        enddo
-        call mpi_isend(sw1,cmp*cmp*nk,MPI_REAL,mysw,tag3,MPI_COMM_WORLD,   &
-                       reqs(7),ierr)
-      endif
- 
-!-----
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          nw1(i,j,k)=s(1,nj,k)
-          nw1(i,j,k)=s(i,nj-cmp+j,k)
-        enddo
-        enddo
-        enddo
-        call mpi_isend(nw1,cmp*cmp*nk,MPI_REAL,mynw,tag4,MPI_COMM_WORLD,   &
-                       reqs(8),ierr)
-      endif
- 
-!-----
-
-      nn = 1
-      do while( nn .le. nr )
-        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
-        nn = nn + 1
-
-      if(index.eq.index_nw)then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          s(0,nj+1,k)=nw2(i,j,k)
-          s(-cmp+i,nj+j,k)=nw2(i,j,k)
-        enddo
-        enddo
-        enddo
-      elseif(index.eq.index_sw)then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          s(0,0,k)=sw2(i,j,k)
-          s(-cmp+i,-cmp+j,k)=sw2(i,j,k)
-        enddo
-        enddo
-        enddo
-      elseif(index.eq.index_ne)then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          s(ni+1,nj+1,k)=ne2(i,j,k)
-          s(ni+i,nj+j,k)=ne2(i,j,k)
-        enddo
-        enddo
-        enddo
-      elseif(index.eq.index_se)then
-        do k=1,nk
-        do j=1,cmp
-        do i=1,cmp
-!!!          s(ni+1,0,k)=se2(i,j,k)
-          s(ni+i,-cmp+j,k)=se2(i,j,k)
-        enddo
-        enddo
-        enddo
-      endif
-
-      enddo
-
-!-----
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        call MPI_WAIT (reqs(5),MPI_STATUS_IGNORE,ierr)
-      endif
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        call MPI_WAIT (reqs(6),MPI_STATUS_IGNORE,ierr)
-      endif
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        call MPI_WAIT (reqs(7),MPI_STATUS_IGNORE,ierr)
-      endif
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        call MPI_WAIT (reqs(8),MPI_STATUS_IGNORE,ierr)
-      endif
-
-!-----
-
-      if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-
-      end subroutine getcorner3
-
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-      subroutine getcorner3_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      subroutine getcorner3_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           cmp,nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
@@ -1483,12 +1281,18 @@
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
       real, intent(inout), dimension(cmp,cmp,nk) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
+      logical, optional, intent(in) :: device,gpudirect
 
       integer :: i,j,k,nn,nr,index
       integer :: index_nw,index_sw,index_ne,index_se
       integer reqs(8)
       integer tag1,tag2,tag3,tag4
       logical, parameter :: Debug =.FALSE.
+      logical :: openacc,gdirect
+
+
+      ! Set the GPU specific parameters to control communication
+      call SetMsgParams(openacc,gdirect,device,gpudirect)
 
 !-----
       nr = 0
@@ -1496,14 +1300,13 @@
       index_sw = -1
       index_ne = -1
       index_se = -1
-!      !$acc update host(s)
 !------------------------------------------------------------------
 
       tag1=5001
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-        !$acc host_data use_device(nw2)
+        !$acc host_data use_device(nw2) if(gdirect)
         call mpi_irecv(nw2,cmp*cmp*nk,MPI_REAL,mynw,tag1,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
@@ -1516,7 +1319,7 @@
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-        !$acc host_data use_device(sw2)
+        !$acc host_data use_device(sw2) if(gdirect)
         call mpi_irecv(sw2,cmp*cmp*nk,MPI_REAL,mysw,tag2,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
@@ -1529,7 +1332,7 @@
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
-        !$acc host_data use_device(ne2)
+        !$acc host_data use_device(ne2) if(gdirect)
         call mpi_irecv(ne2,cmp*cmp*nk,MPI_REAL,myne,tag3,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
@@ -1542,7 +1345,7 @@
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         nr = nr + 1
-        !$acc host_data use_device(se2)
+        !$acc host_data use_device(se2) if(gdirect)
         call mpi_irecv(se2,cmp*cmp*nk,MPI_REAL,myse,tag4,MPI_COMM_WORLD,   &
                        reqs(nr),ierr)
         !$acc end host_data
@@ -1552,7 +1355,7 @@
 !------------------------------------------------------------------
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1561,7 +1364,7 @@
         enddo
         enddo
         enddo
-        !$acc host_data use_device(se1)
+        !$acc host_data use_device(se1) if(gdirect)
         call mpi_isend(se1,cmp*cmp*nk,MPI_REAL,myse,tag1,MPI_COMM_WORLD,   &
                        reqs(5),ierr)
         !$acc end host_data
@@ -1570,7 +1373,7 @@
 !-----
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1579,7 +1382,7 @@
         enddo
         enddo
         enddo
-        !$acc host_data use_device(ne1)
+        !$acc host_data use_device(ne1) if(gdirect)
         call mpi_isend(ne1,cmp*cmp*nk,MPI_REAL,myne,tag2,MPI_COMM_WORLD,   &
                        reqs(6),ierr)
         !$acc end host_data
@@ -1588,7 +1391,7 @@
 !-----
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1597,7 +1400,7 @@
         enddo
         enddo
         enddo
-        !$acc host_data use_device(sw1)
+        !$acc host_data use_device(sw1) if(gdirect)
         call mpi_isend(sw1,cmp*cmp*nk,MPI_REAL,mysw,tag3,MPI_COMM_WORLD,   &
                        reqs(7),ierr)
         !$acc end host_data
@@ -1606,7 +1409,7 @@
 !-----
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1615,7 +1418,7 @@
         enddo
         enddo
         enddo
-        !$acc host_data use_device(nw1)
+        !$acc host_data use_device(nw1) if(gdirect)
         call mpi_isend(nw1,cmp*cmp*nk,MPI_REAL,mynw,tag4,MPI_COMM_WORLD,   &
                        reqs(8),ierr)
         !$acc end host_data
@@ -1629,7 +1432,7 @@
         nn = nn + 1
 
       if(index.eq.index_nw)then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1639,7 +1442,7 @@
         enddo
         enddo
       elseif(index.eq.index_sw)then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1649,7 +1452,7 @@
         enddo
         enddo
       elseif(index.eq.index_ne)then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1659,7 +1462,7 @@
         enddo
         enddo
       elseif(index.eq.index_se)then
-!$acc parallel loop gang vector default(present) collapse(3) private(i,j,k)
+        !$acc parallel loop gang vector default(present) collapse(3) if(openacc)
         do k=1,nk
         do j=1,cmp
         do i=1,cmp
@@ -1673,27 +1476,20 @@
       enddo
 
 !-----
-      !JMD-KLUDGE REVISIT
-      !JMD I am confused here.  Why are we updating the buffers here... I don't
-      !JMD think this is needed
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         call MPI_WAIT (reqs(5),MPI_STATUS_IGNORE,ierr)
-        !$acc update device(se2)
       endif
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         call MPI_WAIT (reqs(6),MPI_STATUS_IGNORE,ierr)
-        !$acc update device(ne2)
       endif
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
         call MPI_WAIT (reqs(7),MPI_STATUS_IGNORE,ierr)
-        !$acc update device(sw2)
       endif
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         call MPI_WAIT (reqs(8),MPI_STATUS_IGNORE,ierr)
-        !$acc update device(nw2)
       endif
 
 !-----
@@ -2096,9 +1892,6 @@
       logical, parameter :: Debug =.FALSE.
       logical :: openacc
       logical :: gdirect
-      !!$acc declare present(s) &
-      !!$acc present(west,newwest,east,neweast) &
-      !!$acc present(south,newsouth,north,newnorth)
  
       ! Set the GPU specific parameters to control communication
       call SetMsgParams(openacc,gdirect,device,gpudirect)
@@ -2282,14 +2075,9 @@
       integer, dimension(mpi_status_size,8) :: status1
       logical :: openacc
       logical :: gdirect
-      !!$acc declare present(s) &
-      !!$acc present(west,newwest,east,neweast) &
-      !!$acc present(south,newsouth,north,newnorth)
-
 
       ! Set the GPU specific parameters to control communication
       call SetMsgParams(openacc,gdirect,device,gpudirect)
-
 
 !-------------------------------------------------------------------
 
@@ -9080,39 +8868,12 @@
 
       end subroutine getcorner3_2d
 
-
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-
-      subroutine comm_all_s(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                              n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-
-      use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
-      use bc_module, only: bcs2
-      implicit none
-
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
-      real, intent(inout), dimension(cmp,jmp,kmp)   :: sw31,sw32,se31,se32
-      real, intent(inout), dimension(imp,cmp,kmp)   :: ss31,ss32,sn31,sn32
-      real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
-      integer, intent(inout), dimension(rmp) :: reqs_s
-
-      call comm_3s_start_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,device=.false.)
-      call comm_3s_end_GPU( s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,device=.false.)
-      call getcorner3(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
-                        s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      call bcs2(s,device=.false.)
-
-      end subroutine comm_all_s
-
-
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine comm_all_s_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                              n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
+                              n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device)
 
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
       use bc_module, only: bcs2
@@ -9123,20 +8884,17 @@
       real, intent(inout), dimension(imp,cmp,kmp)   :: ss31,ss32,sn31,sn32
       real, intent(inout), dimension(cmp,cmp,kmt+1) :: n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2
       integer, intent(inout), dimension(rmp) :: reqs_s
+      logical, optional, intent(in) :: device
       logical, parameter :: Debug = .FALSE.
 
-
-      !$acc data present (s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32, &
-      !$acc               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
-
-
-      call comm_3s_start_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,gpudirect=.false.)
-      call comm_3s_end_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s,gpudirect=.false.)
+      call comm_3s_start_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s, &
+                device=device, gpudirect=.false.)
+      call comm_3s_end_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s, &
+                device=device,gpudirect=.false.)
       call getcorner3_GPU(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
-                        s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-      call bcs2(s)
+                s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1),device=device)
+      call bcs2(s,device=device)
 
-      !$acc end data
       end subroutine comm_all_s_GPU
 
 #endif
