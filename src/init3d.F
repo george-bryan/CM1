@@ -2510,7 +2510,7 @@
         !$acc data copy(rho)
         call bcs2(rho)
         !$acc end data
-        call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 
       !$omp parallel do default(shared)  &
@@ -2531,7 +2531,7 @@
         !$acc data copy(rr)
         call bcs2(rr)
         !$acc end data
-        call getcorner(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call getcorner_GPU(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
         call bcs(rf,device=.false.)
 #ifdef MPI
@@ -2540,7 +2540,7 @@
         !$acc data copy(rf)
         call bcs2(rf)
         !$acc end data
-        call getcorner(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 
         ! meh 1 !
