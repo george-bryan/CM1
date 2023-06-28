@@ -428,7 +428,7 @@ end module cuda_rt
 !    No other changes are necessary:  output file will contain the 
 !    variables "out1", "out2", "out3", ... etc.
 
-      nout3d =   0
+      nout3d =   6
 
 !----------------------------------------------------------------------
 !  For arbitrary 2d output array:  
