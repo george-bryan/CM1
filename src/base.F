@@ -36,7 +36,7 @@
       use constants
       use bc_module, only: bcu, bcv, bcs, extrapbcs, &
           bcu2, bcv2
-      use comm_module, only: comm_all_s_GPU, getcorneru3,getcornerv3, &
+      use comm_module, only: comm_all_s_GPU,getcorneru3_GPU,getcornerv3_GPU, &
           comm_3u_start,comm_3u_end,comm_3v_start,comm_3v_end
       use goddard_module, only : T0K,T00K,RT0
       use cm1libs , only : rslf,rsif
@@ -2671,8 +2671,8 @@
                             us31,us32,un31,un32,reqs_u)
       call comm_3u_end(u0,uw31,uw32,ue31,ue32,   &
                           us31,us32,un31,un32,reqs_u)
-      call getcorneru3(u0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
-                          s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
+      call getcorneru3_GPU(u0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
+                          s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1),device=.false.)
       !$acc data copy(u0)
       call bcu2(u0)
       !$acc end data
@@ -2691,8 +2691,8 @@
                             vs31,vs32,vn31,vn32,reqs_v)
       call comm_3v_end(v0,vw31,vw32,ve31,ve32,   &
                           vs31,vs32,vn31,vn32,reqs_v)
-      call getcornerv3(v0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
-                          s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
+      call getcornerv3_GPU(v0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
+                          s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1),device=.false.)
       !$acc data copy(v0)
       call bcv2(v0)
       !$acc end data
