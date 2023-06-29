@@ -3538,7 +3538,7 @@ end module cuda_rt
         !     array with size "nparcels*npvals" (saving memory space) 
         !     and thus implemented below 
         if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
-           call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten,uten,vten,wten)
+           call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
         end if
 
         nrec = nrec + 1
