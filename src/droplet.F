@@ -1908,7 +1908,7 @@
 
 #ifdef MPI
       double precision, dimension(num0) :: droplet_diag0     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
-      double precision, dimension(nz,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
+      double precision, dimension(nk,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
 #endif
 
       !Compute the various types of droplet statistics
