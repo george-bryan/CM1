@@ -197,7 +197,7 @@
       call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p)
       call bcs2_2d(zsfoo,device=.false.)
       call bc2d(zsfoo,device=.false.)
-      call getcorner3_2d(zsfoo)
+      call getcorner3_2d_GPU(zsfoo,device=.false.)
 #endif
 
       do k=1,nk

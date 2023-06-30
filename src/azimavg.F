@@ -2214,7 +2214,7 @@
     ! Pass 1:  find min surface pressure
 
 #ifdef MPI
-      call comm_2d_corner(pp3d(ib,jb,1))
+      call comm_2d_corner_GPU(pp3d(ib,jb,1),device=.false.)
 #endif
 
       ppmin = 1.0e30
@@ -2651,7 +2651,7 @@
         call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
         call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
         call bcs2_2d(dum1(ib,jb,1),device=.false.)
-        call comm_2d_corner(dum1(ib,jb,1))
+        call comm_2d_corner_GPU(dum1(ib,jb,1),device=.false.)
 #endif
 
         do j=1,nj
@@ -2680,7 +2680,7 @@
         call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
         call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
         call bcs2_2d(dum1(ib,jb,1),device=.false.)
-        call comm_2d_corner(dum1(ib,jb,1))
+        call comm_2d_corner_GPU(dum1(ib,jb,1),device=.false.)
 #endif
 
     !---------------------------------------

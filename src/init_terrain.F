@@ -169,7 +169,7 @@
         call comm_2dns_end(zs,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(zs,device=.false.)
         call bc2d(zs,device=.false.)
-        call getcorner3_2d(zs)
+        call getcorner3_2d_GPU(zs,device=.false.)
 #endif
 
         zt = maxz
@@ -213,7 +213,7 @@
         call comm_2dns_end(dzdx,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(dzdx,device=.false.)
         call bc2d(dzdx,device=.false.)
-        call getcorner3_2d(dzdx)
+        call getcorner3_2d_GPU(dzdx,device=.false.)
 
         call comm_2d_start(dzdy,west,newwest,east,neweast,   &
                                 south,newsouth,north,newnorth,reqs_p)
@@ -221,7 +221,7 @@
         call comm_2dns_end(dzdy,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(dzdy,device=.false.)
         call bc2d(dzdy,device=.false.)
-        call getcorner3_2d(dzdy)
+        call getcorner3_2d_GPU(dzdy,device=.false.)
 #endif
 
 !--------------------------------
@@ -242,7 +242,7 @@
         call comm_2dns_end(rgz,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(rgz,device=.false.)
         call bc2d(rgz,device=.false.)
-        call getcorner3_2d(rgz)
+        call getcorner3_2d_GPU(rgz,device=.false.)
 #endif
 
         do j=jb+1,je

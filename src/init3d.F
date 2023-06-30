@@ -2337,7 +2337,7 @@
         call comm_1s2d_end(tkea(ibt,jbt,1),sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),   &
                                            ss31(1,1,1),ss32(1,1,1),sn31(1,1,1),sn32(1,1,1),reqs_s)
         call bcs2_2d(tkea(ibt,jbt,1),device=.false.)
-        call comm_2d_corner(tkea(ibt,jbt,1))
+        call comm_2d_corner_GPU(tkea(ibt,jbt,1),device=.false.)
 #endif
       endif
 
