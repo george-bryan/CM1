@@ -961,7 +961,6 @@
       if (flag==1)  then
 
        num1000 = num1000+1.0
-       print *, 'DHR 2 I AM HERE'
 
        !If this happens keep radius unchanged and temp equal to surrounding
        rt_zeros(1) = 1.0
@@ -3179,8 +3178,8 @@
       my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
 
       !Update the cumulative injection statistics
-      !DHR SHOULD THERE BE AN ACC UPDATE HERE? num_injected is coming out as 0
       num_injected = num_injected + real(my_reintro)*drop_mult
+      !DHR SHOULD THERE BE AN ACC UPDATE HERE? num_injected is coming out as 0, but fixed after I add this line
       !$acc update device (num_injected)
 
       if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,num_injected,mtime
