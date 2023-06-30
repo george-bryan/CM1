@@ -157,9 +157,7 @@
 !  DO NOT CHANGE ANYTHING BELOW HERE !
 !--------------------------------------------------------------
 
-        !$acc data copy(zs)
-        call bc2d(zs)
-        !$acc end data
+        call bc2d(zs,device=.false.)
 #ifdef MPI
         nf=0
         nu=0
@@ -170,9 +168,7 @@
         call comm_2dew_end(zs,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(zs,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(zs,device=.false.)
-        !$acc data copy(zs)
-        call bc2d(zs)
-        !$acc end data
+        call bc2d(zs,device=.false.)
         call getcorner3_2d(zs)
 #endif
 
@@ -207,10 +203,8 @@
 !--------------------------------
 !  set boundary points
 
-        !$acc data copy(dzdx,dzdy)
-        call bc2d(dzdx)
-        call bc2d(dzdy)
-        !$acc end data
+        call bc2d(dzdx,device=.false.)
+        call bc2d(dzdy,device=.false.)
 
 #ifdef MPI
         call comm_2d_start(dzdx,west,newwest,east,neweast,   &
@@ -218,9 +212,7 @@
         call comm_2dew_end(dzdx,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(dzdx,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(dzdx,device=.false.)
-        !$acc data copy(dzdx)
-        call bc2d(dzdx)
-        !$acc end data
+        call bc2d(dzdx,device=.false.)
         call getcorner3_2d(dzdx)
 
         call comm_2d_start(dzdy,west,newwest,east,neweast,   &
@@ -228,9 +220,7 @@
         call comm_2dew_end(dzdy,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(dzdy,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(dzdy,device=.false.)
-        !$acc data copy(dzdy)
-        call bc2d(dzdy)
-        !$acc end data
+        call bc2d(dzdy,device=.false.)
         call getcorner3_2d(dzdy)
 #endif
 
@@ -244,18 +234,14 @@
         enddo
         enddo
 
-        !$acc data copy(rgz)
-        call bc2d(rgz)
-        !$acc end data
+        call bc2d(rgz,device=.false.)
 #ifdef MPI
         call comm_2d_start(rgz,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs_p)
         call comm_2dew_end(rgz,west,newwest,east,neweast,reqs_p)
         call comm_2dns_end(rgz,south,newsouth,north,newnorth,reqs_p)
         call bcs2_2d(rgz,device=.false.)
-        !$acc data copy(rgz)
-        call bc2d(rgz)
-        !$acc end data
+        call bc2d(rgz,device=.false.)
         call getcorner3_2d(rgz)
 #endif
 

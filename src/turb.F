@@ -2837,10 +2837,8 @@
 !--------------------------------------------------------------
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
-      !$acc data copy(kmh,kmv)
       call bcw(kmh,1)
       call bcw(kmv,1)
-      !$acc end data
 #ifdef MPI
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
@@ -2906,9 +2904,7 @@
         enddo
         enddo
 
-        !$acc data copy(kmv)
         call bc2d(kmv(ibc,jbc,1))
-        !$acc end data
 #ifdef MPI
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
@@ -3058,9 +3054,7 @@
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
 
-      !$acc data copy(kmh)
-      call bcw(kmh,1)
-      !$acc end data
+      call bcw(kmh,1,device=.false.)
 #ifdef MPI
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
@@ -3194,9 +3188,7 @@
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
 
-      !$acc data copy(kmv)
-      call bcw(kmv,1)
-      !$acc end data
+      call bcw(kmv,1,device=.false.)
 
 #ifdef MPI
       !JMD FIXME:  These subroutine operate on GPU resident data
@@ -3244,9 +3236,7 @@
         enddo
         enddo
 
-        !$acc data copy(kmv)
-        call bc2d(kmv(ibc,jbc,1))
-        !$acc end data
+        call bc2d(kmv(ibc,jbc,1),device=.false.)
 #ifdef MPI
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)

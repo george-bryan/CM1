@@ -195,10 +195,8 @@
                                south,newsouth,north,newnorth,reqs_p)
       call comm_2dew_end(zsfoo,west,newwest,east,neweast,reqs_p)
       call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p)
-      !$acc data copy(zsfoo)
-      call bcs2_2d(zsfoo)
-      call bc2d(zsfoo)
-      !$acc end data
+      call bcs2_2d(zsfoo,device=.false.)
+      call bc2d(zsfoo,device=.false.)
       call getcorner3_2d(zsfoo)
 #endif
 

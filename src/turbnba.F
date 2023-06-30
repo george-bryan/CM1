@@ -226,8 +226,8 @@
       enddo
 
 #ifdef MPI
+      call bct2(tkea,device=.false.)
       !$acc data copy(tkea)
-      call bct2(tkea)
       call getcornert_GPU(tkea,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       !$acc end data
 #endif

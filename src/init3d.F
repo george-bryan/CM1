@@ -263,10 +263,8 @@
             tkea = 1.0
             tke3d = 1.0
           ENDIF
-          !$acc data copy(tkea,tke3d)
-          call bcw(tkea,1)
-          call bcw(tke3d,1)
-          !$acc end data
+          call bcw(tkea,1,device=.false.)
+          call bcw(tke3d,1,device=.false.)
       ENDIF
 
 
@@ -450,7 +448,7 @@
 !             endif
 
              if (prcl_droplet.eq.1) then
-    
+
                 pdata(i,prvpx) = 0.0
                 pdata(i,prvpy) = 0.0
                 pdata(i,prvpz) = 0.0
@@ -1317,10 +1315,8 @@
 
         ! all done, set some boundary conditions, calculate final pressure, etc:
 
-        !$acc data copy(ua,va)
-        call bcu(ua)
-        call bcv(va)
-        !$acc end data
+        call bcu(ua,device=.false.)
+        call bcv(va,device=.false.)
         call bcs(ppi,device=.false.)
         call bcs(tha,device=.false.)
 
@@ -2223,11 +2219,9 @@
 !------------------------------------------------------------------
 !  Make sure boundary values are set properly
 
-      !$acc data copy(ua,va,wa)
-      call bcu(ua)
-      call bcv(va)
-      call bcw(wa,1)
-      !$acc end data
+      call bcu(ua,device=.false.)
+      call bcv(va,device=.false.)
+      call bcw(wa,1,device=.false.)
       call bcs(ppi,device=.false.)
       call bcs(tha,device=.false.)
       if(imoist.eq.1)then
@@ -2236,9 +2230,7 @@
         enddo
       endif
       if( cm1setup.eq.1 .and. iusetke )then
-        !$acc data copy(tkea)
-        call bcw(tkea,1)
-        !$acc end data
+        call bcw(tkea,1,device=.false.)
       endif
 
       if(iptra.eq.1)then
@@ -2247,10 +2239,8 @@
         enddo
       endif
       
-      !$acc data copy(u0,v0)
-      call bcu(u0)
-      call bcv(v0)
-      !$acc end data
+      call bcu(u0,device=.false.)
+      call bcv(v0,device=.false.)
       call bcs(th0,device=.false.)
 
 #ifdef MPI
@@ -2330,10 +2320,8 @@
 
 #endif
       if(terrain_flag)then
-        !$acc data copyin(gz,dzdx,dzdy,ua,va) copy(wa)
-        call bcwsfc(gz,dzdx,dzdy,ua,va,wa)
-        call bc2d(wa(ib,jb,1))
-        !$acc end data
+        call bcwsfc(gz,dzdx,dzdy,ua,va,wa,device=.false.)
+        call bc2d(wa(ib,jb,1),device=.false.)
       endif
 
       if( cm1setup.eq.1 .and. iusetke )then
@@ -2342,9 +2330,7 @@
           tkea(i,j,1) = tkea(i,j,2)
         enddo
         enddo
-        !$acc data copy(tkea)
-        call bc2d(tkea(ibt,jbt,1))
-        !$acc end data
+        call bc2d(tkea(ibt,jbt,1),device=.false.)
 #ifdef MPI
         call comm_1s2d_start(tkea(ibt,jbt,1),sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),   &
                                              ss31(1,1,1),ss32(1,1,1),sn31(1,1,1),sn32(1,1,1),reqs_s)
@@ -2507,9 +2493,7 @@
 #ifdef MPI
         call comm_1s_start(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
         call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        !$acc data copy(rho)
-        call bcs2(rho)
-        !$acc end data
+        call bcs2(rho,device=.false.)
         call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 
@@ -2528,18 +2512,14 @@
 #ifdef MPI
         call comm_1s_start(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
         call comm_1s_end(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        !$acc data copy(rr)
-        call bcs2(rr)
-        !$acc end data
+        call bcs2(rr,device=.false.)
         call getcorner_GPU(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
         call bcs(rf,device=.false.)
 #ifdef MPI
         call comm_1s_start(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
         call comm_1s_end(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        !$acc data copy(rf)
-        call bcs2(rf)
-        !$acc end data
+        call bcs2(rf,device=.false.)
         call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 

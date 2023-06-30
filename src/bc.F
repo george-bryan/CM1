@@ -29,7 +29,6 @@
 
       integer i,j,k
       logical :: openacc 
-      !$acc declare present(p)
 
       call SetGPUParams(openacc,device)
 !-----------------------------------------------------------------------
@@ -1259,7 +1258,6 @@
       double precision :: temp1,temp2
       double precision, dimension(nk) :: temout,temin
       logical :: openacc
-      !$acc declare present(rvh,rmh,rho0,u3d)
 
       call SetGPUParams(openacc,device)
       !$acc data create(temout,temin)
@@ -2629,7 +2627,6 @@
  
       integer i,j,k
       logical :: openacc
-      !$acc declare present(w)
 
       call SetGPUParams(openacc,device)
 !-----------------------------------------------------------------------

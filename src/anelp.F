@@ -72,12 +72,9 @@
 !---------------------------------------------------------------------
 
         if(irbc.eq.2)then
-          !$acc update device(ua,va)
-          if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,ua)
+          if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,ua,device=.false.)
  
-          if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,va)
-          !$acc update host(radbcw,radbcs)
- 
+          if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,va,device=.false.)
         endif
 
 !-----------------------------------------------------------------------
@@ -247,9 +244,7 @@
                        dum1,dum2,dum3,dum4,divx,phi2,uten,vten,wten,  &
                        cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans,dttmp)
 
-        !$acc data copy(phi2)
-        call bcs(phi2)
-        !$acc end data
+        call bcs(phi2,device=.false.)
 
 !---------------------------------------------------------------------
 
