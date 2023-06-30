@@ -450,7 +450,7 @@
 !             endif
 
              if (prcl_droplet.eq.1) then
-    
+
                 pdata(i,prvpx) = 0.0
                 pdata(i,prvpy) = 0.0
                 pdata(i,prvpz) = 0.0

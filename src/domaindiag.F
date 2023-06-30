@@ -10584,7 +10584,7 @@
 
     !$acc parallel default(present)
     !$acc loop gang vector
-    do k=1,nk+1
+    do k=1,nk
       sbar(k) = 0.0
     enddo
     !$acc end parallel

@@ -224,6 +224,8 @@
       real(kind=dp) :: pi_dp
       real(kind=qp) :: pi_qp
 
+      !$acc declare create (pi_sp,pi_dp)
+
 !-----------------------------------------------------------------------
 !  timestats:
 

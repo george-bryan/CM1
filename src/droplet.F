@@ -21,7 +21,7 @@
   real :: restime_min,restime_max,restime_min10,restime_max10,dhres !Bin parameters for droplet residence time
   real :: dhrad,rmin,rmax,rmin10,rmax10  !Bin parameters for droplet size
 
-  real :: u10_ssgf 
+  double precision :: u10_ssgf 
   real :: num_destroyed,num_injected,mass_destroyed,mass_injected !Cumulative particle counts between droplet_diag calls
 
   ! If we already know that a parcel stays on the same process 
@@ -48,14 +48,14 @@
 
   CONTAINS
 
-      subroutine droplet_driver(dt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs,    &
+      subroutine droplet_driver(dt,dbldt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs, &
                                sigma,sigmaf,znt,rho,ua,va,wa,s10,pdata,                   &
-                               th_in,qa,th0,pi0,ppa,prs,                                  &
+                               th_in,qa,th0,pi0,ppa,prs,ta,                               &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                           &
                                nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,                    &
                                sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
                                n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
-                               uten,vten,wten,thten,qten,pdata_locind)
+                               dpten,pdata_locind)
       use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
           kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
           umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
@@ -66,9 +66,7 @@
       use constants
       use comm_module
       use comm_droplet_module
-      use misclibs
       use parcel_module
-      use cm1libs , only : eslf
 #ifdef MPI
       use mpi
 #endif
@@ -81,6 +79,7 @@
 !-----------------------------------------------------------------------
 
       real, intent(in) :: dt
+      double precision, intent(in) :: dbldt
       double precision, intent(in) :: mtime
       real, intent(in), dimension(ib:ie) :: xh,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf
@@ -94,13 +93,13 @@
       real, intent(in), dimension(kb:ke+1) :: sigmaf
       real, intent(in), dimension(ib:ie,jb:je) :: znt
       real, intent(in), dimension(ibl:iel,jbl:jel) :: s10
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: rho,prs,ta
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
+      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke,6) :: dpten
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
-      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua,uten
-      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va,vten
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa,wten
+      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: ua
+      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: va
+      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wa
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
 
       real, intent(inout), dimension(jmp,kmp) :: pw1,pw2,pe1,pe2
@@ -115,7 +114,7 @@
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
 
       !Need to compute the true temperature
-      real, dimension(ib:ie,jb:je,kb:ke) :: ta
+!!!      real, dimension(ib:ie,jb:je,kb:ke) :: ta   ! GHB: now passed from solve3
 
       integer :: n,np,i,j,k,iflag,jflag,kflag
       integer :: ix,iy,iz
@@ -212,7 +211,7 @@
 #else
       !$acc data copyin (randomNumbers,randomNumbers%state)
 #endif
-      !$acc enter data create (ta)
+!!!      !$acc enter data create (ta)    ! GHB: now passed from solve3
 
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
@@ -355,7 +354,7 @@
 #ifdef _B4B01F
     !$acc update &
     !$acc host(pdata,xf,yf,zf,zh,sigma,sigmaf, &
-    !$acc      ua,va,wa,qa,ta,rho,prs,znt,qten,thten,zs)
+    !$acc      ua,va,wa,qa,ta,rho,prs,znt,dpten,zs)
 #else
     !JMD WARNING: Loop does not yet match CPU version.
     !$acc parallel default(present)
@@ -447,7 +446,7 @@
 !      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
 !      end if
 
-      call BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
+      call BE_integration(dt,dbldt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
                           uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
                           taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
                           neighbor,num_fallout,errcode)
@@ -489,7 +488,7 @@
 
       !Project the feedback onto the grid, using ORIGINAL location
       call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
-                            rhop0,taup0,rp0,tval,uten,vten,wten,qten,thten, &
+                            rhop0,taup0,rp0,tval,dpten, &
                             xh,xf,yh,yf,zh,zf,sigma,sigmaf, &
                             sigdot,dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt, &
                             rhoval,part_grav1,part_grav2,part_grav3,pdata,np)
@@ -500,14 +499,13 @@
       stop 'FATAL error occurred in the index search BE_integration'
     endif
 
-    !Now that the tendency terms are computed, need to adjust the thten by the exner function:
 
     !$acc parallel default(present)
     !$acc loop gang vector collapse(3)
     do k=kb,ke
        do j=jb,je
           do i=ib,ie
-             thten(i,j,k) = thten(i,j,k)*pi0(i,j,k)
+             dpten(i,j,k,5) = dpten(i,j,k,5)*pi0(i,j,k)
           end do
        end do
     end do
@@ -623,12 +621,19 @@
           np = nparcelsLocalActive
           i=0
           do while (i.lt. numBackfill) 
+            if(np.le.0)then
+              ! GHB 220616: nothing will be done in this case; just give backfill_ind a 
+              !             harmless value and move on
+              i=i+1
+              backfill_ind(i) = nparcelsLocalActive+1
+            else
             if ( .not. ((pdata_locind(np,1) .eq. undefined_index) .and. &
               (pdata_locind(np,2) .eq. undefined_index)) ) then
               i=i+1
               backfill_ind(i) = np
             end if
             np=np-1
+            endif
           enddo
        end if
     end if
@@ -665,10 +670,10 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    write(*,105) mtime,myid,nparcelsLocalActive, &
-        (nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout), &
-        sum(Arrive),sum(Depart),num_fallout
-    call flush(6) 
+!    write(*,105) mtime,myid,nparcelsLocalActive, &
+!        (nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout), &
+!        sum(Arrive),sum(Depart),num_fallout
+!    call flush(6) 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
  105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',i10,2x,i10,2x,i10)
 
@@ -746,9 +751,9 @@
       end do
 
 #ifdef MPI
-      call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+      call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
 #endif
-      u10_ssgf = u10_ssgf/real(nx*ny)
+      u10_ssgf = u10_ssgf/dble(nx*ny)
 
       !Only inject if a certain time has elapsed (specified in the namelist file)
       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
@@ -818,7 +823,7 @@
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
   
-   !$acc exit data delete (ta)
+!!!   !$acc exit data delete (ta)    ! GHB: now passed from solve3
 
    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
@@ -826,7 +831,7 @@
 
 !----------------------------------------------------------------------
 
-   subroutine BE_integration(dt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
+   subroutine BE_integration(dt,dbldt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
                                 z3d,sig3d,uval,vval,wval,qval,rhoval, &
                                 prsval,tval,Nup,rhop0,taup0,rp0, &
                                 part_grav1,part_grav2,part_grav3, &
@@ -835,16 +840,15 @@
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
           prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho,pract,prtime,prmult, &
-          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal,myid,dx,dy
-      use constants
+          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal,myid,dx,dy,pi_sp,pi_dp
+      use constants , only : rhow,rhow_dp,undefined_index
       use comm_module
-      use misclibs
       use parcel_module
-      use cm1libs , only : eslf
       use mpi
 
       implicit none
 
+      double precision, intent(in) :: dbldt
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je+1) :: yf
       integer, intent(in) :: np
@@ -868,12 +872,14 @@
       real :: tprhs,tptmp
       real :: k1tp,k2tp,k1rp,k2rp
       real :: rprhs,rptmp
-      real :: taup,Rep,Shp,diffnorm
-      real :: rhop,volp,tp0,volp0
+      real :: Rep,Shp,diffnorm
+      real :: tp0
       real :: sig1
       real :: top,bot,restime10_tmp,rad10_tmp
       integer :: i,j,k,ibin
-      real :: taup_scale,dt_nondim,guess
+      double precision :: taup,volp,rhop
+      double precision :: taup_scale,dt_nondim
+      double precision :: guess
       double precision :: rt_zeros(2),rt_start(2)
     
       integer :: mflag,flag
@@ -898,16 +904,16 @@
       xrhs1 = pdata(np,prvpx)
       xrhs2 = pdata(np,prvpy)
       xrhs3 = pdata(np,prvpz)
-      volp  = 4.0/3.0*pi*pdata(np,prrp)**3
-      rhop  = (pdata(np,prms)+volp*rhow)/volp  !Density including the solute mass
-      taup  = rhop*(2.0*pdata(np,prrp))**2/18.0/rhoval/viscosity
+      volp  = (4.0d0/3.0d0)*pi_dp*dble(pdata(np,prrp))**3
+      rhop  = (dble(pdata(np,prms))+volp*rhow_dp)/volp  !Density including the solute mass
+      taup  = rhop*(2.0d0*dble(pdata(np,prrp)))**2/(18.0d0*dble(rhoval)*dble(viscosity))
 
       !Original, for calculating changes in momentum, mass, and energy
       rhop0 = rhop
       taup0 = taup
       rp0   = pdata(np,prrp)
       tp0   = pdata(np,prtp)
-      volp0 = 4.0/3.0*pi*rp0**3
+!!!      volp0 = 4.0/3.0*pi_sp*rp0**3    ! not used
 
 
       diffnorm = sqrt( (uval-pdata(np,prvpx))**2+ &
@@ -918,9 +924,9 @@
       Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
       Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
 
-      vrhs1 = 1.0/taup*(uval - pdata(np,prvpx)) + part_grav1
-      vrhs2 = 1.0/taup*(vval - pdata(np,prvpy)) + part_grav2
-      vrhs3 = 1.0/taup*(wval - pdata(np,prvpz)) + part_grav3
+      vrhs1 = (1.0d0/taup)*(uval - pdata(np,prvpx)) + part_grav1
+      vrhs2 = (1.0d0/taup)*(vval - pdata(np,prvpy)) + part_grav2
+      vrhs3 = (1.0d0/taup)*(wval - pdata(np,prvpz)) + part_grav3
 
       !Position and velocity are straightforward:
 
@@ -928,18 +934,18 @@
       y3d = pdata(np,pry) + dt*pdata(np,prvpy)
       z3d = pdata(np,prz) + dt*pdata(np,prvpz)
 
-      pdata(np,prvpx) = (pdata(np,prvpx) + dt*uval/taup + dt*part_grav1)/(1 + dt/taup)
-      pdata(np,prvpy) = (pdata(np,prvpy) + dt*vval/taup + dt*part_grav2)/(1 + dt/taup)
-      pdata(np,prvpz) = (pdata(np,prvpz) + dt*wval/taup + dt*part_grav3)/(1 + dt/taup)
+      pdata(np,prvpx) = (pdata(np,prvpx) + uval*(dbldt/taup) + dbldt*part_grav1)/(1.0d0 + dbldt/taup)
+      pdata(np,prvpy) = (pdata(np,prvpy) + vval*(dbldt/taup) + dbldt*part_grav2)/(1.0d0 + dbldt/taup)
+      pdata(np,prvpz) = (pdata(np,prvpz) + wval*(dbldt/taup) + dbldt*part_grav3)/(1.0d0 + dbldt/taup)
 
       !Nonlinear solver for the radius and temperature:
 
       !Nondimensionalize parameters before the solver using 1-micron water droplet as ref
-      taup_scale = rhow*(1.0e-6)**2/(18*rhoval*viscosity)
+      taup_scale = rhow_dp*(1.0d-6)**2/(18.0d0*dble(rhoval)*dble(viscosity))
 
-      dt_nondim = dt/taup_scale
+      dt_nondim = dbldt/taup_scale
       
-      guess = 0.0
+      guess = 0.0d0
 
       !Gives initial guess into nonlinear solver
       !mflag = 0, has equilibrium radius; mflag = 1, no equilibrium (uses itself as initial guess)
@@ -947,7 +953,7 @@
 
       !Nondimensionalize the guesses
       if (mflag.eq.0) then
-         rt_start(1) = dble(guess)/dble(pdata(np,prrp))
+         rt_start(1) = guess/dble(pdata(np,prrp))
          rt_start(2) = dble(tval)/dble(pdata(np,prtp))
       else
          rt_start(1) = 1.0
@@ -955,12 +961,12 @@
       end if
 
       !Start using the standard Gauss-Newton algorithm
-      call gauss_newton_2d(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
+      call gauss_newton_2d(dble(diffnorm),dt_nondim,taup_scale,rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
 
       !If Gauss-Newton failed to converge, flag is set to 1 and try Levenberg-Marquardt algorithm
       if (flag==1) then
          num100 = num100+1
-         call LV_solver(dble(diffnorm),dble(dt_nondim),dble(taup_scale),rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
+         call LV_solver(dble(diffnorm),dt_nondim,taup_scale,rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
       end if
 
       !In rare cases both nonlinear solvers fail to converge
@@ -1004,7 +1010,7 @@
             !$acc atomic update
             num_destroyed = num_destroyed + pdata(np,prmult)
             !$acc atomic update
-            mass_destroyed = mass_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
+            mass_destroyed = mass_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)
  
             !Log this dead particle into the relevant histograms
             !First residence time
@@ -1164,7 +1170,6 @@
                         zt,rzt,imoist,nqv,bbc,imove,umove,vmove
       use constants
       use parcel_module
-      use cm1libs , only : eslf
       implicit none
 
       real, intent(in), dimension(ib:ie+1) :: xf
@@ -1516,8 +1521,8 @@
       end subroutine interpolate_to_parcel
 
       subroutine project_feedback(iflag,jflag,kflag,x3d,y3d,z3d,sig3d, &
-                                  rhop0,taup0,rp0,tval,uten,vten,wten, &
-                                  qten,thten,xh,xf,yh,yf,zh,zf,sigma,  &
+                                  rhop0,taup0,rp0,tval, &
+                                  dpten,xh,xf,yh,yf,zh,zf,sigma,  &
                                   sigmaf,sigdot,dvpdt1,dvpdt2,dvpdt3,  &
                                   drpdt,dtpdt,dmpdt,rhoval,part_grav1, &
                                   part_grav2,part_grav3,pdata,np)
@@ -1529,7 +1534,6 @@
                         pract,prt,viscosity,nparcelsLocalActive
       use constants
       use parcel_module
-      use cm1libs , only : eslf
       implicit none
 
       real, intent(in) :: dvpdt1,dvpdt2,dvpdt3,drpdt,dtpdt,dmpdt
@@ -1544,10 +1548,7 @@
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
       real, intent(in), dimension(kb:ke) :: sigma
       real, intent(in), dimension(kb:ke+1) :: sigmaf
-      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: uten
-      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: vten
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wten
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: thten,qten
+      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke,6) :: dpten
 
       integer, intent(in) :: np
       integer, intent(in) :: iflag,jflag,kflag
@@ -1608,22 +1609,21 @@
       partmass = pdata(np,prms) + VolP*rhow
 
       !$acc atomic update
-      uten(i,j,k)       = uten(i,j,k)       - partmass/rhoval*(dvpdt1-part_grav1)*w1/dV*pdata(np,prmult)
-      !$acc end atomic
+      dpten(i,j,k,3)       = dpten(i,j,k,3)       - partmass/rhoval*(dvpdt1-part_grav1)*w1/dV*pdata(np,prmult)
       !$acc atomic update
-      uten(i+1,j,k)     = uten(i+1,j,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w2/dV*pdata(np,prmult)
+      dpten(i+1,j,k,3)     = dpten(i+1,j,k,3)     - partmass/rhoval*(dvpdt1-part_grav1)*w2/dV*pdata(np,prmult)
       !$acc atomic update
-      uten(i,j+1,k)     = uten(i,j+1,k)     - partmass/rhoval*(dvpdt1-part_grav1)*w3/dV*pdata(np,prmult)
+      dpten(i,j+1,k,3)     = dpten(i,j+1,k,3)     - partmass/rhoval*(dvpdt1-part_grav1)*w3/dV*pdata(np,prmult)
       !$acc atomic update
-      uten(i,j,k+1)     = uten(i,j,k+1)     - partmass/rhoval*(dvpdt1-part_grav1)*w4/dV*pdata(np,prmult)
+      dpten(i,j,k+1,3)     = dpten(i,j,k+1,3)     - partmass/rhoval*(dvpdt1-part_grav1)*w4/dV*pdata(np,prmult)
       !$acc atomic update
-      uten(i+1,j,k+1)   = uten(i+1,j,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w5/dV*pdata(np,prmult)
+      dpten(i+1,j,k+1,3)   = dpten(i+1,j,k+1,3)   - partmass/rhoval*(dvpdt1-part_grav1)*w5/dV*pdata(np,prmult)
       !$acc atomic update
-      uten(i,j+1,k+1)   = uten(i,j+1,k+1)   - partmass/rhoval*(dvpdt1-part_grav1)*w6/dV*pdata(np,prmult)
+      dpten(i,j+1,k+1,3)   = dpten(i,j+1,k+1,3)   - partmass/rhoval*(dvpdt1-part_grav1)*w6/dV*pdata(np,prmult)
       !$acc atomic update
-      uten(i+1,j+1,k)   = uten(i+1,j+1,k)   - partmass/rhoval*(dvpdt1-part_grav1)*w7/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k,3)   = dpten(i+1,j+1,k,3)   - partmass/rhoval*(dvpdt1-part_grav1)*w7/dV*pdata(np,prmult)
       !$acc atomic update
-      uten(i+1,j+1,k+1) = uten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt1-part_grav1)*w8/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k+1,3) = dpten(i+1,j+1,k+1,3) - partmass/rhoval*(dvpdt1-part_grav1)*w8/dV*pdata(np,prmult)
 
       !What interpolation is doing, for reference
       ! uval = ua(i  ,j  ,k  )*w1 &
@@ -1680,21 +1680,21 @@
       w8 = rx*ry*rz
 
       !$acc atomic update
-      vten(i,j,k)       = vten(i,j,k)       - partmass/rhoval*(dvpdt2-part_grav2)*w1/dV*pdata(np,prmult)
+      dpten(i,j,k,4)       = dpten(i,j,k,4)       - partmass/rhoval*(dvpdt2-part_grav2)*w1/dV*pdata(np,prmult)
       !$acc atomic update
-      vten(i+1,j,k)     = vten(i+1,j,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w2/dV*pdata(np,prmult)
+      dpten(i+1,j,k,4)     = dpten(i+1,j,k,4)     - partmass/rhoval*(dvpdt2-part_grav2)*w2/dV*pdata(np,prmult)
       !$acc atomic update
-      vten(i,j+1,k)     = vten(i,j+1,k)     - partmass/rhoval*(dvpdt2-part_grav2)*w3/dV*pdata(np,prmult)
+      dpten(i,j+1,k,4)     = dpten(i,j+1,k,4)     - partmass/rhoval*(dvpdt2-part_grav2)*w3/dV*pdata(np,prmult)
       !$acc atomic update
-      vten(i,j,k+1)     = vten(i,j,k+1)     - partmass/rhoval*(dvpdt2-part_grav2)*w4/dV*pdata(np,prmult)
+      dpten(i,j,k+1,4)     = dpten(i,j,k+1,4)     - partmass/rhoval*(dvpdt2-part_grav2)*w4/dV*pdata(np,prmult)
       !$acc atomic update
-      vten(i+1,j,k+1)   = vten(i+1,j,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w5/dV*pdata(np,prmult)
+      dpten(i+1,j,k+1,4)   = dpten(i+1,j,k+1,4)   - partmass/rhoval*(dvpdt2-part_grav2)*w5/dV*pdata(np,prmult)
       !$acc atomic update
-      vten(i,j+1,k+1)   = vten(i,j+1,k+1)   - partmass/rhoval*(dvpdt2-part_grav2)*w6/dV*pdata(np,prmult)
+      dpten(i,j+1,k+1,4)   = dpten(i,j+1,k+1,4)   - partmass/rhoval*(dvpdt2-part_grav2)*w6/dV*pdata(np,prmult)
       !$acc atomic update
-      vten(i+1,j+1,k)   = vten(i+1,j+1,k)   - partmass/rhoval*(dvpdt2-part_grav2)*w7/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k,4)   = dpten(i+1,j+1,k,4)   - partmass/rhoval*(dvpdt2-part_grav2)*w7/dV*pdata(np,prmult)
       !$acc atomic update
-      vten(i+1,j+1,k+1) = vten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt2-part_grav2)*w8/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k+1,4) = dpten(i+1,j+1,k+1,4) - partmass/rhoval*(dvpdt2-part_grav2)*w8/dV*pdata(np,prmult)
 
       ! vval = va(i  ,j  ,k  )*w1 &
       !      + va(i+1,j  ,k  )*w2 &
@@ -1746,21 +1746,21 @@
       w8 = rx*ry*rz
 
       !$acc atomic update
-      wten(i,j,k)       = wten(i,j,k)       - partmass/rhoval*(dvpdt3-part_grav3)*w1/dV*pdata(np,prmult)
+      dpten(i,j,k,5)       = dpten(i,j,k,5)       - partmass/rhoval*(dvpdt3-part_grav3)*w1/dV*pdata(np,prmult)
       !$acc atomic update
-      wten(i+1,j,k)     = wten(i+1,j,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w2/dV*pdata(np,prmult)
+      dpten(i+1,j,k,5)     = dpten(i+1,j,k,5)     - partmass/rhoval*(dvpdt3-part_grav3)*w2/dV*pdata(np,prmult)
       !$acc atomic update
-      wten(i,j+1,k)     = wten(i,j+1,k)     - partmass/rhoval*(dvpdt3-part_grav3)*w3/dV*pdata(np,prmult)
+      dpten(i,j+1,k,5)     = dpten(i,j+1,k,5)     - partmass/rhoval*(dvpdt3-part_grav3)*w3/dV*pdata(np,prmult)
       !$acc atomic update
-      wten(i,j,k+1)     = wten(i,j,k+1)     - partmass/rhoval*(dvpdt3-part_grav3)*w4/dV*pdata(np,prmult)
+      dpten(i,j,k+1,5)     = dpten(i,j,k+1,5)     - partmass/rhoval*(dvpdt3-part_grav3)*w4/dV*pdata(np,prmult)
       !$acc atomic update
-      wten(i+1,j,k+1)   = wten(i+1,j,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w5/dV*pdata(np,prmult)
+      dpten(i+1,j,k+1,5)   = dpten(i+1,j,k+1,5)   - partmass/rhoval*(dvpdt3-part_grav3)*w5/dV*pdata(np,prmult)
       !$acc atomic update
-      wten(i,j+1,k+1)   = wten(i,j+1,k+1)   - partmass/rhoval*(dvpdt3-part_grav3)*w6/dV*pdata(np,prmult)
+      dpten(i,j+1,k+1,5)   = dpten(i,j+1,k+1,5)   - partmass/rhoval*(dvpdt3-part_grav3)*w6/dV*pdata(np,prmult)
       !$acc atomic update
-      wten(i+1,j+1,k)   = wten(i+1,j+1,k)   - partmass/rhoval*(dvpdt3-part_grav3)*w7/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k,5)   = dpten(i+1,j+1,k,5)   - partmass/rhoval*(dvpdt3-part_grav3)*w7/dV*pdata(np,prmult)
       !$acc atomic update
-      wten(i+1,j+1,k+1) = wten(i+1,j+1,k+1) - partmass/rhoval*(dvpdt3-part_grav3)*w8/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k+1,5) = dpten(i+1,j+1,k+1,5) - partmass/rhoval*(dvpdt3-part_grav3)*w8/dV*pdata(np,prmult)
 
       ! wval = wa(i  ,j  ,k  )*w1 &
       !      + wa(i+1,j  ,k  )*w2 &
@@ -1816,21 +1816,21 @@
 
       if(imoist.eq.1)then
         !$acc atomic update
-        qten(i,j,k)       = qten(i,j,k)       - dmpdt/rhoval/dV*w1*pdata(np,prmult)
+        dpten(i,j,k,2)       = dpten(i,j,k,2)       - dmpdt/rhoval/dV*w1*pdata(np,prmult)
         !$acc atomic update
-        qten(i+1,j,k)     = qten(i+1,j,k)     - dmpdt/rhoval/dV*w2*pdata(np,prmult)
+        dpten(i+1,j,k,2)     = dpten(i+1,j,k,2)     - dmpdt/rhoval/dV*w2*pdata(np,prmult)
         !$acc atomic update
-        qten(i,j+1,k)     = qten(i,j+1,k)     - dmpdt/rhoval/dV*w3*pdata(np,prmult)
+        dpten(i,j+1,k,2)     = dpten(i,j+1,k,2)     - dmpdt/rhoval/dV*w3*pdata(np,prmult)
         !$acc atomic update
-        qten(i,j,k+1)     = qten(i,j,k+1)     - dmpdt/rhoval/dV*w4*pdata(np,prmult)
+        dpten(i,j,k+1,2)     = dpten(i,j,k+1,2)     - dmpdt/rhoval/dV*w4*pdata(np,prmult)
         !$acc atomic update
-        qten(i+1,j,k+1)   = qten(i+1,j,k+1)   - dmpdt/rhoval/dV*w5*pdata(np,prmult)
+        dpten(i+1,j,k+1,2)   = dpten(i+1,j,k+1,2)   - dmpdt/rhoval/dV*w5*pdata(np,prmult)
         !$acc atomic update
-        qten(i,j+1,k+1)   = qten(i,j+1,k+1)   - dmpdt/rhoval/dV*w6*pdata(np,prmult)
+        dpten(i,j+1,k+1,2)   = dpten(i,j+1,k+1,2)   - dmpdt/rhoval/dV*w6*pdata(np,prmult)
         !$acc atomic update
-        qten(i+1,j+1,k)   = qten(i+1,j+1,k)   - dmpdt/rhoval/dV*w7*pdata(np,prmult)
+        dpten(i+1,j+1,k,2)   = dpten(i+1,j+1,k,2)   - dmpdt/rhoval/dV*w7*pdata(np,prmult)
         !$acc atomic update
-        qten(i+1,j+1,k+1) = qten(i+1,j+1,k+1) - dmpdt/rhoval/dV*w8*pdata(np,prmult)
+        dpten(i+1,j+1,k+1,2) = dpten(i+1,j+1,k+1,2) - dmpdt/rhoval/dV*w8*pdata(np,prmult)
 
         ! qval = qa(i  ,j  ,k  ,nqv)*w1 &
         !      + qa(i+1,j  ,k  ,nqv)*w2 &
@@ -1845,28 +1845,28 @@
       lhv=lv1-lv2*pdata(np,prt)
 
       !$acc atomic update
-      thten(i,j,k)       = thten(i,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
+      dpten(i,j,k,1)       = dpten(i,j,k,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w1/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j,k)     = thten(i+1,j,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
+      dpten(i+1,j,k,1)     = dpten(i+1,j,k,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w2/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j+1,k)     = thten(i,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
+      dpten(i,j+1,k,1)     = dpten(i,j+1,k,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w3/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j,k+1)     = thten(i,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
+      dpten(i,j,k+1,1)     = dpten(i,j,k+1,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w4/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j,k+1)   = thten(i+1,j,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
+      dpten(i+1,j,k+1,1)   = dpten(i+1,j,k+1,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w5/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i,j+1,k+1)   = thten(i,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
+      dpten(i,j+1,k+1,1)   = dpten(i,j+1,k+1,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w6/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j+1,k)   = thten(i+1,j+1,k) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k,1)   = dpten(i+1,j+1,k,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w7/dV*pdata(np,prmult)
 
       !$acc atomic update
-      thten(i+1,j+1,k+1) = thten(i+1,j+1,k+1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
+      dpten(i+1,j+1,k+1,1) = dpten(i+1,j+1,k+1,1) - (dtpdt - 3*lhv/cpl/rp0*drpdt)*6.0*(rhow/rhop0)*(cpl/cp)*taup0*pi*rp0*viscosity*w8/dV*pdata(np,prmult)
 
       ! tval   = ta(i  ,j  ,k  )*w1 &
       !        + ta(i+1,j  ,k  )*w2 &
@@ -1877,9 +1877,13 @@
       !        + ta(i+1,j+1,k  )*w7 &
       !        + ta(i+1,j+1,k+1)*w8
 
+      ! GHB: diagnostic purposes only: number of drops in each grid cell
+      !$acc atomic update
+      dpten(iflag,jflag,kflag,6) = dpten(iflag,jflag,kflag,6) + 1.0
+
       end subroutine project_feedback
 
-      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten,uten,vten,wten)
+      subroutine droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
 
       use input
       use constants
@@ -1891,10 +1895,7 @@
 
       integer, intent(inout) :: nrec
       real, intent(in) :: rtime
-      real, intent(in), dimension(ib:ie,jb:je,kb:ke,2) :: dpten
-      real, intent(inout), dimension(ib:ie+1,jb:je,kb:ke) :: uten
-      real, intent(inout), dimension(ib:ie,jb:je+1,kb:ke) :: vten
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: wten
+      double precision, intent(in), dimension(ib:ie,jb:je,kb:ke,6) :: dpten
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind    ! x/y/z location index of each parcel
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: zh
@@ -1908,14 +1909,16 @@
       integer :: tnumpart
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop,tnumaerosol
       real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
+      double precision, dimension(nk) :: qstardp,radmsqrdp
 
       integer, parameter :: num0 = 18, num1 = 20   !Number of 0th and 1st order statistics in droplet_diag
-      real :: rad10_tmp,qstar_tmp
+      real :: rad10_tmp
+      double precision :: qstar_tmp
       integer :: ibin
 
 #ifdef MPI
-      real, dimension(num0) :: droplet_diag0     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
-      real, dimension(nz,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
+      double precision, dimension(num0) :: droplet_diag0     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
+      double precision, dimension(nz,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
 #endif
 
       !Compute the various types of droplet statistics
@@ -1926,8 +1929,8 @@
 
       !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
-      !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqr, &
-      !$acc              Tpmsqr,m1src,m2src,m3src,qstarmean)
+      !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
+      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -1977,7 +1980,7 @@
       !$acc end parallel
 
 #ifdef MPI
-      droplet_diag0(1) = real(tnumpart)
+      droplet_diag0(1) = dble(tnumpart)
       droplet_diag0(2) = tnummult
       droplet_diag0(3) = tnumaerosol
       droplet_diag0(4) = tnumdrop
@@ -1998,24 +2001,24 @@
 
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),14,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),14,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),14,MPI_REAL, &
+         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),14,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(15),2,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(15),2,MPI_DOUBLE_PRECISION, &
                          MPI_MIN,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(15),droplet_diag0(15),2,MPI_REAL, &
+         call mpi_reduce(droplet_diag0(15),droplet_diag0(15),2,MPI_DOUBLE_PRECISION, &
                          MPI_MIN,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(17),2,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(17),2,MPI_DOUBLE_PRECISION, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(17),droplet_diag0(17),2,MPI_REAL, &
+         call mpi_reduce(droplet_diag0(17),droplet_diag0(17),2,MPI_DOUBLE_PRECISION, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then 
@@ -2039,14 +2042,14 @@
          Tpmax = droplet_diag0(18)
 #endif
          if (tnumpart .gt. 0) then
-            radavg = radavg/tnumpart
-            radsqr = radsqr/tnumpart
-            Tpavg = Tpavg/tnumpart
-            Tpsqr = Tpsqr/tnumpart
-            Tfavg = Tfavg/tnumpart
-            qfavg = qfavg/tnumpart
-            prsavg = prsavg/tnumpart
-            rhoavg = rhoavg/tnumpart
+            radavg = radavg/dble(tnumpart)
+            radsqr = radsqr/dble(tnumpart)
+            Tpavg = Tpavg/dble(tnumpart)
+            Tpsqr = Tpsqr/dble(tnumpart)
+            Tfavg = Tfavg/dble(tnumpart)
+            qfavg = qfavg/dble(tnumpart)
+            prsavg = prsavg/dble(tnumpart)
+            rhoavg = rhoavg/dble(tnumpart)
          else 
             radavg = 0
             radsqr = 0
@@ -2095,9 +2098,9 @@
          Tpmean(k) = 0.0
          Tpmsqr(k) = 0.0
          radmean(k) = 0.0
-         radmsqr(k) = 0.0
+         radmsqrdp(k) = 0.0
          qfsat(k) = 0.0
-         qstarmean(k) = 0.0
+         qstardp(k) = 0.0d0
       end do
       !$acc end parallel
 
@@ -2133,13 +2136,13 @@
          !$acc atomic update
          radmean(k) = radmean(k) + pdata(np,prrp)
          !$acc atomic update
-         radmsqr(k) = radmsqr(k) + pdata(np,prrp)**2
+         radmsqrdp(k) = radmsqrdp(k) + dble(pdata(np,prrp))**2
 
          if (pdata(np,prt) .gt. 200.0) then    ! Avoid this breaking if the temperature is unrealistic 
                                                ! (like at initialization; other times this is a problem, but let it break elsewhere)
             call calc_qstar(qstar_tmp,pdata(np,prprs),pdata(np,prrho),pdata(np,prt),pdata(np,prqv),pdata(np,prtp),pdata(np,prms),pdata(np,prrp))
             !$acc atomic update
-            qstarmean(k) = qstarmean(k) + qstar_tmp
+            qstardp(k) = qstardp(k) + qstar_tmp
             !$acc atomic update
             qfsat(k) = qfsat(k) + eslf(pdata(np,prprs),pdata(np,prt))*(mw/(ru*pdata(np,prt)*pdata(np,prrho)))
          else
@@ -2162,9 +2165,9 @@
          !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp)
          do j=1,nj
             do i=1,ni
-               m1src_tmp = m1src_tmp + uten(i,j,k)
-               m2src_tmp = m2src_tmp + vten(i,j,k)
-               m3src_tmp = m3src_tmp + wten(i,j,k)
+               m1src_tmp = m1src_tmp + dpten(i,j,k,3)
+               m2src_tmp = m2src_tmp + dpten(i,j,k,4)
+               m3src_tmp = m3src_tmp + dpten(i,j,k,5)
                Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
                qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
             end do
@@ -2191,8 +2194,8 @@
 
       !$acc update host (dumzf,dumzh,numconc,partnum,Tpsrc,qvsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
-      !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqr, &
-      !$acc              Tpmsqr,m1src,m2src,m3src,qstarmean)
+      !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
+      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp)
 
 #ifdef MPI
 
@@ -2215,17 +2218,17 @@
          droplet_diag1(iz,15) = Tpmean(iz)
          droplet_diag1(iz,16) = Tpmsqr(iz)
          droplet_diag1(iz,17) = radmean(iz)
-         droplet_diag1(iz,18) = radmsqr(iz)
+         droplet_diag1(iz,18) = radmsqrdp(iz)
          droplet_diag1(iz,19) = qfsat(iz)
-         droplet_diag1(iz,20) = qstarmean(iz)
+         droplet_diag1(iz,20) = qstardp(iz)
       end do
 
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag1,nk*num1,MPI_REAL, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag1,nk*num1,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag1,droplet_diag1,nk*num1,MPI_REAL, &
+         call mpi_reduce(droplet_diag1,droplet_diag1,nk*num1,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       end if
 
@@ -2251,9 +2254,9 @@
             Tpmean(iz) = droplet_diag1(iz,15)
             Tpmsqr(iz) = droplet_diag1(iz,16)
             radmean(iz) = droplet_diag1(iz,17)
-            radmsqr(iz) = droplet_diag1(iz,18)
+            radmsqrdp(iz) = droplet_diag1(iz,18)
             qfsat(iz) = droplet_diag1(iz,19)
-            qstarmean(iz) = droplet_diag1(iz,20)
+            qstardp(iz) = droplet_diag1(iz,20)
          end do
  
 #endif
@@ -2274,9 +2277,10 @@
                Tpmean(iz) = Tpmean(iz)/partnum(iz)
                Tpmsqr(iz) = Tpmsqr(iz)/partnum(iz)
                radmean(iz) = radmean(iz)/partnum(iz)
-               radmsqr(iz) = radmsqr(iz)/partnum(iz)
+               radmsqr(iz) = sngl( min( 1.0d30 , radmsqrdp(iz)/dble(partnum(iz)) ) )
                qfsat(iz) = qfsat(iz)/partnum(iz)
-               qstarmean(iz) = qstarmean(iz)/partnum(iz)
+               ! GHB: i keep getting overflow errors here; so, just limit to a big number
+               qstarmean(iz) = sngl( min( 1.0d30 , qstardp(iz)/dble(partnum(iz)) ) )
             else
                vp1mean(iz) = 0.0
                vp2mean(iz) = 0.0
@@ -2306,7 +2310,7 @@
       if ( myid == 0 ) then
 #endif
          write(6,200) 'rtime', rtime
-         write(6,200) 'tnumpart',real(tnumpart)
+         write(6,200) 'tnumpart',sngl(tnumpart)
          write(6,200) 'radavg',radavg
          write(6,200) 'radmin',radmin
          write(6,200) 'radmax',radmax
@@ -2581,46 +2585,47 @@
 
       subroutine rad_solver2(guess,mflag,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
       !$acc routine seq
-      use constants
-      use cm1libs , only : eslf
+      use input , only : pi_dp
+      use constants , only : rhow_dp,mw,ms,surften,ion,os,ru
+      use cm1libs , only : deslf
       implicit none
 
-      real, intent(out) :: guess
+      double precision, intent(out) :: guess
       integer, intent(out) :: mflag
       real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
       integer, intent(in) :: np
-      real :: a, c, esa, Q, R, M, theta, S, T, rhval
+      double precision :: a, c, esa, Q, R, M, theta, S, T, rhval
 
       mflag = 0
-      esa = eslf(real(prsval),real(tval))  !Saturation vapor pressure at droplet temperature
+      esa = deslf(dble(prsval),dble(tval))  !Saturation vapor pressure at droplet temperature
 
       rhval = (ru*tval*rhoval*qval)/(mw*esa)
 
       !Calculate the equilibrium radius based on "rhval"
       !Solve the cubic for the equilibrium radius
 
-      if (rhval .lt. 0.999) then
-         a = -(2*mw*surften)/(ru*rhow*tval)/LOG(rhval)
-         c = (ion*os*m_s*(mw/ms))/((4.0/3.0)*pi*rhow)/LOG(rhval) 
+      if (rhval .lt. 0.999d0) then
+         a = -(2.0d0*mw*surften)/(ru*rhow_dp*tval)/LOG(rhval)
+         c = (ion*os*m_s*(mw/ms))/((4.0d0/3.0d0)*pi_dp*rhow_dp)/LOG(rhval) 
      
          !Use Cardano's method for cubic solution
-         Q = (a**2.0)/9.0
-         R = (2.0*a**3.0+27.0*c)/54.0
-         M = R**2.0-Q**3.0
+         Q = (a*a)/9.0d0
+         R = (2.0d0*a*a*a+27.0d0*c)/54.0d0
+         M = R*R-Q*Q*Q
 
 
-         if (M<0) then
-           theta = acos(R/sqrt(Q**3.0))
-           guess = -(2*sqrt(Q)*cos((theta-pi*2.0)/3.0))-a/3.0
+         if (M<0.0d0) then
+           theta = acos(R/sqrt(Q*Q*Q))
+           guess = -(2.0d0*sqrt(Q)*cos((theta-pi_dp*2.0d0)/3.0d0))-a/3.0d0
 
-           if (guess < 0) then
-           guess = -(2*sqrt(Q)*cos((theta+pi*2.0)/3.0))-a/3.0
+           if (guess < 0.0d0) then
+           guess = -(2.0d0*sqrt(Q)*cos((theta+pi_dp*2.0d0)/3.0d0))-a/3.0d0
            end if
 
          else
-           S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0/3.0)
+           S = -(R/abs(R))*(abs(R)+sqrt(M))**(1.0d0/3.0d0)
            T = Q/S
-           guess = S + T - a/3.0
+           guess = S + T - a/3.0d0
 
          end if
 
@@ -2652,15 +2657,15 @@
 
         iterations = 0
         flag = 0
-        error = 1.e-8
+        error = 1.0d-8
 
         !Initialize the solution vector
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
          
         !Initialize the correction to zero
-        correct(1) = 0.0
-        correct(2) = 0.0
+        correct(1) = 0.0d0
+        correct(2) = 0.0d0
 
         !Default max iterations before Gauss-Newton deemed failure (and moves onto a new scheme)
         !Rare that it gets above ~5
@@ -2671,10 +2676,16 @@
                 iterations = iterations + 1
 
                 !Compute the RHS of the droplet temp and radius equations
-                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
                 !Approximate the Jacobian
-                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+                call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
 
+              if( abs(J(1,1)).gt.1.0d76 ) flag = 1
+              if( abs(J(1,2)).gt.1.0d76 ) flag = 1
+              if( abs(J(2,1)).gt.1.0d76 ) flag = 1
+              if( abs(J(2,2)).gt.1.0d76 ) flag = 1
+
+              if( flag.eq.0 )then
                 !Matrix to be inverted via G-N method
                 fancy(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)
                 fancy(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)
@@ -2683,10 +2694,14 @@
 
                 !Determinant -- exit if it is too near zero, indicates failed convergence
                 det = fancy(1,1)*fancy(2,2) - fancy(1,2)*fancy(2,1)
-                if (abs(det) .lt. 1.0e-10) then
+                ! GHB: try this
+                if (  (abs(det) .lt. 1.0d-10) .or. (abs(det).gt.1.0d100) ) then
                    flag = 1
                    EXIT
                 end if
+              else
+                exit
+              endif
                 
                 call inverse_finder_2d(fancy,det,inv)
 
@@ -2703,13 +2718,13 @@
                 rt_zeros(1) = v1(1) - correct(1)
                 rt_zeros(2) = v1(2) - correct(2)
 
-                relax = 1.0
+                relax = 1.0d0
                 counts = 0
                 !If either the temperature or radius goes negative, take a series of smaller adjustment steps
-                do while ((rt_zeros(1)<0) .OR. (rt_zeros(2)<0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
+                do while ((rt_zeros(1)<0.0d0) .OR. (rt_zeros(2)<0.0d0) .OR. (rt_zeros(1) .ne. rt_zeros(1)))
 
                    counts = counts + 1
-                   coeff = 0.5
+                   coeff = 0.5d0
                    relax = relax * coeff
                    rt_zeros(1) = v1(1)-(finalJ(1,1)*fv1(1)+finalJ(1,2)*fv1(2))*relax
                    rt_zeros(2) = v1(2)-(finalJ(2,1)*fv1(1)+finalJ(2,2)*fv1(2))*relax
@@ -2718,7 +2733,7 @@
                 end do
 
                 !Failure to converge if these drop too low -- send to LV solver
-                if (rt_zeros(1)<0.01 .OR. rt_zeros(2)<0.01) then
+                if (rt_zeros(1)<0.01d0 .OR. rt_zeros(2)<0.01d0) then
                    flag = 1
                    EXIT
                 end if
@@ -2734,7 +2749,7 @@
         end do
       !These indicate that this failed -- set flag = 1 to send to LV solver
       if (iterations == iteration_max) flag = 1
-      if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0) flag = 1
+      if ((rt_zeros(1) .ne. rt_zeros(1)) .OR. rt_zeros(1)<0.0d0 .OR. (rt_zeros(2) .ne. rt_zeros(2)) .OR. rt_zeros(2)<0.0d0) flag = 1
 
       end subroutine gauss_newton_2d
 
@@ -2757,36 +2772,42 @@
 
         !Performs the Levenberg-Marquardt algorithm -- a modification on Newton's method
 
-        error = 1.0e-8
+        error = 1.0d-8
 
         
         !Preliminary
-        I(1,1)=1.0
-        I(2,1)=0.0
-        I(1,2)=0.0
-        I(2,2)=1.0
+        I(1,1)=1.0d0
+        I(2,1)=0.0d0
+        I(1,2)=0.0d0
+        I(2,2)=1.0d0
         iterations = 0
         iterations_max = 1000
         flag = 0
         v1(1) = rt_start(1)
         v1(2) = rt_start(2)
-        fv2(1) = 1.0
-        fv2(2) = 1.0
+        fv2(1) = 1.0d0
+        fv2(2) = 1.0d0
 
         !These are parameters to the solver, could be adjusted but these work
-        lambda = 0.001
-        lup = 2.0
-        ldown = 2.0
+        lambda = 0.001d0
+        lup = 2.0d0
+        ldown = 2.0d0
 
         do while ((sqrt(fv2(1)*fv2(1)+fv2(2)*fv2(2)) > error) .AND. (iterations<iterations_max))
 
         iterations = iterations + 1
 
         !Approximate the Jacobian of the system
-        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        call jacob_approx_2d(diffnorm,v1(1),v1(2),dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
         !Compute the RHS of the temperature and radius equations
-        call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        call ie_vrt_nd(diffnorm,v1(1),v1(2),fv1,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
 
+      if( abs(J(1,1)).gt.1.0d76 ) flag = 1
+      if( abs(J(1,2)).gt.1.0d76 ) flag = 1
+      if( abs(J(2,1)).gt.1.0d76 ) flag = 1
+      if( abs(J(2,2)).gt.1.0d76 ) flag = 1
+
+      if( flag.eq.0 )then
         !Calculate the update matrix which must be inverted
         g(1,1) = J(1,1)*J(1,1)+J(2,1)*J(2,1)+lambda*I(1,1)
         g(1,2) = J(1,1)*J(1,2)+J(2,1)*J(2,2)+lambda*I(1,2)
@@ -2796,16 +2817,20 @@
         gradC(1) = J(1,1)*fv1(1)+J(2,1)*fv1(2)
         gradC(2) = J(1,2)*fv1(1)+J(2,2)*fv1(2)
 
-        C(1) = 0.5*fv1(1)*fv1(1)
-        C(2) = 0.5*fv1(2)*fv1(2)
+        C(1) = 0.5d0*fv1(1)*fv1(1)
+        C(2) = 0.5d0*fv1(2)*fv1(2)
 
         !Exit if the determinant is too close to zero -- failed convergence
         det = g(1,1)*g(2,2) - g(1,2)*g(2,1)
-        if (abs(det) .lt. 1.0e-10) then
+        ! GHB: try this
+        if ( (abs(det) .lt. 1.0d-10) .or. (abs(det).gt.1.0d100) ) then
              flag = 1
              EXIT
         end if
         call inverse_finder_2d(g,det,invg)
+      else
+        EXIT
+      endif
 
         !Solve for correction vector
         correct(1) = invg(1,1)*gradC(1)+invg(1,2)*gradC(2)
@@ -2820,16 +2845,22 @@
         end if
 
         !Failed if temperature or radius goes negative
-        if (rt_zeros(1)<0.0 .OR. rt_zeros(2)<0.0) then
+        if (rt_zeros(1)<0.0d0 .OR. rt_zeros(2)<0.0d0) then
             flag = 1
             EXIT
         end if
 
         !Use the RHS to update the lambda parameter
-        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        call ie_vrt_nd(diffnorm,rt_zeros(1),rt_zeros(2),fv2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
 
-        newC(1) = 0.5*fv2(1)*fv2(1)
-        newC(2) = 0.5*fv2(2)*fv2(2)
+      if( abs(fv1(1)).gt.1.0d76 ) flag = 1
+      if( abs(fv1(2)).gt.1.0d76 ) flag = 1
+      if( abs(fv2(1)).gt.1.0d76 ) flag = 1
+      if( abs(fv2(2)).gt.1.0d76 ) flag = 1
+
+      if( flag.eq.0 )then
+        newC(1) = 0.5d0*fv2(1)*fv2(1)
+        newC(2) = 0.5d0*fv2(2)*fv2(2)
 
         if (sqrt(newC(1)*newC(1)+newC(2)*newC(2))<sqrt(C(1)*C(1)+C(2)*C(2))) then
            v1(1) = rt_zeros(1)
@@ -2838,6 +2869,9 @@
         else
            lambda = lambda*lup
         end if
+      else
+        EXIT
+      endif
 
         end do
 
@@ -2847,7 +2881,7 @@
         end if
 
         !Failed if it returns negative radius or temperature
-        if (rt_zeros(1) < 0 .OR. rt_zeros(2) < 0) then
+        if (rt_zeros(1) < 0.0d0 .OR. rt_zeros(2) < 0.0d0) then
            flag = 1
         end if
 
@@ -2861,11 +2895,11 @@
         double precision, dimension(1:2, 1:2), intent(out) :: invC
 
         invC = reshape((/C(2, 2), -C(2,1), -C(1, 2), C(1, 1)/),(/2,2/))
-        invC = (1./det)*invC
+        invC = (1.0d0/det)*invC
 
       end subroutine inverse_finder_2d
 
-      subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+      subroutine jacob_approx_2d(diffnorm,rnext,tnext,dt_nondim,J,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
         !$acc routine seq
         implicit none
         integer :: n
@@ -2874,15 +2908,16 @@
         double precision, intent(out), dimension(1:2, 1:2) :: J
         double precision :: diff,v_output(3),rt_output(2),xper(2),fxper(2),ynext(2),xper2(2),fxper2(2)
         integer, intent(in) :: np
+        integer, intent(inout) :: flag
 
         !Take a very small difference to approximate the derivatives
-        diff = 1E-12
+        diff = 1d-12
 
         ynext(1) = rnext
         ynext(2) = tnext
 
         !Evaluate RHS 
-        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+        call ie_vrt_nd(diffnorm,rnext,tnext,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
 
         xper(1) = ynext(1)
         xper(2) = ynext(2)
@@ -2894,8 +2929,8 @@
            xper(n) = xper(n) + diff
            xper2(n) = xper2(n) - diff
 
-           call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
-           call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+           call ie_vrt_nd(diffnorm,xper(1),xper(2),fxper,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
+           call ie_vrt_nd(diffnorm,xper2(1),xper2(2),fxper2,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
 
            !Use these differences to compute the Jacobian
            J(1,n) = (fxper(1)-rt_output(1))/diff
@@ -2906,79 +2941,90 @@
 
       end subroutine jacob_approx_2d
 
-      subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np)
+      subroutine ie_vrt_nd(diffnorm,tempr,tempt,rt_output,dt_nondim,taup_scale,prsval,rhoval,tval,qval,Tp,m_s,radius,np,flag)
       !$acc routine seq
-      use constants
-      use input, only : viscosity,pr_num,sc_num
-      use cm1libs , only : eslf
+      use constants, only : rhow_dp,mw,ru,surften,ion,os,ms,cp_dp,cpl_dp,lv1_dp,lv2_dp
+      use input, only : viscosity,pr_num,sc_num,pi_dp
+      use cm1libs , only : deslf
       implicit none
 
       double precision, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
       double precision, intent(out) :: rT_output(2)
       integer, intent(in) :: np
+      integer, intent(inout) :: flag
 
       double precision :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
       double precision :: Tnext,rnext
+      double precision :: tmp
 
         ! quantities come in already non-dimensionalized, so must be converted back;
         rnext = tempr*radius
         Tnext = tempt*Tp
-        dnext = rnext*2.0
+        Tnext = max(Tnext,1.0d-12) !To avoid divide by zero if the solution starts to diverge; gets flagged later
+        dnext = rnext*2.0d0
 
-        esa = eslf(real(prsval),real(tval))
-        VolP = (4.0/3.0)*pi*rnext**3
-        rhop = (m_s + VolP*rhow)/VolP
+        esa = deslf(prsval,tval)
+        VolP = (4.0d0/3.0d0)*pi_dp*rnext**3
+        rhop = (m_s + VolP*rhow_dp)/VolP
 
-        Rep = dnext*diffnorm/viscosity
-        taup = (rhop*dnext**2)/(18.0*rhoval*viscosity)
-        Nup = 2.0 + 0.6*sqrt(Rep)*pr_num**(1.0/3.0)
-        Shp = 2.0 + 0.6*sqrt(Rep)*sc_num**(1.0/3.0)
+        Rep = max( 0.0d0 , dnext*diffnorm/dble(viscosity) )
+        taup = (rhop*dnext**2)/(18.0d0*rhoval*dble(viscosity))
+        Nup = 2.0d0 + 0.6d0*dsqrt(Rep)*dble(pr_num)**(1.0d0/3.0d0)
+        Shp = 2.0d0 + 0.6d0*dsqrt(Rep)*dble(sc_num)**(1.0d0/3.0d0)
 
-        lhv=lv1-lv2*tval
+        lhv=lv1_dp-lv2_dp*tval
 
         !!! Humidity !!!
-        qstr = (mw/(ru*Tnext*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tnext))) + ((2.0*mw*surften)/(ru*rhow*rnext*Tnext)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
+        ! GHB prevent overflow by limiting term inside exponent:
+        tmp = ((lhv*mw/ru)*((1.0d0/max(1.0d-10,tval))-(1.0d0/max(1.0d-10,Tnext)))) + ((2.0d0*mw*surften)/(ru*rhow_dp*rnext*Tnext)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s))
+        if( tmp.gt.600.0 )then
+          qstr = qval
+          flag = 1
+        else
+          qstr = (mw/(ru*Tnext*rhoval))*esa*dexp( tmp )
+        endif
         !!!!!!!!!!!!!!!!!!
 
         !!! Radius !!!
-        rprime = (1.0/9.0)*(Shp/sc_num)*(rhop/rhow)*(rnext/taup)*(qval - qstr)
+        rprime = (1.0d0/9.0d0)*(Shp/dble(sc_num))*(rhop/rhow_dp)*(rnext/taup)*(qval - qstr)
         rprime = rprime*(taup_scale/radius)
 
         !!! Temperature !!!
-        Tprime = -(1.0/3.0)*(Nup/pr_num)*(cp/cpl)*(rhop/rhow)/taup*(Tnext-tval) + 3.0*lhv/(rnext*cpl)*rprime*(radius/taup_scale)
+        Tprime = -(1.0d0/3.0d0)*(Nup/dble(pr_num))*(cp_dp/cpl_dp)*(rhop/rhow_dp)/taup*(Tnext-tval) + 3.0d0*lhv/(rnext*cpl_dp)*rprime*(radius/taup_scale)
         Tprime = Tprime*(taup_scale/Tp)
 
-        rT_output(1) = rnext/radius - 1.0  - dt_nondim*rprime
-        rT_output(2) = Tnext/Tp - 1.0  - dt_nondim*Tprime
+        rT_output(1) = rnext/radius - 1.0d0  - dt_nondim*rprime
+        rT_output(2) = Tnext/Tp - 1.0d0  - dt_nondim*Tprime
 
       end subroutine ie_vrt_nd
 
       subroutine calc_qstar(qstar,prsval,rhoval,tval,qval,Tp,m_s,radius)
       !$acc routine seq
-      use constants
-      use input, only : viscosity,pr_num,sc_num
-      use cm1libs , only : eslf
+      use constants , only : rhow_dp,mw,ms,surften,ion,os,ru,lv1_dp,lv2_dp
+      use input, only : viscosity,pr_num,sc_num,pi_dp
+      use cm1libs , only : deslf
       implicit none
 
       real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
-      real, intent(out) :: qstar
+      double precision, intent(out) :: qstar
 
-      real :: esa,Rep,taup,rprime,Tprime,qstr,Shp,Nup,lhv
-      real :: diameter
-      real :: Volp,rhop
+      double precision :: esa,Rep,taup,rprime,Tprime,qstr,Shp,Nup,lhv
+      double precision :: diameter
+      double precision :: Volp,rhop
 
       !Calculate qstar, the specific humidity at the droplet surface 
    
-      diameter = radius*2.0
+      diameter = dble(radius)*2.0d0
 
-      esa = eslf(prsval,tval)
-      VolP = (4.0/3.0)*pi*radius**3
-      rhop = (m_s + VolP*rhow)/VolP
+      esa = deslf(dble(prsval),dble(tval))
+      VolP = (4.0d0/3.0d0)*pi_dp*dble(radius)**3
+      rhop = (dble(m_s) + VolP*rhow_dp)/VolP
 
-      lhv=lv1-lv2*tval
+      lhv=lv1_dp-lv2_dp*dble(tval)
 
-      qstar = (mw/(ru*Tp*rhoval))*esa*exp(((lhv*mw/ru)*((1.0/tval)-(1.0/Tp))) + &
-              ((2.0*mw*surften)/(ru*rhow*radius*Tp)) - ((ion*os*m_s*(mw/ms))/(VolP*rhop-m_s)))
+      ! GHB prevent overflow by limiting term inside exponent:
+      qstar = (mw/(ru*dble(Tp)*dble(rhoval)))*esa*dexp( min( 600.0d0 , ((lhv*mw/ru)*((1.0d0/dble(tval))-(1.0d0/dble(Tp)))) + &
+              ((2.0d0*mw*surften)/(ru*rhow_dp*dble(radius)*dble(Tp))) - ((ion*os*dble(m_s)*(mw/ms))/(VolP*rhop-dble(m_s))) ) )
 
       end subroutine calc_qstar
 
@@ -3435,7 +3481,7 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets which failed the 2st round Levenberg-Marquardt iteration this time step") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
 
-    call disp_err( nf90_def_var(ncid,"u10_ssgf",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_def_var(ncid,"u10_ssgf",nf90_double,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","10-meter wind speed used in the spray SSGF") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","m/s3") , .true. )
 
