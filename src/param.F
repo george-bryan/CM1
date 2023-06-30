@@ -2828,6 +2828,8 @@
       if(dowr) write(outfile,*) '  pi_qp = ',pi_qp
       if(dowr) write(outfile,*)
 
+      !$acc update device(pi_sp,pi_dp)
+
 !--------------------------------------------------------------
 !  Configuration for simulations with moisture
 !

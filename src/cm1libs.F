@@ -83,6 +83,25 @@
 
 !
 ! ---------------------------------------------------------------------
+! THIS FUNCTION CALCULATES THE LIQUID SATURATION VAPOR PRESSURE AS
+! A FUNCTION OF TEMPERATURE AND PRESSURE
+!
+      double precision FUNCTION dESLF(P,T)
+      !$acc routine seq
+
+      IMPLICIT NONE
+      double precision, intent(in) :: T,P
+      double precision :: ESL
+
+      esl=611.2d0 * DEXP( 17.67d0 * ( T  - 273.15d0 ) / ( T  - 29.65d0 ) )
+      ! 171023 (fix for very cold temps):
+      deslf = min( esl , p*0.5d0 )
+
+
+      END FUNCTION dESLF
+
+!
+! ---------------------------------------------------------------------
 ! THIS FUNCTION CALCULATES THE ICE SATURATION VAPOR MIXING RATIO AS A
 ! FUNCTION OF TEMPERATURE AND PRESSURE
 !

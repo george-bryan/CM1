@@ -140,7 +140,8 @@ contains
         write(*,*) "Too many new droplets will enter the MPI rank: ", myid
         write(*,*) "nparcelsLocalActive,nparcelsLocal",nparcelsLocalActive,nparcelsLocal
         write(*,*) "Arriving, holes to fill: ", sum(Arrive), numHoles
-        stop "Stop the program ..."
+        write(*,*) "Stop the program ..."
+        call stopcm1
     end if
 
 #if 0 
@@ -171,7 +172,8 @@ contains
           write(*,*) "Unmatched total leaving droplets vs. total entering droplets..."
           write(*,*) "Total leaving droplets: ", n_send
           write(*,*) "Total entering droplets: ", n_recv
-          stop "Stop the program ..."
+          write(*,*) "Stop the program ..."
+          call stopcm1
        end if
     end if
 
@@ -483,7 +485,8 @@ contains
           call update_new_droplet ( ise, Arrive, ptrArrive, holes_ind, pdata, droplet_se2)
        else
           write(*,*) indx," is not a nearest neighbor for myid = ",myid
-          stop "Stop the program..."
+          write(*,*) "Stop the program..."
+          call stopcm1
        end if
        n = n + 1
      end do
