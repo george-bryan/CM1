@@ -3216,8 +3216,7 @@
                   end if
                end do
                rad_init = rad_init*1.0e-6
-               !DHR TEST, to make sure that droplets that destabilize numerics don't get produced
-               !rad_init = min(rad_init,250.0e-6)
+
                !Random location
                rand = getRandomReal(randomNumbers)
                pdata(np,prx) = xf(1)+rand*xrange

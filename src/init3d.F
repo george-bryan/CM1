@@ -407,7 +407,6 @@
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  Parcels ! '
         if(dowr) write(outfile,*) '  npvals,nparcelsLocal = ',npvals,nparcelsLocal
-        !if(dowr) write(outfile,*) '  Initial parcel locations (x,y,z):'
 
         ! Use the deterministic random number generator from CESM:
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
