@@ -1615,7 +1615,7 @@
       nudgefac = min(1.0,nudgefac)
 
       ! nudging time scale (seconds):
-      taunudge = 300.0
+      taunudge = 20.0
 
       if( abs(nudgefac).gt.0.001 )then
         ! make sure subsidence is off:
