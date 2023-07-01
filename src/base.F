@@ -37,7 +37,7 @@
       use bc_module, only: bcu, bcv, bcs, extrapbcs, &
           bcu2, bcv2
       use comm_module, only: comm_all_s_GPU,getcorneru3_GPU,getcornerv3_GPU, &
-          comm_3u_start,comm_3u_end,comm_3v_start,comm_3v_end
+          comm_3u_start_GPU,comm_3u_end_GPU,comm_3v_start_GPU,comm_3v_end_GPU
       use goddard_module, only : T0K,T00K,RT0
       use cm1libs , only : rslf,rsif
       use turb_module , only : ramp_up_turb
@@ -2657,10 +2657,10 @@
 
       !--------
 #ifdef MPI
-      call comm_3u_start(u0,uw31,uw32,ue31,ue32,   &
-                            us31,us32,un31,un32,reqs_u)
-      call comm_3u_end(u0,uw31,uw32,ue31,ue32,   &
-                          us31,us32,un31,un32,reqs_u)
+      call comm_3u_start_GPU(u0,uw31,uw32,ue31,ue32,   &
+                            us31,us32,un31,un32,reqs_u,device=.false.)
+      call comm_3u_end_GPU(u0,uw31,uw32,ue31,ue32,   &
+                          us31,us32,un31,un32,reqs_u,device=.false.)
       call getcorneru3_GPU(u0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                           s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1),device=.false.)
       call bcu2(u0,device=.false.)
@@ -2675,10 +2675,10 @@
       enddo
       !--------
 #ifdef MPI
-      call comm_3v_start(v0,vw31,vw32,ve31,ve32,   &
-                            vs31,vs32,vn31,vn32,reqs_v)
-      call comm_3v_end(v0,vw31,vw32,ve31,ve32,   &
-                          vs31,vs32,vn31,vn32,reqs_v)
+      call comm_3v_start_GPU(v0,vw31,vw32,ve31,ve32,   &
+                          vs31,vs32,vn31,vn32,reqs_v,device=.false.)
+      call comm_3v_end_GPU(v0,vw31,vw32,ve31,ve32,   &
+                          vs31,vs32,vn31,vn32,reqs_v,device=.false.)
       call getcornerv3_GPU(v0,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                           s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1),device=.false.)
       call bcv2(v0,device=.false.)
