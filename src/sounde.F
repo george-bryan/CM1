@@ -982,7 +982,6 @@
 
         IF( n.lt.nloop )THEN
           if(timestats.ge.1) time_sound=time_sound+mytime()
-!!!          call bcs_GPU(ppd,device=.false.)
           ! 210613: call bcp, only set 1 row/column
           call bcp(ppd)
 #ifdef MPI

@@ -2646,10 +2646,10 @@
 
         call bc2d(dum1(ib,jb,1),device=.false.)
 #ifdef MPI
-        call comm_2d_start(dum1(ib,jb,1),west,newwest,east,neweast,   &
-                                         south,newsouth,north,newnorth,reqs)
-        call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
-        call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
+        call comm_2d_start_GPU(dum1(ib,jb,1),west,newwest,east,neweast,   &
+                           south,newsouth,north,newnorth,reqs,device=.false.)
+        call comm_2dew_end_GPU(dum1(ib,jb,1),west,newwest,east,neweast,reqs,device=.false.)
+        call comm_2dns_end_GPU(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs,device=.false.)
         call bcs2_2d(dum1(ib,jb,1),device=.false.)
         call comm_2d_corner_GPU(dum1(ib,jb,1),device=.false.)
 #endif
@@ -2675,10 +2675,10 @@
 
         call bc2d(dum1(ib,jb,1),device=.false.)
 #ifdef MPI
-        call comm_2d_start(dum1(ib,jb,1),west,newwest,east,neweast,   &
-                                         south,newsouth,north,newnorth,reqs)
-        call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
-        call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
+        call comm_2d_start_GPU(dum1(ib,jb,1),west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs,device=.false.)
+        call comm_2dew_end_GPU(dum1(ib,jb,1),west,newwest,east,neweast,reqs,device=.false.)
+        call comm_2dns_end_GPU(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs,device=.false.)
         call bcs2_2d(dum1(ib,jb,1),device=.false.)
         call comm_2d_corner_GPU(dum1(ib,jb,1),device=.false.)
 #endif
