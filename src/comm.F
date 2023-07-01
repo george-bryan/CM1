@@ -32,7 +32,6 @@
   public :: comm_3u_start,comm_3u_end
   public :: comm_3v_start,comm_3v_end
   public :: comm_3w_start,comm_3w_end
-  public :: comm_1s2d_start,comm_1s2d_end
 
   public :: sync
 
@@ -5190,153 +5189,12 @@
  
       end subroutine comm_3w_end_GPU
 
-
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
-      subroutine comm_1s2d_start(s,west,newwest,east,neweast,   &
-                                 south,newsouth,north,newnorth,reqs)
-      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
-          nf,ierr,timestats,time_mps1,mytime,myeast,mywest,mysouth,mynorth
-      use mpi
-      implicit none
- 
-      real s(ib:ie,jb:je)
-      real west(nj),newwest(nj)
-      real east(nj),neweast(nj)
-      real south(ni),newsouth(ni)
-      real north(ni),newnorth(ni)
-      integer reqs(8)
- 
-      integer i,j,nr
-      integer tag1,tag2,tag3,tag4
- 
-!------------------------------------------------
-
-      nr = 0
-
-      nf=nf+1
-      tag1=nf
-
-      ! receive east
-      if(ibe.eq.0)then
-        nr = nr + 1
-        call mpi_irecv(neweast,nj,MPI_REAL,myeast,tag1,   &
-                      MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
-
-!----------
-
-      nf=nf+1
-      tag2=nf
-
-      ! receive west
-      if(ibw.eq.0)then
-        nr = nr + 1
-        call mpi_irecv(newwest,nj,MPI_REAL,mywest,tag2,   &
-                      MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
-
-!----------
-
-      nf=nf+1
-      tag3=nf
-
-      ! receive south
-      if(ibs.eq.0)then
-        nr = nr + 1
-        call mpi_irecv(newsouth,ni,MPI_REAL,mysouth,tag3,   &
-                      MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
-
-!----------
-
-      nf=nf+1
-      tag4=nf
-
-      ! receive north
-      if(ibn.eq.0)then
-        nr = nr + 1
-        call mpi_irecv(newnorth,ni,MPI_REAL,mynorth,tag4,   &
-                      MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
-
-!------------------------------------------------
-!------------------------------------------------
-!------------------------------------------------
-
-      nr = 4
- 
-      ! send west
-      if(ibw.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(j)
-        do j=1,nj
-          west(j)=s(1,j)
-        enddo
-        nr = nr + 1
-        call mpi_isend(west,nj,MPI_REAL,mywest,tag1,   &
-                       MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
- 
-!----------
- 
-      ! send east
-      if(ibe.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(j)
-        do j=1,nj
-          east(j)=s(ni,j)
-        enddo
-        nr = nr + 1
-        call mpi_isend(east,nj,MPI_REAL,myeast,tag2,   &
-                       MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
- 
-!----------
- 
-      ! send north
-      if(ibn.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i)
-        do i=1,ni
-          north(i)=s(i,nj)
-        enddo
-        nr = nr + 1
-        call mpi_isend(north,ni,MPI_REAL,mynorth,tag3,   &
-                       MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
- 
-!----------
- 
-      ! send south
-      if(ibs.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i)
-        do i=1,ni
-          south(i)=s(i,1)
-        enddo
-        nr = nr + 1
-        call mpi_isend(south,ni,MPI_REAL,mysouth,tag4,   &
-                       MPI_COMM_WORLD,reqs(nr),ierr)
-      endif
-
-!----------
- 
-      if(timestats.ge.1) time_mps1=time_mps1+mytime()
- 
-      end subroutine comm_1s2d_start
-
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
 
       subroutine comm_1s2d_start_GPU(s,west,newwest,east,neweast,   &
-                                 south,newsouth,north,newnorth,reqs)
+                          south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
           nf,ierr,timestats,time_mps1,mytime,myeast,mywest,mysouth,mynorth
       use mpi
@@ -5348,11 +5206,16 @@
       real south(ni),newsouth(ni)
       real north(ni),newnorth(ni)
       integer reqs(8)
+      logical, optional, intent(in) :: device,gpudirect
 
       integer i,j,nr
       integer tag1,tag2,tag3,tag4
       logical, parameter :: Debug =.FALSE.
+      logical :: openacc, gdirect
 
+
+      ! Set the GPU specific parameters to control communication
+      call SetMsgParams(openacc,gdirect,device,gpudirect)
 !------------------------------------------------
 
       nr = 0
@@ -5361,7 +5224,7 @@
       ! receive east
       if(ibe.eq.0)then
         nr = nr + 1
-        !$acc host_data use_device(neweast)
+        !$acc host_data use_device(neweast) if(gdirect)
         call mpi_irecv(neweast,nj,MPI_REAL,myeast,tag1,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5375,7 +5238,7 @@
       ! receive west
       if(ibw.eq.0)then
         nr = nr + 1
-        !$acc host_data use_device(newwest)
+        !$acc host_data use_device(newwest) if(gdirect)
         call mpi_irecv(newwest,nj,MPI_REAL,mywest,tag2,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5389,7 +5252,7 @@
       ! receive south
       if(ibs.eq.0)then
         nr = nr + 1
-        !$acc host_data use_device(newsouth)
+        !$acc host_data use_device(newsouth) if(gdirect)
         call mpi_irecv(newsouth,ni,MPI_REAL,mysouth,tag3,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5403,7 +5266,7 @@
       ! receive north
       if(ibn.eq.0)then
         nr = nr + 1
-        !$acc host_data use_device(newnorth)
+        !$acc host_data use_device(newnorth) if(gdirect)
         call mpi_irecv(newnorth,ni,MPI_REAL,mynorth,tag4,   &
                       MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5418,12 +5281,12 @@
       ! send west
       if(ibw.eq.0)then
         !$omp parallel do default(shared) private(j)
-        !$acc parallel loop gang vector default(present) 
+        !$acc parallel loop gang vector default(present) if(openacc) 
         do j=1,nj
           west(j)=s(1,j)
         enddo
         nr = nr + 1
-        !$acc host_data use_device(west)
+        !$acc host_data use_device(west) if(gdirect)
         call mpi_isend(west,nj,MPI_REAL,mywest,tag1,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5433,14 +5296,13 @@
 
       ! send east
       if(ibe.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(j)
-        !$acc parallel loop gang vector default(present)
+        !$omp parallel do default(shared) private(j)
+        !$acc parallel loop gang vector default(present) if(openacc)
         do j=1,nj
           east(j)=s(ni,j)
         enddo
         nr = nr + 1
-        !$acc host_data use_device(east)
+        !$acc host_data use_device(east) if(gdirect)
         call mpi_isend(east,nj,MPI_REAL,myeast,tag2,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5450,14 +5312,13 @@
 
       ! send north
       if(ibn.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i)
-        !$acc parallel loop gang vector default(present)
+        !$omp parallel do default(shared) private(i)
+        !$acc parallel loop gang vector default(present) if(openacc)
         do i=1,ni
           north(i)=s(i,nj)
         enddo
         nr = nr + 1
-        !$acc host_data use_device(north)
+        !$acc host_data use_device(north) if(gdirect)
         call mpi_isend(north,ni,MPI_REAL,mynorth,tag3,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5467,15 +5328,14 @@
 
       ! send south
       if(ibs.eq.0)then
-!$omp parallel do default(shared)   &
-!$omp private(i)
-        !$acc parallel loop gang vector default(present)
+        !$omp parallel do default(shared) private(i)
+        !$acc parallel loop gang vector default(present) if(openacc)
         do i=1,ni
           south(i)=s(i,1)
         enddo
         nr = nr + 1
 
-        !$acc host_data use_device(south)
+        !$acc host_data use_device(south) if(gdirect)
         call mpi_isend(south,ni,MPI_REAL,mysouth,tag4,   &
                        MPI_COMM_WORLD,reqs(nr),ierr)
         !$acc end host_data
@@ -5487,183 +5347,12 @@
 
       end subroutine comm_1s2d_start_GPU
 
-
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
- 
- 
-      subroutine comm_1s2d_end(s,west,newwest,east,neweast,   &
-                               south,newsouth,north,newnorth,reqs)
-      use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
-          wbc,ebc,nbc,sbc,timestats,mytime,time_mps2,time_bc,ierr, &
-          p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
-      use mpi
-      implicit none
- 
-      real s(ib:ie,jb:je)
-      real west(nj),newwest(nj)
-      real east(nj),neweast(nj)
-      real south(ni),newsouth(ni)
-      real north(ni),newnorth(ni)
-      integer reqs(8)
- 
-      integer i,j,nn,nr,index
-      integer :: index_east,index_west,index_south,index_north
-      integer, dimension(mpi_status_size,8) :: status1
-
-!---------------------------------------------------------------------
-
-      index_east = -1
-      index_west = -1
-      index_south = -1
-      index_north = -1
-
-      nr = 0
-      if(ibe.eq.0)then
-        nr = nr + 1
-        index_east = nr
-      endif
-      if(ibw.eq.0)then
-        nr = nr + 1
-        index_west = nr
-      endif
-      if(ibs.eq.0)then
-        nr = nr + 1
-        index_south = nr
-      endif
-      if(ibn.eq.0)then
-        nr = nr + 1
-        index_north = nr
-      endif
-
-      nn = 1
-      do while( nn .le. nr )
-        call MPI_WAITANY(nr,reqs(1:nr),index,MPI_STATUS_IGNORE,ierr)
-        nn = nn + 1
- 
-      if(index.eq.index_east)then
-        !$omp parallel do default(shared) private(j)
-        do j=1,nj
-          s(ni+1,j)=neweast(j)
-        enddo
-      elseif(index.eq.index_west)then
-        !$omp parallel do default(shared) private(j)
-        do j=1,nj
-          s(0,j)=newwest(j)
-        enddo
-      elseif(index.eq.index_south)then
-        !$omp parallel do default(shared) private(i)
-        do i=1,ni
-          s(i,0)=newsouth(i)
-        enddo
-      elseif(index.eq.index_north)then
-        !$omp parallel do default(shared) private(i)
-        do i=1,ni
-          s(i,nj+1)=newnorth(i)
-        enddo
-      endif
-
-      enddo
-
-      if(timestats.ge.1) time_mps2=time_mps2+mytime()
-
-!----------
-!  patch for corner
- 
-      if( (ebc.eq.2.or.wbc.eq.2).and.(sbc.eq.1.or.nbc.eq.1) )then
- 
-        if(ibw.eq.1)then
- 
-          if(p2tchsww)then
-              s(0,0)=s(1,0)
-          endif
- 
-          if(p2tchnww)then
-              s(0,nj+1)=s(1,nj+1)
-          endif
- 
-        endif
- 
-        if(ibe.eq.1)then
- 
-          if(p2tchsee)then
-              s(ni+1,0)=s(ni,0)
-          endif
- 
-          if(p2tchnee)then
-              s(ni+1,nj+1)=s(ni,nj+1)
-          endif
- 
-        endif
- 
-      endif
-
-      if( (ebc.eq.1.or.wbc.eq.1).and.(sbc.eq.2.or.nbc.eq.2) )then
- 
-        if(ibs.eq.1)then
- 
-          if(p2tchsws)then
-              s(0,0)=s(0,1)
-          endif
- 
-          if(p2tchses)then
-              s(ni+1,0)=s(ni+1,1)
-          endif
- 
-        endif
- 
-        if(ibn.eq.1)then
- 
-          if(p2tchnwn)then
-              s(0,nj+1)=s(0,nj)
-          endif
- 
-          if(p2tchnen)then
-              s(ni+1,nj+1)=s(ni+1,nj)
-          endif
- 
-        endif
- 
-      endif
-
-      if(timestats.ge.1) time_bc=time_bc+mytime()
-
-!----------
-
-      nr = 0
-
-      if(ibw.eq.0)then
-        nr = nr+1
-      endif
-      if(ibe.eq.0)then
-        nr = nr+1
-      endif
-      if(ibn.eq.0)then
-        nr = nr+1
-      endif
-      if(ibs.eq.0)then
-        nr = nr+1
-      endif
-
-    if( nr.ge.1 )then
-      call MPI_WAITALL(nr,reqs(5:5+nr-1),status1(1:mpi_status_size,5:5+nr-1),ierr)
-    endif
-
-      if(timestats.ge.1) time_mps2=time_mps2+mytime()
- 
-!----------
- 
-      end subroutine comm_1s2d_end
-
-
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
 
       subroutine comm_1s2d_end_GPU(s,west,newwest,east,neweast,   &
-                               south,newsouth,north,newnorth,reqs)
+                     south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
           wbc,ebc,nbc,sbc,timestats,mytime,time_mps2,time_bc,ierr, &
           p2tchsww,p2tchnww,p2tchsee,p2tchnee,p2tchsws,p2tchses,p2tchnwn,p2tchnen
@@ -5676,10 +5365,15 @@
       real south(ni),newsouth(ni)
       real north(ni),newnorth(ni)
       integer reqs(8)
+      logical, optional, intent(in) :: device,gpudirect
 
       integer i,j,nn,nr,index
       integer :: index_east,index_west,index_south,index_north
       integer, dimension(mpi_status_size,8) :: status1
+      logical :: openacc,gdirect
+
+      ! Set the GPU specific parameters to control communication
+      call SetMsgParams(openacc,gdirect,device,gpudirect)
 
 !---------------------------------------------------------------------
 
@@ -5713,25 +5407,25 @@
 
       if(index.eq.index_east)then
         !$omp parallel do default(shared) private(j)
-        !$acc parallel loop default(present) private(j)
+        !$acc parallel loop default(present) if(openacc)
         do j=1,nj
           s(ni+1,j)=neweast(j)
         enddo
       elseif(index.eq.index_west)then
         !$omp parallel do default(shared) private(j)
-        !$acc parallel loop default(present) private(j)
+        !$acc parallel loop default(present) if(openacc)
         do j=1,nj
           s(0,j)=newwest(j)
         enddo
       elseif(index.eq.index_south)then
         !$omp parallel do default(shared) private(i)
-        !$acc parallel loop default(present) private(i)
+        !$acc parallel loop default(present) if(openacc)
         do i=1,ni
           s(i,0)=newsouth(i)
         enddo
       elseif(index.eq.index_north)then
         !$omp parallel do default(shared) private(i)
-        !$acc parallel loop default(present) private(i)
+        !$acc parallel loop default(present) if(openacc)
         do i=1,ni
           s(i,nj+1)=newnorth(i)
         enddo
@@ -5741,7 +5435,7 @@
 
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
 
-      !$acc parallel default(present)
+      !$acc parallel default(present) if(openacc)
 !----------
 !  patch for corner
       !print *,'ibw: ',ibw
@@ -5828,7 +5522,6 @@
     endif
 
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
-      !stop 'comm_1s2d_end_GPU:'
 !----------
 
       end subroutine comm_1s2d_end_GPU
