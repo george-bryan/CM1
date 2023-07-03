@@ -704,7 +704,7 @@
           prw,prsig,time_parceli_reduce,time_lb,terrain_flag
       use constants
       use cm1libs , only : rslf,rsif
-      use bc_module, only: bcu2_GPU, bcv2_GPU, bcw2_GPU
+      use bc_module, only: bcu2, bcv2, bcw2
       use comm_module
 #ifdef MPI
       use mpi
@@ -968,9 +968,9 @@
       call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call bcu2_GPU(u3d)
-      call bcv2_GPU(v3d)
-      call bcw2_GPU(w3d)
+      call bcu2(u3d)
+      call bcv2(v3d)
+      call bcw2(w3d)
 #endif
 
 !----------------------------------------------------------------------

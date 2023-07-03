@@ -77,7 +77,7 @@
           bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,bl_mynn_output,bl_mynn_cloudmix,bl_mynn_mixqt, &
           icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag
       use constants
-      use bc_module, only: bc2d_GPU, bcw_GPU, bcs_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU, bcs2_2d_GPU
+      use bc_module, only: bc2d, bcw, bcs, bcu2, bcv2, bcw2, bcs2_2d
       use comm_module
       use misclibs , only : calcksquick
       use sfcphys_module
@@ -1042,11 +1042,11 @@
   bbc3b:  &
   IF( bbc.eq.3 )THEN
     !-------------!
-    call bc2d_GPU(ust)
-    call bc2d_GPU(u1)
-    call bc2d_GPU(v1)
-    call bc2d_GPU(s1)
-    call bc2d_GPU(znt)
+    call bc2d(ust)
+    call bc2d(u1)
+    call bc2d(v1)
+    call bc2d(s1)
+    call bc2d(znt)
 #ifdef MPI
     call sync()
     if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -1062,7 +1062,7 @@
                              us31(1,1,5),us32(1,1,5),un31(1,1,5),un32(1,1,5),reqs_p)
 #endif
   if( sfcmodel.eq.4 )then
-    call bc2d_GPU(mznt)
+    call bc2d(mznt)
 #ifdef MPI
     call comm_1s2d_start_GPU(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
                               us31(1,1,6),us32(1,1,6),un31(1,1,6),un32(1,1,6),reqs_x)
@@ -1074,28 +1074,28 @@
     !-------------!
     call comm_1s2d_end_GPU(ust,uw31(1,1,1),uw32(1,1,1),ue31(1,1,1),ue32(1,1,1),  &
                            us31(1,1,1),us32(1,1,1),un31(1,1,1),un32(1,1,1),reqs_s)
-    call bcs2_2d_GPU(ust)
+    call bcs2_2d(ust)
 
     call comm_1s2d_end_GPU(u1 ,uw31(1,1,2),uw32(1,1,2),ue31(1,1,2),ue32(1,1,2),  &
                            us31(1,1,2),us32(1,1,2),un31(1,1,2),un32(1,1,2),reqs_u)
-    call bcs2_2d_GPU(u1 )
+    call bcs2_2d(u1 )
 
     call comm_1s2d_end_GPU(v1 ,uw31(1,1,3),uw32(1,1,3),ue31(1,1,3),ue32(1,1,3),  &
                            us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
-    call bcs2_2d_GPU(v1 )
+    call bcs2_2d(v1 )
 
     call comm_1s2d_end_GPU(s1 ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                            us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
-    call bcs2_2d_GPU(s1 )
+    call bcs2_2d(s1 )
 
     call comm_1s2d_end_GPU(znt,uw31(1,1,5),uw32(1,1,5),ue31(1,1,5),ue32(1,1,5),  &
                            us31(1,1,5),us32(1,1,5),un31(1,1,5),un32(1,1,5),reqs_p)
-    call bcs2_2d_GPU(znt)
+    call bcs2_2d(znt)
 
   if( sfcmodel.eq.4 )then
     call comm_1s2d_end_GPU(mznt,uw31(1,1,6),uw32(1,1,6),ue31(1,1,6),ue32(1,1,6),  &
                             us31(1,1,6),us32(1,1,6),un31(1,1,6),un32(1,1,6),reqs_x)
-    call bcs2_2d_GPU(mznt)
+    call bcs2_2d(mznt)
   endif
     !-------------!
 
@@ -1135,10 +1135,10 @@
   tbc3b:  &
   IF( tbc.eq.3 )THEN
     !-------------!
-    call bc2d_GPU(ustt)
-    call bc2d_GPU(ut)
-    call bc2d_GPU(vt)
-    call bc2d_GPU(st)
+    call bc2d(ustt)
+    call bc2d(ut)
+    call bc2d(vt)
+    call bc2d(st)
 #ifdef MPI
     call sync()
     if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -1163,10 +1163,10 @@
                            us31(1,1,3),us32(1,1,3),un31(1,1,3),un32(1,1,3),reqs_v)
     call comm_1s2d_end_GPU(st ,uw31(1,1,4),uw32(1,1,4),ue31(1,1,4),ue32(1,1,4),  &
                            us31(1,1,4),us32(1,1,4),un31(1,1,4),un32(1,1,4),reqs_w)
-    call bcs2_2d_GPU(ustt)
-    call bcs2_2d_GPU(ut )
-    call bcs2_2d_GPU(vt )
-    call bcs2_2d_GPU(st )
+    call bcs2_2d(ustt)
+    call bcs2_2d(ut )
+    call bcs2_2d(vt )
+    call bcs2_2d(st )
 
     !-------------!
 
@@ -1509,9 +1509,9 @@
         call getcorneru_GPU(ua,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call getcornerv_GPU(va,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call getcornerw_GPU(wa,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcu2_GPU(ua)
-        call bcv2_GPU(va)
-        call bcw2_GPU(wa)
+        call bcu2(ua)
+        call bcv2(va)
+        call bcw2(wa)
 #endif
       endif
 
@@ -2262,8 +2262,8 @@
       !c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c!
 
       if( use_pbl )then
-        call bcs_GPU(upten)
-        call bcs_GPU(vpten)
+        call bcs(upten)
+        call bcs(vpten)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -2314,7 +2314,7 @@
           ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
           dx,dy,dz,myid,timestats,time_turb,time_lb,mytime,tconfig 
       use constants
-      use bc_module, only: bcw_GPU, bct2_GPU
+      use bc_module, only: bcw, bct2
       use comm_module
       implicit none
 
@@ -2492,10 +2492,10 @@
 !------------------------------------------------------------
 ! Set values at boundaries, start comms:
 
-      call bcw_GPU(kmh,1)
-      call bcw_GPU(kmv,1)
-      call bcw_GPU(khh,1)
-      call bcw_GPU(khv,1)
+      call bcw(kmh,1)
+      call bcw(kmv,1)
+      call bcw(khh,1)
+      call bcw(khv,1)
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -2520,8 +2520,8 @@
                            khds1,khds2,khdn1,khdn2,reqs_khd)
       call comm_1t_end_GPU(khv,kvdw1,kvdw2,kvde1,kvde2,   &
                            kvds1,kvds2,kvdn1,kvdn2,reqs_kvd)
-      call bct2_GPU(kmh)
-      call bct2_GPU(kmv)
+      call bct2(kmh)
+      call bct2(kmv)
       call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
 #endif
@@ -2543,7 +2543,7 @@
           ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
           dx,dy,dz,myid,timestats,time_turb,time_lb,mytime,tbc,bbc
       use constants
-      use bc_module, only: bc2d_GPU, bcs2_2d_GPU
+      use bc_module, only: bc2d, bcs2_2d
       use comm_module
       implicit none
 
@@ -2596,8 +2596,8 @@
         if(timestats.ge.1) time_turb=time_turb+mytime()
 
         !-----
-        call bc2d_GPU(tkea(ibt,jbt,1))
-        call bc2d_GPU(kmh(ibc,jbc,1))
+        call bc2d(tkea(ibt,jbt,1))
+        call bc2d(kmh(ibc,jbc,1))
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -2608,11 +2608,11 @@
         !-----
         call comm_1s2d_end_GPU(tkea(ibt,jbt,1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                            kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-        call bcs2_2d_GPU(tkea(ibt,jbt,1))
+        call bcs2_2d(tkea(ibt,jbt,1))
 !!!! Problem with comm_1s2d_end_GPU
         call comm_1s2d_end_GPU(kmh(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call bcs2_2d_GPU(kmh(ibc,jbc,1))
+        call bcs2_2d(kmh(ibc,jbc,1))
         !-----
         call comm_2d_corner_GPU(tkea(ibt,jbt,1))
         call comm_2d_corner_GPU(kmh(ibc,jbc,1))
@@ -2650,8 +2650,8 @@
         if(timestats.ge.1) time_turb=time_turb+mytime()
 
         !-----
-        call bc2d_GPU(tkea(ibt,jbt,nk+1))
-        call bc2d_GPU(kmh(ibc,jbc,nk+1))
+        call bc2d(tkea(ibt,jbt,nk+1))
+        call bc2d(kmh(ibc,jbc,nk+1))
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -2662,10 +2662,10 @@
         !-----
         call comm_1s2d_end_GPU(tkea(ibt,jbt,nk+1),kvcw1(1,1),kvcw2(1,1),kvce1(1,1),kvce2(1,1),   &
                                               kvcs1(1,1),kvcs2(1,1),kvcn1(1,1),kvcn2(1,1),reqs_kvc)
-        call bcs2_2d_GPU(tkea(ibt,jbt,nk+1))
+        call bcs2_2d(tkea(ibt,jbt,nk+1))
         call comm_1s2d_end_GPU(kmh(ibc,jbc,nk+1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                              khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call bcs2_2d_GPU(kmh(ibc,jbc,nk+1))
+        call bcs2_2d(kmh(ibc,jbc,nk+1))
         !-----
         call comm_2d_corner_GPU(tkea(ibt,jbt,nk+1))
         call comm_2d_corner_GPU(kmh(ibc,jbc,nk+1))
@@ -2706,7 +2706,7 @@
           jb3d,je3d,kb3d,ke3d,nout3d,imp,jmp,kmt,ni,nj,nk,dx,dy,dz,tconfig, &
           myid,timestats,time_turb,mytime,bbc
       use constants
-      use bc_module, only: bc2d_GPU, bcw_GPU, bct2_GPU, bcs2_2d_GPU
+      use bc_module, only: bc2d, bcw, bct2, bcs2_2d
       use comm_module
       implicit none
 
@@ -2837,10 +2837,8 @@
 !--------------------------------------------------------------
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
-      !$acc data copy(kmh,kmv)
-      call bcw_GPU(kmh,1)
-      call bcw_GPU(kmv,1)
-      !$acc end data
+      call bcw(kmh,1)
+      call bcw(kmv,1)
 #ifdef MPI
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
@@ -2852,8 +2850,8 @@
                            kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
       call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2_GPU(kmh)
-      call bct2_GPU(kmv)
+      call bct2(kmh)
+      call bct2(kmv)
 #endif
 
 !--------------------------------------------------------------
@@ -2906,16 +2904,14 @@
         enddo
         enddo
 
-        !$acc data copy(kmv)
-        call bc2d_GPU(kmv(ibc,jbc,1))
-        !$acc end data
+        call bc2d(kmv(ibc,jbc,1))
 #ifdef MPI
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_2d_corner_GPU(kmv(ibc,jbc,1))
-        call bcs2_2d_GPU(kmv(ibc,jbc,1))
+        call bcs2_2d(kmv(ibc,jbc,1))
 #endif
 
       IF( tconfig.eq.1 )THEN
@@ -2964,7 +2960,7 @@
           jb3d,je3d,kb3d,ke3d,nout3d,kmt,imp,jmp,ni,nj,nk,nx,ny,dx,dy,timestats, &
           time_turb,mytime,l_h,lhref1,lhref2,idiss,output_dissten
       use constants
-      use bc_module, only: bcw_GPU, bct2_GPU
+      use bc_module, only: bcw, bct2
       use comm_module
       implicit none
 
@@ -3058,16 +3054,14 @@
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
 
-      !$acc data copy(kmh)
-      call bcw_GPU(kmh,1)
-      !$acc end data
+      call bcw(kmh,1,device=.false.)
 #ifdef MPI
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                              khcs1,khcs2,khcn1,khcn2,reqs_khc)
       call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
                            khcs1,khcs2,khcn1,khcn2,reqs_khc)
       call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2_GPU(kmh)
+      call bct2(kmh)
 #endif
 
         ! Extrapolate:
@@ -3128,7 +3122,7 @@
           jb3d,je3d,kb3d,ke3d,nout3d,imp,jmp,kmt,ni,nj,nk,timestats,time_turb, &
           mytime,idiss,output_dissten,bbc,myid,l_inf
       use constants
-      use bc_module, only: bc2d_GPU, bcw_GPU, bct2_GPU, bcs2_2d_GPU
+      use bc_module, only: bc2d, bcw, bct2, bcs2_2d
       use comm_module
       implicit none
 
@@ -3194,9 +3188,7 @@
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
 
-      !$acc data copy(kmv)
-      call bcw_GPU(kmv,1)
-      !$acc end data
+      call bcw(kmv,1,device=.false.)
 
 #ifdef MPI
       !JMD FIXME:  These subroutine operate on GPU resident data
@@ -3205,7 +3197,7 @@
       call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
                            kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
       call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2_GPU(kmv)
+      call bct2(kmv)
 #endif
 
 !--------------------------------------------------------------
@@ -3244,16 +3236,14 @@
         enddo
         enddo
 
-        !$acc data copy(kmv)
-        call bc2d_GPU(kmv(ibc,jbc,1))
-        !$acc end data
+        call bc2d(kmv(ibc,jbc,1),device=.false.)
 #ifdef MPI
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                             khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
                                           khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
         call comm_2d_corner_GPU(kmv(ibc,jbc,1))
-        call bcs2_2d_GPU(kmv(ibc,jbc,1))
+        call bcs2_2d(kmv(ibc,jbc,1))
 #endif
 
         do j=0,nj+1

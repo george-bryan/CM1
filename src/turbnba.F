@@ -34,7 +34,7 @@
           ibt,iet,jbt,jet,kbt,ket,imp,jmp,rmp,kmt,cmp,ni,nj,nk,dx,dy,dz,myid, &
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
-      use bc_module, only: bc2d_GPU, bcs2_GPU, bct2_GPU, bcs2_2d_GPU
+      use bc_module, only: bc2d, bcs2, bct2, bcs2_2d
       use comm_module, only : comm_1s_start_GPU,comm_1s_end_GPU,comm_2d_start_GPU, &
           comm_2dew_end_GPU,comm_2dns_end_GPU,comm_2d_corner_GPU,getcorner_GPU,getcornert_GPU
       implicit none
@@ -149,9 +149,7 @@
                                 ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
       call comm_1s_end_GPU(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                               ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
-      !$acc data copy(lenscl)
-      call bcs2_GPU(lenscl)
-      !$acc end data
+      call bcs2(lenscl,device=.false.)
       call getcorner_GPU(lenscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
 #endif
 
@@ -197,15 +195,13 @@
       enddo
 
       do k=1,2
-        !$acc data copy(grdscl)
-        call bc2d_GPU(grdscl(ib,jb,k))
-        !$acc end data
+        call bc2d(grdscl(ib,jb,k),device=.false.)
 #ifdef MPI
         call comm_2d_start_GPU(grdscl(ib,jb,k),west,newwest,east,neweast,   &
                                            south,newsouth,north,newnorth,reqs_s)
         call comm_2dew_end_GPU(grdscl(ib,jb,k),west,newwest,east,neweast,reqs_s)
         call comm_2dns_end_GPU(grdscl(ib,jb,k),south,newsouth,north,newnorth,reqs_s)
-        call bcs2_2d_GPU(grdscl(ib,jb,k))
+        call bcs2_2d(grdscl(ib,jb,k))
         call comm_2d_corner_GPU(grdscl(ib,jb,k))
 #endif
       enddo
@@ -230,8 +226,8 @@
       enddo
 
 #ifdef MPI
+      call bct2(tkea,device=.false.)
       !$acc data copy(tkea)
-      call bct2_GPU(tkea)
       call getcornert_GPU(tkea,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       !$acc end data
 #endif
@@ -474,7 +470,7 @@
           ibt,iet,jbt,jet,kbt,ket,imp,jmp,rmp,kmt,cmp,ni,nj,nk,dx,dy,dz,myid, &
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
-      use bc_module, only: bcs2_GPU
+      use bc_module, only: bcs2
       use comm_module, only : comm_1s_start_GPU,comm_1s_end_GPU,getcorner_GPU,getcornert_GPU
       implicit none
 
@@ -569,9 +565,7 @@
                                 ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
       call comm_1s_end_GPU(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
                               ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
-      !$acc data copy(grdscl)
-      call bcs2_GPU(grdscl)
-      !$acc end data
+      call bcs2(grdscl,device=.false.)
       call getcorner_GPU(grdscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
 #endif
 

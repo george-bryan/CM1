@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #PBS -N cm1
 #PBS -l select=1:ncpus=2:mpiprocs=2:ompthreads=1
-#PBS -l walltime=00:20:00
+#PBS -l walltime=00:40:00
 #PBS -j oe
 #PBS -q main
 #PBS -A UNDM0006
