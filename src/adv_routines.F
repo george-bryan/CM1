@@ -9540,7 +9540,7 @@
 
 #ifdef MPI
       if(timestats.ge.1) time_swath=time_swath+mytime()
-      call comm_2d_start_GPU(s,west,newwest,east,neweast,   &
+      call comm_2d_start(s,west,newwest,east,neweast,   &
                            south,newsouth,north,newnorth,reqs)
 #else
       if(wbc.eq.1)then
@@ -9633,7 +9633,7 @@
 
 #ifdef MPI
       if(timestats.ge.1) time_swath=time_swath+mytime()
-      call comm_2dew_end_GPU(s,west,newwest,east,neweast,reqs)
+      call comm_2dew_end(s,west,newwest,east,neweast,reqs)
 #endif
 
 !-------------------------
@@ -9704,7 +9704,7 @@
 
 #ifdef MPI
       if(timestats.ge.1) time_swath=time_swath+mytime()
-      call comm_2dns_end_GPU(s,south,newsouth,north,newnorth,reqs)
+      call comm_2dns_end(s,south,newsouth,north,newnorth,reqs)
 #endif
 
 !-------------------------

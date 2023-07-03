@@ -2251,69 +2251,69 @@
       nv=0
       nw=0
 
-      call comm_3u_start_GPU(ua,uw31,uw32,ue31,ue32,   &
+      call comm_3u_start(ua,uw31,uw32,ue31,ue32,   &
                           us31,us32,un31,un32,reqs_u,device=.false.)
-      call comm_3u_end_GPU(ua,uw31,uw32,ue31,ue32,   &
+      call comm_3u_end(ua,uw31,uw32,ue31,ue32,   &
                           us31,us32,un31,un32,reqs_u,device=.false.)
 
-      call comm_3v_start_GPU(va,vw31,vw32,ve31,ve32,   &
+      call comm_3v_start(va,vw31,vw32,ve31,ve32,   &
                             vs31,vs32,vn31,vn32,reqs_v,device=.false.)
-      call comm_3v_end_GPU(va,vw31,vw32,ve31,ve32,   &
+      call comm_3v_end(va,vw31,vw32,ve31,ve32,   &
                           vs31,vs32,vn31,vn32,reqs_v,device=.false.)
 
-      call comm_3w_start_GPU(wa,ww31,ww32,we31,we32,   &
+      call comm_3w_start(wa,ww31,ww32,we31,we32,   &
                             ws31,ws32,wn31,wn32,reqs_w,device=.false.)
-      call comm_3w_end_GPU(wa,ww31,ww32,we31,we32,   &
+      call comm_3w_end(wa,ww31,ww32,we31,we32,   &
                           ws31,ws32,wn31,wn32,reqs_w,device=.false.)
 
-      call comm_3s_start_GPU(ppi,sw31,sw32,se31,se32,   &
+      call comm_3s_start(ppi,sw31,sw32,se31,se32,   &
                              ss31,ss32,sn31,sn32,reqs_s,device=.false.)
-      call comm_3s_end_GPU(ppi,sw31,sw32,se31,se32,   &
+      call comm_3s_end(ppi,sw31,sw32,se31,se32,   &
                            ss31,ss32,sn31,sn32,reqs_s,device=.false.)
 
-      call comm_3s_start_GPU(tha,sw31,sw32,se31,se32,   &
+      call comm_3s_start(tha,sw31,sw32,se31,se32,   &
                              ss31,ss32,sn31,sn32,reqs_s,device=.false.)
-      call comm_3s_end_GPU(tha,sw31,sw32,se31,se32,   &
+      call comm_3s_end(tha,sw31,sw32,se31,se32,   &
                            ss31,ss32,sn31,sn32,reqs_s,device=.false.)
 
       IF(imoist.eq.1)THEN
         do n=1,numq
-          call comm_3s_start_GPU(qa(ibm,jbm,kbm,n),sw31,sw32,se31,se32,   &
+          call comm_3s_start(qa(ibm,jbm,kbm,n),sw31,sw32,se31,se32,   &
                                              ss31,ss32,sn31,sn32,reqs_s,device=.false.)
-          call comm_3s_end_GPU(qa(ibm,jbm,kbm,n),sw31,sw32,se31,se32,   &
+          call comm_3s_end(qa(ibm,jbm,kbm,n),sw31,sw32,se31,se32,   &
                                              ss31,ss32,sn31,sn32,reqs_s,device=.false.)
         enddo
       ENDIF
 
       IF( cm1setup.eq.1 .and. iusetke )THEN
-        call comm_3t_start_GPU(tkea,tkw1,tkw2,tke1,tke2,   &
+        call comm_3t_start(tkea,tkw1,tkw2,tke1,tke2,   &
                                 tks1,tks2,tkn1,tkn2,reqs_tk,device=.false.)
-        call comm_3t_end_GPU(tkea,tkw1,tkw2,tke1,tke2,   &
+        call comm_3t_end(tkea,tkw1,tkw2,tke1,tke2,   &
                               tks1,tks2,tkn1,tkn2,reqs_tk,device=.false.)
       ENDIF
 
       IF(iptra.eq.1)THEN
         do n=1,npt
-          call comm_3s_start_GPU(pta(ib,jb,kb,n),sw31,sw32,se31,se32,   &
+          call comm_3s_start(pta(ib,jb,kb,n),sw31,sw32,se31,se32,   &
                                              ss31,ss32,sn31,sn32,reqs_s,device=.false.)
-          call comm_3s_end_GPU(pta(ib,jb,kb,n),sw31,sw32,se31,se32,   &
+          call comm_3s_end(pta(ib,jb,kb,n),sw31,sw32,se31,se32,   &
                                            ss31,ss32,sn31,sn32,reqs_s,device=.false.)
         enddo
       ENDIF
 
-      call comm_3u_start_GPU(u0,uw31,uw32,ue31,ue32,   &
+      call comm_3u_start(u0,uw31,uw32,ue31,ue32,   &
                             us31,us32,un31,un32,reqs_u,device=.false.)
-      call comm_3u_end_GPU(u0,uw31,uw32,ue31,ue32,   &
+      call comm_3u_end(u0,uw31,uw32,ue31,ue32,   &
                           us31,us32,un31,un32,reqs_u,device=.false.)
 
-      call comm_3v_start_GPU(v0,vw31,vw32,ve31,ve32,   &
+      call comm_3v_start(v0,vw31,vw32,ve31,ve32,   &
                             vs31,vs32,vn31,vn32,reqs_v,device=.false.)
-      call comm_3v_end_GPU(v0,vw31,vw32,ve31,ve32,   &
+      call comm_3v_end(v0,vw31,vw32,ve31,ve32,   &
                           vs31,vs32,vn31,vn32,reqs_v,device=.false.)
 
-      call comm_3s_start_GPU(th0,sw31,sw32,se31,se32,   &
+      call comm_3s_start(th0,sw31,sw32,se31,se32,   &
                              ss31,ss32,sn31,sn32,reqs_s,device=.false.)
-      call comm_3s_end_GPU(th0,sw31,sw32,se31,se32,   &
+      call comm_3s_end(th0,sw31,sw32,se31,se32,   &
                            ss31,ss32,sn31,sn32,reqs_s,device=.false.)
 
       call MPI_BARRIER (MPI_COMM_WORLD,ierr)
@@ -2332,12 +2332,12 @@
         enddo
         call bc2d(tkea(ibt,jbt,1),device=.false.)
 #ifdef MPI
-        call comm_1s2d_start_GPU(tkea(ibt,jbt,1),sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),   &
+        call comm_1s2d_start(tkea(ibt,jbt,1),sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),   &
                                       ss31(1,1,1),ss32(1,1,1),sn31(1,1,1),sn32(1,1,1),reqs_s,device=.false.)
-        call comm_1s2d_end_GPU(tkea(ibt,jbt,1),sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),   &
+        call comm_1s2d_end(tkea(ibt,jbt,1),sw31(1,1,1),sw32(1,1,1),se31(1,1,1),se32(1,1,1),   &
                                     ss31(1,1,1),ss32(1,1,1),sn31(1,1,1),sn32(1,1,1),reqs_s,device=.false.)
         call bcs2_2d(tkea(ibt,jbt,1),device=.false.)
-        call comm_2d_corner_GPU(tkea(ibt,jbt,1),device=.false.)
+        call comm_2d_corner(tkea(ibt,jbt,1),device=.false.)
 #endif
       endif
 
@@ -2421,8 +2421,8 @@
       if( psolver.eq.6 )then
         call bcs(phi1,device=.false.)
 #ifdef MPI
-        call comm_1s_start_GPU(phi1,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
-        call comm_1s_end_GPU(phi1,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_start(phi1,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_end(phi1,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
 #endif
         do k=kb,ke
         do j=jb,je
@@ -2491,10 +2491,10 @@
 
         call bcs(rho,device=.false.)
 #ifdef MPI
-        call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
-        call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_start(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
         call bcs2(rho,device=.false.)
-        call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
+        call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 
       !$omp parallel do default(shared)  &
@@ -2510,17 +2510,17 @@
 
         call bcs(rr,device=.false.)
 #ifdef MPI
-        call comm_1s_start_GPU(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
-        call comm_1s_end_GPU(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_start(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_end(rr,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
         call bcs2(rr,device=.false.)
-        call getcorner_GPU(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
+        call getcorner(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
         call bcs(rf,device=.false.)
 #ifdef MPI
-        call comm_1s_start_GPU(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
-        call comm_1s_end_GPU(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_start(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+        call comm_1s_end(rf,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
         call bcs2(rf,device=.false.)
-        call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
+        call getcorner(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 
         ! meh 1 !
@@ -2621,8 +2621,8 @@
 
       call bcs(ppx,device=.false.)
 #ifdef MPI
-      call comm_1s_start_GPU(ppx,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
-      call comm_1s_end_GPU(ppx,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+      call comm_1s_start(ppx,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
+      call comm_1s_end(ppx,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,device=.false.)
 #endif
 
     ENDIF

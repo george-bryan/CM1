@@ -598,7 +598,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_1s_start_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+        call comm_1s_start(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
 
 !--------------------------------------------------------------------
@@ -619,11 +619,11 @@
 !--------------------------------------------------------------------
         IF(nrk.ge.2)THEN
 #ifdef MPI
-          call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
+          call comm_3u_end(u3d,uw31,uw32,ue31,ue32,   &
                                us31,us32,un31,un32,reqs_u)
-          call comm_3v_end_GPU(v3d,vw31,vw32,ve31,ve32,   &
+          call comm_3v_end(v3d,vw31,vw32,ve31,ve32,   &
                                vs31,vs32,vn31,vn32,reqs_v)
-          call comm_3w_end_GPU(w3d,ww31,ww32,we31,we32,   &
+          call comm_3w_end(w3d,ww31,ww32,we31,we32,   &
                                ws31,ws32,wn31,wn32,reqs_w)
 #endif
           if(terrain_flag)then
@@ -732,9 +732,9 @@
         IF(terrain_flag)THEN
           call bcw(rrw,0)
 #ifdef MPI
-          call comm_1w_start_GPU(rrw,ww1,ww2,we1,we2,   &
+          call comm_1w_start(rrw,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs_w)
-          call comm_1w_end_GPU(rrw,ww1,ww2,we1,we2,   &
+          call comm_1w_end(rrw,ww1,ww2,we1,we2,   &
                                ws1,ws2,wn1,wn2,reqs_w)
 #endif
         ENDIF
@@ -1036,8 +1036,8 @@
         IF(nrk.ge.2)THEN
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-          call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+          call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+          call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
           call bcs2(rho)
         ENDIF
 #endif
@@ -1134,8 +1134,8 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_1s_start_GPU(dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
-        call comm_1s_end_GPU(  dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+        call comm_1s_start(dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+        call comm_1s_end(  dum6,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
 #endif
   
         !$omp parallel do default(shared) private(i,j,k)
@@ -1193,7 +1193,7 @@
       IF(nrk.ge.2)THEN
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+        call comm_1s_end(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
       ENDIF
 #endif
 
@@ -1248,7 +1248,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_1s_end_GPU(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+        call comm_1s_end(t11,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
 #endif
 !--------------------------------------------------------------------
 !  call sound
@@ -1490,7 +1490,7 @@
         IF(nrk.ge.2)THEN
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,   &
+          call comm_3s_end(th3d,rw31,rw32,re31,re32,   &
                                 rs31,rs32,rn31,rn32,reqs_y)
         ENDIF
 #endif
@@ -1610,7 +1610,7 @@
       if( nrk.ge.2 )then
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_3s_end_GPU(q3d(ib,jb,kb,n)  &
+        call comm_3s_end(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                        ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                        ,reqs_q(1,n) )
@@ -1809,9 +1809,9 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call comm_3u_start_GPU(u3d,uw31,uw32,ue31,ue32,   &
+      call comm_3u_start(u3d,uw31,uw32,ue31,ue32,   &
                              us31,us32,un31,un32,reqs_u)
-      call comm_3v_start_GPU(v3d,vw31,vw32,ve31,ve32,   &
+      call comm_3v_start(v3d,vw31,vw32,ve31,ve32,   &
                              vs31,vs32,vn31,vn32,reqs_v)
 #endif
       if(terrain_flag) then 
@@ -1820,7 +1820,7 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call comm_3w_start_GPU(w3d,ww31,ww32,we31,we32,   &
+      call comm_3w_start(w3d,ww31,ww32,we31,we32,   &
                              ws31,ws32,wn31,wn32,reqs_w)
 #endif
       IF(nrk.lt.nrkmax)THEN
@@ -1830,16 +1830,16 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-        call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
-        call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
+        call comm_1s_start(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+        call comm_1s_start(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+        call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
                                 rs31,rs32,rn31,rn32,reqs_y)
 #endif
         IF(imoist.eq.1)THEN
           do n=1,numq
             call bcs(q3d(ib,jb,kb,n))
 #ifdef MPI
-            call comm_3s_start_GPU(q3d(ib,jb,kb,n)  &
+            call comm_3s_start(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                        ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                        ,reqs_q(1,n) )
@@ -1869,7 +1869,7 @@
         IF(nrk.ge.2)THEN
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
+          call comm_3t_end(tke3d,tkw1,tkw2,tke1,tke2,   &
                                  tks1,tks2,tkn1,tkn2,reqs_tk)
         ENDIF
 #endif
@@ -1926,7 +1926,7 @@
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_3t_start_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
+          call comm_3t_start(tke3d,tkw1,tkw2,tke1,tke2,   &
                                    tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
 
@@ -1969,8 +1969,8 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_3s_start_GPU(qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
-        call comm_3s_end_GPU(  qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
+        call comm_3s_start(qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
+        call comm_3s_end(  qke3d,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_tk)
 #endif
         weps = 10.0*epsilon
         diffit = 0
@@ -2046,7 +2046,7 @@
           IF(nrk.ge.2)THEN
             call sync()
             if(timestats.ge.1) time_lb=time_lb+mytime()
-            call comm_3s_end_GPU(pt3d(ib,jb,kb,n),                           &
+            call comm_3s_end(pt3d(ib,jb,kb,n),                           &
                   tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n),   &
                   ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n),   &
                   reqs_t(1,n))
@@ -2079,7 +2079,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_3s_start_GPU(pt3d(ib,jb,kb,n)   &
+        call comm_3s_start(pt3d(ib,jb,kb,n)   &
                      ,tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n)     &
                      ,ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n)     &
                      ,reqs_t(1,n) )
@@ -2184,7 +2184,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_3s_start_GPU(pt3d(ib,jb,kb,n)   &
+        call comm_3s_start(pt3d(ib,jb,kb,n)   &
                      ,tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n)     &
                      ,ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n)     &
                      ,reqs_t(1,n) )

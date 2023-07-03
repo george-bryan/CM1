@@ -5,26 +5,26 @@
   public :: nabor
 
   !GPU enabled routines 
-  public :: comm_2d_start_GPU,comm_2dns_end_GPU,comm_2dew_end_GPU
-  public :: comm_1s_start_GPU,comm_1s_end_GPU
-  public :: comm_1w_start_GPU,comm_1w_end_GPU
-  public :: comm_1p_start_GPU,comm_1p_end_GPU
-  public :: comm_1t_start_GPU,comm_1t_end_GPU
-  public :: comm_2sn_start_GPU,comm_2sn_end_GPU
-  public :: comm_3s_start_GPU,comm_3s_end_GPU
-  public :: comm_3t_start_GPU,comm_3t_end_GPU
-  public :: comm_3w_start_GPU,comm_3w_end_GPU
-  public :: comm_3u_start_GPU,comm_3u_end_GPU
-  public :: comm_3v_start_GPU,comm_3v_end_GPU
-  public :: comm_1s2d_start_GPU,comm_1s2d_end_GPU
-  public :: comm_2we_start_GPU,comm_2we_end_GPU
-  public :: comm_2d_corner_GPU
-  public :: comm_1s_tend_halo_GPU,comm_1u_tend_halo_GPU,comm_1v_tend_halo_GPU
-  public :: getcorneru_GPU,getcornerv_GPU,getcornert_GPU,getcornerw_GPU,getcorner_GPU
-  public :: getcorneru3_GPU,getcornerv3_GPU,getcornerw3_GPU
-  public :: prepcorners3_GPU,prepcornert_GPU,prepcorners_GPU
-  public :: comm_all_s_GPU
-  public :: getcorner3_2d_GPU
+  public :: comm_2d_start,comm_2dns_end,comm_2dew_end
+  public :: comm_1s_start,comm_1s_end
+  public :: comm_1w_start,comm_1w_end
+  public :: comm_1p_start,comm_1p_end
+  public :: comm_1t_start,comm_1t_end
+  public :: comm_2sn_start,comm_2sn_end
+  public :: comm_3s_start,comm_3s_end
+  public :: comm_3t_start,comm_3t_end
+  public :: comm_3w_start,comm_3w_end
+  public :: comm_3u_start,comm_3u_end
+  public :: comm_3v_start,comm_3v_end
+  public :: comm_1s2d_start,comm_1s2d_end
+  public :: comm_2we_start,comm_2we_end
+  public :: comm_2d_corner
+  public :: comm_1s_tend_halo,comm_1u_tend_halo,comm_1v_tend_halo
+  public :: getcorneru,getcornerv,getcornert,getcornerw,getcorner
+  public :: getcorneru3,getcornerv3,getcornerw3
+  public :: prepcorners3,prepcornert,prepcorners
+  public :: comm_all_s
+  public :: getcorner3_2d
 
   public :: sync
 
@@ -70,7 +70,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine getcorner_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcorner(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
@@ -259,7 +259,7 @@
 !-----
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-      end subroutine getcorner_GPU
+      end subroutine getcorner
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -267,7 +267,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcornert(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
@@ -453,14 +453,14 @@
 !-----
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-      end subroutine getcornert_GPU
+      end subroutine getcornert
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getcorneru_GPU(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcorneru(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
@@ -663,14 +663,14 @@
 !-----
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-      end subroutine getcorneru_GPU
+      end subroutine getcorneru
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getcornerv_GPU(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcornerv(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
@@ -874,7 +874,7 @@
 !-----
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-      end subroutine getcornerv_GPU
+      end subroutine getcornerv
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -882,7 +882,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getcornerw_GPU(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcornerw(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
@@ -1084,13 +1084,13 @@
 !-----
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-      end subroutine getcornerw_GPU
+      end subroutine getcornerw
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine getcorner3_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcorner3(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           cmp,nkp1,mynw,mysw,myne,myse,ierr,timestats,time_mptk1,mytime
       use mpi
@@ -1312,7 +1312,7 @@
 !-----
  
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-      end subroutine getcorner3_GPU
+      end subroutine getcorner3
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1320,7 +1320,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_2we_start_GPU(s,west,newwest,east,neweast,reqs)
+      subroutine comm_2we_start(s,west,newwest,east,neweast,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           cs2we,nf,nkp1,myeast,mywest,ierr,timestats,time_mps3,mytime
       use mpi
@@ -1410,8 +1410,7 @@
 !----------
 
       if(timestats.ge.1) time_mps3=time_mps3+mytime()
-!      !$acc update device(s)
-      end subroutine comm_2we_start_GPU
+      end subroutine comm_2we_start
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1419,7 +1418,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_2we_end_GPU(s,west,newwest,east,neweast,reqs)
+      subroutine comm_2we_end(s,west,newwest,east,neweast,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           cs2we,nf,nkp1,myeast,mywest,ierr,timestats,time_mps4,mytime
       use mpi
@@ -1497,7 +1496,7 @@
       if(timestats.ge.1) time_mps4=time_mps4+mytime()
 !      !$acc update device(s)
 
-      end subroutine comm_2we_end_GPU
+      end subroutine comm_2we_end
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1505,7 +1504,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_2sn_start_GPU(s,south,newsouth,north,newnorth,reqs)
+      subroutine comm_2sn_start(s,south,newsouth,north,newnorth,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           nf,cs2sn,nkp1,mysouth,mynorth,ierr,timestats,time_mps3,mytime
       use mpi
@@ -1597,7 +1596,7 @@
 
       if(timestats.ge.1) time_mps3=time_mps3+mytime()
 
-      end subroutine comm_2sn_start_GPU
+      end subroutine comm_2sn_start
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1605,7 +1604,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_2sn_end_GPU(s,south,newsouth,north,newnorth,reqs)
+      subroutine comm_2sn_end(s,south,newsouth,north,newnorth,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibw,ibe,ibs,ibn, &
           nf,cs2sn,nkp1,mysouth,mynorth,ierr,timestats,time_mps4,mytime
       use mpi
@@ -1681,13 +1680,13 @@
     endif
 
       if(timestats.ge.1) time_mps4=time_mps4+mytime() 
-      end subroutine comm_2sn_end_GPU
+      end subroutine comm_2sn_end
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_3s_start_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_3s_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs,gpudirect,device)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
           myeast,mywest,mysouth,mynorth,nf,cs3we,cs3sn,timestats,time_mps1, &
@@ -1863,13 +1862,13 @@
  
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
 
-      end subroutine comm_3s_start_GPU
+      end subroutine comm_3s_start
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_3s_end_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_3s_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs,gpudirect,device)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
           wbc,ebc,nbc,sbc,myeast,mywest,mysouth,mynorth,nf,cs3we,cs3sn,timestats, &
@@ -2092,14 +2091,14 @@
 
 !-----------------------------------------------------------
  
-      end subroutine comm_3s_end_GPU
+      end subroutine comm_3s_end
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       ! tk1
-      subroutine comm_3t_start_GPU(t,west,newwest,east,neweast,   &
+      subroutine comm_3t_start(t,west,newwest,east,neweast,   &
                         south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
           nf,ct3we,ct3sn,nkp1,timestats,time_mps1,mytime,ierr, &
@@ -2267,13 +2266,13 @@
 !----------
 
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
-      end subroutine comm_3t_start_GPU
+      end subroutine comm_3t_start
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_3t_end_GPU(t,west,newwest,east,neweast,   &
+      subroutine comm_3t_end(t,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibs,ibn, &
           ierr,nkp1,ebc,wbc,sbc,nbc,timestats,time_mps2,time_bc,mytime, &
@@ -2488,7 +2487,7 @@
     endif
 
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
-      end subroutine comm_3t_end_GPU
+      end subroutine comm_3t_end
 
       ! tk2
 
@@ -2496,7 +2495,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_3u_start_GPU(u,west,newwest,east,neweast,   &
+      subroutine comm_3u_start(u,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
           timestats,mytime,nu,time_mpu1,cs3we,cu3sn,ierr,mynorth,mysouth,myeast,mywest
@@ -2662,13 +2661,13 @@
 
       if(timestats.ge.1) time_mpu1=time_mpu1+mytime()
  
-      end subroutine comm_3u_start_GPU
+      end subroutine comm_3u_start
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_3u_end_GPU(u,west,newwest,east,neweast,   &
+      subroutine comm_3u_end(u,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
           ebc,wbc,sbc,nbc,ierr,timestats,time_mpu2,mytime,time_bc, &
@@ -2884,13 +2883,13 @@
       if(timestats.ge.1) time_mpu2=time_mpu2+mytime()
 !----------
  
-      end subroutine comm_3u_end_GPU
+      end subroutine comm_3u_end
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_3v_start_GPU(v,west,newwest,east,neweast,   &
+      subroutine comm_3v_start(v,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,timestats,mytime,nv,time_mpv1,cv3we,cs3sn,ierr, &
@@ -3057,7 +3056,7 @@
 
       if(timestats.ge.1) time_mpv1=time_mpv1+mytime()
  
-      end subroutine comm_3v_start_GPU
+      end subroutine comm_3v_start
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -3067,7 +3066,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_3v_end_GPU(v,west,newwest,east,neweast,   &
+      subroutine comm_3v_end(v,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
           ebc,wbc,sbc,nbc,ierr,timestats,time_mpv2,mytime,time_bc, &
@@ -3283,13 +3282,13 @@
 !      !$acc update device(v) 
 !----------
  
-      end subroutine comm_3v_end_GPU
+      end subroutine comm_3v_end
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_3w_start_GPU(w,west,newwest,east,neweast,   &
+      subroutine comm_3w_start(w,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibs,ibn, &
           ierr,timestats,mytime,nw,time_mpw1,cw3we,cw3sn,mywest,myeast, &
@@ -3457,13 +3456,13 @@
 
       if(timestats.ge.1) time_mpw1=time_mpw1+mytime()
  
-      end subroutine comm_3w_start_GPU
+      end subroutine comm_3w_start
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_3w_end_GPU(w,west,newwest,east,neweast,   &
+      subroutine comm_3w_end(w,west,newwest,east,neweast,   &
                          south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibe,ibw,ibn,ibs, &
           wbc,ebc,nbc,sbc,ierr,mytime,timestats,time_mpw2,time_bc, &
@@ -3678,13 +3677,13 @@
       if(timestats.ge.1) time_mpw2=time_mpw2+mytime()
 !----------
  
-      end subroutine comm_3w_end_GPU
+      end subroutine comm_3w_end
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_1s2d_start_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_1s2d_start(s,west,newwest,east,neweast,   &
                           south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
           nf,ierr,timestats,time_mps1,mytime,myeast,mywest,mysouth,mynorth
@@ -3836,13 +3835,13 @@
 
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
 
-      end subroutine comm_1s2d_start_GPU
+      end subroutine comm_1s2d_start
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_1s2d_end_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_1s2d_end(s,west,newwest,east,neweast,   &
                      south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
           wbc,ebc,nbc,sbc,timestats,mytime,time_mps2,time_bc,ierr, &
@@ -4015,13 +4014,13 @@
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
 !----------
 
-      end subroutine comm_1s2d_end_GPU
+      end subroutine comm_1s2d_end
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_1s_start_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_1s_start(s,west,newwest,east,neweast,   &
                          south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,nf,cs1we,cs1sn,ierr,timestats,time_mps1,mytime, & 
@@ -4180,15 +4179,14 @@
 !----------
  
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
-      if(Debug) print *,'comm_1s_start_GPU: point #9'
  
-      end subroutine comm_1s_start_GPU
+      end subroutine comm_1s_start
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_1s_end_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_1s_end(s,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           ebc,wbc,sbc,nbc,timestats,mytime,ierr,time_bc,time_mps2, &
@@ -4397,7 +4395,7 @@
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
 !----------
  
-      end subroutine comm_1s_end_GPU
+      end subroutine comm_1s_end
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -4405,7 +4403,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_1p_start_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_1p_start(s,west,newwest,east,neweast,   &
                                  south,newsouth,north,newnorth,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,nf,ierr,timestats,time_mpp1,mytime, &
@@ -4563,12 +4561,11 @@
 !----------
 
       if(timestats.ge.1) time_mpp1=time_mpp1+mytime()
-      if(Debug) print *,'comm_1p_start_GPU point #9'
 
-      end subroutine comm_1p_start_GPU
+      end subroutine comm_1p_start
 
  
-      subroutine comm_1p_end_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_1p_end(s,west,newwest,east,neweast,   &
                                south,newsouth,north,newnorth,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           ebc,wbc,sbc,nbc,timestats,mytime,time_bc,time_mpp2,ierr
@@ -4680,7 +4677,7 @@
       if(timestats.ge.1) time_mpp2=time_mpp2+mytime()
 !----------
  
-      end subroutine comm_1p_end_GPU
+      end subroutine comm_1p_end
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -4688,7 +4685,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_1t_start_GPU(t,west,newwest,east,neweast,   &
+      subroutine comm_1t_start(t,west,newwest,east,neweast,   &
                       south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,ct1we,ct1sn,nf,ierr,timestats,time_mps1,mytime, &
@@ -4849,7 +4846,7 @@
 !----------
 
       if(timestats.ge.1) time_mps1=time_mps1+mytime()
-      end subroutine comm_1t_start_GPU
+      end subroutine comm_1t_start
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -4857,7 +4854,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_1t_end_GPU(t,west,newwest,east,neweast,   &
+      subroutine comm_1t_end(t,west,newwest,east,neweast,   &
                             south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,mytime,ierr,timestats,time_mps2,time_bc, &
@@ -5067,14 +5064,14 @@
       if(timestats.ge.1) time_mps2=time_mps2+mytime()
 
 !----------
-      end subroutine comm_1t_end_GPU
+      end subroutine comm_1t_end
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
  
-      subroutine comm_1w_start_GPU(w,ww1,ww2,we1,we2,   &
+      subroutine comm_1w_start(w,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,cw1we,cw1sn, &
@@ -5226,14 +5223,14 @@
 
       if(timestats.ge.1) time_mpw1=time_mpw1+mytime()
  
-      end subroutine comm_1w_start_GPU
+      end subroutine comm_1w_start
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
  
-      subroutine comm_1w_end_GPU(w,ww1,ww2,we1,we2,   &
+      subroutine comm_1w_end(w,ww1,ww2,we1,we2,   &
                                ws1,ws2,wn1,wn2,reqs)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibn,ibs, &
           wbc,ebc,sbc,nbc,timestats,mytime,ierr,time_bc,time_mpw2, &
@@ -5467,13 +5464,13 @@
 !     !$acc update device(w)
 !----------
 
-      end subroutine comm_1w_end_GPU
+      end subroutine comm_1w_end
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_2d_start_GPU(s,west,newwest,east,neweast,   &
+      subroutine comm_2d_start(s,west,newwest,east,neweast,   &
                  south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn,wbc,ebc,sbc,nbc, &
           nf,ierr,timestats,time_mpq1,mytime,myeast,mywest,mysouth,mynorth
@@ -5631,13 +5628,13 @@
 !----------
 
       if(timestats.ge.1) time_mpq1=time_mpq1+mytime()
-      end subroutine comm_2d_start_GPU
+      end subroutine comm_2d_start
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_2dew_end_GPU(s,west,newwest,east,neweast,reqs,device,gpudirect)
+      subroutine comm_2dew_end(s,west,newwest,east,neweast,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ierr, &
           timestats,time_mpq2,mytime
       use mpi
@@ -5693,13 +5690,13 @@
 !----------
 
       if(timestats.ge.1) time_mpq2=time_mpq2+mytime()
-      end subroutine comm_2dew_end_GPU
+      end subroutine comm_2dew_end
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_2dns_end_GPU(s,south,newsouth,north,newnorth,reqs,device,gpudirect)
+      subroutine comm_2dns_end(s,south,newsouth,north,newnorth,reqs,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,ierr,timestats,time_mpq2,mytime
       use mpi
@@ -5788,13 +5785,13 @@
 !----------
 
       if(timestats.ge.1) time_mpq2=time_mpq2+mytime()
-      end subroutine comm_2dns_end_GPU
+      end subroutine comm_2dns_end
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine comm_2d_corner_GPU(s,device,gpudirect)
+      subroutine comm_2d_corner(s,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,ibe,ibw,ibs,ibn, &
           mynw,mysw,myne,myse,timestats,time_mptk1,mytime,ierr
       use mpi
@@ -5817,7 +5814,6 @@
       call SetMsgParams(openacc,gdirect,device,gpudirect)
 
 !-----
-     if(Debug) print *,'comm_2d_corner_GPU:'
       tag1=5061
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
         nr = nr + 1
@@ -5926,13 +5922,13 @@
 !-----
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
 
-      end subroutine comm_2d_corner_GPU
+      end subroutine comm_2d_corner
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine getcorner3_2d_GPU(s,device,gpudirect)
+      subroutine getcorner3_2d(s,device,gpudirect)
       use input, only : ib,ie,jb,je,ni,nj,cmp,ibe,ibw,ibs,ibn, &
           mynw,mysw,myne,myse,timestats,time_mptk1,mytime,ierr
       use mpi
@@ -6135,13 +6131,13 @@
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
 
-      end subroutine getcorner3_2d_GPU
+      end subroutine getcorner3_2d
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
  
-      subroutine comm_all_s_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+      subroutine comm_all_s(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device)
 
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
@@ -6156,22 +6152,22 @@
       logical, optional, intent(in) :: device
       logical, parameter :: Debug = .FALSE.
 
-      call comm_3s_start_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s, &
+      call comm_3s_start(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s, &
                 device=device, gpudirect=.false.)
-      call comm_3s_end_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s, &
+      call comm_3s_end(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,reqs_s, &
                 device=device,gpudirect=.false.)
-      call getcorner3_GPU(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
+      call getcorner3(s,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),   &
                 s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1),device=device)
       call bcs2(s,device=device)
 
-      end subroutine comm_all_s_GPU
+      end subroutine comm_all_s
 
 #endif
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine prepcorners_GPU(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+      subroutine prepcorners(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
@@ -6191,7 +6187,6 @@
       !$acc data present(s,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2, &
       !$acc              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2)
 
-      if(Debug) print *,'prepcorners_GPU'
 !--------------------------------------------!
 !  This subroutine is ONLY for parcel_interp !
 !--------------------------------------------!
@@ -6201,10 +6196,10 @@
       ENDIF
 #ifdef MPI
       IF( comm.eq.1 )THEN
-        call comm_1s_start_GPU(s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-        call comm_1s_end_GPU(  s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+        call comm_1s_start(s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+        call comm_1s_end(  s,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
       ENDIF
-      call getcorner_GPU(s,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcorner(s,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       call bcs2(s)
 #endif
 
@@ -6232,13 +6227,13 @@
 
       !$acc end data
 
-      end subroutine prepcorners_GPU
+      end subroutine prepcorners
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine prepcorners3_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+      subroutine prepcorners3(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                                 n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
@@ -6260,7 +6255,7 @@
       IF( comm.eq.1 )THEN
         call bcs(s)
 #ifdef MPI
-        call comm_all_s_GPU(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+        call comm_all_s(s,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
                           n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
 #endif
       ENDIF
@@ -6291,14 +6286,14 @@
 
       !$acc end data
 
-      end subroutine prepcorners3_GPU
+      end subroutine prepcorners3
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine prepcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+      subroutine prepcornert(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
@@ -6321,22 +6316,22 @@
       !$acc data present (t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2, &
       !$acc               tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
 
-      if(Debug) print *,'prepcornert_GPU'
+      if(Debug) print *,'prepcornert'
       IF( comm.eq.1 )THEN
         call bcw(t,0)
       ENDIF
 #ifdef MPI
       IF( comm.eq.1 )THEN
-        call comm_1t_start_GPU(t,tkw1(1,1,1),tkw2(1,1,1),tke1(1,1,1),tke2(1,1,1),tks1(1,1,1),tks2(1,1,1),tkn1(1,1,1),tkn2(1,1,1),reqs_p)
-        call comm_1t_end_GPU(  t,tkw1(1,1,1),tkw2(1,1,1),tke1(1,1,1),tke2(1,1,1),tks1(1,1,1),tks2(1,1,1),tkn1(1,1,1),tkn2(1,1,1),reqs_p)
+        call comm_1t_start(t,tkw1(1,1,1),tkw2(1,1,1),tke1(1,1,1),tke2(1,1,1),tks1(1,1,1),tks2(1,1,1),tkn1(1,1,1),tkn2(1,1,1),reqs_p)
+        call comm_1t_end(  t,tkw1(1,1,1),tkw2(1,1,1),tke1(1,1,1),tke2(1,1,1),tks1(1,1,1),tks2(1,1,1),tkn1(1,1,1),tkn2(1,1,1),reqs_p)
       ENDIF
-      call getcornert_GPU(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
+      call getcornert(t,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       call bct2(t)
 #endif
 
       !$acc end data
 
-      end subroutine prepcornert_GPU
+      end subroutine prepcornert
 
 #ifdef MPI
 
@@ -6344,7 +6339,7 @@
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine getcorneru3_GPU(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcorneru3(u,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibn,ibs, &
           wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
@@ -6555,13 +6550,13 @@
 !-----
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
 
-      end subroutine getcorneru3_GPU
+      end subroutine getcorneru3
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-      subroutine getcornerv3_GPU(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
+      subroutine getcornerv3(v,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device,gpudirect)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,cmp,ibw,ibe,ibn,ibs, &
           wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
@@ -6774,205 +6769,13 @@
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
 
-      end subroutine getcornerv3_GPU
-
-
+      end subroutine getcornerv3
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
 
       subroutine getcornerw3(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,cmp,ibw,ibe,ibn,ibs, &
-          wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
-      use mpi
-      implicit none
-
-      real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: w
-      real, intent(inout), dimension(cmp,cmp,nk+1) :: nw1,nw2,ne1,ne2,sw1,sw2,se1,se2
-
-      integer :: i,j,k,nn,index
-      integer :: index_nw,index_sw,index_ne,index_se
-      integer reqs(8)
-      integer tag1,tag2,tag3,tag4,count,nr1,nr2
-      integer, dimension(mpi_status_size,8) :: status1
-
-      count=cmp*cmp*nkp1
-      nr1 = 0
-      index_nw = -1
-      index_sw = -1
-      index_ne = -1
-      index_se = -1
-
-!-----
-
-      tag1=5051
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        nr1 = nr1+1
-        call mpi_irecv(nw2,count,MPI_REAL,mynw,tag1,MPI_COMM_WORLD,   &
-                       reqs(nr1),ierr)
-        index_nw = nr1
-      endif
-
-!-----
-
-      tag2=5052
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        nr1 = nr1+1
-        call mpi_irecv(sw2,count,MPI_REAL,mysw,tag2,MPI_COMM_WORLD,   &
-                       reqs(nr1),ierr)
-        index_sw = nr1
-      endif
-
-!-----
-
-      tag3=5053
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        nr1 = nr1+1
-        call mpi_irecv(ne2,count,MPI_REAL,myne,tag3,MPI_COMM_WORLD,   &
-                       reqs(nr1),ierr)
-        index_ne = nr1
-      endif
-
-!-----
-
-      tag4=5054
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        nr1 = nr1+1
-        call mpi_irecv(se2,count,MPI_REAL,myse,tag4,MPI_COMM_WORLD,   &
-                       reqs(nr1),ierr)
-        index_se = nr1
-      endif
-
-!------------------------------------------------
-!------------------------------------------------
-!------------------------------------------------
-
-      nr2 = 0
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          se1(i,j,k)=w(ni-cmp+i,j,k)
-        enddo
-        enddo
-        enddo
-        nr2 = nr2+1
-        call mpi_isend(se1,count,MPI_REAL,myse,tag1,MPI_COMM_WORLD,   &
-                       reqs(4+nr2),ierr)
-      endif
-
-      if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          ne1(i,j,k)=w(ni-cmp+i,nj-cmp+j,k)
-        enddo
-        enddo
-        enddo
-        nr2 = nr2+1
-        call mpi_isend(ne1,count,MPI_REAL,myne,tag2,MPI_COMM_WORLD,   &
-                       reqs(4+nr2),ierr)
-      endif
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          sw1(i,j,k)=w(i,j,k)
-        enddo
-        enddo
-        enddo
-        nr2 = nr2+1
-        call mpi_isend(sw1,count,MPI_REAL,mysw,tag3,MPI_COMM_WORLD,   &
-                       reqs(4+nr2),ierr)
-      endif
-
-      if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          nw1(i,j,k)=w(i,nj-cmp+j,k)
-        enddo
-        enddo
-        enddo
-        nr2 = nr2+1
-        call mpi_isend(nw1,count,MPI_REAL,mynw,tag4,MPI_COMM_WORLD,   &
-                       reqs(4+nr2),ierr)
-      endif
-
-!------------------------------------------------
-!------------------------------------------------
-!------------------------------------------------
-
-      nn = 1
-      do while( nn .le. nr1 )
-
-        call MPI_WAITANY(nr1,reqs(1:nr1),index,MPI_STATUS_IGNORE,ierr)
-        nn = nn + 1
-
-      if( index.eq.index_nw )then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          w(-cmp+i,nj+j,k)=nw2(i,j,k)
-        enddo
-        enddo
-        enddo
-      elseif( index.eq.index_sw )then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          w(-cmp+i,-cmp+j,k)=sw2(i,j,k)
-        enddo
-        enddo
-        enddo
-      elseif( index.eq.index_ne )then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          w(ni+i,nj+j,k)=ne2(i,j,k)
-        enddo
-        enddo
-        enddo
-      elseif( index.eq.index_se )then
-        do k=1,nkp1
-        do j=1,cmp
-        do i=1,cmp
-          w(ni+i,-cmp+j,k)=se2(i,j,k)
-        enddo
-        enddo
-        enddo
-      endif
-
-      enddo
-
-!------------------------------------------------
-!------------------------------------------------
-!------------------------------------------------
-
-    if( nr2.ge.1 )then
-      call MPI_WAITALL(nr2,reqs(5:5+nr2-1),status1(1:mpi_status_size,5:5+nr2-1),ierr)
-    endif
-
-!-----
-
-      if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-
-      end subroutine getcornerw3
-
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-
-      subroutine getcornerw3_GPU(w,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,nkp1,cmp,ibw,ibe,ibn,ibs, &
           wbc,ebc,nbc,sbc,ierr,timestats,time_mptk1,mytime,mynw,mysw,myne,myse
       use mpi
@@ -7177,7 +6980,7 @@
 !-----
 
       if(timestats.ge.1) time_mptk1=time_mptk1+mytime()
-      end subroutine getcornerw3_GPU
+      end subroutine getcornerw3
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -7185,7 +6988,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_1s_tend_halo_GPU(s)
+      subroutine comm_1s_tend_halo(s)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,nf,ierr,cs1we,cs1sn,timestats,time_mps2,mytime, &
           mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth
@@ -7642,14 +7445,14 @@
 !-----
 !$acc end data 
 
-      end subroutine comm_1s_tend_halo_GPU
+      end subroutine comm_1s_tend_halo
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_1u_tend_halo_GPU(s)
+      subroutine comm_1u_tend_halo(s)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,nf,ierr,cs1we,cs1sn,timestats,time_mps2,mytime, &
           mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth
@@ -8110,7 +7913,7 @@
 !-----
 !$acc end data 
 
-      end subroutine comm_1u_tend_halo_GPU
+      end subroutine comm_1u_tend_halo
 
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -8118,7 +7921,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine comm_1v_tend_halo_GPU(s)
+      subroutine comm_1v_tend_halo(s)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,ibe,ibw,ibs,ibn, &
           wbc,ebc,sbc,nbc,nf,ierr,cs1we,cs1sn,timestats,time_mps2,mytime, &
           mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth
@@ -8579,7 +8382,7 @@
 !-----
 !$acc end data 
 
-      end subroutine comm_1v_tend_halo_GPU
+      end subroutine comm_1v_tend_halo
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
