@@ -1313,9 +1313,6 @@
         IF( sgsmodel.eq.5 )THEN
           ! Nonlinear Backscatter and Anisotropy (NBA) model:
           ! TKE version:
-#ifdef _OPENACC
-          stop 'ERROR: call to turbnba not supported in OPENACC'
-#endif
           call   turbnba(nstep,uh,ruh,uf,ruf,vh,rvh,vf,rvf,mh,rmh,mf,rmf,zf,c1,c2,rho,rf,zntmp,ust,  &
                          dum1,dum2,dum3,dum4,dum5,dum6,            &
                          dum7,dum8,thten,thten1,ppten ,divx,       &
@@ -1327,10 +1324,6 @@
         ENDIF
 
       ELSEIF(sgsmodel.eq.2)THEN
-#ifdef _OPENACC
-        stop 'ERROR: call to turbsmag not supported in OPENACC'
-#endif
-
          ! Smagorinsky:
         call turbsmag(nstep,rtime,dt,dosfcflx,ruh,rvh,rmh,mf,rmf,th0,thflux,qvflux,rth0s,rf, &
                       nm,defv,defh,dum4,dum5,thten1,zf,zntmp,ust,        &
@@ -1343,10 +1336,6 @@
                       ks1(1,1,2),ks2(1,1,2),kn1(1,1,2),kn2(1,1,2))
 
       ELSEIF( sgsmodel.eq.6 )THEN
-
-#ifdef _OPENACC
-        stop 'ERROR: call to turbnba2 not supported in OPENACC'
-#endif
         ! Nonlinear Backscatter and Anisotropy (NBA) model:
         ! Smagorinsky version:
         call     turbnba2(nstep,uh,ruh,uf,ruf,vh,rvh,vf,rvf,mh,rmh,mf,rmf,zf,c1,c2,rho,rf,zntmp,ust,  &
@@ -1402,9 +1391,6 @@
         else
 
           if( sgsmodel.eq.3 )then
-#ifdef _OPENACC
-            stop 'ERROR: call to t2psmm not supported in OpenACC'
-#endif
             call  t2psmm(dt,rtime,xf,rxf,c1,c2,                                                &
                          zh,mh,zf,mf,rf0,rr0,rho0,rrf0,u0,v0,                                  &
                          uavg,vavg,savg,l2p,kmw,gamk,gamwall,s2p,s2b,t2pm1,t2pm2,t2pm3,t2pm4,cavg,  &
@@ -1439,9 +1425,6 @@
 !  Simple Smagorinsky-like turbulence schemes:
 
       IF( cm1setup.eq.2 .and. ipbl.eq.2 )THEN
-#ifdef _OPENACC
-        stop 'ERROR: call to turbparam_vert not supported in OPENACC'
-#endif
         call turbparam_vert(nstep,zf,dt,dosfcflx,ruh,rvh,rmh,mf,rmf,th0,thflux,qvflux,rth0s,rf, &
                       nm,defv,defh,dum4,kmv,khv,dissten,out3d,zs,zntmp,ust,xland, &
                       nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                 &
@@ -1452,9 +1435,6 @@
       ENDIF
 
       IF( cm1setup.eq.2 .and. horizturb.eq.1 )THEN
-#ifdef _OPENACC
-        stop 'ERROR: call to turbparam_horiz not supported in OPENACC'
-#endif
         call turbparam_horiz(nstep,zf,dt,dosfcflx,ruh,rvh,rmh,mf,rmf,th0,thflux,qvflux,rth0s,rf, &
                       nm,defv,defh,dum4,kmh,khh,dissten,out3d,zs,zntmp,ust,xland,psfc,tlh, &
                       nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,                 &
@@ -2750,6 +2730,10 @@
 
 !-----------------------------------------------------------------------
 
+#ifdef _OPENACC
+      stop 'ERROR: call to turbsmag not supported in OPENACC'
+#endif
+
       temx = 0.125*dx*dx/dt
       temy = 0.125*dy*dy/dt
 
@@ -2837,21 +2821,21 @@
 !--------------------------------------------------------------
 
       if(timestats.ge.1) time_turb=time_turb+mytime()
-      call bcw(kmh,1)
-      call bcw(kmv,1)
+      call bcw(kmh,1,device=.false.)
+      call bcw(kmv,1,device=.false.)
 #ifdef MPI
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
-                             khcs1,khcs2,khcn1,khcn2,reqs_khc)
+                        khcs1,khcs2,khcn1,khcn2,reqs_khc,device=.false.)
       call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
-                             kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
+                        kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc,device=.false.)
       call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
-                           khcs1,khcs2,khcn1,khcn2,reqs_khc)
+                        khcs1,khcs2,khcn1,khcn2,reqs_khc,device=.false.)
       call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
-                           kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2(kmh)
-      call bct2(kmv)
+                       kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc,device=.false.)
+      call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device=.false.)
+      call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device=.false.)
+      call bct2(kmh,device=.false.)
+      call bct2(kmv,device=.false.)
 #endif
 
 !--------------------------------------------------------------
@@ -2904,14 +2888,14 @@
         enddo
         enddo
 
-        call bc2d(kmv(ibc,jbc,1))
+        call bc2d(kmv(ibc,jbc,1),device=.false.)
 #ifdef MPI
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
-                                            khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
+                            khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc,device=.false.)
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
-                                          khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call comm_2d_corner_GPU(kmv(ibc,jbc,1))
-        call bcs2_2d(kmv(ibc,jbc,1))
+                            khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc,device=.false.)
+        call comm_2d_corner_GPU(kmv(ibc,jbc,1),device=.false.)
+        call bcs2_2d(kmv(ibc,jbc,1),device=.false.)
 #endif
 
       IF( tconfig.eq.1 )THEN
@@ -3000,6 +2984,10 @@
       real, parameter :: prinv   = 1.0/prandtl
       real, parameter :: dmin    = 1.0e-10
 
+#ifdef _OPENACC
+        stop 'ERROR: call to turbparam_horiz not supported in OPENACC'
+#endif
+
 !--------------------------------------------------------------
 !  Smagorinsky-type scheme for parameterized turbulence:
 !--------------------------------------------------------------
@@ -3057,11 +3045,11 @@
       call bcw(kmh,1,device=.false.)
 #ifdef MPI
       call comm_1t_start_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
-                             khcs1,khcs2,khcn1,khcn2,reqs_khc)
+                        khcs1,khcs2,khcn1,khcn2,reqs_khc,device=.false.)
       call comm_1t_end_GPU(kmh,khcw1,khcw2,khce1,khce2,   &
-                           khcs1,khcs2,khcn1,khcn2,reqs_khc)
-      call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2(kmh)
+                      khcs1,khcs2,khcn1,khcn2,reqs_khc,device=.false.)
+      call getcornert_GPU(kmh,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device=.false.)
+      call bct2(kmh,device=.false.)
 #endif
 
         ! Extrapolate:
@@ -3161,6 +3149,10 @@
       real, parameter :: prinv   = 1.0/prandtl
       real, parameter :: dmin    = 1.0e-10
 
+#ifdef _OPENACC
+      stop 'ERROR: call to turbparam_vert not supported in OPENACC'
+#endif
+
 !--------------------------------------------------------------
 !  Smagorinsky-type scheme for parameterized turbulence:
 !--------------------------------------------------------------
@@ -3191,13 +3183,12 @@
       call bcw(kmv,1,device=.false.)
 
 #ifdef MPI
-      !JMD FIXME:  These subroutine operate on GPU resident data
       call comm_1t_start_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
-                             kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
+                        kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc,device=.false.)
       call comm_1t_end_GPU(kmv,kvcw1,kvcw2,kvce1,kvce2,   &
-                           kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc)
-      call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      call bct2(kmv)
+                        kvcs1,kvcs2,kvcn1,kvcn2,reqs_kvc,device=.false.)
+      call getcornert_GPU(kmv,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device=.false.)
+      call bct2(kmv,device=.false.)
 #endif
 
 !--------------------------------------------------------------
@@ -3239,11 +3230,11 @@
         call bc2d(kmv(ibc,jbc,1),device=.false.)
 #ifdef MPI
         call comm_1s2d_start_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
-                                            khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
+                                khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc,device=.false.)
         call comm_1s2d_end_GPU(kmv(ibc,jbc,1),khcw1(1,1),khcw2(1,1),khce1(1,1),khce2(1,1),   &
-                                          khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc)
-        call comm_2d_corner_GPU(kmv(ibc,jbc,1))
-        call bcs2_2d(kmv(ibc,jbc,1))
+                                khcs1(1,1),khcs2(1,1),khcn1(1,1),khcn2(1,1),reqs_khc,device=.false.)
+        call comm_2d_corner_GPU(kmv(ibc,jbc,1),device=.false.)
+        call bcs2_2d(kmv(ibc,jbc,1),device=.false.)
 #endif
 
         do j=0,nj+1
