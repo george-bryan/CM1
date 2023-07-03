@@ -3316,6 +3316,7 @@
       call SetMsgParams(openacc,gdirect,device,gpudirect)
 !------------------------------------------------
 
+
       nr = 0
       nw=nw+1
       tag1=3000+nw
@@ -8603,6 +8604,9 @@
          logical, intent(inout) :: openacc, gdirect
          logical, optional :: device,gpudirect
 
+      ! Set logical flags if subroutine is called on GPU or CPU resident
+      ! data. The default to for GPU resident data. If the data is GPU
+      ! use gpudirect by default
       if(present(device)) then
          if(device) then
             openacc = .true.
