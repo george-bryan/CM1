@@ -6012,7 +6012,7 @@
 !------------------------------------------------------------------
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           se1(i,j)=s(ni-cmp+i,j)
@@ -6027,7 +6027,7 @@
 !-----
 
       if((ibe.eq.0.or.ibe.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           ne1(i,j)=s(ni-cmp+i,nj-cmp+j)
@@ -6042,7 +6042,7 @@
 !-----
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibs.eq.0.or.ibs.eq.2))then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           sw1(i,j)=s(i,j)
@@ -6057,7 +6057,7 @@
 !-----
 
       if((ibw.eq.0.or.ibw.eq.2) .and. (ibn.eq.0.or.ibn.eq.2))then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           nw1(i,j)=s(i,nj-cmp+j)
@@ -6077,28 +6077,28 @@
         nn = nn + 1
 
       if(index.eq.index_nw)then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           s(-cmp+i,nj+j)=nw2(i,j)
         enddo
         enddo
       elseif(index.eq.index_sw)then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           s(-cmp+i,-cmp+j)=sw2(i,j)
         enddo
         enddo
       elseif(index.eq.index_ne)then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           s(ni+i,nj+j)=ne2(i,j)
         enddo
         enddo
       elseif(index.eq.index_se)then
-        !$acc parallel loop gang vector default(present) if(openacc)
+        !$acc parallel loop gang vector collapse(2) default(present) if(openacc)
         do j=1,cmp
         do i=1,cmp
           s(ni+i,-cmp+j)=se2(i,j)
@@ -8398,8 +8398,8 @@
          logical, optional :: device,gpudirect
 
       ! Set logical flags if subroutine is called on GPU or CPU resident
-      ! data. The default to for GPU resident data. If the data is GPU
-      ! use gpudirect by default
+      ! data. The default to for GPU resident data.  If the device flag 
+      ! is not set, it is assumed that it is GPU resident.
       if(present(device)) then
          if(device) then
             openacc = .true.
