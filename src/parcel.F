@@ -1757,6 +1757,7 @@
       real, intent(in) :: rtime
       character(len=3), intent(in), dimension(maxq) :: qname
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
+      character(len=6) :: prec_string
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(inout), dimension(:,:) :: ploc
 
@@ -1827,7 +1828,10 @@
           string(i:i) = ' '
         enddo
 
-        string = 'cm1out_pdata.dat'
+        !string = 'cm1out_pdata.dat'
+        write(prec_string,'(i6.6)') prec
+        string = 'cm1out_pdata_'//prec_string//'.dat'
+        if (dowr) write(*,*) 'DHR3:',string
 
 !!!        write(string(15:20),101) prec
 !!!101     format(i6.6)
