@@ -26,8 +26,8 @@
       use input
       use constants
       use init_terrain_module
-      use bc_module, only: bcs_GPU
-      use comm_module
+      use bc_module, only: bcs
+      use comm_module, only: comm_all_s_GPU,nabor
       use bcast_module
       use ib_module
       use eddy_recycle
@@ -8279,12 +8279,12 @@
       enddo
       enddo
       enddo
-      !$acc data copy(cc2,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call bcs_GPU(cc2)
-      !$acc end data
+      !!$acc data copy(cc2,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
+      call bcs(cc2,device=.false.)
+      !!$acc end data
 #ifdef MPI
-      call comm_all_s(cc2,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                          n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
+      call comm_all_s_GPU(cc2,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
+                     n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
 #endif
 
       if(dowr) write(outfile,*)

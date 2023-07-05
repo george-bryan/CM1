@@ -171,8 +171,8 @@
           qd_lsw,qd_hidiff,qd_vidiff,vd_cor,ud_cent,vd_cent,vd_hadv,wd_buoy,ud_pgrad,vd_pgrad, &
           wd_pgrad,td_div,kd_adv
       use constants
-      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
-                           radbcew4, radbcns4, bcs2_gpu 
+      use bc_module, only: bc2d, bcs, bcu, bcv, bcw, bcwsfc, &
+                           radbcew4, radbcns4, bcs2
       use comm_module
       use adv_module
       use maxmin_module
@@ -563,7 +563,6 @@
 
           ELSEIF(eqtset.eq.1)THEN
 
-            !print *,'before eqtset==1 loop'
             !$acc parallel loop gang vector collapse(3) default(present) 
             do k=1,nk
             do j=1,nj
@@ -595,9 +594,7 @@
         if(timestats.ge.1) time_buoyan=time_buoyan+mytime()
 
 !--------------------------------------------------------------------
-        !print *,'solve2: before call to bcs_GPU(t11) #1'
-        call bcs_GPU(t11)
-        !print *,'solve2: after call to bcs_GPU(t11) #1'
+        call bcs(t11)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -619,7 +616,6 @@
         enddo
         enddo
         if(timestats.ge.1) time_misc14=time_misc14+mytime()
-        !print *,'solve2: point #2'
 !--------------------------------------------------------------------
         IF(nrk.ge.2)THEN
 #ifdef MPI
@@ -632,10 +628,9 @@
 #endif
           if(terrain_flag)then
             call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
-            call bc2d_GPU(w3d(ib,jb,1))
+            call bc2d(w3d(ib,jb,1))
           endif
         ENDIF
-        !print *,'solve2: point #27'
 !--------------------------------------------------------------------
 !  Get rru,rrv,rrw,divx
 !  (NOTE:  do not change these arrays until after small steps)
@@ -734,9 +729,8 @@
     ENDIF
     if(timestats.ge.1) time_advs=time_advs+mytime()
 
-        !print *,'solve2: point #4'
         IF(terrain_flag)THEN
-          call bcw_GPU(rrw,0)
+          call bcw(rrw,0)
 #ifdef MPI
           call comm_1w_start_GPU(rrw,ww1,ww2,we1,we2,   &
                                  ws1,ws2,wn1,wn2,reqs_w)
@@ -744,7 +738,6 @@
                                ws1,ws2,wn1,wn2,reqs_w)
 #endif
         ENDIF
-        !print *,'solve2: point #5'
 
       IF(.not.terrain_flag)THEN
         IF(axisymm.eq.0)THEN
@@ -1039,17 +1032,15 @@
         ENDIF
 
 !--------------------------------------------------------------------
-        !print *,'solve2: point #6'
 #ifdef MPI
         IF(nrk.ge.2)THEN
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
           call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
           call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-          call bcs2_GPU(rho)
+          call bcs2(rho)
         ENDIF
 #endif
-        !print *,'solve2: point #7'
 !--------------------------------------------------------------------
 !  advection:
           call advu(nrk   ,arh1,arh2,uh,xf,rxf,arf1,arf2,uf,vh,gz,rgz,gzu,mh,rho0,rr0,rf0,rrf0,dum1,dum2,dum3,dum4,dum5,dum6,dum7,divx, &
@@ -1137,12 +1128,9 @@
 
         ! dum6 stores buoyancy:
 
-        !print *,'solve2: point #8'
       termod1:  &
       IF( terrain_flag )THEN
-        !call flush(6)
-        !print *,'solve2: before bcs_GPU #2'
-        call bcs_GPU(dum6)
+        call bcs(dum6)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -1197,7 +1185,6 @@
         enddo
 
       ENDIF  termod1
-        !print *,'solve2: point #9'
 
 !--------------------------------------------------------------------
 !  Pressure equation
@@ -1209,7 +1196,6 @@
         call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
       ENDIF
 #endif
-      !print *,'solve2: point #10'
 
       IF( psolver.le.3 )THEN
 
@@ -1442,7 +1428,6 @@
 !  on final RK step, get max CFL
 
         IF( nrk.eq.nrkmax )THEN
-          !print *,'solve2: before call to calccflquick'
           call calccflquick(dt,uh,vh,mh,u3d,v3d,w3d,reqc)
         ENDIF
 
@@ -1501,7 +1486,6 @@
 !--------------------------------------------------------------------
 !  THETA-equation
 
-        !print *,'solve2: point #13'
 #ifdef MPI
         IF(nrk.ge.2)THEN
           call sync()
@@ -1510,7 +1494,6 @@
                                 rs31,rs32,rn31,rn32,reqs_y)
         ENDIF
 #endif
-        !print *,'solve2: point #14'
 
         ! note: t11 stores 3d divergence
 
@@ -1580,7 +1563,6 @@
                    flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                    dotbud,ibdt,iedt,jbdt,jedt,kbdt,kedt,ntdiag,tdiag,td_hadv,td_vadv,td_lsw, &
                    td_hidiff,td_vidiff,td_hediff,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-      !print *,'solve2: point #14.1'
 
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present)
@@ -1624,7 +1606,6 @@
         pdef = 0
       endif
 
-        !print *,'solve2: point #15'
 #ifdef MPI
       if( nrk.ge.2 )then
         call sync()
@@ -1635,7 +1616,6 @@
                        ,reqs_q(1,n) )
       endif
 #endif
-        !print *,'solve2: point #16'
 
       ! Note: epsilon = 1.0e-18
 !!!      weps = 0.01*epsilon
@@ -1822,11 +1802,10 @@
 !--------------------------------------------------------------------
 !  bcs and comms:
 
-      !print *,'solve2: point #19'
 
-      call bcu_GPU(u3d)
-      call bcv_GPU(v3d)
-      call bcw_GPU(w3d,1)
+      call bcu(u3d)
+      call bcv(v3d)
+      call bcw(w3d,1)
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -1845,11 +1824,9 @@
                              ws31,ws32,wn31,wn32,reqs_w)
 #endif
       IF(nrk.lt.nrkmax)THEN
-        !call flush(6)
-        !print *,'solve2: before bcs_GPU #3'
-        call bcs_GPU(rho)
-        call bcs_GPU(pp3d)
-        call bcs_GPU(th3d)
+        call bcs(rho)
+        call bcs(pp3d)
+        call bcs(th3d)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -1860,7 +1837,7 @@
 #endif
         IF(imoist.eq.1)THEN
           do n=1,numq
-            call bcs_GPU(q3d(ib,jb,kb,n))
+            call bcs(q3d(ib,jb,kb,n))
 #ifdef MPI
             call comm_3s_start_GPU(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
@@ -1870,7 +1847,6 @@
           enddo
         ENDIF
       ENDIF
-      !print *,'solve2: point #20'
 
 !--------------------------------------------------------------------
 !  TKE advection
@@ -1897,7 +1873,6 @@
                                  tks1,tks2,tkn1,tkn2,reqs_tk)
         ENDIF
 #endif
-      !print *,'solve2: point #20.1'
 
         if( dotdwrite .and. kd_adv.ge.1 )then
         if( nrk.eq.nrkmax )then
@@ -1947,7 +1922,7 @@
           call zero_out_w(bndy,kbdy,tke3d)
         ENDIF
 
-          call bcw_GPU(tke3d,1)
+          call bcw(tke3d,1)
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -1956,7 +1931,6 @@
 #endif
 
         ENDIF
-        !print *,'solve2: point #21'
 
 !--------------------------------------------------------------------
 !  qke advection (for PBL schemes with TKE)
@@ -1991,7 +1965,7 @@
         ENDIF
         if(timestats.ge.1) time_misc21=time_misc21+mytime()
 
-        call bcs_GPU(qke3d)
+        call bcs(qke3d)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -2068,7 +2042,6 @@
       if(timestats.ge.1) time_misc22=time_misc22+mytime()
 
 
-        !print *,'solve2: point #23'
 #ifdef MPI
           IF(nrk.ge.2)THEN
             call sync()
@@ -2079,7 +2052,6 @@
                   reqs_t(1,n))
           ENDIF
 #endif
-        !print *,'solve2: point #24'
 
       weps = 1.0*epsilon
       diffit = 0
@@ -2090,7 +2062,6 @@
                  flag,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,rdsf,c1,c2,rho,rr,diffit, &
                  .false.,ibdq,iedq,jbdq,jedq,kbdq,kedq,nqdiag,qdiag,1,1,1,              &
                  1,1,1,wprof,dumk1,dumk2,hadvordrs,vadvordrs,kbdy,bndy,hflxw,hflxe,hflxs,hflxn,out3d)
-      !print *,'solve2: after advs'
 
       !$omp parallel do default(shared) private(i,j,k)
       !$acc parallel loop gang vector collapse(3) default(present)
@@ -2104,7 +2075,7 @@
       if(timestats.ge.1) time_integ=time_integ+mytime()
 
       IF(nrk.le.2)THEN
-        call bcs_GPU(pt3d(ib,jb,kb,n))
+        call bcs(pt3d(ib,jb,kb,n))
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -2209,7 +2180,7 @@
         if( pdtra.eq.1 ) then 
             call pdefq2_GPU(0.0,afoo,ruh,rvh,rmh,rho,pt3d(ib,jb,kb,n))
         endif
-        call bcs_GPU(pt3d(ib,jb,kb,n))
+        call bcs(pt3d(ib,jb,kb,n))
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()

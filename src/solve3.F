@@ -165,8 +165,8 @@
           output_rain,output_sws,output_svs,output_sps,output_srs,output_sgs,output_sus,output_shs
 
       use constants
-      use bc_module, only: bc2d_GPU, bcs_GPU, bcu_GPU, bcv_GPU, bcw_GPU, bcwsfc, &
-          bcs_tend_halo, bcs2_GPU, bcu2_GPU, bcv2_GPU, bcw2_GPU
+      use bc_module, only: bc2d, bcs, bcu, bcv, bcw, bcwsfc, &
+          bcs_tend_halo, bcs2, bcu2, bcv2, bcw2
       use comm_module
       use maxmin_module
       use adv_routines, only : movesfc
@@ -357,8 +357,8 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 !Begin:  message passing
-          call bcs_GPU(pp3d)
-          call bcs_GPU(th3d)
+          call bcs(pp3d)
+          call bcs(th3d)
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -369,7 +369,7 @@
 
       IF( imoist.eq.1 )THEN
           DO n=1,numq
-            call bcs_GPU(q3d(ib,jb,kb,n))
+            call bcs(q3d(ib,jb,kb,n))
 #ifdef MPI
             call comm_3s_start_GPU(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
@@ -380,7 +380,7 @@
       ENDIF
 
 
-      call bcs_GPU(rho)
+      call bcs(rho)
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -401,8 +401,8 @@
       if(timestats.ge.1) time_prsrho=time_prsrho+mytime()
 
 
-      call bcs_GPU(rr)
-      call bcs_GPU(rf)
+      call bcs(rr)
+      call bcs(rf)
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -439,7 +439,7 @@
           enddo
           enddo
         endif
-        call bcs_GPU(ppx)
+        call bcs(ppx)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -567,15 +567,15 @@
         call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcu2_GPU(u3d)
-        call bcv2_GPU(v3d)
-        call bcw2_GPU(w3d)
+        call bcu2(u3d)
+        call bcv2(v3d)
+        call bcw2(w3d)
       endif
 #endif
 
       if(terrain_flag)then
         call bcwsfc(gz,dzdx,dzdy,u3d,v3d,w3d)
-        call bc2d_GPU(w3d(ib,jb,1))
+        call bc2d(w3d(ib,jb,1))
       endif
 
 !----------
@@ -656,9 +656,9 @@
         ENDIF
         if(timestats.ge.1) time_parcels=time_parcels+mytime()
         ! bc/comms:
-        call bcu_GPU(rru)
-        call bcv_GPU(rrv)
-        call bcw_GPU(rrw,1)
+        call bcu(rru)
+        call bcv(rrv)
+        call bcw(rrw,1)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
@@ -825,15 +825,15 @@
         if(timestats.ge.1) time_lb=time_lb+mytime()
         call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
         call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcs2_GPU(rho)
+        call bcs2(rho)
         !-----
         call comm_1s_end_GPU(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
         call getcorner_GPU(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcs2_GPU(rr)
+        call bcs2(rr)
         !-----
         call comm_1s_end_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
         call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call bcs2_GPU(rf)
+        call bcs2(rf)
         !-----
 #endif
 
@@ -872,9 +872,9 @@
         call getcornerv3_GPU(rrv,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
         call getcornerw3_GPU(rrw,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
-        call bcu2_GPU(rru)
-        call bcv2_GPU(rrv)
-        call bcw2_GPU(rrw)
+        call bcu2(rru)
+        call bcv2(rrv)
+        call bcw2(rrw)
 #endif
         prltrn:  &
         if(terrain_flag)then
@@ -1024,11 +1024,11 @@
             enddo
             enddo
             if(timestats.ge.1) time_parcels=time_parcels+mytime()
-            call bcs_GPU(th3d)
-            call bcs_GPU(q3d(ib,jb,kb,nqv))
-            call bcu_GPU(u3d)
-            call bcv_GPU(v3d)
-            call bcw_GPU(w3d,1)
+            call bcs(th3d)
+            call bcs(q3d(ib,jb,kb,nqv))
+            call bcu(u3d)
+            call bcv(v3d)
+            call bcw(w3d,1)
 #ifdef MPI
             call sync()
             if(timestats.ge.1) time_lb=time_lb+mytime()
