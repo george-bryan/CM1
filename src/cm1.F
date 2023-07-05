@@ -427,7 +427,7 @@ end module cuda_rt
 !    No other changes are necessary:  output file will contain the 
 !    variables "out1", "out2", "out3", ... etc.
 
-      nout3d =   0
+      nout3d =   6
 
 !----------------------------------------------------------------------
 !  For arbitrary 2d output array:  
@@ -3748,22 +3748,22 @@ end module cuda_rt
                                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
                                   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                   tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
-
-               call parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-
-               prec = prec+1
-               if ( prclfrq.gt.0.0 ) then
-                  doit = .true.
-                  do while( doit )
-                     prcltim = prcltim+prclfrq
-                     if ( prcltim.gt.mtime )then
-                        doit = .false.
-                     end if
-                  end do
-               end if
-               if (myid.eq.0) print *,'  next prcltim = ',prcltim
-               !if(timestats.ge.1) time_parcels=time_parcels+mytime()
             end if
+
+            call parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
+
+            prec = prec+1
+            if ( prclfrq.gt.0.0 ) then
+               doit = .true.
+               do while( doit )
+                  prcltim = prcltim+prclfrq
+                  if ( prcltim.gt.mtime )then
+                     doit = .false.
+                  end if
+               end do
+            end if
+            if (myid.eq.0) print *,'  next prcltim = ',prcltim
+            !if(timestats.ge.1) time_parcels=time_parcels+mytime()
          else
            if ( startup ) then
              if (myid.eq.0) print *

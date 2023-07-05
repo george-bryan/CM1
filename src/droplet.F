@@ -14,7 +14,7 @@
 
 
   !These are quantities which are needed in the droplet_diag output, so must be public
-  integer :: num100,num1000
+  real :: num100,num1000
   integer, parameter :: nbins = 514  !Bins for the droplet histograms
   real,dimension(nbins) :: bins_restime,hist_restime  !Histograms for droplet residence time
   real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10,hist_fallrad  !Histograms for droplet radius
@@ -347,9 +347,6 @@
     part_grav2 = 0.0
     part_grav3 = -9.81
 
-    num100 = 0
-    num1000 = 0
-    !$acc update device(num100,num1000)
 
 #ifdef _B4B01F
     !$acc update &
@@ -519,16 +516,7 @@
 
     if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
-    numvec(1) = num100
-    numvec(2) = num1000
 
-#ifdef MPI
-    if ( myid == 0 ) then
-       call mpi_reduce(mpi_in_place,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
-    else
-       call mpi_reduce(numvec,numvec,2,mpi_int,mpi_sum,0,mpi_comm_world,ierr)
-    end if
-#endif
 
 
     Depart(inorth) = numDepartN
@@ -675,7 +663,7 @@
 !        sum(Arrive),sum(Depart),num_fallout
 !    call flush(6) 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
- 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',i10,2x,i10,2x,i10)
+! 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',i10,2x,i10,2x,i10)
 
 
 #else
@@ -965,14 +953,14 @@
 
       !If Gauss-Newton failed to converge, flag is set to 1 and try Levenberg-Marquardt algorithm
       if (flag==1) then
-         num100 = num100+1
+         num100 = num100+1.0
          call LV_solver(dble(diffnorm),dt_nondim,taup_scale,rt_start,rt_zeros,flag,dble(prsval),dble(rhoval),dble(tval),dble(qval),dble(pdata(np,prtp)),dble(pdata(np,prms)),dble(pdata(np,prrp)),np)
       end if
 
       !In rare cases both nonlinear solvers fail to converge
       if (flag==1)  then
 
-       num1000 = num1000+1 
+       num1000 = num1000+1.0
 
        !If this happens keep radius unchanged and temp equal to surrounding
        rt_zeros(1) = 1.0
@@ -1903,31 +1891,33 @@
 
       integer :: np,iz,i,j,k
       integer :: kflag
-      real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
+      !real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
+      real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
       integer :: tnumpart
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop,tnumaerosol
-      real :: partnum(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
+
+      real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
 
-      integer, parameter :: num0 = 18, num1 = 20   !Number of 0th and 1st order statistics in droplet_diag
+      integer, parameter :: num0 = 20, num1 = 22   !Number of 0th and 1st order statistics in droplet_diag
       real :: rad10_tmp
       double precision :: qstar_tmp
       integer :: ibin
 
 #ifdef MPI
       double precision, dimension(num0) :: droplet_diag0     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
-      double precision, dimension(nz,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
+      double precision, dimension(nk,num1) :: droplet_diag1     ! temporary array for MPI reduce operation for the 0th-order diagnostic except rtime
 #endif
 
       !Compute the various types of droplet statistics
 
       !!!!! update module variable first !!!!!
 
-      !$acc update host (num_destroyed,mass_destroyed,num_injected,mass_injected)
+      !$acc update host (num_destroyed,mass_destroyed,num_injected,mass_injected,num100,num1000)
 
-      !$acc data create (dumzh,dumzf,partnum,numconc,Tpsrc,qvsrc,qf, &
+      !$acc data create (dumzh,dumzf,partnum,multnum,partmass,numconc,massconc,Tpsrc,qvsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              Tpmsqr,m1src,m2src,m3src,qstardp)
@@ -1994,31 +1984,33 @@
       droplet_diag0(12) = mass_destroyed
       droplet_diag0(13) = num_injected
       droplet_diag0(14) = mass_injected
-      droplet_diag0(15) = radmin
-      droplet_diag0(16) = Tpmin
-      droplet_diag0(17) = radmax
-      droplet_diag0(18) = Tpmax
+      droplet_diag0(15) = num100
+      droplet_diag0(16) = num1000
+      droplet_diag0(17) = radmin
+      droplet_diag0(18) = Tpmin
+      droplet_diag0(19) = radmax
+      droplet_diag0(20) = Tpmax
 
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),14,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),16,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),14,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),16,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
-      end if
-      if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(15),2,MPI_DOUBLE_PRECISION, &
-                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
-      else
-         call mpi_reduce(droplet_diag0(15),droplet_diag0(15),2,MPI_DOUBLE_PRECISION, &
-                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
          call mpi_reduce(MPI_IN_PLACE,droplet_diag0(17),2,MPI_DOUBLE_PRECISION, &
+                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      else
+         call mpi_reduce(droplet_diag0(15),droplet_diag0(17),2,MPI_DOUBLE_PRECISION, &
+                         MPI_MIN,0,MPI_COMM_WORLD,ierr)
+      end if
+      if ( myid == 0 ) then
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(19),2,MPI_DOUBLE_PRECISION, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(17),droplet_diag0(17),2,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(droplet_diag0(17),droplet_diag0(19),2,MPI_DOUBLE_PRECISION, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then 
@@ -2036,10 +2028,12 @@
          mass_destroyed = droplet_diag0(12)
          num_injected = droplet_diag0(13)
          mass_injected = droplet_diag0(14)
-         radmin = droplet_diag0(15)
-         Tpmin = droplet_diag0(16)
-         radmax = droplet_diag0(17)
-         Tpmax = droplet_diag0(18)
+         num100 = droplet_diag0(15)
+         num1000 = droplet_diag0(16)
+         radmin = droplet_diag0(17)
+         Tpmin = droplet_diag0(18)
+         radmax = droplet_diag0(19)
+         Tpmax = droplet_diag0(20)
 #endif
          if (tnumpart .gt. 0) then
             radavg = radavg/dble(tnumpart)
@@ -2064,10 +2058,12 @@
       end if
 #endif
 
+
+
       !!!!!!! 1st order  !!!!!!!!
 
       !$acc parallel loop gang vector default(present)
-      do iz=1,nz
+      do iz=1,nk
          dumzh(iz) = zh(1,1,iz)
       enddo
       !$acc end parallel
@@ -2081,7 +2077,10 @@
       !$acc parallel loop gang vector default(present)
       do k = 1, nk
          partnum(k) = 0.0
+         multnum(k) = 0.0
+         partmass(k) = 0.0
          numconc(k) = 0.0
+         massconc(k) = 0.0
          vp1mean(k) = 0.0
          vp2mean(k) = 0.0
          vp3mean(k) = 0.0
@@ -2113,6 +2112,10 @@
          call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
          !$acc atomic update
          partnum(k) = partnum(k) + 1.0
+         !$acc atomic update
+         multnum(k) = multnum(k) + pdata(np,prmult)
+         !$acc atomic update
+         partmass(k) = partmass(k) + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
          !$acc atomic update
          vp1mean(k) = vp1mean(k) + pdata(np,prvpx)
          !$acc atomic update
@@ -2192,7 +2195,7 @@
          yl = tot_y_len
       endif
 
-      !$acc update host (dumzf,dumzh,numconc,partnum,Tpsrc,qvsrc,qf, &
+      !$acc update host (dumzf,dumzh,numconc,massconc,partnum,multnum,partmass,Tpsrc,qvsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              Tpmsqr,m1src,m2src,m3src,qstardp)
@@ -2221,6 +2224,8 @@
          droplet_diag1(iz,18) = radmsqrdp(iz)
          droplet_diag1(iz,19) = qfsat(iz)
          droplet_diag1(iz,20) = qstardp(iz)
+         droplet_diag1(iz,21) = partmass(iz)
+         droplet_diag1(iz,22) = multnum(iz)
       end do
 
       ! The root rank will collect the diagnostic from different MPI ranks
@@ -2257,6 +2262,8 @@
             radmsqrdp(iz) = droplet_diag1(iz,18)
             qfsat(iz) = droplet_diag1(iz,19)
             qstardp(iz) = droplet_diag1(iz,20)
+            partmass(iz) = droplet_diag1(iz,21)
+            multnum(iz) = droplet_diag1(iz,22)
          end do
  
 #endif
@@ -2264,7 +2271,8 @@
          !Either by the number of horizontal grid points or number of droplets (depends on quantity)
          do iz=1,nk
             dzf = dumzf(iz+1)-dumzf(iz)
-            numconc(iz) = partnum(iz)/dzf/xl/yl
+            numconc(iz) = multnum(iz)/dzf/xl/yl
+            massconc(iz) = partmass(iz)/dzf/xl/yl
             if (abs(partnum(iz)) .gt. 1.0e-10) then
                vp1mean(iz) = vp1mean(iz)/partnum(iz)
                vp2mean(iz) = vp2mean(iz)/partnum(iz)
@@ -2395,7 +2403,7 @@
 #endif
       call writedropdiag_nc(nrec,nbins, &
            rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
+           dumzh,numconc,massconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
 #ifdef MPI
       end if
 #endif
@@ -2407,9 +2415,13 @@
       mass_destroyed = 0.0
       num_injected = 0.0
       mass_injected = 0.0
+      num100 = 0.0
+      num1000 = 0.0
+      
 
       !$acc update device (hist_restime,hist_fallrad,num_destroyed, &
-      !$acc                mass_destroyed,num_injected,mass_injected)
+      !$acc                mass_destroyed,num_injected,mass_injected, &
+      !$acc                num100,num1000)
 
 100     format(2x,'DROPLET_DIAG1:: ',A,I0,A,1x,e13.6,1x)
 200     format(2x,'DROPLET_DIAG:: ',A10,':',1x,e13.6)
@@ -3167,8 +3179,10 @@
 
       !Update the cumulative injection statistics
       num_injected = num_injected + real(my_reintro)*drop_mult
+      !DHR SHOULD THERE BE AN ACC UPDATE HERE? num_injected is coming out as 0, but fixed after I add this line
+      !$acc update device (num_injected)
 
-      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,time_since_inject,mtime
+      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,num_injected,mtime
 
 #ifdef MPI
       !For deciding whether to inject more:
@@ -3202,8 +3216,7 @@
                   end if
                end do
                rad_init = rad_init*1.0e-6
-               !DHR TEST, to make sure that droplets that destabilize numerics don't get produced
-               rad_init = min(rad_init,250.0e-6)
+
                !Random location
                rand = getRandomReal(randomNumbers)
                pdata(np,prx) = xf(1)+rand*xrange
@@ -3314,12 +3327,14 @@
     mass_destroyed = 0.0
     num_injected = 0.0
     mass_injected = 0.0
+    num100 = 0.0
+    num1000 = 0.0
 
     !$acc update device(hist_restime,hist_fallrad,restime_min, &
     !$acc               restime_max,restime_min10,restime_max10, &
     !$acc               dhres,dhrad,rmin,rmax,rmin10,rmax10, &
     !$acc               num_destroyed,mass_destroyed,num_injected, &
-    !$acc               mass_injected)
+    !$acc               mass_injected,num100,num1000)
 
     end subroutine initialize_droplet_histograms
 
@@ -3328,7 +3343,7 @@
 
       subroutine writedropdiag_nc(nrec,nbins,&
                                   rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
+                                  zhvec,numconc,massconc,vp1mean,vp2mean,vp3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean)
       use input
       use constants
       use netcdf
@@ -3337,7 +3352,7 @@
 
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
-      real,    intent(in)    :: zhvec(nk),numconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk)
+      real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk)
       integer, intent(in)    :: tnumpart,nbins
 
       integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid,binsid
@@ -3474,11 +3489,11 @@
     call disp_err( nf90_put_att(ncid,varid,"units","kg/m^3") , .true. )
 
     call disp_err( nf90_def_var(ncid,"num100",nf90_float,timeid,varid) , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets which failed the 1st round Newton iteration this time step") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets which failed the 1st round Newton iteration since last droplet_diag") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
 
     call disp_err( nf90_def_var(ncid,"num1000",nf90_float,timeid,varid) , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets which failed the 2st round Levenberg-Marquardt iteration this time step") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Number of droplets which failed the 2st round Levenberg-Marquardt iteration since last droplet_diag") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
 
     call disp_err( nf90_def_var(ncid,"u10_ssgf",nf90_double,timeid,varid) , .true. )
@@ -3504,7 +3519,11 @@
 
     !!1st order (horizontal averages)
     call disp_err( nf90_def_var(ncid,"numconc",nf90_float,(/zhid,timeid/),varid) , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged number concentration of droplets") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged number concentration of droplets (including multiplicity)") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#/m^3") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"massconc",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged mass concentration of droplets (including multiplicity)") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","#/m^3") , .true. )
 
     call disp_err( nf90_def_var(ncid,"vp1mean",nf90_float,(/zhid,timeid/),varid) , .true. )
@@ -3701,6 +3720,9 @@
     !!1st order
     call disp_err( nf90_inq_varid(ncid,"numconc",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,numconc,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"massconc",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,massconc,(/1,time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"vp1mean",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,vp1mean,(/1,time_index/)) , .true. )
