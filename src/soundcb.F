@@ -31,7 +31,7 @@
       use misclibs , only : convinitu,convinitv,get_wnudge,getdiv
       use bc_module, only : bcs, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
-      use comm_module, only : comm_1p_end_GPU,comm_1s_start_GPU,comm_1s_end_GPU,sync
+      use comm_module, only : comm_1p_end,comm_1s_start,comm_1s_end,sync
       use ib_module
       implicit none
 
@@ -278,7 +278,7 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_end(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
         endif
 #endif
@@ -509,7 +509,7 @@
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_1s_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1s_start(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif
         ENDIF
@@ -593,8 +593,8 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call comm_1s_start_GPU(phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
-      call comm_1s_end_GPU(  phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+      call comm_1s_start(phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
+      call comm_1s_end(  phi2,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p)
 #endif
 
 

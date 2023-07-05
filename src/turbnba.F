@@ -35,8 +35,8 @@
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
       use bc_module, only: bc2d, bcs2, bct2, bcs2_2d
-      use comm_module, only : comm_1s_start_GPU,comm_1s_end_GPU,comm_2d_start_GPU, &
-          comm_2dew_end_GPU,comm_2dns_end_GPU,comm_2d_corner_GPU,getcorner_GPU,getcornert_GPU
+      use comm_module, only : comm_1s_start,comm_1s_end,comm_2d_start, &
+          comm_2dew_end,comm_2dns_end,comm_2d_corner,getcorner,getcornert
       implicit none
 
 !-----------------------------------------------------------------------
@@ -76,6 +76,10 @@
       real, dimension(imp,cmp) :: south,newsouth,north,newnorth
 
 !-----------------------------------------------------------------------
+
+#ifdef _OPENACC
+       stop 'ERROR: call to turbnba not supported in OPENACC'
+#endif
 
         nba_ck = (2.0/3.0)*( (pi*c_m)**(-2.0/3.0) )
 
@@ -145,12 +149,12 @@
     endif
 
 #ifdef MPI
-      call comm_1s_start_GPU(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
-                                ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
-      call comm_1s_end_GPU(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
-                              ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
+      call comm_1s_start(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
+                       ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s,device=.false.)
+      call comm_1s_end(lenscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
+                       ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s,device=.false.)
       call bcs2(lenscl,device=.false.)
-      call getcorner_GPU(lenscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcorner(lenscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 
       do j=0,nj+1
@@ -197,12 +201,12 @@
       do k=1,2
         call bc2d(grdscl(ib,jb,k),device=.false.)
 #ifdef MPI
-        call comm_2d_start_GPU(grdscl(ib,jb,k),west,newwest,east,neweast,   &
-                                           south,newsouth,north,newnorth,reqs_s)
-        call comm_2dew_end_GPU(grdscl(ib,jb,k),west,newwest,east,neweast,reqs_s)
-        call comm_2dns_end_GPU(grdscl(ib,jb,k),south,newsouth,north,newnorth,reqs_s)
-        call bcs2_2d(grdscl(ib,jb,k))
-        call comm_2d_corner_GPU(grdscl(ib,jb,k))
+        call comm_2d_start(grdscl(ib,jb,k),west,newwest,east,neweast,   &
+                               south,newsouth,north,newnorth,reqs_s,device=.false.)
+        call comm_2dew_end(grdscl(ib,jb,k),west,newwest,east,neweast,reqs_s,device=.false.)
+        call comm_2dns_end(grdscl(ib,jb,k),south,newsouth,north,newnorth,reqs_s,device=.false.)
+        call bcs2_2d(grdscl(ib,jb,k),device=.false.)
+        call comm_2d_corner(grdscl(ib,jb,k),device=.false.)
 #endif
       enddo
 
@@ -227,9 +231,7 @@
 
 #ifdef MPI
       call bct2(tkea,device=.false.)
-      !$acc data copy(tkea)
-      call getcornert_GPU(tkea,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2)
-      !$acc end data
+      call getcornert(tkea,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,device=.false.)
 #endif
 
   kloop:  DO k=1,nk
@@ -471,7 +473,7 @@
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
       use bc_module, only: bcs2
-      use comm_module, only : comm_1s_start_GPU,comm_1s_end_GPU,getcorner_GPU,getcornert_GPU
+      use comm_module, only : comm_1s_start,comm_1s_end,getcorner,getcornert
       implicit none
 
 !-----------------------------------------------------------------------
@@ -511,6 +513,10 @@
       real, dimension(imp,cmp) :: south,newsouth,north,newnorth
 
 !-----------------------------------------------------------------------
+
+#ifdef _OPENACC
+        stop 'ERROR: call to turbnba2 not supported in OPENACC'
+#endif
 
         nba_ck = (2.0/3.0)*( (pi*c_m)**(-2.0/3.0) )
 
@@ -561,12 +567,12 @@
     endif
 
 #ifdef MPI
-      call comm_1s_start_GPU(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
-                                ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
-      call comm_1s_end_GPU(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
-                              ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s)
+      call comm_1s_start(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
+                   ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s,device=.false.)
+      call comm_1s_end(grdscl,kw1(1,1,1),kw2(1,1,1),ke1(1,1,1),ke2(1,1,1),  &
+                   ks1(1,1,1),ks2(1,1,1),kn1(1,1,1),kn2(1,1,1),reqs_s,device=.false.)
       call bcs2(grdscl,device=.false.)
-      call getcorner_GPU(grdscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcorner(grdscl,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1),device=.false.)
 #endif
 
       do j=0,nj+1

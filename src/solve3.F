@@ -362,8 +362,8 @@
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_1s_start_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
-          call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
+          call comm_1s_start(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+          call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
                                   rs31,rs32,rn31,rn32,reqs_y)
 #endif
 
@@ -371,7 +371,7 @@
           DO n=1,numq
             call bcs(q3d(ib,jb,kb,n))
 #ifdef MPI
-            call comm_3s_start_GPU(q3d(ib,jb,kb,n)  &
+            call comm_3s_start(q3d(ib,jb,kb,n)  &
                        ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                        ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                        ,reqs_q(1,n) )
@@ -384,7 +384,7 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call comm_1s_start_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+      call comm_1s_start(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
 #endif
 
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -406,8 +406,8 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call comm_1s_start_GPU(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
-      call comm_1s_start_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
+      call comm_1s_start(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+      call comm_1s_start(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
 #endif
 
       IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
@@ -443,7 +443,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_1s_start_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+        call comm_1s_start(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
 #endif
 
       ENDIF
@@ -554,19 +554,19 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
+      call comm_3u_end(u3d,uw31,uw32,ue31,ue32,   &
                            us31,us32,un31,un32,reqs_u)
-      call comm_3v_end_GPU(v3d,vw31,vw32,ve31,ve32,   &
+      call comm_3v_end(v3d,vw31,vw32,ve31,ve32,   &
                            vs31,vs32,vn31,vn32,reqs_v)
-      call comm_3w_end_GPU(w3d,ww31,ww32,we31,we32,   &
+      call comm_3w_end(w3d,ww31,ww32,we31,we32,   &
                            ws31,ws32,wn31,wn32,reqs_w)
 #endif
 
 #ifdef MPI
       if(   sgsmodel.eq.5 .or. sgsmodel.eq.6 )then
-        call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-        call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call getcorneru(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call getcornerv(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call getcornerw(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcu2(u3d)
         call bcv2(v3d)
         call bcw2(w3d)
@@ -662,9 +662,9 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_3u_start_GPU(rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
-        call comm_3v_start_GPU(rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
-        call comm_3w_start_GPU(rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
+        call comm_3u_start(rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
+        call comm_3v_start(rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
+        call comm_3w_start(rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
 #endif
       ENDIF
 
@@ -729,7 +729,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_3t_end_GPU(tke3d,tkw1,tkw2,tke1,tke2,   &
+        call comm_3t_end(tke3d,tkw1,tkw2,tke1,tke2,   &
                                tks1,tks2,tkn1,tkn2,reqs_tk)
 #endif
         !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k) 
@@ -749,7 +749,7 @@
       if(iptra.eq.1)then
 #ifdef MPI
           do n=1,npt
-          call comm_3s_end_GPU(pt3d(ib,jb,kb,n),                           &
+          call comm_3s_end(pt3d(ib,jb,kb,n),                           &
                 tw1(1,1,1,n),tw2(1,1,1,n),te1(1,1,1,n),te2(1,1,1,n),   &
                 ts1(1,1,1,n),ts2(1,1,1,n),tn1(1,1,1,n),tn2(1,1,1,n),   &
                 reqs_t(1,n))
@@ -776,8 +776,8 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call comm_1s_end_GPU(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
-      call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
+      call comm_1s_end(pp3d,vw1,vw2,ve1,ve2,vs1,vs2,vn1,vn2,reqs_x)
+      call comm_3s_end(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
 #endif
 
       !$acc parallel loop gang vector collapse(3) default(present) private(i,j,k)
@@ -797,7 +797,7 @@
       if(imoist.eq.1)then
 #ifdef MPI
         DO n=1,numq
-          call comm_3s_end_GPU(q3d(ib,jb,kb,n)  &
+          call comm_3s_end(q3d(ib,jb,kb,n)  &
                      ,qw31(1,1,1,n),qw32(1,1,1,n),qe31(1,1,1,n),qe32(1,1,1,n)     &
                      ,qs31(1,1,1,n),qs32(1,1,1,n),qn31(1,1,1,n),qn32(1,1,1,n)     &
                      ,reqs_q(1,n) )
@@ -823,16 +823,16 @@
         !-----
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_1s_end_GPU(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
-        call getcorner_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call comm_1s_end(rho,pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_s)
+        call getcorner(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcs2(rho)
         !-----
-        call comm_1s_end_GPU(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
-        call getcorner_GPU(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call comm_1s_end(rr,p2w1,p2w2,p2e1,p2e2,p2s1,p2s2,p2n1,p2n2,reqs_p2)
+        call getcorner(rr,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcs2(rr)
         !-----
-        call comm_1s_end_GPU(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
-        call getcorner_GPU(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+        call comm_1s_end(rf,p3w1,p3w2,p3e1,p3e2,p3s1,p3s2,p3n1,p3n2,reqs_p3)
+        call getcorner(rf,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
         call bcs2(rf)
         !-----
 #endif
@@ -850,7 +850,7 @@
         enddo
 #ifdef MPI
         IF( psolver.eq.2 .or. psolver.eq.3 .or. psolver.eq.6 .or. psolver.eq.7 )THEN
-          call comm_1p_end_GPU(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
+          call comm_1p_end(ppx,zw1,zw2,ze1,ze2,zs1,zs2,zn1,zn2,reqs_z)
         ENDIF
 #endif
 
@@ -864,14 +864,14 @@
         !  get corner info, ghost zone data, etc:
         !  (may not parallelize correctly if this is not done)
 #ifdef MPI
-        call comm_3u_end_GPU( rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
-        call comm_3v_end_GPU( rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
-        call comm_3w_end_GPU( rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
-        call getcorneru3_GPU(rru,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
+        call comm_3u_end( rru,uw31,uw32,ue31,ue32,us31,us32,un31,un32,reqs_u)
+        call comm_3v_end( rrv,vw31,vw32,ve31,ve32,vs31,vs32,vn31,vn32,reqs_v)
+        call comm_3w_end( rrw,ww31,ww32,we31,we32,ws31,ws32,wn31,wn32,reqs_w)
+        call getcorneru3(rru,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-        call getcornerv3_GPU(rrv,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
+        call getcornerv3(rrv,n3w1(1,1,1),n3w2(1,1,1),n3e1(1,1,1),n3e2(1,1,1),  &
                              s3w1(1,1,1),s3w2(1,1,1),s3e1(1,1,1),s3e2(1,1,1))
-        call getcornerw3_GPU(rrw,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
+        call getcornerw3(rrw,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2)
         call bcu2(rru)
         call bcv2(rrv)
         call bcw2(rrw)
@@ -978,11 +978,11 @@
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,1))
-          call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,2))
-          call comm_1u_tend_halo_GPU(dpten(ib,jb,kb,3))
-          call comm_1v_tend_halo_GPU(dpten(ib,jb,kb,4))
-          call comm_1s_tend_halo_GPU(dpten(ib,jb,kb,5))
+          call comm_1s_tend_halo(dpten(ib,jb,kb,1))
+          call comm_1s_tend_halo(dpten(ib,jb,kb,2))
+          call comm_1u_tend_halo(dpten(ib,jb,kb,3))
+          call comm_1v_tend_halo(dpten(ib,jb,kb,4))
+          call comm_1s_tend_halo(dpten(ib,jb,kb,5))
 #else
           call bcs_tend_halo(dpten(ib,jb,kb,1))
           call bcs_tend_halo(dpten(ib,jb,kb,2))
@@ -1033,29 +1033,29 @@
             call sync()
             if(timestats.ge.1) time_lb=time_lb+mytime()
             !----
-            call comm_3s_start_GPU(th3d,rw31,rw32,re31,re32,   &
+            call comm_3s_start(th3d,rw31,rw32,re31,re32,   &
                                     rs31,rs32,rn31,rn32,reqs_y)
-            call comm_3s_start_GPU(q3d(ib,jb,kb,nqv)  &
+            call comm_3s_start(q3d(ib,jb,kb,nqv)  &
                        ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
-            call comm_3u_start_GPU(u3d,uw31,uw32,ue31,ue32,   &
+            call comm_3u_start(u3d,uw31,uw32,ue31,ue32,   &
                                        us31,us32,un31,un32,reqs_u)
-            call comm_3v_start_GPU(v3d,vw31,vw32,ve31,ve32,   &
+            call comm_3v_start(v3d,vw31,vw32,ve31,ve32,   &
                                        vs31,vs32,vn31,vn32,reqs_v)
-            call comm_3w_start_GPU(w3d,ww31,ww32,we31,we32,   &
+            call comm_3w_start(w3d,ww31,ww32,we31,we32,   &
                                        ws31,ws32,wn31,wn32,reqs_w)
             !----
-            call comm_3s_end_GPU(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
-            call comm_3s_end_GPU(q3d(ib,jb,kb,nqv)  &
+            call comm_3s_end(th3d,rw31,rw32,re31,re32,rs31,rs32,rn31,rn32,reqs_y)
+            call comm_3s_end(q3d(ib,jb,kb,nqv)  &
                        ,qw31(1,1,1,nqv),qw32(1,1,1,nqv),qe31(1,1,1,nqv),qe32(1,1,1,nqv)     &
                        ,qs31(1,1,1,nqv),qs32(1,1,1,nqv),qn31(1,1,1,nqv),qn32(1,1,1,nqv)     &
                        ,reqs_q(1,nqv) )
-            call comm_3u_end_GPU(u3d,uw31,uw32,ue31,ue32,   &
+            call comm_3u_end(u3d,uw31,uw32,ue31,ue32,   &
                                      us31,us32,un31,un32,reqs_u)
-            call comm_3v_end_GPU(v3d,vw31,vw32,ve31,ve32,   &
+            call comm_3v_end(v3d,vw31,vw32,ve31,ve32,   &
                                      vs31,vs32,vn31,vn32,reqs_v)
-            call comm_3w_end_GPU(w3d,ww31,ww32,we31,we32,   &
+            call comm_3w_end(w3d,ww31,ww32,we31,we32,   &
                                      ws31,ws32,wn31,wn32,reqs_w)
             !----
 #endif

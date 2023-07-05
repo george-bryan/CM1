@@ -2956,6 +2956,9 @@
          logical, intent(inout) :: openacc
          logical, optional :: device
 
+      ! Set logical flag if subroutine is called on GPU or CPU resident
+      ! data.  If the device flag is not set, it is assumed that it is
+      ! GPU resident.
       if(present(device)) then
          if(device) then
             openacc = .true.
