@@ -186,7 +186,7 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
   subroutine comm_droplet_value(holes_ind,Depart_ind,Depart,Arrive, &
-                ptrDepart, ptrArrive, pdata, pdata_locind)
+                ptrDepart, ptrArrive, pdata)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
@@ -214,7 +214,6 @@ contains
     integer, intent(in) :: ptrArrive(num_nn)                             ! location index into holes_ind 
     integer, intent(in) :: ptrDepart(num_nn)                             ! location index into Depart_ind 
     real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata        ! droplet information
-    integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind   ! x/y/z location index of each droplet
     ! integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor      ! array to store the new MPI region 
     !                                                                      ! info for all the droplets
 

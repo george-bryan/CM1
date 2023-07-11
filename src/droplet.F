@@ -1,4 +1,5 @@
 #define _VERIFY 1
+#define _COUNTPREFIX 1
 #define TROUBLE 0
 #define PITER 1048576
 #ifdef _B4B
@@ -71,6 +72,9 @@
       use mpi
 #endif
       use MersenneTwister_mod
+#ifdef _OPENACC
+      use cutensorex
+#endif
 
       implicit none
 
@@ -167,12 +171,18 @@
       integer, dimension(:), allocatable :: backfill_ind   ! indicies of valid droplets to backfill into 
                                                            ! holes  in "pdata" array created by droplet 
                                                            ! fall-out or departure
+#ifdef _OPENACC
+      ! arrays used by count_prefix operator
+      integer :: Cindx(nparcelsLocal)
+      logical :: msk(nparcelsLocal)
+#endif
 
       logical, parameter :: verbose=.false.
       integer :: errcode
 #ifdef _VERIFY_FIND_LOC
       integer :: tmp_flag
 #endif
+
 
       call date_and_time(values=values)
       ! 1) To match the initial and restart runs for total droplet number,
@@ -516,9 +526,6 @@
 
     if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
 
-
-
-
     Depart(inorth) = numDepartN
     Depart(isouth) = numDepartS
     Depart(ieast)  = numDepartE
@@ -546,19 +553,63 @@
 
      allocate(holes_ind(numHoles))
 
-     i=0
+!$acc data create(holes_ind,msk)
 
+     !$acc parallel loop gang vector default(present) 
+     do np=1,nparcelsLocal
+       msk(np) = (pdata_locind(np,1) .eq. undefined_index) .and. &
+                 (pdata_locind(np,2) .eq. undefined_index)
+     enddo
+     !$acc update host(msk)
+
+#ifdef _COUNTPREFIX
+!$acc data create(Cindx)
+
+     !$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
      end do
 
+     ! Use a CUDA-based function count_prefix determins which array
+     ! elements satisfy a particular condition.  For example consider
+     ! locind = [1 2 3 4 undefined 5 6 7 undefined 8]
+     ! C = COUNT_PREFIX(mask = (locind .eq. undefined), EXCLUSIVE=.true.)
+     ! would generate the array 
+     ! C = [0 0 0 0 0 1 1 1 1 2]
+     Cindx = count_prefix(mask=msk,exclusive=.true.)
+
+     ! collect the location of the special values into a smaller array
+     !$acc parallel loop gang vector default(present)
+     do np=1,nparcelsLocal-1
+        if(Cindx(np).ne.Cindx(np+1)) then 
+           holes_ind(Cindx(np)+1)=np
+        endif
+     enddo
+
+     ! Special treatment for the last value in the array
+     !$acc parallel default(present) num_gangs(1) num_workers(1)
+     if(msk(nparcelsLocal)) then
+       holes_ind(Cindx(nparcelsLocal)+1) = nparcelsLocal
+     endif
+     !$acc end parallel 
+
+!$acc end data 
+
+#else
+     !CPU based calculations 
+     do np = 1, numHoles
+       holes_ind(np) = undefined_index
+     end do
+
+     i=0
      do np = 1, nparcelsLocal
-       if ( (pdata_locind(np,1) .eq. undefined_index) .and. &
-            (pdata_locind(np,2) .eq. undefined_index) ) then
+       if (msk(np)) then 
           i = i + 1
           holes_ind(i) = np
        end if
      end do
+     !$acc update device(holes_ind)
+#endif
 
      if(timestats.ge.1) time_dropC1=time_dropC1+mytime()
 
@@ -593,19 +644,25 @@
     ! number of holes in "pdata" to fill after the arrival droplets have
     ! been assigned a location
     numBackfill = sum(Depart) + num_fallout - sum(Arrive) 
+    print *,'numBackfill: ',numBackfill
 
-    ! Determine which droplets to relocated from the end of 
-    ! the "pdata" array to the remaining holes
-    if (numBackfill .gt. 0) then 
+     ! Determine which droplets to relocated from the end of 
+     ! the "pdata" array to the remaining holes
+     if (numBackfill .gt. 0) then 
        allocate(backfill_ind(numBackfill))
+     endif
+!$acc data create(backfill_ind)
+     if (numBackfill .gt. 0) then 
        if ((nparcelsLocalActive - numBackfill) .eq. 0) then
           ! Set backfill_ind to 1 to handle an exception case, 
           ! where all the active droplets fall out or leave
           ! the current MPI domain
+          !$acc parallel loop gang vector default(present)
           do i = 1, numBackfill
              backfill_ind(i) = 1
           end do
        else
+          !$acc parallel num_gangs(1) num_workers(1) default(present)
           np = nparcelsLocalActive
           i=0
           do while (i.lt. numBackfill) 
@@ -615,15 +672,19 @@
               i=i+1
               backfill_ind(i) = nparcelsLocalActive+1
             else
-            if ( .not. ((pdata_locind(np,1) .eq. undefined_index) .and. &
-              (pdata_locind(np,2) .eq. undefined_index)) ) then
+            if (.not.msk(np)) then 
               i=i+1
               backfill_ind(i) = np
             end if
             np=np-1
             endif
           enddo
+          !$acc end parallel
+          !$acc update host(backfill_ind)
+          print *,'backfill_ind: ',backfill_ind(1:numBackfill)
+          stop 'after first iteration of backfill code'
        end if
+       !$acc update device(backfill_ind)
     end if
 
     if(verbose) then 
@@ -640,11 +701,11 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Most of the indirect address arrays are calculated on the CPU.
     ! So copy them to the GPU
-    !$acc data copyin(holes_ind,backfill_ind,Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
+    !$acc data copyin(Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
 
     ! On the GPU, move droplets between different MPI ranks.
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
-                            ptrDepart,ptrArrive, pdata, pdata_locind)
+                            ptrDepart,ptrArrive, pdata)
 
     ! On the GPU, compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots)
@@ -697,6 +758,8 @@
 
 
     ! free up the memory for temporary variables
+!$acc end data
+!$acc end data
 
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
@@ -810,8 +873,6 @@
    end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
-  
-!!!   !$acc exit data delete (ta)    ! GHB: now passed from solve3
 
    if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
