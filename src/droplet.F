@@ -502,7 +502,7 @@
     do k=kb,ke
        do j=jb,je
           do i=ib,ie
-             dpten(i,j,k,5) = dpten(i,j,k,5)*pi0(i,j,k)
+             dpten(i,j,k,1) = dpten(i,j,k,1)*pi0(i,j,k)
           end do
        end do
     end do
