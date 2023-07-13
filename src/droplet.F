@@ -209,9 +209,9 @@
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
+!      !$acc data create(pdata_neighbor)
 #ifdef MPI
-      !$acc data copyout (pdata_neighbor) &
-      !$acc      copyin  (randomNumbers,randomNumbers%state)
+      !$acc data copyout(pdata_neighbor) copyin  (randomNumbers,randomNumbers%state)
 
       !$acc parallel loop gang vector default(present)
       do np = 1, nparcelsLocalActive
@@ -517,14 +517,13 @@
        end do
     end do
     !$acc end parallel   
-
-    !$acc end data
-
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-    !$acc update host(pdata_locind)
-
+    !$acc end data
     if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
+
+
+
 
     Depart(inorth) = numDepartN
     Depart(isouth) = numDepartS
@@ -560,7 +559,6 @@
        msk(np) = (pdata_locind(np,1) .eq. undefined_index) .and. &
                  (pdata_locind(np,2) .eq. undefined_index)
      enddo
-     !$acc update host(msk)
 
 #ifdef _COUNTPREFIX
 !$acc data create(Cindx)
@@ -623,7 +621,7 @@
 
      ! On the CPU, assign the indirect address array (Depart_ind)
      ! for departing droplets
-     call setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
+     call setupDepartDroplet(Depart_ind,ptrDepart,Depart,pdata_neighbor)
 
      if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
 
@@ -644,8 +642,6 @@
     ! number of holes in "pdata" to fill after the arrival droplets have
     ! been assigned a location
     numBackfill = sum(Depart) + num_fallout - sum(Arrive) 
-    print *,'numBackfill: ',numBackfill
-
      ! Determine which droplets to relocated from the end of 
      ! the "pdata" array to the remaining holes
      if (numBackfill .gt. 0) then 
@@ -680,12 +676,12 @@
             endif
           enddo
           !$acc end parallel
-          !$acc update host(backfill_ind)
-          print *,'backfill_ind: ',backfill_ind(1:numBackfill)
-          stop 'after first iteration of backfill code'
+          if(verbose) then
+             !$acc update host(backfill_ind)
+             print *,'backfill_ind: ',backfill_ind(1:numBackfill)
+          endif
        end if
-       !$acc update device(backfill_ind)
-    end if
+     end if
 
     if(verbose) then 
       write(*,'(f10.3,a6,i4,a8,8i6)') mtime, ' myid: ', myid, ' Depart: ', Depart
