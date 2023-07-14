@@ -209,9 +209,8 @@
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
-!      !$acc data create(pdata_neighbor)
 #ifdef MPI
-      !$acc data copyout(pdata_neighbor) copyin  (randomNumbers,randomNumbers%state)
+      !$acc data create(pdata_neighbor)
 
       !$acc parallel loop gang vector default(present)
       do np = 1, nparcelsLocalActive
@@ -519,12 +518,6 @@
     !$acc end parallel   
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-    !$acc end data
-    if(timestats.ge.1) time_phys_D2H=time_phys_D2H+mytime()
-
-
-
-
     Depart(inorth) = numDepartN
     Depart(isouth) = numDepartS
     Depart(ieast)  = numDepartE
@@ -561,8 +554,8 @@
      enddo
 
 #ifdef _COUNTPREFIX
-!$acc data create(Cindx)
 
+     !$acc data create(Cindx)
      !$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
@@ -590,8 +583,7 @@
        holes_ind(Cindx(nparcelsLocal)+1) = nparcelsLocal
      endif
      !$acc end parallel 
-
-!$acc end data 
+     !$acc end data  ! (Cindx)
 
 #else
      !CPU based calculations 
@@ -621,6 +613,7 @@
 
      ! On the CPU, assign the indirect address array (Depart_ind)
      ! for departing droplets
+!$acc data  create(Depart_ind)
      call setupDepartDroplet(Depart_ind,ptrDepart,Depart,pdata_neighbor)
 
      if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
@@ -697,7 +690,6 @@
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! Most of the indirect address arrays are calculated on the CPU.
     ! So copy them to the GPU
-    !$acc data copyin(Depart_ind,Depart,Arrive,ptrDepart,ptrArrive)
 
     ! On the GPU, move droplets between different MPI ranks.
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
@@ -707,7 +699,7 @@
     !     droplets are contiguous (no "holes" between "pdata" slots)
     call makeContiguous(Depart,Arrive,num_fallout,holes_ind,backfill_ind,pdata,pdata_locind)
 
-    !$acc end data
+!$acc end data ! (backfill_ind)
 
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
@@ -751,12 +743,11 @@
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 #endif
-
+!$acc end data ! (Depart,ptrDepart)
+!$acc end data ! (holes_ind,msk)
+!$acc end data ! (pdata_neighbr,randomNumbers,randomNumbers%state)
 
     ! free up the memory for temporary variables
-!$acc end data
-!$acc end data
-
     deallocate(holes_ind)
     if(allocated(Depart_ind)) deallocate(Depart_ind)
     if(allocated(backfill_ind)) deallocate(backfill_ind)
@@ -869,8 +860,6 @@
    end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
-
-   if(timestats.ge.1) time_phys_H2D=time_phys_H2D+mytime()
 
    end subroutine droplet_driver
 

@@ -680,12 +680,14 @@ contains
       integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
       integer np
       logical, dimension(nparcelsLocalActive) :: mskN,mskS,mskW,mskE,mskNW,mskNE,mskSW,mskSE
-      integer, dimension(nparcelsLocalActive) :: CidxN,CidxS,CidxW,CidxE,CidxNW,CidxNE,CidxSW,CidxSE
-      integer, allocatable :: Depart_ind2(:)
+      integer :: Cidx(nparcelsLocalActive)
       integer :: numDepart,numerrors
+      logical, parameter :: verbose = .false.
+      !!$acc declare present(ptrDepart,Depart,Depart_ind,pdata_neighbor)
+      !$acc declare present(Depart_ind,pdata_neighbor)
 
       numDepart=SUM(Depart)
-      if(numDepart.gt.0) allocate(Depart_ind2(numDepart))
+!      if(numDepart.gt.0) allocate(Depart_ind2(numDepart))
 
       n_idx  = ptrDepart(inorth)
       s_idx  = ptrDepart(isouth)
@@ -695,15 +697,14 @@ contains
       ne_idx = ptrDepart(ine)
       sw_idx = ptrDepart(isw)
       se_idx = ptrDepart(ise)
-      if(numDepart.gt.0) then
+      if(verbose .and. (numDepart.gt.0)) then
          write(*,110) myid,'Depart:',Depart
          write(*,110) myid,'ptrDepart:',ptrDepart
       endif
 
-!$acc data copyin(ptrDepart,Depart,Depart_ind2,pdata_neighbor) &
-!$acc create(mskN,mskS,mskW,mskE,mskNW,mskNE,mskSE,mskSW, &
-!$acc        CidxN,CidxS,CidxW,CidxE,CidxNW,CidxNE,CidxSW,CidxSE)
+#ifdef _COUNTPREFIX
 
+!$acc data create(mskN,mskS,mskW,mskE,mskNW,mskNE,mskSE,mskSW,Cidx)
 
       !$acc parallel loop gang vector default(present)
       do np=1,nparcelsLocalActive
@@ -734,144 +735,143 @@ contains
          endif
       enddo
 
-      if(Depart(inorth).gt.0) CidxN  = count_prefix(mask=mskN,exclusive=.true.)
-      if(Depart(isouth).gt.0) CidxS  = count_prefix(mask=mskS,exclusive=.true.)
-      if(Depart(iwest).gt.0)  CidxW  = count_prefix(mask=mskW,exclusive=.true.)
-      if(Depart(ieast).gt.0)  CidxE  = count_prefix(mask=mskE,exclusive=.true.)
-      if(Depart(inw).gt.0)    CidxNW = count_prefix(mask=mskNW,exclusive=.true.)
-      if(Depart(ine).gt.0)    CidxNE = count_prefix(mask=mskNE,exclusive=.true.)
-      if(Depart(isw).gt.0)    CidxSW = count_prefix(mask=mskSW,exclusive=.true.)
-      if(Depart(ise).gt.0)    CidxSE = count_prefix(mask=mskSE,exclusive=.true.)
-
       if(Depart(inorth).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxN(np) .ne. CidxN(np+1)) then
-           Depart_ind2(n_idx+CidxN(np))=np
+
+         ! JMD don't know why this function gets a misaligned dealloc ! call
+         ! call GatherIndices(numDepart,nparcelsLocalActive,n_idx,mskN,CidxN,Depart_ind2)
+         Cidx  = count_prefix(mask=mskN,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(n_idx+Cidx(np))=np
+            endif
+         enddo
+         ! special treament for the last value in the array
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskN(nparcelsLocalActive)) then
+            Depart_ind(n_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-      enddo
+         !$acc end parallel
       endif
 
-
       if(Depart(isouth).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxS(np) .ne. CidxS(np+1)) then
-            Depart_ind2(s_idx+CidxS(np))=np
+         Cidx  = count_prefix(mask=mskS,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(s_idx+Cidx(np))=np
+            endif
+         enddo
+         ! special treament for the last value in the array
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskS(nparcelsLocalActive)) then
+            Depart_ind(s_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-       enddo
+         !$acc end parallel
        endif
 
 
       if(Depart(iwest).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxW(np) .ne. CidxW(np+1)) then
-            Depart_ind2(w_idx+CidxW(np))=np
+         Cidx  = count_prefix(mask=mskW,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(w_idx+Cidx(np))=np
+            endif
+         enddo
+         ! special treament for the last value in the array
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskW(nparcelsLocalActive)) then
+            Depart_ind(w_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-      enddo
+         !$acc end parallel
       endif
 
       if(Depart(ieast).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxE(np) .ne. CidxE(np+1)) then
-            Depart_ind2(e_idx+CidxE(np))=np
+         Cidx  = count_prefix(mask=mskE,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(e_idx+Cidx(np))=np
+            endif
+         enddo
+         ! special treament for the last value in the array
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskE(nparcelsLocalActive)) then
+            Depart_ind(e_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-      enddo
+         !$acc end parallel
       endif
 
       if(Depart(inw).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxNW(np) .ne. CidxNW(np+1)) then
-            Depart_ind2(nw_idx+CidxNW(np))=np
+         Cidx = count_prefix(mask=mskNW,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(nw_idx+Cidx(np))=np
+            endif
+         enddo
+         ! special treament for the last value in the array
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskNW(nparcelsLocalActive)) then
+            Depart_ind(nw_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-      enddo
+         !$acc end parallel
       endif
 
 
       if(Depart(ine).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxNE(np) .ne. CidxNE(np+1)) then
-            Depart_ind2(ne_idx+CidxNE(np))=np
+         Cidx = count_prefix(mask=mskNE,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(ne_idx+Cidx(np))=np
+            endif
+         enddo
+         ! special treament for the last value in the array
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskNE(nparcelsLocalActive)) then
+            Depart_ind(ne_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-      enddo
+         !$acc end parallel
       endif
 
-      !!$acc update host(Depart_ind2)
 
       if(Depart(isw).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxSW(np) .ne. CidxSW(np+1)) then
-            Depart_ind2(sw_idx+CidxSW(np))=np
+         Cidx = count_prefix(mask=mskSW,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(sw_idx+Cidx(np))=np
+            endif
+         enddo
+         ! special treament for the last value in the array
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskSW(nparcelsLocalActive)) then
+            Depart_ind(sw_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-      enddo
+         !$acc end parallel
       endif
 
-      !!$acc update device(Depart_ind2)
 
       if(Depart(ise).gt.0) then
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive-1
-         if(CidxSE(np) .ne. CidxSE(np+1)) then
-            Depart_ind2(se_idx+CidxSE(np))=np
+         Cidx = count_prefix(mask=mskSE,exclusive=.true.)
+         !$acc parallel loop gang vector default(present)
+         do np=1,nparcelsLocalActive-1
+            if(Cidx(np) .ne. Cidx(np+1)) then
+               Depart_ind(se_idx+Cidx(np))=np
+            endif
+         enddo
+         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         if(mskSE(nparcelsLocalActive)) then
+            Depart_ind(se_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-      enddo
+         !$acc end parallel
       endif
 
 
-      ! special treament for the last value in the array
-      !$acc parallel default(present) num_gangs(1) num_workers(1)
-      if((Depart(inorth) .gt. 0) .and. mskN(nparcelsLocalActive)) then
-         Depart_ind2(n_idx+CidxN(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      !$acc end parallel
-
-      !$acc parallel default(present) num_gangs(1) num_workers(1)
-      if((Depart(isouth).gt.0) .and. mskS(nparcelsLocalActive)) then
-         Depart_ind2(s_idx+CidxS(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      !$acc end parallel
-
-      !$acc parallel default(present) num_gangs(1) num_workers(1)
-      if((Depart(iwest).gt.0) .and. mskW(nparcelsLocalActive)) then
-         Depart_ind2(w_idx+CidxW(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      !$acc end parallel
-
-
-      !$acc parallel default(present) num_gangs(1) num_workers(1)
-      if((Depart(ieast).gt.0) .and. mskE(nparcelsLocalActive)) then
-         Depart_ind2(e_idx+CidxE(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      !$acc end parallel
-
-      !$acc parallel default(present) num_gangs(1) num_workers(1)
-      if((Depart(inw).gt.0) .and. mskNW(nparcelsLocalActive)) then
-         Depart_ind2(nw_idx+CidxNW(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      !$acc end parallel
-
-      !$acc parallel default(present) num_gangs(1) num_workers(1)
-      if((Depart(ine).gt.0) .and. mskNE(nparcelsLocalActive)) then
-         Depart_ind2(ne_idx+CidxNE(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      if((Depart(isw).gt.0) .and. mskSW(nparcelsLocalActive)) then
-         Depart_ind2(sw_idx+CidxSW(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      if((Depart(ise).gt.0) .and. mskSE(nparcelsLocalActive)) then
-         Depart_ind2(se_idx+CidxSE(nparcelsLocalActive)) = nparcelsLocalActive
-      endif
-      !$acc end parallel
-
-      !$acc update host(Depart_ind2)
-!$acc end data
-
-!#else
-
+#else
+      !$acc update host(pdata_neighbor)
       n_idx  = ptrDepart(inorth)
       s_idx  = ptrDepart(isouth)
       e_idx  = ptrDepart(ieast)
@@ -907,20 +907,67 @@ contains
           se_idx=se_idx+1
         endif
       enddo
-!#endif
-      if(numDepart.gt.0) then
-         numerrors=0
-         do np=1,numDepart
-            if(Depart_ind(np).ne.Depart_ind2(np).and. numerrors.le.10) then
-               write(*,106) myid,np,Depart_ind(np),Depart_ind2(np)
-               numerrors=numerrors+1
-            endif
-         enddo
-      endif
- 106     format('ERROR in setupDepartDroplet  myid: ',i4,' np: ',i10,' Depart_ind',i10,' != ','Depart_ind2 'i10)
+      !$acc update device(Depart_ind)
+#endif
+!$acc end data
+
+!JMD keep this debugging in here for now
+!      if(numDepart.gt.0) then
+!         numerrors=0
+!         do np=1,numDepart
+!            if(Depart_ind(np).ne.Depart_ind2(np).and. numerrors.le.10) then
+!               write(*,106) myid,np,Depart_ind(np),Depart_ind2(np)
+!               numerrors=numerrors+1
+!            endif
+!         enddo
+!      endif
+! 106     format('ERROR in setupDepartDroplet  myid: ',i4,' np: ',i10,' Depart_ind',i10,' != ','Depart_ind2 'i10)
  110     format('myid: ',i4,' ',a10,' ',8(i8,1x))
 
      end subroutine setupDepartDroplet
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+     subroutine GatherIndices(numDepart,nparcelslocalActive,dir_idx,msk,Cidx,Depart_ind)
+
+#ifdef _OPENACC
+        use cutensorex
+#endif
+
+        integer, intent(in) :: numDepart,nparcelsLocalActive
+        integer, intent(in) :: dir_idx
+        logical, dimension(nparcelsLocalActive) :: msk
+        integer, dimension(numDepart) :: Depart_ind
+        integer :: Cidx(nparcelsLocalActive)
+
+
+        ! local variables
+        integer :: np
+        !$acc declare present(msk,Cidx,Depart_ind)
+
+!!$acc data create(Cidx)
+        print *,'GatherIndicies: point #1'
+        Cidx = count_prefix(mask=msk,exclusive=.true.)
+        print *,'GatherIndicies: point #2'
+        !$acc parallel loop gang vector default(present)
+        do np=1,nparcelsLocalActive-1
+           if(Cidx(np) .ne. Cidx(np+1)) then
+             Depart_ind(dir_idx+Cidx(np))=np
+           endif
+        enddo
+        print *,'GatherIndicies: point #3'
+        ! special treament for the last value in the array
+        !$acc parallel default(present) num_gangs(1) num_workers(1)
+        if(msk(nparcelsLocalActive)) then
+           Depart_ind(dir_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
+        endif
+        !$acc end parallel
+        print *,'GatherIndicies: point #4'
+!!$acc end data
+
+      end subroutine GatherIndices
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
