@@ -3747,7 +3747,8 @@
                else
                   tag = 98765 + myid
                   call mpi_recv(tmp_buf,nparcels_per_mpi(myid+1)*npvars, &
-                                MPI_REAL,0,tag,MPI_COMM_WORLD,ierr)
+                                MPI_REAL,0,tag,MPI_COMM_WORLD, &
+                                MPI_STATUS_IGNORE,ierr)
                end if
 #endif
                if ( myid .eq. 0 ) then
