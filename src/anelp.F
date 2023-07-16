@@ -26,7 +26,7 @@
           zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge
-      use bc_module, only: bcs_GPU, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
+      use bc_module, only: bcs, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
       use poiss_module
       implicit none
@@ -72,12 +72,9 @@
 !---------------------------------------------------------------------
 
         if(irbc.eq.2)then
-          !$acc update device(ua,va)
-          if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,ua)
+          if(ibw.eq.1 .or. ibe.eq.1) call radbcew(radbcw,radbce,ua,device=.false.)
  
-          if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,va)
-          !$acc update host(radbcw,radbcs)
- 
+          if(ibs.eq.1 .or. ibn.eq.1) call radbcns(radbcs,radbcn,va,device=.false.)
         endif
 
 !-----------------------------------------------------------------------
@@ -247,9 +244,7 @@
                        dum1,dum2,dum3,dum4,divx,phi2,uten,vten,wten,  &
                        cfb,cfa,cfc,d1,d2,pdt,lgbth,lgbph,rhs,trans,dttmp)
 
-        !$acc data copy(phi2)
-        call bcs_GPU(phi2)
-        !$acc end data
+        call bcs(phi2,device=.false.)
 
 !---------------------------------------------------------------------
 

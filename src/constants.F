@@ -7,10 +7,10 @@
     real :: g,rd,rv,cp,cpinv,cv,cpv,cvv,rcp,                                 &
             cpdcv,rovcp,rddcp,rddcv,rddrv,cvdrd,cpdrd,eps,reps,repsm1,       &
             cpt,cvt,pnum,xlv,lathv,xls,lvdcp,condc,cpl,cpi,lv1,lv2,ls1,ls2,  &
-            rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo,mw,ms,surften,ion,os, &
-            ru
+            rhow,c_e1,c_e2,c_s,rcs,earth_radius,govtwo
+    double precision :: rhow_dp,cp_dp,cpl_dp,mw,ms,surften,ion,os,ru,lv1_dp,lv2_dp
 
-    !$acc declare create (ru,mw,surften,rhow,ion,os,ms,lv1,lv2,cpl,cp,eps)
+    !$acc declare create (ru,mw,surften,rhow,rhow_dp,ion,os,ms,lv1,lv1_dp,lv2,lv2_dp,cpl,cpl_dp,cp,cp_dp,eps)
 
       !----------------
 
@@ -64,7 +64,7 @@
 
       integer, parameter :: undefined_index = -100
 
-      real, parameter :: pdata_buffer = 0.10      ! additional storage space for pdata from
+      real, parameter :: pdata_buffer = 0.20      ! additional storage space for pdata from
                                                   ! each MPI rank to account for the droplet
                                                   ! communication between MPI ranks;
                                                   ! this is a percent of
@@ -101,6 +101,7 @@
         g      = 9.81
         rd     = 287.0
         cp     = 1015.0
+        cp_dp  = 1015.0d0
         cpv    = 1870.0
         xlv    = 2.47e6
         xls    = 2834000.0
@@ -112,6 +113,7 @@
         g      = 9.81
         rd     = 287.0
         cp     = 1004.0
+        cp_dp  = 1004.0d0
         cpv    = 1870.0
         xlv    = 2.50e6
         xls    = 2834000.0
@@ -132,6 +134,7 @@
         g      = 9.81
         rd     = 287.04
         cp     = 1005.7
+        cp_dp  = 1005.7d0
         cpv    = 1870.0
         xlv    = 2501000.0
         xls    = 2834000.0
@@ -164,18 +167,24 @@
       lvdcp  = xlv/cp
       condc  = xlv*xlv/(rv*cp)
       cpl    = 4190.0
+      cpl_dp = 4190.0d0
       cpi    = 2106.0
       lv1    = xlv+(cpl-cpv)*to
       lv2    = cpl-cpv
+    ! kludge !
+      lv1_dp = 3134708.0d0
+      lv2_dp = 2320.0d0
+    ! kludge !
       ls1    = xls+(cpi-cpv)*to
       ls2    = cpi-cpv
       rhow   = 1.0e3
-      mw     = 0.018015  !kg/mol, molecular weight water
-      ms     = 0.05844   !kg/mol, molecular weight of salt (or droplet solute)
-      surften= 7.28e-2   !Droplet surface tension
-      ion    = 2.0       !# of ions available in solute
-      os     = 1.093     !Droplet osmotic coefficient
-      ru     = 8.3144    !J/mol-K Universal gas constant
+      rhow_dp = 1.0d3
+      mw     = 0.018015d0  !kg/mol, molecular weight water
+      ms     = 0.05844d0   !kg/mol, molecular weight of salt (or droplet solute)
+      surften= 7.28d-2   !Droplet surface tension
+      ion    = 2.0d0       !# of ions available in solute
+      os     = 1.093d0     !Droplet osmotic coefficient
+      ru     = 8.3144d0    !J/mol-K Universal gas constant
 
 
 
@@ -194,7 +203,7 @@
       c_s = ( c_m * c_m * c_m / ( c_e1 + c_e2 ) )**0.25   ! Smagorinsky constant
       rcs = 1.0/c_s
 
-      !$acc update device (ru,mw,surften,rhow,ion,os,ms,lv1,lv2,cpl,cp,eps)
+      !$acc update device (ru,mw,surften,rhow,rhow_dp,ion,os,ms,lv1,lv1_dp,lv2,lv2_dp,cpl,cpl_dp,cp,cp_dp,eps)
 
       end subroutine set_constants
 

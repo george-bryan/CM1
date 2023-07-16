@@ -15,7 +15,7 @@
       subroutine pdefx1(xh,arh1,arh2,uh,rho0,gz,rgz,rru,advx,dum,mass,s0,s,dt,flag,west,newwest,east,neweast,reqs_s)
       use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,jmp,kmp,ni,nj,nk,&
           wbc,ebc,ibw,ibe,rdx,axisymm,terrain_flag,timestats,time_pdef,time_lb,mytime
-      use bc_module, only: bcs_GPU
+      use bc_module, only: bcs
       use comm_module
       implicit none
 
@@ -109,11 +109,11 @@
 
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
 
-        call bcs_GPU(dum)
+        call bcs(dum)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_2we_start_GPU(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
+        call comm_2we_start(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
 #endif
 
 !----------------------------------------------------------------
@@ -152,7 +152,7 @@
 ! cm1r17:  include divx component
 
 #ifdef MPI
-        call comm_2we_end_GPU(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
+        call comm_2we_end(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
 #endif
 
         rdt=1.0/dt
@@ -292,7 +292,7 @@
       subroutine pdefy1(vh,rho0,gz,rgz,rrv,advy,dum,mass,s0,s,dt,flag,south,newsouth,north,newnorth,reqs_s)
       use input, only: ib,ie,jb,je,kb,ke,itb,ite,jtb,jte,cmp,imp,jmp,kmp,ni,nj,nk,&
           sbc,nbc,ibs,ibn,rdy,axisymm,terrain_flag,timestats,time_pdef,mytime,smeps,time_lb
-      use bc_module, only: bcs_GPU
+      use bc_module, only: bcs
       use comm_module
       implicit none
 
@@ -370,11 +370,11 @@
         endif
         if(timestats.ge.1) time_pdef=time_pdef+mytime()
 
-        call bcs_GPU(dum)
+        call bcs(dum)
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_2sn_start_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
+        call comm_2sn_start(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
 
 !----------------------------------------------------------------
@@ -413,7 +413,7 @@
 ! cm1r17:  include divx component
 
 #ifdef MPI
-      call comm_2sn_end_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
+      call comm_2sn_end(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
 
       !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)

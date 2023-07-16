@@ -191,7 +191,7 @@ end module cuda_rt
       integer, dimension(:), allocatable :: reqt
       integer :: reqc,reqk
       real, dimension(:,:), allocatable :: pdata,ploc
-      real, dimension(:,:,:,:), allocatable :: dpten
+      double precision, dimension(:,:,:,:), allocatable :: dpten
       logical, dimension(:,:,:), allocatable :: flag
 
 !--- arrays for MPI ---
@@ -414,7 +414,6 @@ end module cuda_rt
                   endif
           end select
       end do 
-      print *, 'Using the namelist input file: ', namelist_input
 
 !----------------------------------------------------------------------
 !  For arbitrary 3d output array:  
@@ -428,7 +427,7 @@ end module cuda_rt
 !    No other changes are necessary:  output file will contain the 
 !    variables "out1", "out2", "out3", ... etc.
 
-      nout3d =   0
+      nout3d =   6
 
 !----------------------------------------------------------------------
 !  For arbitrary 2d output array:  
@@ -458,10 +457,10 @@ end module cuda_rt
 #ifdef _OPENACC
       ndev = acc_get_num_devices(acc_device_nvidia)
       idev = mod(myid,ndev)
-      print *,'myid: ',myid
-      print *,'numprocs: ',numprocs
-      print *,'Total # of GPU: ',ndev 
-      print *,'Using GPU: ',idev 
+      write(*,*) 'numprocs: ',numprocs
+      write(*,*) 'Total # of GPU: ',ndev 
+      write(*,*) 'Using GPU: ',idev 
+      call flush(6)
       
       call acc_set_device_num(idev,acc_device_nvidia)
 #endif
@@ -2294,7 +2293,7 @@ end module cuda_rt
       allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
-      allocate( dpten(ib:ie,jb:je,kb:ke,2) )
+      allocate( dpten(ib:ie,jb:je,kb:ke,6) )
       dpten = 0.0
 
       allocate( flag(ib:ie,jb:je,kb:ke) )
@@ -3538,7 +3537,7 @@ end module cuda_rt
         !     array with size "nparcels*npvals" (saving memory space) 
         !     and thus implemented below 
         if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
-           call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten,uten,vten,wten)
+           call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
         end if
 
         nrec = nrec + 1
@@ -3749,22 +3748,22 @@ end module cuda_rt
                                   pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,        &
                                   nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p, &
                                   tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2)
-
-               call parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
-
-               prec = prec+1
-               if ( prclfrq.gt.0.0 ) then
-                  doit = .true.
-                  do while( doit )
-                     prcltim = prcltim+prclfrq
-                     if ( prcltim.gt.mtime )then
-                        doit = .false.
-                     end if
-                  end do
-               end if
-               if (myid.eq.0) print *,'  next prcltim = ',prcltim
-               !if(timestats.ge.1) time_parcels=time_parcels+mytime()
             end if
+
+            call parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
+
+            prec = prec+1
+            if ( prclfrq.gt.0.0 ) then
+               doit = .true.
+               do while( doit )
+                  prcltim = prcltim+prclfrq
+                  if ( prcltim.gt.mtime )then
+                     doit = .false.
+                  end if
+               end do
+            end if
+            if (myid.eq.0) print *,'  next prcltim = ',prcltim
+            !if(timestats.ge.1) time_parcels=time_parcels+mytime()
          else
            if ( startup ) then
              if (myid.eq.0) print *

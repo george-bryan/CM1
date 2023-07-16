@@ -26,8 +26,8 @@
       use input
       use constants
       use init_terrain_module
-      use bc_module, only: bcs_GPU
-      use comm_module
+      use bc_module, only: bcs
+      use comm_module, only: comm_all_s,nabor
       use bcast_module
       use ib_module
       use eddy_recycle
@@ -2827,6 +2827,8 @@
       if(dowr) write(outfile,*) '  pi_dp = ',pi_dp
       if(dowr) write(outfile,*) '  pi_qp = ',pi_qp
       if(dowr) write(outfile,*)
+
+      !$acc update device(pi_sp,pi_dp)
 
 !--------------------------------------------------------------
 !  Configuration for simulations with moisture
@@ -8277,12 +8279,10 @@
       enddo
       enddo
       enddo
-      !$acc data copy(cc2,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
-      call bcs_GPU(cc2)
-      !$acc end data
+      call bcs(cc2,device=.false.)
 #ifdef MPI
       call comm_all_s(cc2,sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,  &
-                          n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s)
+                     n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device=.false.)
 #endif
 
       if(dowr) write(outfile,*)

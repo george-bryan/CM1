@@ -2214,7 +2214,7 @@
     ! Pass 1:  find min surface pressure
 
 #ifdef MPI
-      call comm_2d_corner(pp3d(ib,jb,1))
+      call comm_2d_corner(pp3d(ib,jb,1),device=.false.)
 #endif
 
       ppmin = 1.0e30
@@ -2605,7 +2605,7 @@
 
       use input
       use constants
-      use bc_module, only: bc2d_GPU, bcs2_2d
+      use bc_module, only: bc2d, bcs2_2d
 #ifdef MPI
       use comm_module
       use mpi
@@ -2644,16 +2644,14 @@
       ! by default, run del^2 diffusion 100 times:
       do n=1,100
 
-        !$acc data copy(dum1)
-        call bc2d_GPU(dum1(ib,jb,1))
-        !$acc end data
+        call bc2d(dum1(ib,jb,1),device=.false.)
 #ifdef MPI
         call comm_2d_start(dum1(ib,jb,1),west,newwest,east,neweast,   &
-                                         south,newsouth,north,newnorth,reqs)
-        call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
-        call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
-        call bcs2_2d(dum1(ib,jb,1))
-        call comm_2d_corner(dum1(ib,jb,1))
+                           south,newsouth,north,newnorth,reqs,device=.false.)
+        call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs,device=.false.)
+        call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs,device=.false.)
+        call bcs2_2d(dum1(ib,jb,1),device=.false.)
+        call comm_2d_corner(dum1(ib,jb,1),device=.false.)
 #endif
 
         do j=1,nj
@@ -2675,16 +2673,14 @@
 
       enddo
 
-        !$acc data copy(dum1)
-        call bc2d_GPU(dum1(ib,jb,1))
-        !$acc end data
+        call bc2d(dum1(ib,jb,1),device=.false.)
 #ifdef MPI
         call comm_2d_start(dum1(ib,jb,1),west,newwest,east,neweast,   &
-                                         south,newsouth,north,newnorth,reqs)
-        call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs)
-        call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs)
-        call bcs2_2d(dum1(ib,jb,1))
-        call comm_2d_corner(dum1(ib,jb,1))
+                               south,newsouth,north,newnorth,reqs,device=.false.)
+        call comm_2dew_end(dum1(ib,jb,1),west,newwest,east,neweast,reqs,device=.false.)
+        call comm_2dns_end(dum1(ib,jb,1),south,newsouth,north,newnorth,reqs,device=.false.)
+        call bcs2_2d(dum1(ib,jb,1),device=.false.)
+        call comm_2d_corner(dum1(ib,jb,1),device=.false.)
 #endif
 
     !---------------------------------------

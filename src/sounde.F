@@ -31,7 +31,7 @@
       use misclibs , only : convinitu,convinitv,get_wnudge
       use bc_module, only : bcp, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
           ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
-      use comm_module, only : comm_1p_start_GPU,comm_1p_end_GPU,sync
+      use comm_module, only : comm_1p_start,comm_1p_end,sync
       use maxmin_module
       use ib_module
       implicit none
@@ -294,7 +294,7 @@
 #ifdef MPI
         if( n.ne.1 )then
           if(timestats.ge.1) time_sound=time_sound+mytime()
-          call comm_1p_end_GPU(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_end(ppd,pw1,pw2,pe1,pe2,   &
                                ps1,ps2,pn1,pn2,reqs_p)
         endif
 #endif
@@ -982,13 +982,12 @@
 
         IF( n.lt.nloop )THEN
           if(timestats.ge.1) time_sound=time_sound+mytime()
-!!!          call bcs(ppd)
           ! 210613: call bcp, only set 1 row/column
           call bcp(ppd)
 #ifdef MPI
           call sync()
           if(timestats.ge.1) time_lb=time_lb+mytime()
-          call comm_1p_start_GPU(ppd,pw1,pw2,pe1,pe2,   &
+          call comm_1p_start(ppd,pw1,pw2,pe1,pe2,   &
                                  ps1,ps2,pn1,pn2,reqs_p)
 #endif
         ENDIF
