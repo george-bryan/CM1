@@ -3728,11 +3728,6 @@
             if ( iprcl.eq.1 ) then
 #ifdef MPI
                call mpi_bcast(nparcels_per_mpi,numprocs,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-               if ( myid .ne. 0 ) then
-                  if ( .not. allocated(tmp_buf) ) then
-                     allocate( tmp_buf(nparcels_per_mpi(myid+1),npvars) )
-                  end if
-               end if
                if ( myid .eq. 0 ) then
                   do i = 1, numprocs - 1
                      allocate( tmp_buf(nparcels_per_mpi(i+1),npvars) )
@@ -3746,6 +3741,7 @@
                   end do
                else
                   tag = 98765 + myid
+                  allocate( tmp_buf(nparcels_per_mpi(myid+1),npvars) )
                   call mpi_recv(tmp_buf,nparcels_per_mpi(myid+1)*npvars, &
                                 MPI_REAL,0,tag,MPI_COMM_WORLD, &
                                 MPI_STATUS_IGNORE,ierr)
