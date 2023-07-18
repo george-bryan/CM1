@@ -1726,6 +1726,10 @@
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
             write(50) nparcelsRest
+            ! write out the number of active droplets per MPI rank
+            do i = 0, numprocs-1
+               write(50) counts(i)
+            end do
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
             call disp_err( nf90_inq_varid(ncid,"numactiveparcels",varid) , .true. )
@@ -2269,9 +2273,12 @@
       double precision, dimension(numq,0:numprocs-1) :: csq,dsq
       real, dimension(:,:), allocatable :: pfoo
       real, dimension(:), allocatable :: dumx,dumy
-      real, dimension(:,:), allocatable :: rbuf
+      real, dimension(:,:), allocatable :: rbuf, tmp_buf
 #ifdef MPI
-      integer :: proc,index,count,req1,req2,req3,reqp
+      integer :: proc,index,count,req1,req2,req3,reqp,tag
+      integer :: beg_loc, end_loc
+      integer :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank
+                                              ! that is read in from the restart file
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -3685,6 +3692,10 @@
       if( myid.eq.0 )then
         if( restart_format.eq.1 )then
           read(50) nvar
+          ! Read in the number of active droplets for each MPI rank
+          do i = 1, numprocs
+             read(50) nparcels_per_mpi(i)
+          end do
 #ifdef NETCDF
         elseif( restart_format.eq.2 )then
           call disp_err( nf90_inq_varid(ncid,"numparcels",varid) , .true. )
@@ -3697,59 +3708,70 @@
 
       call bcast_int(nvar)
 
-      if( iprcl.eq.1 .or. nvar.gt.0 )then
-        if( nvar.gt.0 )then
-          ! only read position info:
-          if( myid.eq.0 )then
-            ! reset "pdata" that is initialized by the init3d subroutine
-            pdata(:,:) = neg_huge
-            IF( nvar .eq. nparcelsRest )THEN
-              ! easy:  restart file matches current config
-              if( restart_format.eq.1 )then
-                allocate( rbuf(nparcelsRest,npvars) )
-                read(50) rbuf 
+      if ( iprcl.eq.1 .or. nvar.gt.0 ) then
+         if ( nvar.gt.0 ) then
+            ! only read position info:
+            if ( myid.eq.0 ) then
+               ! reset "pdata" that is initialized by the init3d subroutine
+               pdata(:,:) = neg_huge
+               if ( restart_format.eq.1 ) then
+                  allocate( rbuf(nvar,npvars) )
+                  read(50) rbuf 
 #ifdef NETCDF
-              elseif( restart_format.eq.2 )then
-                call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
-                n = 3
-                call disp_err( nf90_get_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcelsLocal,n,1/)) , .true. )
+               else if ( restart_format.eq.2 ) then
+                  call disp_err( nf90_inq_varid(ncid,"ploc",varid) , .true. )
+                  n = 3
+                  call disp_err( nf90_get_var(ncid,varid,ploc,(/1,1,time_index/),(/nparcelsLocal,n,1/)) , .true. )
 #endif
-              endif
-            ELSE
-              ! annoying:  restart file has different nparcels than current config
-              print *, "unmatched nvar and nparcelsRest..."
-              print *, "nvar_parcels = ",nvar,", nparcelsRest = ",nparcelsRest
-              stop
-            ENDIF
-          endif
-          IF( iprcl.eq.1 )THEN
-#ifdef MPI
-            call MPI_BCAST(nparcelsRest,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-            if ( .not. allocated(rbuf) ) allocate( rbuf(nparcelsRest,npvars) )
-            call MPI_BCAST(rbuf,npvars*nparcelsRest,MPI_REAL,0,MPI_COMM_WORLD,ierr)
-#endif
-            j = 1
-            DO np=1,nparcelsRest
-               ! check if this droplet belongs to this MPI rank
-               if ( rbuf(np,prx) .ge. xf(1) .and. rbuf(np,prx) .le. xf(ni+1) .and. &
-                    rbuf(np,pry) .ge. yf(1) .and. rbuf(np,pry) .le. yf(nj+1) ) then
-                  do i = 1, npvars
-                     pdata(j,i) = rbuf(np,i)
-                  end do
-                  j = j + 1
                end if
-            ENDDO
-            nparcelsLocalActive = j - 1
-            restart_prcl = .true.
-            deallocate( rbuf )
-          ENDIF
-        else
-          if( myid.eq.0 ) print *
-          if( myid.eq.0 ) print *,'  Note:  no parcel data in the restart file '
-          if( myid.eq.0 ) print *
-          restart_prcl = .false.
-        endif
-      endif
+            end if
+            if ( iprcl.eq.1 ) then
+#ifdef MPI
+               call mpi_bcast(nparcels_per_mpi,numprocs,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+               if ( myid .eq. 0 ) then
+                  do i = 1, numprocs - 1
+                     allocate( tmp_buf(nparcels_per_mpi(i+1),npvars) )
+                     beg_loc = sum(nparcels_per_mpi(1:i))+1
+                     end_loc = beg_loc+nparcels_per_mpi(i+1)-1
+                     tmp_buf(:,:) = rbuf(beg_loc:end_loc,:)
+                     tag = 98765 + i
+                     call mpi_send(tmp_buf,nparcels_per_mpi(i+1)*npvars, &
+                                   MPI_REAL,i,tag,MPI_COMM_WORLD,ierr)
+                     deallocate(tmp_buf)
+                  end do
+               else
+                  tag = 98765 + myid
+                  allocate( tmp_buf(nparcels_per_mpi(myid+1),npvars) )
+                  call mpi_recv(tmp_buf,nparcels_per_mpi(myid+1)*npvars, &
+                                MPI_REAL,0,tag,MPI_COMM_WORLD, &
+                                MPI_STATUS_IGNORE,ierr)
+               end if
+#endif
+               if ( myid .eq. 0 ) then
+                  do np = 1, nparcels_per_mpi(myid+1)
+                     do i = 1, npvars
+                        pdata(np,i) = rbuf(np,i)
+                     end do
+                  end do
+                  deallocate( rbuf )
+               else
+                  do np = 1, nparcels_per_mpi(myid+1)
+                     do i = 1, npvars
+                        pdata(np,i) = tmp_buf(np,i)
+                     end do
+                  end do
+                  deallocate( tmp_buf )
+               end if
+               nparcelsLocalActive = nparcels_per_mpi(myid+1) 
+               restart_prcl = .true.
+            end if   ! if iprcl.eq.1
+         else
+            if ( myid.eq.0 ) print *
+            if ( myid.eq.0 ) print *,'  Note:  no parcel data in the restart file '
+            if ( myid.eq.0 ) print *
+            restart_prcl = .false.
+         end if  ! if nvar.gt.0
+      end if     ! if iprcl.eq.1 .or. nvar.gt.0
 
 !---------------------------------------------------------------
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
