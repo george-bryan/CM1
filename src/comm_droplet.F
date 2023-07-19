@@ -5,6 +5,7 @@
 !    MPI calls in the existing comm.F code                       !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #define _COUNTPREFIX 1
+#undef _MEMLEAK 
 
 module comm_droplet_module
 
@@ -679,12 +680,20 @@ contains
       ! local variables
       integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
       integer np
+#ifdef _MEMLEAK
       logical, dimension(nparcelsLocalActive) :: mskN,mskS,mskW,mskE,mskNW,mskNE,mskSW,mskSE
       integer :: Cidx(nparcelsLocalActive)
+#else
+      logical, dimension(nparcelsLocal) :: mskN,mskS,mskW,mskE,mskNW,mskNE,mskSW,mskSE
+      integer :: Cidx(nparcelsLocal)
+#endif
+
       integer :: numDepart,numerrors
       logical, parameter :: verbose = .false.
       !!$acc declare present(ptrDepart,Depart,Depart_ind,pdata_neighbor)
       !$acc declare present(Depart_ind,pdata_neighbor)
+
+      !!$acc declare create(Cidx,mskN,mskS,mskW,mskE,mskNW,mskNE,mskSW,mskSE)
 
       numDepart=SUM(Depart)
 !      if(numDepart.gt.0) allocate(Depart_ind2(numDepart))
@@ -702,7 +711,7 @@ contains
          write(*,110) myid,'ptrDepart:',ptrDepart
       endif
 
-#ifdef _COUNTPREFIX
+#if (defined(_OPENACC) && defined(_COUNTPREFIX))
 
 !$acc data create(mskN,mskS,mskW,mskE,mskNW,mskNE,mskSE,mskSW,Cidx)
 
@@ -738,7 +747,7 @@ contains
       if(Depart(inorth).gt.0) then
 
          ! JMD don't know why this function gets a misaligned dealloc ! call
-         ! call GatherIndices(numDepart,nparcelsLocalActive,n_idx,mskN,CidxN,Depart_ind2)
+         !call GatherIndices(numDepart,n_idx,mskN,Depart_ind)
          Cidx  = count_prefix(mask=mskN,exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
@@ -869,6 +878,7 @@ contains
          !$acc end parallel
       endif
 
+!$acc end data
 
 #else
       !$acc update host(pdata_neighbor)
@@ -909,7 +919,6 @@ contains
       enddo
       !$acc update device(Depart_ind)
 #endif
-!$acc end data
 
 !JMD keep this debugging in here for now
 !      if(numDepart.gt.0) then
@@ -926,48 +935,47 @@ contains
 
      end subroutine setupDepartDroplet
 
+#if (defined(_PREFIXCOUNT) && defined(_OPENACC))
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-     subroutine GatherIndices(numDepart,nparcelslocalActive,dir_idx,msk,Cidx,Depart_ind)
+     subroutine GatherIndices(numDepart,dir_idx,msk,Depart_ind)
 
+        use input, only : nparcelsLocal, nparcelsLocalActive
 #ifdef _OPENACC
         use cutensorex
 #endif
 
-        integer, intent(in) :: numDepart,nparcelsLocalActive
+        integer, intent(in) :: numDepart
         integer, intent(in) :: dir_idx
-        logical, dimension(nparcelsLocalActive) :: msk
+        logical, dimension(nparcelsLocal) :: msk
         integer, dimension(numDepart) :: Depart_ind
-        integer :: Cidx(nparcelsLocalActive)
+        integer :: Cidx(nparcelsLocal)
 
 
         ! local variables
         integer :: np
-        !$acc declare present(msk,Cidx,Depart_ind)
+        !$acc declare present(msk,Depart_ind)
 
-!!$acc data create(Cidx)
-        print *,'GatherIndicies: point #1'
+!$acc data create(Cidx)
         Cidx = count_prefix(mask=msk,exclusive=.true.)
-        print *,'GatherIndicies: point #2'
         !$acc parallel loop gang vector default(present)
         do np=1,nparcelsLocalActive-1
            if(Cidx(np) .ne. Cidx(np+1)) then
              Depart_ind(dir_idx+Cidx(np))=np
            endif
         enddo
-        print *,'GatherIndicies: point #3'
         ! special treament for the last value in the array
         !$acc parallel default(present) num_gangs(1) num_workers(1)
         if(msk(nparcelsLocalActive)) then
            Depart_ind(dir_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
         endif
         !$acc end parallel
-        print *,'GatherIndicies: point #4'
-!!$acc end data
+!$acc end data
 
       end subroutine GatherIndices
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

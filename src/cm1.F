@@ -284,7 +284,6 @@ end module cuda_rt
       real :: mp_total,minval,temx,temy,temni,temnj
       double precision :: tstart,tend
       integer, dimension(:), allocatable :: isum,jsum
-      integer :: padding
 #endif
 #ifdef _OPENACC
       integer :: ndev,idev
@@ -3513,6 +3512,7 @@ end module cuda_rt
           enddo
           enddo
         ENDIF
+#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3539,6 +3539,7 @@ end module cuda_rt
         if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
            call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
         end if
+#endif
 
         nrec = nrec + 1
         nstatout = nstatout + 1

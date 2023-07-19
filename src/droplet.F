@@ -174,8 +174,8 @@
 #ifdef _OPENACC
       ! arrays used by count_prefix operator
       integer :: Cindx(nparcelsLocal)
-      logical :: msk(nparcelsLocal)
 #endif
+      logical :: msk(nparcelsLocal)
 
       logical, parameter :: verbose=.false.
       integer :: errcode
@@ -220,7 +220,6 @@
 #else
       !$acc data copyin (randomNumbers,randomNumbers%state)
 #endif
-!!!      !$acc enter data create (ta)    ! GHB: now passed from solve3
 
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
@@ -527,8 +526,9 @@
     Depart(isw)    = numDepartSW
     Depart(ise)    = numDepartSE
 
-    numDepart=SUM(Depart)
-    if(numDepart .gt. 0) allocate(Depart_ind(numDepart))
+     numDepart=SUM(Depart)
+     if(numDepart .gt. 0) allocate(Depart_ind(max(numDepart,padding)))
+     !$acc enter data create(Depart_ind)
 
     numHoles = numDepart + num_fallout + (nparcelsLocal-nparcelsLocalActive)
 
@@ -544,8 +544,9 @@
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      allocate(holes_ind(numHoles))
+!$acc enter data create(holes_ind)
 
-!$acc data create(holes_ind,msk)
+!$acc data create(msk)
 
      !$acc parallel loop gang vector default(present) 
      do np=1,nparcelsLocal
@@ -553,7 +554,7 @@
                  (pdata_locind(np,2) .eq. undefined_index)
      enddo
 
-#ifdef _COUNTPREFIX
+#if (defined(_COUNTPREFIX) && defined(_OPENACC))
 
      !$acc data create(Cindx)
      !$acc parallel loop gang vector default(present)
@@ -613,7 +614,6 @@
 
      ! On the CPU, assign the indirect address array (Depart_ind)
      ! for departing droplets
-!$acc data  create(Depart_ind)
      call setupDepartDroplet(Depart_ind,ptrDepart,Depart,pdata_neighbor)
 
      if(timestats.ge.1) time_dropC2=time_dropC2+mytime()
@@ -639,9 +639,7 @@
      ! the "pdata" array to the remaining holes
      if (numBackfill .gt. 0) then 
        allocate(backfill_ind(numBackfill))
-     endif
-!$acc data create(backfill_ind)
-     if (numBackfill .gt. 0) then 
+       !$acc enter data create(backfill_ind)
        if ((nparcelsLocalActive - numBackfill) .eq. 0) then
           ! Set backfill_ind to 1 to handle an exception case, 
           ! where all the active droplets fall out or leave
@@ -699,7 +697,6 @@
     !     droplets are contiguous (no "holes" between "pdata" slots)
     call makeContiguous(Depart,Arrive,num_fallout,holes_ind,backfill_ind,pdata,pdata_locind)
 
-!$acc end data ! (backfill_ind)
 
     if(timestats.ge.1) time_dropC4=time_dropC4+mytime()
 
@@ -743,14 +740,19 @@
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 #endif
-!$acc end data ! (Depart,ptrDepart)
-!$acc end data ! (holes_ind,msk)
-!$acc end data ! (pdata_neighbr,randomNumbers,randomNumbers%state)
+!$acc end data ! (msk)
+!$acc end data ! (pdata_neighbr)
 
     ! free up the memory for temporary variables
-    deallocate(holes_ind)
-    if(allocated(Depart_ind)) deallocate(Depart_ind)
-    if(allocated(backfill_ind)) deallocate(backfill_ind)
+
+     !$acc exit data delete(holes_ind)
+     deallocate(holes_ind)
+
+     !$acc exit data delete(Depart_ind)
+     if(allocated(Depart_ind)) deallocate(Depart_ind)
+
+     !$acc exit data delete(backfill_ind)
+     if(allocated(backfill_ind)) deallocate(backfill_ind)
 
 !----------------------------------------------------------------------
 !  get height ASL:
