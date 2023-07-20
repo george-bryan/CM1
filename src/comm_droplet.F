@@ -681,10 +681,8 @@ contains
       integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
       integer np
 #ifdef _MEMLEAK
-      logical, dimension(nparcelsLocalActive) :: mskN,mskS,mskW,mskE,mskNW,mskNE,mskSW,mskSE
       integer :: Cidx(nparcelsLocalActive)
 #else
-      logical, dimension(nparcelsLocal) :: mskN,mskS,mskW,mskE,mskNW,mskNE,mskSW,mskSE
       integer :: Cidx(nparcelsLocal)
 #endif
 
@@ -693,7 +691,6 @@ contains
       !!$acc declare present(ptrDepart,Depart,Depart_ind,pdata_neighbor)
       !$acc declare present(Depart_ind,pdata_neighbor)
 
-      !!$acc declare create(Cidx,mskN,mskS,mskW,mskE,mskNW,mskNE,mskSW,mskSE)
 
       numDepart=SUM(Depart)
 !      if(numDepart.gt.0) allocate(Depart_ind2(numDepart))
@@ -713,42 +710,13 @@ contains
 
 #if (defined(_OPENACC) && defined(_COUNTPREFIX))
 
-!$acc data create(mskN,mskS,mskW,mskE,mskNW,mskNE,mskSE,mskSW,Cidx)
-
-      !$acc parallel loop gang vector default(present)
-      do np=1,nparcelsLocalActive
-         mskN(np)  = .false.
-         mskS(np)  = .false.
-         mskW(np)  = .false.
-         mskE(np)  = .false.
-         mskNW(np) = .false.
-         mskNE(np) = .false.
-         mskSW(np) = .false.
-         mskSE(np) = .false.
-         if(pdata_neighbor(np) .eq. mynorth) then
-           mskN(np) = .true.
-         else if(pdata_neighbor(np) .eq. mysouth) then
-           mskS(np) = .true.
-         else if(pdata_neighbor(np) .eq. mywest) then
-           mskW(np) = .true.
-         else if(pdata_neighbor(np) .eq. myeast) then
-           mskE(np) = .true.
-         else if(pdata_neighbor(np) .eq. mynw) then
-           mskNW(np) = .true.
-         else if(pdata_neighbor(np) .eq. myne) then
-           mskNE(np) = .true.
-         else if(pdata_neighbor(np) .eq. mysw) then
-           mskSW(np) = .true.
-         else if(pdata_neighbor(np) .eq. myse) then
-           mskSE(np) = .true.
-         endif
-      enddo
+!$acc data create(Cidx)
 
       if(Depart(inorth).gt.0) then
 
          ! JMD don't know why this function gets a misaligned dealloc ! call
          !call GatherIndices(numDepart,n_idx,mskN,Depart_ind)
-         Cidx  = count_prefix(mask=mskN,exclusive=.true.)
+         Cidx  = count_prefix(mask=(pdata_neighbor .eq. inorth),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -757,14 +725,14 @@ contains
          enddo
          ! special treament for the last value in the array
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskN(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.inorth) then
             Depart_ind(n_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
       endif
 
       if(Depart(isouth).gt.0) then
-         Cidx  = count_prefix(mask=mskS,exclusive=.true.)
+         Cidx  = count_prefix(mask=(pdata_neighbor .eq. isouth),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -773,7 +741,7 @@ contains
          enddo
          ! special treament for the last value in the array
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskS(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.isouth) then
             Depart_ind(s_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
@@ -781,7 +749,7 @@ contains
 
 
       if(Depart(iwest).gt.0) then
-         Cidx  = count_prefix(mask=mskW,exclusive=.true.)
+         Cidx  = count_prefix(mask=(pdata_neighbor .eq. iwest),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -790,14 +758,14 @@ contains
          enddo
          ! special treament for the last value in the array
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskW(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.iwest) then
             Depart_ind(w_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
       endif
 
       if(Depart(ieast).gt.0) then
-         Cidx  = count_prefix(mask=mskE,exclusive=.true.)
+         Cidx  = count_prefix(mask=(pdata_neighbor .eq. ieast),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -806,14 +774,14 @@ contains
          enddo
          ! special treament for the last value in the array
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskE(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.ieast) then
             Depart_ind(e_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
       endif
 
       if(Depart(inw).gt.0) then
-         Cidx = count_prefix(mask=mskNW,exclusive=.true.)
+         Cidx  = count_prefix(mask=(pdata_neighbor .eq. inw),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -822,7 +790,7 @@ contains
          enddo
          ! special treament for the last value in the array
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskNW(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.inw) then
             Depart_ind(nw_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
@@ -830,7 +798,7 @@ contains
 
 
       if(Depart(ine).gt.0) then
-         Cidx = count_prefix(mask=mskNE,exclusive=.true.)
+         Cidx = count_prefix(mask=(pdata_neighbor .eq. ine),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -839,7 +807,7 @@ contains
          enddo
          ! special treament for the last value in the array
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskNE(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.ine) then
             Depart_ind(ne_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
@@ -847,7 +815,7 @@ contains
 
 
       if(Depart(isw).gt.0) then
-         Cidx = count_prefix(mask=mskSW,exclusive=.true.)
+         Cidx = count_prefix(mask=(pdata_neighbor .eq. isw),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -856,7 +824,7 @@ contains
          enddo
          ! special treament for the last value in the array
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskSW(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.isw) then
             Depart_ind(sw_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
@@ -864,7 +832,7 @@ contains
 
 
       if(Depart(ise).gt.0) then
-         Cidx = count_prefix(mask=mskSE,exclusive=.true.)
+         Cidx = count_prefix(mask=(pdata_neighbor .eq. ise),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
             if(Cidx(np) .ne. Cidx(np+1)) then
@@ -872,7 +840,7 @@ contains
             endif
          enddo
          !$acc parallel default(present) num_gangs(1) num_workers(1)
-         if(mskSE(nparcelsLocalActive)) then
+         if(pdata_neighbor(nparcelsLocalActive).eq.ise) then
             Depart_ind(se_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
          !$acc end parallel
@@ -891,28 +859,28 @@ contains
       sw_idx = ptrDepart(isw)
       se_idx = ptrDepart(ise)
       do np=1, nparcelsLocalActive
-        if(pdata_neighbor(np) .eq. mynorth) then
+        if(pdata_neighbor(np) .eq. inorth) then
           Depart_ind(n_idx) = np
           n_idx=n_idx+1
-        else if(pdata_neighbor(np) .eq. mysouth) then
+        else if(pdata_neighbor(np) .eq. isouth) then
           Depart_ind(s_idx) = np
           s_idx=s_idx+1
-        else if(pdata_neighbor(np) .eq. mywest) then
+        else if(pdata_neighbor(np) .eq. iwest) then
           Depart_ind(w_idx) = np
           w_idx=w_idx+1
-        else if(pdata_neighbor(np) .eq. myeast) then
+        else if(pdata_neighbor(np) .eq. ieast) then
           Depart_ind(e_idx) = np
           e_idx=e_idx+1
-        else if(pdata_neighbor(np) .eq. mynw) then
+        else if(pdata_neighbor(np) .eq. inw) then
           Depart_ind(nw_idx) = np
           nw_idx=nw_idx+1
-        else if(pdata_neighbor(np) .eq. myne) then
+        else if(pdata_neighbor(np) .eq. ine) then
           Depart_ind(ne_idx) = np
           ne_idx=ne_idx+1
-        else if(pdata_neighbor(np) .eq. mysw) then
+        else if(pdata_neighbor(np) .eq. isw) then
           Depart_ind(sw_idx) = np
           sw_idx=sw_idx+1
-        else if(pdata_neighbor(np) .eq. myse) then
+        else if(pdata_neighbor(np) .eq. ise) then
           Depart_ind(se_idx) = np
           se_idx=se_idx+1
         endif

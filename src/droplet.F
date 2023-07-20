@@ -457,22 +457,29 @@
                           neighbor,num_fallout,errcode)
 
 #ifdef MPI
-      pdata_neighbor(np) = neighbor 
       if(neighbor .eq. mynorth) then 
+         pdata_neighbor(np) = inorth
          numDepartN=numDepartN+1
       else if(neighbor .eq. mysouth) then 
+         pdata_neighbor(np) = isouth
          numDepartS=numDepartS+1
       else if(neighbor .eq. mywest) then 
+         pdata_neighbor(np) = iwest
          numDepartW=numDepartW+1
       else if(neighbor .eq. myeast) then 
+         pdata_neighbor(np) = ieast
          numDepartE=numDepartE+1
       else if(neighbor .eq. mynw) then 
+         pdata_neighbor(np) = inw
          numDepartNW=numDepartNW+1
       else if(neighbor .eq. myne) then 
+         pdata_neighbor(np) = ine
          numDepartNE=numDepartNE+1
       else if(neighbor .eq. mysw) then 
+         pdata_neighbor(np) = isw
          numDepartSW=numDepartSW+1
       else if(neighbor .eq. myse) then 
+         pdata_neighbor(np) = ise
          numDepartSE=numDepartSE+1
       endif
 #endif

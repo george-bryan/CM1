@@ -3512,7 +3512,6 @@ end module cuda_rt
           enddo
           enddo
         ENDIF
-#if 0
         call     statpack(mtime,nrec,ndt,dt,dtlast,rtime,adt,acfl,cloudvar,   &
                           qname,budname,qbudget,asq,bsq,                      &
                           name_stat,desc_stat,unit_stat,                      &
@@ -3539,7 +3538,6 @@ end module cuda_rt
         if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
            call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
         end if
-#endif
 
         nrec = nrec + 1
         nstatout = nstatout + 1
@@ -3585,7 +3583,6 @@ end module cuda_rt
 
 
       if( dowriteout )then
-!#if 0
 #ifdef _NVTX
         call nvtxStartRange("writeout",id=6)
 #endif
@@ -3726,7 +3723,6 @@ end module cuda_rt
 #ifdef _NVTX
       call nvtxEndRange()
 #endif
-!#endif
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
 
