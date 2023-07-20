@@ -718,11 +718,11 @@ contains
             endif
          enddo
          ! special treament for the last value in the array
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.inorth) then
             Depart_ind(n_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
       endif
 
       if(Depart(isouth).gt.0) then
@@ -734,11 +734,11 @@ contains
             endif
          enddo
          ! special treament for the last value in the array
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.isouth) then
             Depart_ind(s_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
        endif
 
 
@@ -751,11 +751,11 @@ contains
             endif
          enddo
          ! special treament for the last value in the array
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.iwest) then
             Depart_ind(w_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
       endif
 
       if(Depart(ieast).gt.0) then
@@ -767,11 +767,11 @@ contains
             endif
          enddo
          ! special treament for the last value in the array
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.ieast) then
             Depart_ind(e_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
       endif
 
       if(Depart(inw).gt.0) then
@@ -783,11 +783,11 @@ contains
             endif
          enddo
          ! special treament for the last value in the array
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.inw) then
             Depart_ind(nw_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
       endif
 
 
@@ -800,11 +800,11 @@ contains
             endif
          enddo
          ! special treament for the last value in the array
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.ine) then
             Depart_ind(ne_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
       endif
 
 
@@ -817,11 +817,11 @@ contains
             endif
          enddo
          ! special treament for the last value in the array
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.isw) then
             Depart_ind(sw_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
       endif
 
 
@@ -833,11 +833,11 @@ contains
                Depart_ind(se_idx+Cidx(np))=np
             endif
          enddo
-         !$acc parallel default(present) num_gangs(1) num_workers(1)
+         !$acc serial default(present)
          if(pdata_neighbor(nparcelsLocalActive).eq.ise) then
             Depart_ind(se_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
          endif
-         !$acc end parallel
+         !$acc end serial
       endif
 
 !$acc end data

@@ -753,11 +753,15 @@
      !$acc exit data delete(holes_ind)
      deallocate(holes_ind)
 
-     !$acc exit data delete(Depart_ind)
-     if(allocated(Depart_ind)) deallocate(Depart_ind)
+     if(allocated(Depart_ind)) then 
+        !$acc exit data delete(Depart_ind)
+        deallocate(Depart_ind)
+     endif
 
-     !$acc exit data delete(backfill_ind)
-     if(allocated(backfill_ind)) deallocate(backfill_ind)
+     if(allocated(backfill_ind)) then 
+        !$acc exit data delete(backfill_ind)
+        deallocate(backfill_ind)
+     endif
 
 !----------------------------------------------------------------------
 !  get height ASL:
