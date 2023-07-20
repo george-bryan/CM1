@@ -113,7 +113,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_2we_start_GPU(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
+        call comm_2we_start(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
 #endif
 
 !----------------------------------------------------------------
@@ -152,7 +152,7 @@
 ! cm1r17:  include divx component
 
 #ifdef MPI
-        call comm_2we_end_GPU(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
+        call comm_2we_end(dum,west(1,1,1),newwest(1,1,1),east(1,1,1),neweast(1,1,1),reqs_s)
 #endif
 
         rdt=1.0/dt
@@ -374,7 +374,7 @@
 #ifdef MPI
         call sync()
         if(timestats.ge.1) time_lb=time_lb+mytime()
-        call comm_2sn_start_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
+        call comm_2sn_start(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
 
 !----------------------------------------------------------------
@@ -413,7 +413,7 @@
 ! cm1r17:  include divx component
 
 #ifdef MPI
-      call comm_2sn_end_GPU(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
+      call comm_2sn_end(dum,south(1,1,1),newsouth(1,1,1),north(1,1,1),newnorth(1,1,1),reqs_s)
 #endif
 
       !$omp parallel do default(shared) private(i,j,k,foo1,foo2,foo3)

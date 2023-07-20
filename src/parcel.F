@@ -898,7 +898,7 @@
       enddo
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
       !!$acc update device(buoy)
-      call    prepcornert_GPU(buoy,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+      call    prepcornert(buoy,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,1)
       !!$acc update host(buoy)
 
@@ -943,7 +943,7 @@
     endif
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
       !!$acc update device(vpg)
-      call    prepcornert_GPU(vpg ,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
+      call    prepcornert(vpg ,nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,  &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,1)
       !!$acc update host(vpg)
       ! cmr18:  at top/bottom boundaries, vpg + buoy = 0
@@ -965,9 +965,9 @@
 #ifdef MPI
       call sync()
       if(timestats.ge.1) time_lb=time_lb+mytime()
-      call getcorneru_GPU(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call getcornerv_GPU(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
-      call getcornerw_GPU(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcorneru(u3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcornerv(v3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
+      call getcornerw(w3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1))
       call bcu2(u3d)
       call bcv2(v3d)
       call bcw2(w3d)
@@ -1070,53 +1070,35 @@
 
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
-      !print *,'parcel_interp: point #1'
       if( prth.ge.1 )then
-        !!$acc update device(th)
-        call prepcorners_GPU(th ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcorners(th ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-        !!$acc update host(th)
       endif
-      !print *,'parcel_interp: point #2'
       if( prt.ge.1 )then
-        !!$acc update device(t)
-        call prepcorners_GPU(t  ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcorners(t  ,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-        !!$acc update host(t)
       endif
-      !print *,'parcel_interp: point #3'
       if( prprs.ge.1 )then
-        !!$acc update device(prs)
-        call prepcorners_GPU(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcorners(prs,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-        !!$acc update host(prs)
       endif
-      !print *,'parcel_interp: point #4'
       if( prrho.ge.1 )then
-        !!$acc update device(rho)
-        call prepcorners_GPU(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcorners(rho,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
-        !!$acc update host(rho)
       endif
-      !print *,'parcel_interp: point #5'
       if(prpt1.ge.1)then
-        !!$acc update device(pt3d)
         do n=1,npt
-          call prepcorners_GPU(pt3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+          call prepcorners(pt3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
-        !!$acc update host(pt3d)
       endif
-      !print *,'parcel_interp: point #6'
-      !!$acc update device(q3d)
       if( prqv.ge.1 )then
-        call prepcorners_GPU(q3d(ib,jb,kb,nqv),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcorners(q3d(ib,jb,kb,nqv),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                            pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
       endif
-      !print *,'parcel_interp: point #7'
       if( prq1.ge.1 .or. prnc1.ge.1 )then
         do n = 1,numq
-          call prepcorners_GPU(q3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+          call prepcorners(q3d(ib,jb,kb,n),nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                            pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,0)
         enddo
       endif
@@ -1124,32 +1106,32 @@
       !print *,'parcel_interp: point #8'
       !!$acc update device(kmh,kmv)
       if( prkm.ge.1 )then
-        call prepcornert_GPU(kmh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert(kmh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
-        call prepcornert_GPU(kmv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert(kmv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
       !!$acc update host(kmh,kmv)
       !print *,'parcel_interp: point #9'
       !!$acc update device(khh,khv)
       if( prkh.ge.1 )then
-        call prepcornert_GPU(khh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert(khh,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
-        call prepcornert_GPU(khv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert(khv,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
       !!$acc update host(khh,khv)
       !print *,'parcel_interp: point #10'
       !!$acc update device(tke3d)
       if( prtke.ge.1 )then
-        call prepcornert_GPU(tke3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+        call prepcornert(tke3d,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,0)
       endif
       !!$acc update host(tke3d)
       !print *,'parcel_interp: point #11'
       !!$acc update device(qdiag)
       if( prdbz.ge.1 )then
-        call prepcorners_GPU(qdiag(ibdq,jbdq,kbdq,qd_dbz),  &
+        call prepcorners(qdiag(ibdq,jbdq,kbdq,qd_dbz),  &
                              nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                              pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
       endif
@@ -1171,7 +1153,7 @@
 
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
-      call prepcorners_GPU(dum1,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+      call prepcorners(dum1,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
     ENDIF
     IF( prqsi.ge.1 )THEN
@@ -1187,7 +1169,7 @@
 
       if(timestats.ge.1) time_parceli=time_parceli+mytime()
 
-      call prepcorners_GPU(dum2,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
+      call prepcorners(dum2,nw1(1),nw2(1),ne1(1),ne2(1),sw1(1),sw2(1),se1(1),se2(1), &
                             pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,1)
     ENDIF
     !  print *,'parcel_interp: point #13'

@@ -6,7 +6,6 @@
 #PBS -q main
 #PBS -A UNDM0006
 
-
 module --force purge
 module load ncarenv intel cray-mpich ncarcompilers
 mpiexec -n 2 -ppn 2 ./cpu.ifort.exe --namelist namelist_ASD.verify >& gust.mpi.ifort.namelist.ASD.log
@@ -14,4 +13,3 @@ mpiexec -n 2 -ppn 2 ./cpu.ifort.exe --namelist namelist_ASD.verify >& gust.mpi.i
 module --force purge
 module load ncarenv nvhpc cray-mpich ncarcompilers
 mpiexec -n 2 -ppn 2 ./cpu.nvhpc.exe --namelist namelist_ASD.verify >& gust.mpi.nvhpc.namelist.ASD.log
-

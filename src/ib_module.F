@@ -192,12 +192,12 @@
       nv=0
       nw=0
       call comm_2d_start(zsfoo,west,newwest,east,neweast,   &
-                               south,newsouth,north,newnorth,reqs_p)
-      call comm_2dew_end(zsfoo,west,newwest,east,neweast,reqs_p)
-      call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p)
+                        south,newsouth,north,newnorth,reqs_p,device=.false.)
+      call comm_2dew_end(zsfoo,west,newwest,east,neweast,reqs_p,device=.false.)
+      call comm_2dns_end(zsfoo,south,newsouth,north,newnorth,reqs_p,device=.false.)
       call bcs2_2d(zsfoo,device=.false.)
       call bc2d(zsfoo,device=.false.)
-      call getcorner3_2d(zsfoo)
+      call getcorner3_2d(zsfoo,device=.false.)
 #endif
 
       do k=1,nk
