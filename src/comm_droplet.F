@@ -5,7 +5,6 @@
 !    MPI calls in the existing comm.F code                       !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #define _COUNTPREFIX 1
-#undef _MEMLEAK 
 
 module comm_droplet_module
 
@@ -680,20 +679,14 @@ contains
       ! local variables
       integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
       integer np
-#ifdef _MEMLEAK
-      integer :: Cidx(nparcelsLocalActive)
-#else
       integer :: Cidx(nparcelsLocal)
-#endif
 
       integer :: numDepart,numerrors
       logical, parameter :: verbose = .false.
-      !!$acc declare present(ptrDepart,Depart,Depart_ind,pdata_neighbor)
       !$acc declare present(Depart_ind,pdata_neighbor)
 
 
       numDepart=SUM(Depart)
-!      if(numDepart.gt.0) allocate(Depart_ind2(numDepart))
 
       n_idx  = ptrDepart(inorth)
       s_idx  = ptrDepart(isouth)
