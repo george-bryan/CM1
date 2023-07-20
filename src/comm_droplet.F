@@ -707,8 +707,9 @@ contains
 
       if(Depart(inorth).gt.0) then
 
-         ! JMD don't know why this function gets a misaligned dealloc ! call
-         !call GatherIndices(numDepart,n_idx,mskN,Depart_ind)
+         !JMD don't know why I get the following error when calling this
+         !function: DEALLOCATE: an illegal memory access was encountered
+         !call GatherIndices(inorth,ptrDepart,Cidx,pdata_neighbor,Depart_ind)
          Cidx  = count_prefix(mask=(pdata_neighbor .eq. inorth),exclusive=.true.)
          !$acc parallel loop gang vector default(present)
          do np=1,nparcelsLocalActive-1
@@ -896,44 +897,47 @@ contains
 
      end subroutine setupDepartDroplet
 
-#if (defined(_PREFIXCOUNT) && defined(_OPENACC))
+#if (defined(_COUNTPREFIX) && defined(_OPENACC))
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-     subroutine GatherIndices(numDepart,dir_idx,msk,Depart_ind)
+     subroutine GatherIndices(dir,ptrDepart,Cidx,pdata_neighbor,Depart_ind)
 
+        use constants, only : num_nn
         use input, only : nparcelsLocal, nparcelsLocalActive
 #ifdef _OPENACC
         use cutensorex
 #endif
 
-        integer, intent(in) :: numDepart
-        integer, intent(in) :: dir_idx
-        logical, dimension(nparcelsLocal) :: msk
-        integer, dimension(numDepart) :: Depart_ind
-        integer :: Cidx(nparcelsLocal)
+        integer, intent(in)                             :: dir
+        integer, intent(in), dimension(num_nn)          :: ptrDepart
+        integer, intent(inout),dimension(nparcelsLocal) :: Cidx
+        integer, intent(in), dimension(nparcelsLocal)   :: pdata_neighbor
+        integer, intent(inout), dimension(:)            :: Depart_ind
 
 
         ! local variables
         integer :: np
-        !$acc declare present(msk,Depart_ind)
+        integer :: ptrdir
+        !$acc declare present(Cidx,pdata_neighbor,Depart_ind)
 
-!$acc data create(Cidx)
-        Cidx = count_prefix(mask=msk,exclusive=.true.)
+        ptrdir = ptrDepart(dir)
+!!$acc data create(Cidx)
+        Cidx = count_prefix(mask=(pdata_neighbor.eq.dir),exclusive=.true.)
         !$acc parallel loop gang vector default(present)
         do np=1,nparcelsLocalActive-1
            if(Cidx(np) .ne. Cidx(np+1)) then
-             Depart_ind(dir_idx+Cidx(np))=np
+             Depart_ind(ptrdir+Cidx(np))=np
            endif
         enddo
         ! special treament for the last value in the array
         !$acc parallel default(present) num_gangs(1) num_workers(1)
-        if(msk(nparcelsLocalActive)) then
-           Depart_ind(dir_idx+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
+        if(pdata_neighbor(nparcelsLocalActive).eq.dir) then
+           Depart_ind(ptrdir+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
         endif
         !$acc end parallel
-!$acc end data
+!!$acc end data
 
       end subroutine GatherIndices
 #endif
