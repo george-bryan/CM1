@@ -210,7 +210,7 @@
 !     (for the parcel subroutines only!)
 
 #ifdef MPI
-      !$acc data create(pdata_neighbor)
+      !$acc data create(pdata_neighbor,msk)
 
       !$acc parallel loop gang vector default(present)
       do np = 1, nparcelsLocalActive
@@ -553,7 +553,6 @@
      allocate(holes_ind(numHoles))
 !$acc enter data create(holes_ind)
 
-!$acc data create(msk)
 
      !$acc parallel loop gang vector default(present) 
      do np=1,nparcelsLocal
@@ -747,8 +746,7 @@
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
 #endif
-!$acc end data ! (msk)
-!$acc end data ! (pdata_neighbr)
+!$acc end data ! (pdata_neighbr,msk)
 
     ! free up the memory for temporary variables
 

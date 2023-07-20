@@ -882,17 +882,6 @@ contains
       !$acc update device(Depart_ind)
 #endif
 
-!JMD keep this debugging in here for now
-!      if(numDepart.gt.0) then
-!         numerrors=0
-!         do np=1,numDepart
-!            if(Depart_ind(np).ne.Depart_ind2(np).and. numerrors.le.10) then
-!               write(*,106) myid,np,Depart_ind(np),Depart_ind2(np)
-!               numerrors=numerrors+1
-!            endif
-!         enddo
-!      endif
-! 106     format('ERROR in setupDepartDroplet  myid: ',i4,' np: ',i10,' Depart_ind',i10,' != ','Depart_ind2 'i10)
  110     format('myid: ',i4,' ',a10,' ',8(i8,1x))
 
      end subroutine setupDepartDroplet
