@@ -4,6 +4,7 @@
 !    to separate the MPI communication of droplets from other    !
 !    MPI calls in the existing comm.F code                       !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#define _COUNTPREFIX 1
 
 module comm_droplet_module
 
@@ -186,7 +187,7 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
   subroutine comm_droplet_value(holes_ind,Depart_ind,Depart,Arrive, &
-                ptrDepart, ptrArrive, pdata, pdata_locind)
+                ptrDepart, ptrArrive, pdata)
 
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
@@ -214,7 +215,6 @@ contains
     integer, intent(in) :: ptrArrive(num_nn)                             ! location index into holes_ind 
     integer, intent(in) :: ptrDepart(num_nn)                             ! location index into Depart_ind 
     real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata        ! droplet information
-    integer, intent(inout), dimension(nparcelsLocal,3) :: pdata_locind   ! x/y/z location index of each droplet
     ! integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor      ! array to store the new MPI region 
     !                                                                      ! info for all the droplets
 
@@ -572,8 +572,8 @@ contains
         do n=1,num_holes
            indx = holes_ind(numArrive+n)            ! index of hole to be filled
            k    = backfill_ind(n)                   ! index of droplet to move into hole
-           if(indx .lt. k) then 
-             if (Debug) then 
+           if(indx .lt. k) then
+             if (Debug) then
                write(*,*) ' backfilled droplet # ',indx,' with droplet # ',k
                call flush(6)
              endif
@@ -649,9 +649,9 @@ contains
 
       ptrCnt(inorth) = 1
       ptrCnt(isouth) = ptrCnt(inorth) + Cnt(inorth)
-      ptrCnt(ieast)  = ptrCnt(isouth) + Cnt(isouth)
-      ptrCnt(iwest)  = ptrCnt(ieast)  + Cnt(ieast)
-      ptrCnt(inw)    = ptrCnt(iwest)  + Cnt(iwest)
+      ptrCnt(iwest)  = ptrCnt(isouth) + Cnt(isouth)
+      ptrCnt(ieast)  = ptrCnt(iwest)  + Cnt(iwest)
+      ptrCnt(inw)    = ptrCnt(ieast)  + Cnt(ieast)
       ptrCnt(ine)    = ptrCnt(inw)    + Cnt(inw)
       ptrCnt(isw)    = ptrCnt(ine)    + Cnt(ine)
       ptrCnt(ise)    = ptrCnt(isw)    + Cnt(isw)
@@ -660,23 +660,81 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    subroutine setupDepartDroplet(Depart_ind,ptrDepart,pdata_neighbor)
+    subroutine setupDepartDroplet(Depart_ind,ptrDepart,Depart,pdata_neighbor)
 
       use input, only : mynw,mysw,myne,myse,myeast,mywest,mynorth,mysouth, &
-        nparcelsLocalActive
+        nparcelsLocal,nparcelsLocalActive,myid
       use constants, only: num_nn,inorth,isouth, &
                          iwest,ieast,inw,ine,isw,ise,undefined_index
+#ifdef _OPENACC
+      use cutensorex
+#endif
 
       integer, intent(inout) :: ptrDepart(num_nn)
+      integer, intent(in) :: Depart(num_nn)
 
       integer, intent(inout) :: Depart_ind(:)
       integer, intent(in) :: pdata_neighbor(:)
 
       ! local variables
       integer :: n_idx,s_idx,e_idx,w_idx,nw_idx,ne_idx,sw_idx,se_idx
-      integer np
+      integer :: np
 
+      integer :: numDepart,numerrors
+      logical, parameter :: verbose = .false.
 
+      numDepart=SUM(Depart)
+
+      n_idx  = ptrDepart(inorth)
+      s_idx  = ptrDepart(isouth)
+      w_idx  = ptrDepart(iwest)
+      e_idx  = ptrDepart(ieast)
+      nw_idx = ptrDepart(inw)
+      ne_idx = ptrDepart(ine)
+      sw_idx = ptrDepart(isw)
+      se_idx = ptrDepart(ise)
+      if(verbose .and. (numDepart.gt.0)) then
+         write(*,110) myid,'Depart:',Depart
+         write(*,110) myid,'ptrDepart:',ptrDepart
+      endif
+
+#if (defined(_OPENACC) && defined(_COUNTPREFIX))
+
+      if(Depart(inorth).gt.0) then
+         call GatherIndices(inorth,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+      if(Depart(isouth).gt.0) then
+         call GatherIndices(isouth,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+      if(Depart(iwest).gt.0) then
+         call GatherIndices(iwest,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+      if(Depart(ieast).gt.0) then
+         call GatherIndices(ieast,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+      if(Depart(inw).gt.0) then
+         call GatherIndices(inw,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+      if(Depart(ine).gt.0) then
+         call GatherIndices(ine,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+      if(Depart(isw).gt.0) then
+         call GatherIndices(isw,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+      if(Depart(ise).gt.0) then
+         call GatherIndices(ise,ptrDepart,pdata_neighbor,Depart_ind)
+      endif
+
+#else
+
+      !$acc update host(pdata_neighbor)
       n_idx  = ptrDepart(inorth)
       s_idx  = ptrDepart(isouth)
       e_idx  = ptrDepart(ieast)
@@ -686,34 +744,86 @@ contains
       sw_idx = ptrDepart(isw)
       se_idx = ptrDepart(ise)
       do np=1, nparcelsLocalActive
-        if(pdata_neighbor(np) .eq. mynorth) then
+        if(pdata_neighbor(np) .eq. inorth) then
           Depart_ind(n_idx) = np
           n_idx=n_idx+1
-        else if(pdata_neighbor(np) .eq. mysouth) then
+        else if(pdata_neighbor(np) .eq. isouth) then
           Depart_ind(s_idx) = np
           s_idx=s_idx+1
-        else if(pdata_neighbor(np) .eq. mywest) then
+        else if(pdata_neighbor(np) .eq. iwest) then
           Depart_ind(w_idx) = np
           w_idx=w_idx+1
-        else if(pdata_neighbor(np) .eq. myeast) then
+        else if(pdata_neighbor(np) .eq. ieast) then
           Depart_ind(e_idx) = np
           e_idx=e_idx+1
-        else if(pdata_neighbor(np) .eq. mynw) then
+        else if(pdata_neighbor(np) .eq. inw) then
           Depart_ind(nw_idx) = np
           nw_idx=nw_idx+1
-        else if(pdata_neighbor(np) .eq. myne) then
+        else if(pdata_neighbor(np) .eq. ine) then
           Depart_ind(ne_idx) = np
           ne_idx=ne_idx+1
-        else if(pdata_neighbor(np) .eq. mysw) then
+        else if(pdata_neighbor(np) .eq. isw) then
           Depart_ind(sw_idx) = np
           sw_idx=sw_idx+1
-        else if(pdata_neighbor(np) .eq. myse) then
+        else if(pdata_neighbor(np) .eq. ise) then
           Depart_ind(se_idx) = np
           se_idx=se_idx+1
         endif
       enddo
+      !$acc update device(Depart_ind)
+#endif
+
+ 110     format('myid: ',i4,' ',a10,' ',8(i8,1x))
 
      end subroutine setupDepartDroplet
+
+#if (defined(_COUNTPREFIX) && defined(_OPENACC))
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+     subroutine GatherIndices(dir,ptrDepart,pdata_neighbor,Depart_ind)
+
+        use constants, only : num_nn
+        use input, only : nparcelsLocal, nparcelsLocalActive
+#ifdef _OPENACC
+        use cutensorex
+#endif
+
+        integer, intent(in)                             :: dir
+        integer, intent(in), dimension(num_nn)          :: ptrDepart
+        integer, intent(in), dimension(nparcelsLocal)   :: pdata_neighbor
+        integer, intent(inout), dimension(:)            :: Depart_ind
+
+        ! local variables
+        integer :: np
+        integer :: ptrdir
+        integer, dimension(nparcelsLocal) :: Cidx
+
+        !$acc data create(Cidx) present(pdata_neighbor)
+
+        ptrdir = ptrDepart(dir)
+        Cidx = count_prefix(mask=(pdata_neighbor.eq.dir),exclusive=.true.)
+
+        !$acc parallel loop gang vector default(present)
+        do np=1,nparcelsLocalActive-1
+           if(Cidx(np) .ne. Cidx(np+1)) then
+             Depart_ind(ptrdir+Cidx(np))=np
+           endif
+        enddo
+        !$acc end parallel
+
+        ! special treament for the last value in the array
+        !$acc serial default(present)
+        if(pdata_neighbor(nparcelsLocalActive).eq.dir) then
+           Depart_ind(ptrdir+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
+        endif
+        !$acc end serial 
+
+        !$acc end data
+
+      end subroutine GatherIndices
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

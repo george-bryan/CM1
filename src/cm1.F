@@ -284,7 +284,6 @@ end module cuda_rt
       real :: mp_total,minval,temx,temy,temni,temnj
       double precision :: tstart,tend
       integer, dimension(:), allocatable :: isum,jsum
-      integer :: padding
 #endif
 #ifdef _OPENACC
       integer :: ndev,idev
@@ -3584,7 +3583,6 @@ end module cuda_rt
 
 
       if( dowriteout )then
-!#if 0
 #ifdef _NVTX
         call nvtxStartRange("writeout",id=6)
 #endif
@@ -3725,7 +3723,6 @@ end module cuda_rt
 #ifdef _NVTX
       call nvtxEndRange()
 #endif
-!#endif
         if(timestats.ge.1) time_write=time_write+mytime()
       endif
 

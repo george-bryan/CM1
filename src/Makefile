@@ -104,7 +104,7 @@ ifeq (${FC},nvfortran)
             #     -Minfo=accel    Provides verbose output for accelerator compilation phase
             #     -Mpcast         Enables the use of PCAST functionality
             ifeq (${GPU_TYPE_L},a100)
-                OPTS += -acc -gpu=cc80,lineinfo,nofma,math_uniform -Minfo=accel
+                OPTS += -acc -gpu=cc80,lineinfo,nofma,math_uniform -Minfo=accel -cudalib=cutensor 
             else
                 OPTS += -acc -gpu=cc70,lineinfo,nofma,math_uniform -Mpcast -Minfo=accel
             endif

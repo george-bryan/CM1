@@ -69,6 +69,8 @@
                                                   ! communication between MPI ranks;
                                                   ! this is a percent of
                                                   ! "nparcelsMax" value
+      integer :: padding                          ! The actual number of words used for 
+                                                  ! padding the "pdata" array
 
       real, parameter :: neg_huge = -1.0e30       ! define a large negative number
 
