@@ -534,7 +534,7 @@
     Depart(ise)    = numDepartSE
 
     numDepart=SUM(Depart)
-    if(numDepart .gt. 0) allocate(Depart_ind(max(numDepart,padding)))
+    if(numDepart .gt. 0) allocate(Depart_ind(numDepart))
     !$acc enter data create(Depart_ind)
 
     numHoles = numDepart + num_fallout + (nparcelsLocal-nparcelsLocalActive)
