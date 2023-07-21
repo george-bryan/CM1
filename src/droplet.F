@@ -533,9 +533,9 @@
     Depart(isw)    = numDepartSW
     Depart(ise)    = numDepartSE
 
-     numDepart=SUM(Depart)
-     if(numDepart .gt. 0) allocate(Depart_ind(max(numDepart,padding)))
-     !$acc enter data create(Depart_ind)
+    numDepart=SUM(Depart)
+    if(numDepart .gt. 0) allocate(Depart_ind(max(numDepart,padding)))
+    !$acc enter data create(Depart_ind)
 
     numHoles = numDepart + num_fallout + (nparcelsLocal-nparcelsLocalActive)
 
@@ -551,8 +551,7 @@
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      allocate(holes_ind(numHoles))
-!$acc enter data create(holes_ind)
-
+     !$acc enter data create(holes_ind)
 
      !$acc parallel loop gang vector default(present) 
      do np=1,nparcelsLocal
@@ -563,10 +562,12 @@
 #if (defined(_COUNTPREFIX) && defined(_OPENACC))
 
      !$acc data create(Cindx)
+
      !$acc parallel loop gang vector default(present)
      do np = 1, numHoles
        holes_ind(np) = undefined_index
      end do
+     !$acc end parallel
 
      ! Use a CUDA-based function count_prefix determins which array
      ! elements satisfy a particular condition.  For example consider
@@ -578,19 +579,21 @@
 
      ! collect the location of the special values into a smaller array
      !$acc parallel loop gang vector default(present)
-     do np=1,nparcelsLocal-1
-        if(Cindx(np).ne.Cindx(np+1)) then 
-           holes_ind(Cindx(np)+1)=np
-        endif
-     enddo
+     do np = 1, nparcelsLocal-1
+        if ( Cindx(np) .ne. Cindx(np+1) ) then 
+           holes_ind(Cindx(np)+1) = np
+        end if
+     end do
+     !$acc end parallel
 
      ! Special treatment for the last value in the array
-     !$acc parallel default(present) num_gangs(1) num_workers(1)
+     !$acc serial default(present)
      if(msk(nparcelsLocal)) then
        holes_ind(Cindx(nparcelsLocal)+1) = nparcelsLocal
      endif
-     !$acc end parallel 
-     !$acc end data  ! (Cindx)
+     !$acc end serial
+
+     !$acc end data
 
 #else
      !CPU based calculations 
@@ -710,13 +713,7 @@
     ! Step 5: Update the count of new active droplets with contiguous memory !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!    write(*,105) mtime,myid,nparcelsLocalActive, &
-!        (nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout), &
-!        sum(Arrive),sum(Depart),num_fallout
-!    call flush(6) 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
-! 105     format(f8.3,' myid: ',i4,' nlocalAct: ',i10,2x,i10,' num{Arrive,Depart,Fall}: ',i10,2x,i10,2x,i10)
-
 
 #else
 
@@ -808,7 +805,9 @@
       if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
          !Only start droplet injection after a specified time
          if (mtime .gt. drop_inject_time) then  !Only inject if past a certain time (specified in the namelist file)
+
             call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,mtime,my_reintro)
+
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
             !But makes sure that the interpolated mean quantities in droplet_diag are meaningful
