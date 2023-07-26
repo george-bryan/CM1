@@ -171,8 +171,7 @@
           qd_lsw,qd_hidiff,qd_vidiff,vd_cor,ud_cent,vd_cent,vd_hadv,wd_buoy,ud_pgrad,vd_pgrad, &
           wd_pgrad,td_div,kd_adv
       use constants
-      use bc_module, only: bc2d, bcs, bcu, bcv, bcw, bcwsfc, &
-                           radbcew4, radbcns4, bcs2
+      use bc_module
       use comm_module
       use adv_module
       use maxmin_module

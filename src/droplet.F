@@ -151,7 +151,6 @@
                  numDepartSW,numDepartSE,numDepartNE,numDepartNW
       integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
 
-#ifdef MPI 
       integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
       integer, dimension(:), allocatable :: Depart_ind     ! Index location in "pdata" of a point that is departing
@@ -162,7 +161,8 @@
       integer :: ptrDepart(num_nn)                         ! Points to the begining of Depart_ind for various departure buffers
       integer :: ptrArrive(num_nn)                         ! Points to the begining of holes_ind for various arrival buffers
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
-#endif
+
+
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
       integer :: numHoles                                  ! total number of empty holes in pdata 
@@ -209,7 +209,6 @@
 !  [Note:  for u,v the array index (i,j,0) means the surface, ie z=0]
 !     (for the parcel subroutines only!)
 
-#ifdef MPI
       !$acc data create(pdata_neighbor,msk)
 
       !$acc parallel loop gang vector default(present)
@@ -217,9 +216,10 @@
          pdata_neighbor(np) = undefined_index
       end do
       !$acc end parallel
-#else
-      !$acc data copyin (randomNumbers,randomNumbers%state)
-#endif
+!#ifdef MPI
+!#else
+!      !$acc data copyin (randomNumbers,randomNumbers%state)
+!#endif
 
     IF(bbc.eq.1)THEN
       ! free slip ... extrapolate:
@@ -396,17 +396,17 @@
         call find_horizontal_location_index (pdata_locind(np,2), y3d, jb, je+1, yf, nj+1, jflag)  
       ENDIF
 
-#ifdef MPI
-! JS: comment out this conflict check for the new MPI interface;
-!     otherwise there will be a droplet leak
-
-      ! check for conflict:
-!    IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
-!        (jflag.ge.1.and.jflag.le.nj) )THEN
-!      IF( iflag.eq.ni .and. pdata(np,prx).eq.xf(iflag+1) .and. nodex.gt.1 .and.  myi.ne.nodex ) iflag = -1
-!      IF( jflag.eq.nj .and. pdata(np,pry).eq.yf(jflag+1) .and. nodey.gt.1 .and.  myj.ne.nodey ) jflag = -1
-!    ENDIF
-#endif
+!#ifdef MPI
+!! JS: comment out this conflict check for the new MPI interface;
+!!     otherwise there will be a droplet leak
+!
+!      ! check for conflict:
+!!    IF( (iflag.ge.1.and.iflag.le.ni) .and.   &
+!!        (jflag.ge.1.and.jflag.le.nj) )THEN
+!!      IF( iflag.eq.ni .and. pdata(np,prx).eq.xf(iflag+1) .and. nodex.gt.1 .and.  myi.ne.nodex ) iflag = -1
+!!      IF( jflag.eq.nj .and. pdata(np,pry).eq.yf(jflag+1) .and. nodey.gt.1 .and.  myj.ne.nodey ) jflag = -1
+!!    ENDIF
+!#endif
 
       kflag = 1
       if( .not. terrain_flag )then
@@ -534,7 +534,7 @@
     Depart(ise)    = numDepartSE
 
     numDepart=SUM(Depart)
-    if(numDepart .gt. 0) allocate(Depart_ind(numDepart))
+    if(numDepart .gt. 0) allocate(Depart_ind(max(numDepart,padding)))
     !$acc enter data create(Depart_ind)
 
     numHoles = numDepart + num_fallout + (nparcelsLocal-nparcelsLocalActive)
@@ -585,6 +585,12 @@
         end if
      end do
      !$acc end parallel
+
+     !$acc update host(msk(nparcelsLocal),Cindx(nparcelsLocal))
+     if(msk(nparcelsLocal)) then 
+        print *,'numHoles: ',numHoles
+        print *,'Cindx(nparcelsLocal): ',Cindx(nparcelsLocal)
+     endif
 
      ! Special treatment for the last value in the array
      !$acc serial default(present)
@@ -702,6 +708,7 @@
     call comm_droplet_value(holes_ind,Depart_ind, Depart,Arrive, &
                             ptrDepart,ptrArrive, pdata)
 
+#endif
     ! On the GPU, compress the new "pdata" to make sure that all the active
     !     droplets are contiguous (no "holes" between "pdata" slots)
     call makeContiguous(Depart,Arrive,num_fallout,holes_ind,backfill_ind,pdata,pdata_locind)
@@ -715,34 +722,34 @@
 
     nparcelsLocalActive = nparcelsLocalActive + sum(Arrive) - sum(Depart) - num_fallout
 
-#else
-
-!----------------------------------------------------------------------
-!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
-!  num_fallout already contains the number which have fallen out
-
-   !Now transfer these to the end of the pdata list
-   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
-
-   ! JS: need to gpu-enable the following code section for a non-MPI run
-   do np=numHoles,1,-1
-      if (holes_ind(np) .eq. nparcelsLocalActive) then
-         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
-      else
-         pdata(holes_ind(np),:) = pdata(nparcelsLocalActive,:)
-         pdata_locind(holes_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
-         pdata_neighbor(holes_ind(np)) = pdata_neighbor(nparcelsLocalActive)
-         nparcelsLocalActive = nparcelslocalActive-1
-      end if
-      ! reset all the information for this "dead" droplet
-      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
-      pdata(nparcelsLocalActive+1,:) = neg_huge
-      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
-   end do
+!#else
+!
+!!----------------------------------------------------------------------
+!!  remove the "holes" due to droplets which fell out: collapse pdata and adjust nparcelsLocalActive
+!!  num_fallout already contains the number which have fallen out
+!
+!   !Now transfer these to the end of the pdata list
+!   !Simply move the last particle in the list, pdata(nparcelsLocalActive,:), to a hole and update nparcelsLocalActive
+!
+!   ! JS: need to gpu-enable the following code section for a non-MPI run
+!   do np=numHoles,1,-1
+!      if (holes_ind(np) .eq. nparcelsLocalActive) then
+!         nparcelsLocalActive = nparcelsLocalActive-1  !If the dead particle is at end, simply reduce nparcelsLocalActive
+!      else
+!         pdata(holes_ind(np),:) = pdata(nparcelsLocalActive,:)
+!         pdata_locind(holes_ind(np),:) = pdata_locind(nparcelsLocalActive,:)
+!         pdata_neighbor(holes_ind(np)) = pdata_neighbor(nparcelsLocalActive)
+!         nparcelsLocalActive = nparcelslocalActive-1
+!      end if
+!      ! reset all the information for this "dead" droplet
+!      pdata_locind(nparcelsLocalActive+1,:) = undefined_index
+!      pdata(nparcelsLocalActive+1,:) = neg_huge
+!      pdata_neighbor(nparcelsLocalActive+1) = undefined_index
+!   end do
 
     if(timestats.ge.1) time_droplet=time_droplet+mytime()
 
-#endif
+!#endif
 !$acc end data ! (pdata_neighbr,msk)
 
     ! free up the memory for temporary variables

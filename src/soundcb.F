@@ -29,9 +29,8 @@
           wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound,time_lb
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge,getdiv
-      use bc_module, only : bcs, bcwsfc, radbcew, radbcns, restrict_openbc_we, restrict_openbc_sn, &
-          ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
-      use comm_module, only : comm_1p_end,comm_1s_start,comm_1s_end,sync
+      use bc_module
+      use comm_module
       use ib_module
       implicit none
 

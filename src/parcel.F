@@ -704,7 +704,7 @@
           prw,prsig,time_parceli_reduce,time_lb,terrain_flag
       use constants
       use cm1libs , only : rslf,rsif
-      use bc_module, only: bcu2, bcv2, bcw2
+      use bc_module
       use comm_module
 #ifdef MPI
       use mpi

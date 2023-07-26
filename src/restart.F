@@ -150,6 +150,8 @@
       real, dimension(:,:), allocatable :: rbuf
       integer, dimension(0:numprocs-1) :: displacements, counts, cnts
       integer :: ierror
+#else
+      integer, dimension(0:0) :: counts
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -2277,9 +2279,9 @@
 #ifdef MPI
       integer :: proc,index,count,req1,req2,req3,reqp,tag
       integer :: beg_loc, end_loc
+#endif
       integer :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank
                                               ! that is read in from the restart file
-#endif
 #ifdef NETCDF
       integer :: varid,ncstatus
 #endif

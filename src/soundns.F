@@ -25,8 +25,7 @@
           zdeep,lamx,lamy,xcent,ycent,aconv,wnudge,t2_wnudge,zt,rzt,smeps,kdiv,csound
       use constants
       use misclibs , only : convinitu,convinitv,get_wnudge,getdiv
-      use bc_module, only: radbcew,radbcns, restrict_openbc_we, restrict_openbc_sn, &
-          ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn
+      use bc_module
       use ib_module
       implicit none
 

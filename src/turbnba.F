@@ -34,9 +34,8 @@
           ibt,iet,jbt,jet,kbt,ket,imp,jmp,rmp,kmt,cmp,ni,nj,nk,dx,dy,dz,myid, &
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
-      use bc_module, only: bc2d, bcs2, bct2, bcs2_2d
-      use comm_module, only : comm_1s_start,comm_1s_end,comm_2d_start, &
-          comm_2dew_end,comm_2dns_end,comm_2d_corner,getcorner,getcornert
+      use bc_module
+      use comm_module
       implicit none
 
 !-----------------------------------------------------------------------
@@ -472,8 +471,8 @@
           ibt,iet,jbt,jet,kbt,ket,imp,jmp,rmp,kmt,cmp,ni,nj,nk,dx,dy,dz,myid, &
           tconfig,rdx,rdy,rdz,bbc,axisymm
       use constants
-      use bc_module, only: bcs2
-      use comm_module, only : comm_1s_start,comm_1s_end,getcorner,getcornert
+      use bc_module
+      use comm_module
       implicit none
 
 !-----------------------------------------------------------------------

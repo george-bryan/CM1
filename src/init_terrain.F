@@ -17,7 +17,7 @@
 
       use input
       use constants
-      use bc_module, only: bc2d, bcs2_2d
+      use bc_module
       use adv_routines , only : zsgrad
       use comm_module
 #ifdef MPI

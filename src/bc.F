@@ -9,8 +9,11 @@
   public :: restrict_openbc_sn, restrict_openbc_we
   public :: ssopenbcw, ssopenbce, ssopenbcs, ssopenbcn, bcs_tend_halo
 
+  public :: bcs2
+#ifdef MPI
   !MPI + GPU enabled
-  public :: bcs2, bct2, bcu2, bcv2, bcw2, bcs2_2d
+  public :: bct2, bcu2, bcv2, bcw2, bcs2_2d
+#endif
 
   CONTAINS
 
@@ -230,14 +233,16 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine bcs_tend_halo(s)
+      subroutine bcs_tend_halo(s,device)
       use input, only : ib,ie,jb,je,kb,ke,ni,nj,nk,wbc,ebc,sbc,nbc, &
           time_bcst,timestats,mytime
       implicit none
 
       double precision, dimension(ib:ie,jb:je,kb:ke) :: s
+      logical, optional, intent(in) :: device
 
       integer i,j,k
+      logical :: openacc
 
       ! For periodic lateral boundary conditions only:  
       ! account for tendencies from halo zones. 

@@ -524,6 +524,7 @@ contains
      if(timestats.ge.1) time_dropC4f=time_dropC4f+mytime()
 
   end subroutine comm_droplet_value
+#endif
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -860,6 +861,5 @@ contains
 
   end subroutine update_new_droplet
 
-#endif
 
 end module comm_droplet_module

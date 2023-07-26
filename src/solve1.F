@@ -166,7 +166,7 @@
           td_nudge,qd_nudge
 
       use constants
-      use bc_module, only: radbcew, radbcns 
+      use bc_module
       use comm_module
       use diff2_module
       use turbtend_module

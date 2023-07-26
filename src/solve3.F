@@ -165,8 +165,7 @@
           output_rain,output_sws,output_svs,output_sps,output_srs,output_sgs,output_sus,output_shs
 
       use constants
-      use bc_module, only: bc2d, bcs, bcu, bcv, bcw, bcwsfc, &
-          bcs_tend_halo, bcs2, bcu2, bcv2, bcw2
+      use bc_module
       use comm_module
       use maxmin_module
       use adv_routines, only : movesfc

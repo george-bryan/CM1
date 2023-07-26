@@ -4,6 +4,7 @@
   private
   public :: nabor
 
+#ifdef MPI
   !GPU enabled routines 
   public :: comm_2d_start,comm_2dns_end,comm_2dew_end
   public :: comm_1s_start,comm_1s_end
@@ -22,9 +23,11 @@
   public :: comm_1s_tend_halo,comm_1u_tend_halo,comm_1v_tend_halo
   public :: getcorneru,getcornerv,getcornert,getcornerw,getcorner
   public :: getcorneru3,getcornerv3,getcornerw3
-  public :: prepcorners3,prepcornert,prepcorners
   public :: comm_all_s
   public :: getcorner3_2d
+#endif
+
+  public :: prepcorners3,prepcornert,prepcorners
 
   public :: sync
 
@@ -34,7 +37,9 @@
      subroutine sync()
       use mpi
       integer :: ierr
+#ifdef MPI
       call MPI_BARRIER (MPI_COMM_WORLD,ierr)
+#endif
      end subroutine
 
 !-----------------------------------------------------------------------
@@ -6141,7 +6146,7 @@
                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,device)
 
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt
-      use bc_module, only: bcs2
+      use bc_module
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -6171,7 +6176,7 @@
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,reqs_p,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
-      use bc_module, only: bcs,bcs2
+      use bc_module
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -6237,7 +6242,7 @@
                                 n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
-      use bc_module, only: bcs
+      use bc_module
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: s
@@ -6297,7 +6302,7 @@
                                tkw1,tkw2,tke1,tke2,tks1,tks2,tkn1,tkn2,reqs_p,comm)
       use input, only : ib,ie,jb,je,kb,ke,imp,jmp,kmp,cmp,rmp,kmt,ni,nj,nk, &
           tbc,bbc,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3
-      use bc_module, only: bcw, bct2
+      use bc_module
       implicit none
 
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: t

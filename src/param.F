@@ -26,8 +26,8 @@
       use input
       use constants
       use init_terrain_module
-      use bc_module, only: bcs
-      use comm_module, only: comm_all_s,nabor
+      use bc_module
+      use comm_module
       use bcast_module
       use ib_module
       use eddy_recycle

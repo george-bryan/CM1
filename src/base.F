@@ -34,10 +34,8 @@
                       sw31,sw32,se31,se32,ss31,ss32,sn31,sn32)
       use input
       use constants
-      use bc_module, only: bcu, bcv, bcs, extrapbcs, &
-          bcu2, bcv2
-      use comm_module, only: comm_all_s,getcorneru3,getcornerv3, &
-          comm_3u_start,comm_3u_end,comm_3v_start,comm_3v_end
+      use bc_module
+      use comm_module
       use goddard_module, only : T0K,T00K,RT0
       use cm1libs , only : rslf,rsif
       use turb_module , only : ramp_up_turb

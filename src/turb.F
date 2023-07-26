@@ -77,7 +77,7 @@
           bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,bl_mynn_output,bl_mynn_cloudmix,bl_mynn_mixqt, &
           icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag
       use constants
-      use bc_module, only: bc2d, bcw, bcs, bcu2, bcv2, bcw2, bcs2_2d
+      use bc_module
       use comm_module
       use misclibs , only : calcksquick
       use sfcphys_module
@@ -2294,7 +2294,7 @@
           ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
           dx,dy,dz,myid,timestats,time_turb,time_lb,mytime,tconfig 
       use constants
-      use bc_module, only: bcw, bct2
+      use bc_module
       use comm_module
       implicit none
 
@@ -2523,7 +2523,7 @@
           ibt,iet,jbt,jet,kbt,ket,ib3d,ie3d,jb3d,je3d,kb3d,ke3d,nout3d,ni,nj,nk, &
           dx,dy,dz,myid,timestats,time_turb,time_lb,mytime,tbc,bbc
       use constants
-      use bc_module, only: bc2d, bcs2_2d
+      use bc_module
       use comm_module
       implicit none
 
@@ -2686,7 +2686,7 @@
           jb3d,je3d,kb3d,ke3d,nout3d,imp,jmp,kmt,ni,nj,nk,dx,dy,dz,tconfig, &
           myid,timestats,time_turb,mytime,bbc
       use constants
-      use bc_module, only: bc2d, bcw, bct2, bcs2_2d
+      use bc_module
       use comm_module
       implicit none
 
@@ -2944,7 +2944,7 @@
           jb3d,je3d,kb3d,ke3d,nout3d,kmt,imp,jmp,ni,nj,nk,nx,ny,dx,dy,timestats, &
           time_turb,mytime,l_h,lhref1,lhref2,idiss,output_dissten
       use constants
-      use bc_module, only: bcw, bct2
+      use bc_module
       use comm_module
       implicit none
 
@@ -3110,7 +3110,7 @@
           jb3d,je3d,kb3d,ke3d,nout3d,imp,jmp,kmt,ni,nj,nk,timestats,time_turb, &
           mytime,idiss,output_dissten,bbc,myid,l_inf
       use constants
-      use bc_module, only: bc2d, bcw, bct2, bcs2_2d
+      use bc_module
       use comm_module
       implicit none
 

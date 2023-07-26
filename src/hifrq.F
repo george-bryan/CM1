@@ -54,7 +54,7 @@
     use constants
     use cm1libs , only : rslf,rsif
     use adv_module , only : advs
-    use bc_module, only: bcs
+    use bc_module
     use ib_module
 #ifdef NETCDF
     use writeout_nc_module , only : writehifrq_nc

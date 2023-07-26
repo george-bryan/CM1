@@ -78,7 +78,7 @@
       use constants
       use misclibs
       use cm1libs , only : rslf,rsif
-      use bc_module, only: bcu, bcv, bcw, bcs
+      use bc_module
       use module_mp_nssl_2mom, only: ccn, lccn
       use poiss_module
       use parcel_module , only : getparcelzs
@@ -2133,8 +2133,7 @@
       use input
       use constants
       use misclibs
-      use bc_module, only: bc2d, bcu, bcv, bcw, bcwsfc, bcs, &
-          bcs2, bcs2_2d
+      use bc_module
       use comm_module
       use parcel_module , only : getparcelzs
       use ib_module

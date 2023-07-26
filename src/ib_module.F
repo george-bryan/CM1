@@ -31,7 +31,7 @@
         rmp,cmp,jmp,imp,ni,nj,nk,nx,ny,nz,dx,testcase,miny,maxy,minx,maxx,ierr, &
         myid,dowr,nf,nu,nv,nw,centerx,centery,dowr,outfile
     use constants
-    use bc_module, only: bc2d, bcs2_2d
+    use bc_module
     use comm_module
 #ifdef MPI
     use mpi

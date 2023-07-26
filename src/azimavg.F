@@ -2605,7 +2605,7 @@
 
       use input
       use constants
-      use bc_module, only: bc2d, bcs2_2d
+      use bc_module
 #ifdef MPI
       use comm_module
       use mpi
