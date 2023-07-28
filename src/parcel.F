@@ -1751,6 +1751,7 @@
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif
+      use constants, only : i8
       implicit none
 
       integer, intent(inout) :: prec
@@ -1761,13 +1762,13 @@
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(inout), dimension(:,:) :: ploc
 
-      integer :: i,n,np,nparcelstot
+      integer :: i,n,np
+      integer(i8) :: nparcelstot
 
 #ifdef MPI
-      real, dimension(:),allocatable :: sbuf
+      integer :: nparcels_per_mpi(numprocs)
+      integer(i8) :: nparcelstot
       real, dimension(:,:),allocatable :: rbuf
-      integer, dimension(0:numprocs-1) :: displacements, counts, cnts
-      integer :: ierror
 #endif
 
 !----------------------------------------------------------------------
@@ -1775,45 +1776,13 @@
 
     !$acc update host(pdata)
 
-    ! JS: use MPI_GATHERV to collect all the droplet information
-    !     from different MPI ranks;
-    !     also collect the number of active droplets from each MPI rank
-
 #ifdef MPI
-    ! local buffer for sending array on each MPI rank
-    allocate(sbuf(0:nparcelsLocalActive-1))
-    if ( myid .eq. 0 ) then
-       ! initialize the displacement and count for the mpi_gatherv call
-       do i = 0, numprocs-1
-          displacements(i) = i
-          counts(i) = 1 
-       end do
-    end if
-    ! collect number of active droplets from each MPI rank
-    call mpi_gatherv(nparcelsLocalActive,1,MPI_INTEGER,cnts,counts, &
-                     displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
-    if ( myid .eq. 0 ) then
-       ! update the displacement and count for the second mpi_gatherv call
-       do i = 0, numprocs-1
-          if ( i == 0 ) then
-             displacements(i) = 0
-          else
-             displacements(i) = sum(cnts(0:i-1))
-          end if
-          counts(i) = cnts(i)
-       end do
-       ! local buffer for receiving array on root rank
-       nparcelstot = sum(counts)
-       allocate(rbuf(0:nparcelstot-1,0:npvals-1))
-    end if
-    ! collect the information of active droplets from each MPI rank
-    do i = 0, npvals-1
-       do np = 0, nparcelsLocalActive-1
-          sbuf(np) = pdata(np+1,i+1)
-       end do
-       call mpi_gatherv(sbuf,nparcelsLocalActive,MPI_REAL,rbuf(:,i),counts, &
-                        displacements,MPI_REAL,0,mpi_comm_world,ierror)
-    end do
+    ! Collect number of active droplets from each MPI rank
+    call CollectDropCount ( nparcels_per_mpi, nparcelstot )
+
+    ! Collect information of active droplets from each MPI rank
+    if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvars))
+    call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
 #endif
 
     IF(myid.eq.0)THEN
@@ -1833,10 +1802,7 @@
         string = 'cm1out_pdata_'//prec_string//'.dat'
         if (dowr) write(*,*) 'DHR3:',string
 
-!!!        write(string(15:20),101) prec
-!!!101     format(i6.6)
-
-        if(dowr) write(outfile,*) string
+        if (dowr) write(outfile,*) string
         open(unit=61,file=string,form='unformatted',status='unknown')
 
         if(dowr) write(outfile,*)
@@ -1845,7 +1811,7 @@
 
         write(61) nparcelstot
 #ifdef MPI
-        write(61) rbuf(0:nparcelstot-1,0:npvals-1)
+        write(61) rbuf(1:nparcelstot,1:npvals)
 #else
         write(61) pdata(1:nparcelsLocalActive,1:npvals)
 #endif
@@ -1853,7 +1819,7 @@
         close(unit=61)
 
 #ifdef MPI     
-        deallocate(rbuf)
+        if (myid .eq. 0) deallocate(rbuf)
 #endif
 
 #ifdef NETCDF

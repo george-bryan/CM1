@@ -1,5 +1,7 @@
   MODULE init3d_module
 
+  use constants, only : i8
+
   implicit none
 
   private
@@ -129,7 +131,8 @@
  
 !-----------------------------------------------------------------------
 
-      integer i,j,k,kk,l,n,nn,nbub,nloop
+      integer(i8) :: n
+      integer i,j,k,kk,l,nn,nbub,nloop
       integer ic,jc,ifoo,jfoo
       real ric,rjc
       real xc,yc,zc,bhrad,bvrad,bptpert,beta,tmp,zdep
@@ -410,12 +413,12 @@
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
         !
         ! The generated random number is independent of compilers and MPI ranks
-        call new_RandomNumberSequence(randomNumbers, nparcelsMax)
+        call new_RandomNumberSequence(randomNumbers, int(nparcelsMax, i8))
 
         i = 1
         nparcelsLocalActive = 0
 
-        do n=1,nparcelsInit
+        do n=1,int(nparcelsInit, i8)
 
           rand = getRandomReal(randomNumbers)
           tmpx = rand*maxx
@@ -1577,7 +1580,7 @@
           !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
           !
           ! The generated random number is independent of compilers and MPI ranks
-          call new_RandomNumberSequence(randomNumbers, (nx+1)*(ny+1))
+          call new_RandomNumberSequence(randomNumbers, int((nx+1)*(ny+1), i8))
           do jj = 0,ny+1
           do ii = 0,nx+1
             rand = getRandomReal(randomNumbers)

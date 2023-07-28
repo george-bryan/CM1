@@ -146,10 +146,9 @@
       integer :: proc,index,count,req1,req2,req3,reqp
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
-      real, dimension(:), allocatable :: sbuf
+      integer :: nparcels_per_mpi(numprocs)
+      integer(i8) :: nparcelstot
       real, dimension(:,:), allocatable :: rbuf
-      integer, dimension(0:numprocs-1) :: displacements, counts, cnts
-      integer :: ierror
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -1683,52 +1682,21 @@
         !$acc update host(pdata) if_present
 
 #ifdef MPI
-        ! Collect the droplet information before writing out to a file
+        ! Collect number of active droplets from each MPI rank
+        call CollectDropCount ( nparcels_per_mpi, nparcelstot )
 
-        ! local buffer for sending array on each MPI rank
-        allocate( sbuf(0:nparcelsLocalActive-1) )
-        if ( myid .eq. 0 ) then
-           ! initialize the displacement and count for the mpi_gatherv call
-           do i = 0, numprocs-1
-              displacements(i) = i
-              counts(i) = 1
-           end do
-        end if
-        ! collect number of active droplets from each MPI rank
-        call mpi_gatherv(nparcelsLocalActive,1,MPI_INTEGER,cnts,counts, &
-                         displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
-        if ( myid .eq. 0 ) then
-           ! update the displacement and count for the second mpi_gatherv call
-           do i = 0, numprocs-1
-              if ( i == 0 ) then
-                 displacements(i) = 0
-              else
-                 displacements(i) = sum(cnts(0:i-1))
-              end if
-              counts(i) = cnts(i)
-           end do
-           ! update "nparcelsRest" as the current total number of active droplets
-           nparcelsRest = sum(counts)
-           allocate(rbuf(0:nparcelsRest-1,0:npvars-1))
-        end if
-        ! collect the information of active droplets from each MPI rank
-        do i = 1, npvars
-           do np = 0, nparcelsLocalActive-1
-              sbuf(np) = pdata(np+1,i)
-           end do
-           call mpi_gatherv(sbuf,nparcelsLocalActive,MPI_REAL,rbuf(0,i-1),counts, &
-                            displacements,MPI_REAL,0,mpi_comm_world,ierror)
-        end do
-        deallocate(sbuf)
+        ! Collect information of active droplets from each MPI rank
+        if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvars))
+        call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
 #else
-        nparcelsRest = nparcelsLocalActive
+        nparcelsRest = int(nparcelsLocalActive, i8)
 #endif
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
-            write(50) nparcelsRest
+            write(50) real(nparcelsRest)
             ! write out the number of active droplets per MPI rank
-            do i = 0, numprocs-1
-               write(50) counts(i)
+            do i = 1, numprocs
+               write(50) nparcels_per_mpi(i)
             end do
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -1744,7 +1712,7 @@
             write(50) rbuf
             deallocate(rbuf)            
 #else
-            write(50) pdata(1:nparcelsRest,1:npvars)
+            write(50) pdata(1:nparcelsLocalActive,1:npvars)
 #endif
 #ifdef NETCDF
           elseif( restart_format.eq.2 )then
@@ -2276,9 +2244,13 @@
       real, dimension(:,:), allocatable :: rbuf, tmp_buf
 #ifdef MPI
       integer :: proc,index,count,req1,req2,req3,reqp,tag
-      integer :: beg_loc, end_loc
-      integer :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank
-                                              ! that is read in from the restart file
+      integer(i8) :: beg_loc,end_loc,np_i8
+      integer :: nparcels_per_mpi(numprocs)       ! number of active droplets per MPI rank
+                                                  ! that is read in from the restart file
+      real :: nparcelsRest_tmp                    ! "real" type of nparcelsRest to
+                                                  ! account for > 2 billions droplets
+                                                  ! that can not be sent through MPI using
+                                                  ! integer type
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -3691,7 +3663,8 @@
 
       if( myid.eq.0 )then
         if( restart_format.eq.1 )then
-          read(50) nvar
+          read(50) nparcelsRest_tmp
+          nparcelsRest = int(nparcelsRest_tmp, i8)
           ! Read in the number of active droplets for each MPI rank
           do i = 1, numprocs
              read(50) nparcels_per_mpi(i)
@@ -3699,23 +3672,24 @@
 #ifdef NETCDF
         elseif( restart_format.eq.2 )then
           call disp_err( nf90_inq_varid(ncid,"numparcels",varid) , .true. )
-          call disp_err( nf90_get_var(ncid,varid,nvar,(/time_index/)) , .true. )
-          if( iprcl.eq.0 ) nvar = 0
+          call disp_err( nf90_get_var(ncid,varid,nparcelsRest,(/time_index/)) , .true. )
+          if( iprcl.eq.0 ) nparcelsRest = 0
 #endif
         endif
-        print *,'  nvar_parcels = ',nvar
+        print *,'  nparcelsRest = ',nparcelsRest
       endif
 
-      call bcast_int(nvar)
+      call bcast_real(nparcelsRest_tmp)
+      nparcelsRest = int(nparcelsRest_tmp, i8)
 
-      if ( iprcl.eq.1 .or. nvar.gt.0 ) then
-         if ( nvar.gt.0 ) then
+      if ( iprcl.eq.1 .or. nparcelsRest.gt.0 ) then
+         if ( nparcelsRest.gt.0 ) then
             ! only read position info:
             if ( myid.eq.0 ) then
                ! reset "pdata" that is initialized by the init3d subroutine
                pdata(:,:) = neg_huge
                if ( restart_format.eq.1 ) then
-                  allocate( rbuf(nvar,npvars) )
+                  allocate( rbuf(nparcelsRest,npvars) )
                   read(50) rbuf 
 #ifdef NETCDF
                else if ( restart_format.eq.2 ) then
@@ -3731,9 +3705,14 @@
                if ( myid .eq. 0 ) then
                   do i = 1, numprocs - 1
                      allocate( tmp_buf(nparcels_per_mpi(i+1),npvars) )
-                     beg_loc = sum(nparcels_per_mpi(1:i))+1
-                     end_loc = beg_loc+nparcels_per_mpi(i+1)-1
-                     tmp_buf(:,:) = rbuf(beg_loc:end_loc,:)
+                     beg_loc = int(sum(real(nparcels_per_mpi(1:i))) + 1, i8)
+                     end_loc = int(real(beg_loc) + real(nparcels_per_mpi(i+1)) - 1, i8)
+                     do j = 1, npvars
+                        do np_i8 = beg_loc, end_loc
+                           np = int(real(np_i8) - real(beg_loc) + 1)
+                           tmp_buf(np,j) = rbuf(np_i8,j)
+                        end do
+                     end do
                      tag = 98765 + i
                      call mpi_send(tmp_buf,nparcels_per_mpi(i+1)*npvars, &
                                    MPI_REAL,i,tag,MPI_COMM_WORLD,ierr)
@@ -3747,22 +3726,22 @@
                                 MPI_STATUS_IGNORE,ierr)
                end if
 #endif
+               nparcelsLocalActive = nparcels_per_mpi(myid+1) 
                if ( myid .eq. 0 ) then
-                  do np = 1, nparcels_per_mpi(myid+1)
+                  do np = 1, nparcelsLocalActive 
                      do i = 1, npvars
                         pdata(np,i) = rbuf(np,i)
                      end do
                   end do
                   deallocate( rbuf )
                else
-                  do np = 1, nparcels_per_mpi(myid+1)
+                  do np = 1, nparcelsLocalActive
                      do i = 1, npvars
                         pdata(np,i) = tmp_buf(np,i)
                      end do
                   end do
                   deallocate( tmp_buf )
                end if
-               nparcelsLocalActive = nparcels_per_mpi(myid+1) 
                restart_prcl = .true.
             end if   ! if iprcl.eq.1
          else

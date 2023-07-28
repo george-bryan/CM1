@@ -152,7 +152,6 @@
       integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
 
 #ifdef MPI 
-      integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
       integer, dimension(:), allocatable :: Depart_ind     ! Index location in "pdata" of a point that is departing
       integer :: Depart(num_nn)                            ! Number of droplets that will enter each nearest 
@@ -191,7 +190,7 @@
       ! 2) Otherwise, use David's original form with date and time to achieve
       !    more randomness but unmatched results between initial and restart runs
       local_seed = int(mtime) * 1000 + myid          ! -(myid+values(8)+values(7)+values(6))
-      call new_RandomNumberSequence(randomNumbers, local_seed)
+      call new_RandomNumberSequence(randomNumbers, int(local_seed,i8))
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
       errcode     = 0  ! Number of errors that occurred in the index search 
@@ -1951,7 +1950,7 @@
       real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
-      integer :: tnumpart
+      integer(i8) :: tnumpart
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop,tnumaerosol
 
       real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
@@ -3176,7 +3175,8 @@
       double precision, intent(in) :: mtime
       integer, intent(out) :: my_reintro
     
-      integer :: i,np,tot_after_reintro
+      integer :: i,np
+      integer(i8) :: tot_after_reintro
       integer :: sum_buf(2)
       real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
       real :: binsdata(100)  !Discretized bins for cumulative SSGF
@@ -3281,7 +3281,7 @@
                ! initialize a new random number generator for each
                ! injected droplet
                local_seed = floor(29.*mtime) + (97*myid) + (7*j)
-               call new_RandomNumberSequence(randomNumbers, local_seed)
+               call new_RandomNumberSequence(randomNumbers,int(local_seed, i8))
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
                !Set the droplet radius based on the sea spray generation function (SSGF)
@@ -3432,7 +3432,8 @@
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
       real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk)
-      integer, intent(in)    :: tnumpart,nbins
+      integer, intent(in)    :: nbins
+      integer(i8), intent(in) :: tnumpart
 
       integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid,binsid
       logical :: allinfo

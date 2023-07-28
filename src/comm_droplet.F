@@ -15,6 +15,7 @@ private
 public :: comm_droplet_number,comm_droplet_value
 public :: setupIndexPointers, setupDepartDroplet
 public :: makeContiguous
+public :: CollectDropCount, CollectDropInfo
 
 contains
 
@@ -215,8 +216,6 @@ contains
     integer, intent(in) :: ptrArrive(num_nn)                             ! location index into holes_ind 
     integer, intent(in) :: ptrDepart(num_nn)                             ! location index into Depart_ind 
     real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata        ! droplet information
-    ! integer, intent(in), dimension(nparcelsLocal) :: pdata_neighbor      ! array to store the new MPI region 
-    !                                                                      ! info for all the droplets
 
     ! Local variables
 
@@ -858,7 +857,115 @@ contains
        end do
      end do
 
-  end subroutine update_new_droplet
+     end subroutine update_new_droplet
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+     subroutine CollectDropCount ( nparcels_per_mpi, nparcelstot )
+
+     ! This subroutine will collect the active droplet count from each
+     ! MPI rank and assemble them into a single array for later usage.
+     ! It works for > 2 billions droplets that can not be represented 
+     ! by a normal integer type of length
+
+     use constants, only : i8
+     use input, only : myid,numprocs,ierr,nparcelsLocalActive
+
+     implicit none
+
+     integer, intent(out) :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank     
+     integer(i8), intent(out) :: nparcelstot              ! total number of active droplets
+                                                          ! over the whole domain
+
+     ! Local variable
+     integer :: i,tag
+
+     ! Collect the number of active droplets from each MPI rank
+     if ( myid .eq. 0 ) then
+        nparcels_per_mpi(1) = nparcelsLocalActive
+        do i = 2, numprocs
+           tag = 98765 + i - 1
+           call mpi_recv(nparcels_per_mpi(i),1,MPI_INTEGER,i-1, &
+                         tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE,ierr)
+        end do
+     else
+        tag = 98765 + myid
+        call mpi_send(nparcelsLocalActive,1,MPI_INTEGER, &
+                      0,tag,MPI_COMM_WORLD,ierr)
+
+     end if
+     nparcelstot = int(sum(real(nparcels_per_mpi)), i8)
+
+     end subroutine CollectDropCount
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+     subroutine CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
+
+     ! This subroutine will collect the "pdata" information from each
+     ! MPI rank and assemble them into a single big array "rbuf" for 
+     ! writing out later.
+     ! It works for > 2 billions droplets that can not be represented 
+     ! by a normal integer type of length
+
+     use constants, only : i8
+     use input, only : myid,numprocs,ierr,nparcelsLocalActive
+
+     implicit none
+
+     real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
+     integer, intent(in) :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank     
+     integer(i8), intent(in) :: nparcelstot              ! total number of active droplets
+                                                         ! over the whole domain
+     real, intent(out), :: rbuf(:,:)                     ! buffer to store all the active droplet 
+                                                         ! information over the domain
+
+     ! Local variable
+     integer :: i,np,iv,tag
+     integer(i8) :: beg_loc,end_loc,np_i8
+     real, dimension(:,:), allocatable :: tmp_buf
+
+     ! Collect the information of active droplets from each MPI rank
+     if ( myid .eq. 0 ) then
+        do iv = 1, npvars
+           do np = 1, nparcelsLocalActive
+              rbuf(np,iv) = pdata(np,iv)
+           end do
+        end do
+        do i = 2, numprocs
+           allocate( tmp_buf(nparcels_per_mpi(i),npvars) )
+           tag = 98765 + i - 1
+           call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvars, &
+                         MPI_REAL,i-1,tag,MPI_COMM_WORLD, &
+                         MPI_STATUS_IGNORE,ierr)
+           beg_loc = int(sum(real(nparcels_per_mpi(1:i-1)))+1, i8)
+           end_loc = int(real(beg_loc)+real(nparcels_per_mpi(i))-1, i8)
+           do iv = 1, npvars
+              do np_i8 = beg_loc, end_loc 
+                 np = int(real(np_i8) - real(beg_loc) + 1)
+                 rbuf(np_i8,iv) = tmp_buf(np,iv)
+              end do
+           end do
+           deallocate(tmp_buf)
+        end do
+     else
+        tag = 98765 + myid
+        allocate( tmp_buf(nparcelsLocalActive,npvars) )
+        do iv = 1, npvars
+           do np = 1, nparcelsLocalActive
+              tmp_buf(np,iv) = pdata(np,iv)
+           end do
+        end do
+        call mpi_send(tmp_buf,nparcelsLocalActive*npvars, &
+                      MPI_REAL,0,tag,MPI_COMM_WORLD,ierr)
+        deallocate(tmp_buf)
+     end if
+
+     end subroutine CollectDropInfo
 
 #endif
 

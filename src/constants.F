@@ -14,6 +14,8 @@
 
       !----------------
 
+      integer,parameter :: i8 = selected_int_kind(15)
+
       real, parameter ::  pi     = 3.1415926535897932384626433
       real, parameter ::  th0r   = 300.0
       real, parameter ::  to     = 273.15

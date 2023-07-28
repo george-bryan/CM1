@@ -297,8 +297,8 @@
       call bcast_int(npt)
       call bcast_int(pdtra)
       call bcast_int(iprcl)
-      call bcast_int(nparcelsInit) ! DEVICE
-      call bcast_int(nparcelsMax)
+      call bcast_real(nparcelsInit) ! DEVICE
+      call bcast_real(nparcelsMax)
       call bcast_real(injectHMax)
       call bcast_real(drop_inject_elapse)
       call bcast_real(drop_inject_time)

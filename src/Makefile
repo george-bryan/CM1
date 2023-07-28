@@ -410,3 +410,5 @@ turbtend.o: constants.o input.o cm1libs.o
 turbnba.o: constants.o input.o bc.o comm.o
 writeout.o: constants.o input.o bc.o comm.o writeout_nc.o misclibs.o getcape.o ib_module.o cm1libs.o
 writeout_nc.o: constants.o input.o
+mersennetwister_mod.o: constants.o
+input.o: constants.o
