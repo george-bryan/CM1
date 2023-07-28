@@ -2346,7 +2346,7 @@
       subroutine write_prclctl(name_prcl,desc_prcl,unit_prcl,prec)
       use input, only : maxvars,myid,string,maxstring,dowr,cm1version, &
           nparcelsInit,prcl_out,outfile
-      use constants , only : grads_undef
+      use constants , only : grads_undef, i8
       implicit none
 
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
@@ -2375,7 +2375,7 @@
       write(50,401) string
       write(50,402) trim(cm1version)
       write(50,403) grads_undef
-      write(50,404) nparcelsInit
+      write(50,404) int(nparcelsInit, i8)
       write(50,405)
       write(50,406)
       write(50,407) prec
@@ -2403,7 +2403,7 @@
 401   format('dset ^',a)
 402   format('title CM1 parcel data output, using version ',a,'; time is generic, see variable mtime for actual times')
 403   format('undef ',f10.1)
-404   format('xdef ',i10,' linear 1 1')
+404   format('xdef ',i15,' linear 1 1')
 405   format('ydef          1 linear 0 1')
 406   format('zdef          1 linear 0 1')
 407   format('tdef ',i10,' linear 00:00Z01JAN0001 1YR')
