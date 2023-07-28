@@ -49,6 +49,7 @@
       use lsnudge_module
 #ifdef MPI
       use mpi
+      use comm_droplet :: CollectDropCount, CollectDropInfo
 #endif
 #ifdef NETCDF
       use netcdf
@@ -1686,7 +1687,7 @@
         call CollectDropCount ( nparcels_per_mpi, nparcelstot )
 
         ! Collect information of active droplets from each MPI rank
-        if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvars))
+        if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvals))
         call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
 #else
         nparcelsRest = int(nparcelsLocalActive, i8)
@@ -1709,7 +1710,7 @@
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
 #ifdef MPI
-            write(50) rbuf
+            write(50) rbuf(1:nparcelstot,1:npvars)
             deallocate(rbuf)            
 #else
             write(50) pdata(1:nparcelsLocalActive,1:npvars)

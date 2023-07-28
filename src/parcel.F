@@ -1747,6 +1747,7 @@
                         nparcelsLocalActive
 #ifdef MPI
       use mpi
+      use comm_droplet :: CollectDropCount, CollectDropInfo
 #endif
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
@@ -1781,7 +1782,7 @@
     call CollectDropCount ( nparcels_per_mpi, nparcelstot )
 
     ! Collect information of active droplets from each MPI rank
-    if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvars))
+    if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvals))
     call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
 #endif
 

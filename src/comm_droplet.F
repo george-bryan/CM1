@@ -872,6 +872,7 @@ contains
 
      use constants, only : i8
      use input, only : myid,numprocs,ierr,nparcelsLocalActive
+     use mpi
 
      implicit none
 
@@ -913,7 +914,9 @@ contains
      ! by a normal integer type of length
 
      use constants, only : i8
-     use input, only : myid,numprocs,ierr,nparcelsLocalActive
+     use input, only : myid,numprocs,ierr,nparcelsLocalActive, &
+                       nparcelsLocal,npvals
+     use mpi
 
      implicit none
 
@@ -921,7 +924,7 @@ contains
      integer, intent(in) :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank     
      integer(i8), intent(in) :: nparcelstot              ! total number of active droplets
                                                          ! over the whole domain
-     real, intent(out), :: rbuf(:,:)                     ! buffer to store all the active droplet 
+     real, intent(out) :: rbuf(:,:)                      ! buffer to store all the active droplet 
                                                          ! information over the domain
 
      ! Local variable
@@ -931,20 +934,20 @@ contains
 
      ! Collect the information of active droplets from each MPI rank
      if ( myid .eq. 0 ) then
-        do iv = 1, npvars
+        do iv = 1, npvals
            do np = 1, nparcelsLocalActive
               rbuf(np,iv) = pdata(np,iv)
            end do
         end do
         do i = 2, numprocs
-           allocate( tmp_buf(nparcels_per_mpi(i),npvars) )
+           allocate( tmp_buf(nparcels_per_mpi(i),npvals) )
            tag = 98765 + i - 1
-           call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvars, &
+           call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvals, &
                          MPI_REAL,i-1,tag,MPI_COMM_WORLD, &
                          MPI_STATUS_IGNORE,ierr)
            beg_loc = int(sum(real(nparcels_per_mpi(1:i-1)))+1, i8)
            end_loc = int(real(beg_loc)+real(nparcels_per_mpi(i))-1, i8)
-           do iv = 1, npvars
+           do iv = 1, npvals
               do np_i8 = beg_loc, end_loc 
                  np = int(real(np_i8) - real(beg_loc) + 1)
                  rbuf(np_i8,iv) = tmp_buf(np,iv)
@@ -954,13 +957,13 @@ contains
         end do
      else
         tag = 98765 + myid
-        allocate( tmp_buf(nparcelsLocalActive,npvars) )
-        do iv = 1, npvars
+        allocate( tmp_buf(nparcelsLocalActive,npvals) )
+        do iv = 1, npvals
            do np = 1, nparcelsLocalActive
               tmp_buf(np,iv) = pdata(np,iv)
            end do
         end do
-        call mpi_send(tmp_buf,nparcelsLocalActive*npvars, &
+        call mpi_send(tmp_buf,nparcelsLocalActive*npvals, &
                       MPI_REAL,0,tag,MPI_COMM_WORLD,ierr)
         deallocate(tmp_buf)
      end if
