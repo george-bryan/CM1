@@ -49,7 +49,7 @@
       use lsnudge_module
 #ifdef MPI
       use mpi
-      use comm_droplet :: CollectDropCount, CollectDropInfo
+      use comm_droplet, only : CollectDropCount, CollectDropInfo
 #endif
 #ifdef NETCDF
       use netcdf

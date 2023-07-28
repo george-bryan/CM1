@@ -1747,7 +1747,7 @@
                         nparcelsLocalActive
 #ifdef MPI
       use mpi
-      use comm_droplet :: CollectDropCount, CollectDropInfo
+      use comm_droplet, only : CollectDropCount, CollectDropInfo
 #endif
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
