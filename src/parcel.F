@@ -1763,8 +1763,7 @@
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(inout), dimension(:,:) :: ploc
 
-      integer :: i,n,np
-      integer(i8) :: nparcelstot
+      integer :: i
 
 #ifdef MPI
       integer :: nparcels_per_mpi(numprocs)
