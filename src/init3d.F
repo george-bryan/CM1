@@ -179,7 +179,7 @@
       logical, parameter :: use_truly_random_pert  =  .false.
 
       real :: tmpx, tmpy, tmpz
-      integer :: np_tmp
+      real :: np_tmp
 
 !--------------------------
 
@@ -503,7 +503,7 @@
 
 #ifdef MPI
         ! Sanity check
-        call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+        call mpi_allreduce(real(nparcelsLocalActive),np_tmp,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
         if ( np_tmp .ne. nparcelsInit ) then
            print *
            print *,'  Error: nparcelsInit does not equal np_tmp '
