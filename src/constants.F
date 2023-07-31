@@ -73,6 +73,8 @@
                                                   ! "nparcelsMax" value
       integer :: padding                          ! The actual number of words used for 
                                                   ! padding the "pdata" array
+      real, parameter :: write_frac_droplet = 0.1 ! fraction of total active droplets
+                                                  ! to be written out to a binary file
 
       real, parameter :: neg_huge = -1.0e30       ! define a large negative number
 

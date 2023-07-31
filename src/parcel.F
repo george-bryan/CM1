@@ -1744,7 +1744,7 @@
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
       use input, only : maxq,maxvars,nparcelsLocal,npvals,output_format, &
                         myid,dowr,maxstring,string,outfile,numprocs,ierr, &
-                        nparcelsLocalActive
+                        nparcelsLocalActive,nparcelsInit
 #ifdef MPI
       use mpi
       use comm_droplet_module, only : CollectDropCount, CollectDropInfo
@@ -1752,7 +1752,8 @@
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif
-      use constants, only : i8
+      use constants, only : i8, write_frac_droplet
+
       implicit none
 
       integer, intent(inout) :: prec
@@ -1768,7 +1769,10 @@
 #ifdef MPI
       integer :: nparcels_per_mpi(numprocs)
       integer(i8) :: nparcelstot
-      real, dimension(:,:),allocatable :: rbuf
+      integer :: nparcelsout     ! this number must be able to be represented
+                                 ! by an integer type to reduce memory
+                                 ! pressure on I/O
+      real, dimension(:,:), allocatable :: rbuf
 #endif
 
 !----------------------------------------------------------------------
@@ -1781,8 +1785,11 @@
     call CollectDropCount ( nparcels_per_mpi, nparcelstot )
 
     ! Collect information of active droplets from each MPI rank
-    if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvals))
-    call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
+    if ( myid .eq. 0 ) then
+       nparcelsout = int(min(real(nparcelstot), write_frac_droplet*nparcelsInit))
+       allocate(rbuf(nparcelsout,npvals))
+    end if
+    call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelsout )
 #endif
 
     IF(myid.eq.0)THEN
@@ -1809,9 +1816,9 @@
         if(dowr) write(outfile,*) '  pdata prec = ',prec
         if(dowr) write(outfile,*) '  writing for total number of parcels:',nparcelstot
 
-        write(61) nparcelstot
+        write(61) nparcelsout 
 #ifdef MPI
-        write(61) rbuf(1:nparcelstot,1:npvals)
+        write(61) rbuf(1:nparcelsout,1:npvals)
 #else
         write(61) pdata(1:nparcelsLocalActive,1:npvals)
 #endif

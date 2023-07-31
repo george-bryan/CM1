@@ -1683,6 +1683,9 @@
         !$acc update host(pdata) if_present
 
 #ifdef MPI
+        ! JS: this interface is broken if "nparcelstot" is too large
+        !     (e.g., 2 billions), due to the memory limitation
+
         ! Collect number of active droplets from each MPI rank
         call CollectDropCount ( nparcels_per_mpi, nparcelstot )
 

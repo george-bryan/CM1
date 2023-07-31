@@ -905,7 +905,7 @@ contains
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
-     subroutine CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
+     subroutine CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelsout )
 
      ! This subroutine will collect the "pdata" information from each
      ! MPI rank and assemble them into a single big array "rbuf" for 
@@ -913,7 +913,6 @@ contains
      ! It works for > 2 billions droplets that can not be represented 
      ! by a normal integer type of length
 
-     use constants, only : i8
      use input, only : myid,numprocs,ierr,nparcelsLocalActive, &
                        nparcelsLocal,npvals
      use mpi
@@ -922,14 +921,14 @@ contains
 
      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
      integer, intent(in) :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank     
-     integer(i8), intent(in) :: nparcelstot              ! total number of active droplets
-                                                         ! over the whole domain
+     integer(), intent(in) :: nparcelsout                ! total number of active droplets
+                                                         ! to be written out to a binary file
      real, intent(out) :: rbuf(:,:)                      ! buffer to store all the active droplet 
                                                          ! information over the domain
 
      ! Local variable
-     integer :: i,np,iv,tag
-     integer(i8) :: beg_loc,end_loc,np_i8
+     integer :: i,n,np,iv,tag
+     integer :: beg_loc,end_loc
      real, dimension(:,:), allocatable :: tmp_buf
 
      ! Collect the information of active droplets from each MPI rank
@@ -945,14 +944,18 @@ contains
            call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvals, &
                          MPI_REAL,i-1,tag,MPI_COMM_WORLD, &
                          MPI_STATUS_IGNORE,ierr)
-           beg_loc = int(sum(real(nparcels_per_mpi(1:i-1)))+1, i8)
-           end_loc = int(real(beg_loc)+real(nparcels_per_mpi(i))-1, i8)
-           do iv = 1, npvals
-              do np_i8 = beg_loc, end_loc 
-                 np = int(real(np_i8) - real(beg_loc) + 1)
-                 rbuf(np_i8,iv) = tmp_buf(np,iv)
+           beg_loc = sum(nparcels_per_mpi(1:i-1))+1
+           end_loc = beg_loc+nparcels_per_mpi(i)-1
+           ! JS: we only save first "nparcelsout" droplets for I/O
+           if ( beg_loc <= nparcelsout ) then
+              do iv = 1, npvals
+                 do np = beg_loc, end_loc 
+                    if ( np <= nparcelsout ) then 
+                       n = np - beg_loc + 1
+                       rbuf(np,iv) = tmp_buf(n,iv)
+                    end if
+                 end do
               end do
-           end do
            deallocate(tmp_buf)
         end do
      else
