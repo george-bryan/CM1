@@ -921,7 +921,7 @@ contains
 
      real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
      integer, intent(in) :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank     
-     integer(), intent(in) :: nparcelsout                ! total number of active droplets
+     integer, intent(in) :: nparcelsout                  ! total number of active droplets
                                                          ! to be written out to a binary file
      real, intent(out) :: rbuf(:,:)                      ! buffer to store all the active droplet 
                                                          ! information over the domain
@@ -930,6 +930,7 @@ contains
      integer :: i,n,np,iv,tag
      integer :: beg_loc,end_loc
      real, dimension(:,:), allocatable :: tmp_buf
+     real :: tmp
 
      ! Collect the information of active droplets from each MPI rank
      if ( myid .eq. 0 ) then
@@ -944,10 +945,11 @@ contains
            call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvals, &
                          MPI_REAL,i-1,tag,MPI_COMM_WORLD, &
                          MPI_STATUS_IGNORE,ierr)
-           beg_loc = sum(nparcels_per_mpi(1:i-1))+1
-           end_loc = beg_loc+nparcels_per_mpi(i)-1
-           ! JS: we only save first "nparcelsout" droplets for I/O
-           if ( beg_loc <= nparcelsout ) then
+           tmp = sum(real(nparcels_per_mpi(1:i-1)))+1
+           ! We only save first "nparcelsout" droplets for I/O
+           if ( tmp <= nparcelsout ) then
+              beg_loc = sum(nparcels_per_mpi(1:i-1))+1
+              end_loc = beg_loc+nparcels_per_mpi(i)-1
               do iv = 1, npvals
                  do np = beg_loc, end_loc 
                     if ( np <= nparcelsout ) then 
@@ -956,6 +958,7 @@ contains
                     end if
                  end do
               end do
+           end if
            deallocate(tmp_buf)
         end do
      else
