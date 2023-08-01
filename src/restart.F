@@ -148,8 +148,7 @@
       double precision, dimension(nbudget) :: cfoo
       double precision, dimension(numq) :: afoo,bfoo
       integer :: nparcels_per_mpi(numprocs)
-      integer(i8) :: nparcelstot
-      integer :: nparcelstot_tmp
+      integer :: nparcelstot
       real, dimension(:,:), allocatable :: rbuf
 #endif
 #ifdef NETCDF
@@ -1688,12 +1687,12 @@
         !     (e.g., 2 billions), due to the memory limitation
 
         ! Collect number of active droplets from each MPI rank
-        call CollectDropCount ( nparcels_per_mpi, nparcelstot )
+        call CollectDropCount ( nparcels_per_mpi, nparcelsRest )
 
         ! Collect information of active droplets from each MPI rank
-        nparcelstot_tmp = int(nparcelstot)
-        if ( myid .eq. 0 ) allocate(rbuf(nparcelstot_tmp,npvals))
-        call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot_tmp )
+        nparcelstot = int(nparcelsRest)
+        if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvals))
+        call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
 #else
         nparcelsRest = int(nparcelsLocalActive, i8)
 #endif
