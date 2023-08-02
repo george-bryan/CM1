@@ -910,8 +910,8 @@ contains
      ! This subroutine will collect the "pdata" information from each
      ! MPI rank and assemble them into a single big array "rbuf" for 
      ! writing out later.
-     ! It works for > 2 billions droplets that can not be represented 
-     ! by a normal integer type of length
+     ! It does not work for > 2 billions droplets since we can not write
+     ! out restart / pdata files with the current I/O interface
 
      use input, only : myid,numprocs,ierr,nparcelsLocalActive, &
                        nparcelsLocal,npvals
@@ -945,10 +945,10 @@ contains
            call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvals, &
                          MPI_REAL,i-1,tag,MPI_COMM_WORLD, &
                          MPI_STATUS_IGNORE,ierr)
-           tmp = sum(real(nparcels_per_mpi(1:i-1)))+1
+           tmp = sum(real(nparcels_per_mpi(1:i-1)))+1.0
            ! We only save first "nparcelsout" droplets for I/O
-           if ( tmp <= nparcelsout ) then
-              beg_loc = sum(nparcels_per_mpi(1:i-1))+1
+           if ( int(tmp) <= nparcelsout ) then
+              beg_loc = int(tmp)
               end_loc = beg_loc+nparcels_per_mpi(i)-1
               do iv = 1, npvals
                  do np = beg_loc, end_loc 

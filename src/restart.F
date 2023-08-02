@@ -2249,7 +2249,7 @@
       real, dimension(:,:), allocatable :: rbuf, tmp_buf
 #ifdef MPI
       integer :: proc,index,count,req1,req2,req3,reqp,tag
-      integer(i8) :: beg_loc,end_loc,np_i8
+      integer :: beg_loc,end_loc
       integer :: nparcels_per_mpi(numprocs)       ! number of active droplets per MPI rank
                                                   ! that is read in from the restart file
       real :: nparcelsRest_tmp                    ! "real" type of nparcelsRest to
@@ -3685,16 +3685,16 @@
       endif
 
       call bcast_real(nparcelsRest_tmp)
-      nparcelsRest = int(nparcelsRest_tmp, i8)
+      nvar = int(nparcelsRest_tmp)
 
-      if ( iprcl.eq.1 .or. nparcelsRest.gt.0 ) then
-         if ( nparcelsRest.gt.0 ) then
+      if ( iprcl.eq.1 .or. nvar.gt.0 ) then
+         if ( nvar.gt.0 ) then
             ! only read position info:
             if ( myid.eq.0 ) then
                ! reset "pdata" that is initialized by the init3d subroutine
                pdata(:,:) = neg_huge
                if ( restart_format.eq.1 ) then
-                  allocate( rbuf(nparcelsRest,npvars) )
+                  allocate( rbuf(nvar,npvars) )
                   read(50) rbuf 
 #ifdef NETCDF
                else if ( restart_format.eq.2 ) then
@@ -3710,12 +3710,12 @@
                if ( myid .eq. 0 ) then
                   do i = 1, numprocs - 1
                      allocate( tmp_buf(nparcels_per_mpi(i+1),npvars) )
-                     beg_loc = int(sum(real(nparcels_per_mpi(1:i))) + 1, i8)
-                     end_loc = int(real(beg_loc) + real(nparcels_per_mpi(i+1)) - 1, i8)
+                     beg_loc = sum(nparcels_per_mpi(1:i)) + 1
+                     end_loc = beg_loc + nparcels_per_mpi(i+1) - 1
                      do j = 1, npvars
-                        do np_i8 = beg_loc, end_loc
-                           np = int(real(np_i8) - real(beg_loc) + 1)
-                           tmp_buf(np,j) = rbuf(np_i8,j)
+                        do n = beg_loc, end_loc
+                           np = n - beg_loc + 1
+                           tmp_buf(np,j) = rbuf(n,j)
                         end do
                      end do
                      tag = 98765 + i

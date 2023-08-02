@@ -1786,7 +1786,8 @@
 
     ! Collect information of active droplets from each MPI rank
     if ( myid .eq. 0 ) then
-       nparcelsout = int(min(real(nparcelstot), write_frac_droplet*nparcelsInit))
+       nparcelsout = int( max( 1.0, min( real(nparcelstot), &
+                                    write_frac_droplet*nparcelsInit ) ) )
        allocate(rbuf(nparcelsout,npvals))
     end if
     call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelsout )

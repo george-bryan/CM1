@@ -131,7 +131,7 @@
  
 !-----------------------------------------------------------------------
 
-      integer(i8) :: n
+      integer(i8) :: n,iter
       integer i,j,k,kk,l,nn,nbub,nloop
       integer ic,jc,ifoo,jfoo
       real ric,rjc
@@ -417,8 +417,9 @@
 
         i = 1
         nparcelsLocalActive = 0
+        iter = int(nparcelsInit, i8)
 
-        do n=1,int(nparcelsInit, i8)
+        do n = 1, iter
 
           rand = getRandomReal(randomNumbers)
           tmpx = rand*maxx
