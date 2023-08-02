@@ -1,7 +1,5 @@
   MODULE input
 
-  use constants, only : i8
-
   implicit none
 
   public
@@ -162,8 +160,7 @@
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
               nutk,nvtk,nwtk,nparcelsLocal,nparcelsLocalActive
 
-      integer(i8) :: nparcelsRest
-      real :: nparcelsInit,nparcelsMax
+      real :: nparcelsInit,nparcelsMax,nparcelsRest
 
       !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcelsInit,npvals,nx,ny, &
       !$acc       axisymm,terrain_flag,ni,nj,nip1,njp1,nk,nkp1,nkm1,imoist,   &

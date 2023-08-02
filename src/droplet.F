@@ -190,7 +190,7 @@
       ! 2) Otherwise, use David's original form with date and time to achieve
       !    more randomness but unmatched results between initial and restart runs
       local_seed = int(mtime) * 1000 + myid          ! -(myid+values(8)+values(7)+values(6))
-      call new_RandomNumberSequence(randomNumbers, int(local_seed,i8))
+      call new_RandomNumberSequence(randomNumbers, local_seed)
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
       errcode     = 0  ! Number of errors that occurred in the index search 
@@ -3284,7 +3284,7 @@
                ! initialize a new random number generator for each
                ! injected droplet
                local_seed = floor(29.*mtime) + (97*myid) + (7*j)
-               call new_RandomNumberSequence(randomNumbers,int(local_seed, i8))
+               call new_RandomNumberSequence(randomNumbers, local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
                !Set the droplet radius based on the sea spray generation function (SSGF)

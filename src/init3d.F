@@ -1,6 +1,6 @@
   MODULE init3d_module
 
-  use constants, only : i8
+  use constants, only : i8, write_frac_droplet
 
   implicit none
 
@@ -413,7 +413,7 @@
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
         !
         ! The generated random number is independent of compilers and MPI ranks
-        call new_RandomNumberSequence(randomNumbers, int(nparcelsMax, i8))
+        call new_RandomNumberSequence(randomNumbers, max(1, int(nparcelsInit * write_frac_droplet)))
 
         i = 1
         nparcelsLocalActive = 0
@@ -1581,7 +1581,7 @@
           !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
           !
           ! The generated random number is independent of compilers and MPI ranks
-          call new_RandomNumberSequence(randomNumbers, int((nx+1)*(ny+1), i8))
+          call new_RandomNumberSequence(randomNumbers, (nx+1)*(ny+1))
           do jj = 0,ny+1
           do ii = 0,nx+1
             rand = getRandomReal(randomNumbers)

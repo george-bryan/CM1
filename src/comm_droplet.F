@@ -877,7 +877,7 @@ contains
      implicit none
 
      integer, intent(out) :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank     
-     integer(i8), intent(out) :: nparcelstot              ! total number of active droplets
+     real, intent(out)    :: nparcelstot                  ! total number of active droplets
                                                           ! over the whole domain
 
      ! Local variable
@@ -897,7 +897,7 @@ contains
                       0,tag,MPI_COMM_WORLD,ierr)
 
      end if
-     nparcelstot = int(sum(real(nparcels_per_mpi)), i8)
+     nparcelstot = sum(real(nparcels_per_mpi))
 
      end subroutine CollectDropCount
 
@@ -935,7 +935,7 @@ contains
      ! Collect the information of active droplets from each MPI rank
      if ( myid .eq. 0 ) then
         do iv = 1, npvals
-           do np = 1, nparcelsLocalActive
+           do np = 1, min(nparcelsout,nparcelsLocalActive) 
               rbuf(np,iv) = pdata(np,iv)
            end do
         end do
@@ -949,13 +949,12 @@ contains
            ! We only save first "nparcelsout" droplets for I/O
            if ( int(tmp) <= nparcelsout ) then
               beg_loc = int(tmp)
-              end_loc = beg_loc+nparcels_per_mpi(i)-1
+              end_loc = int( min( real(beg_loc)+real(nparcels_per_mpi(i))-1.0, &
+                                  real(nparcelsout) ) )
               do iv = 1, npvals
                  do np = beg_loc, end_loc 
-                    if ( np <= nparcelsout ) then 
-                       n = np - beg_loc + 1
-                       rbuf(np,iv) = tmp_buf(n,iv)
-                    end if
+                    n = np - beg_loc + 1
+                    rbuf(np,iv) = tmp_buf(n,iv)
                  end do
               end do
            end if

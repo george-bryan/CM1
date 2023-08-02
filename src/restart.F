@@ -1694,11 +1694,11 @@
         if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvals))
         call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
 #else
-        nparcelsRest = int(nparcelsLocalActive, i8)
+        nparcelsRest = real(nparcelsLocalActive)
 #endif
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
-            write(50) real(nparcelsRest)
+            write(50) nparcelsRest
             ! write out the number of active droplets per MPI rank
             do i = 1, numprocs
                write(50) nparcels_per_mpi(i)
@@ -2252,10 +2252,6 @@
       integer :: beg_loc,end_loc
       integer :: nparcels_per_mpi(numprocs)       ! number of active droplets per MPI rank
                                                   ! that is read in from the restart file
-      real :: nparcelsRest_tmp                    ! "real" type of nparcelsRest to
-                                                  ! account for > 2 billions droplets
-                                                  ! that can not be sent through MPI using
-                                                  ! integer type
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -3668,8 +3664,8 @@
 
       if( myid.eq.0 )then
         if( restart_format.eq.1 )then
-          read(50) nparcelsRest_tmp
-          nparcelsRest = int(nparcelsRest_tmp, i8)
+          read(50) nparcelsRest
+          nvar = int(nparcelsRest)
           ! Read in the number of active droplets for each MPI rank
           do i = 1, numprocs
              read(50) nparcels_per_mpi(i)
@@ -3678,15 +3674,16 @@
         elseif( restart_format.eq.2 )then
           call disp_err( nf90_inq_varid(ncid,"numparcels",varid) , .true. )
           call disp_err( nf90_get_var(ncid,varid,nparcelsRest,(/time_index/)) , .true. )
-          if( iprcl.eq.0 ) nparcelsRest = 0
+          if( iprcl.eq.0 ) nparcelsRest = 0.0
 #endif
         endif
         print *,'  nparcelsRest = ',nparcelsRest
       endif
 
-      call bcast_real(nparcelsRest_tmp)
-      nvar = int(nparcelsRest_tmp)
+      call bcast_real(nparcelsRest)
+      nvar = int(nparcelsRest)
 
+      ! JS: the code section below does not work for > 2 billions droplets
       if ( iprcl.eq.1 .or. nvar.gt.0 ) then
          if ( nvar.gt.0 ) then
             ! only read position info:

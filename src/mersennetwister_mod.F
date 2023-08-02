@@ -71,14 +71,13 @@
 module MersenneTwister_mod
   ! -------------------------------------------------------------
 
-  use constants, only : i8
-
   implicit none
   private
 
   ! Algorithm parameters
   ! -------
   ! Period parameters
+  integer, parameter :: i8 = selected_int_kind(13)
   integer, parameter :: blockSize = 624,         &
        M         = 397,         &
        MATRIX_A  = -1727483681, & ! constant vector a         (0x9908b0dfUL)
@@ -166,7 +165,7 @@ contains
   ! --------------------
   subroutine initialize_scalar(twister, seed)
     !$acc routine seq
-    integer(i8),       intent(in   ) :: seed
+    integer,       intent(in   ) :: seed
     type(randomNumberSequence)                :: twister
     
 
@@ -188,10 +187,10 @@ contains
     integer, dimension(0:), intent(in) :: seed
     type(randomNumberSequence)                      :: twister
 
-    integer(i8) :: i, j, k, nFirstLoop, nWraps
+    integer :: i, j, k, nFirstLoop, nWraps
 
     nWraps  = 0
-    call initialize_scalar(twister, 19650218_i8)
+    call initialize_scalar(twister, 19650218)
 
     nFirstLoop = max(blockSize, size(seed))
     do k = 1, nFirstLoop
