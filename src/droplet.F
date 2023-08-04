@@ -1952,10 +1952,9 @@
       real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
-      integer(i8) :: tnumpart
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr, &
               Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop, &
-              tnumaerosol
+              tnumaerosol,tnumpart
 
       real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
@@ -1984,7 +1983,7 @@
 
       !!!!!!! 0th order  !!!!!!!!
 
-      tnumpart = 0
+      tnumpart = 0.0
       tnumaerosol = 0.0
       tnumdrop = 0.0
       tnummult = 0.0
@@ -2006,7 +2005,7 @@
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
       do np=1,nparcelsLocalActive
-         tnumpart = tnumpart + 1
+         tnumpart = tnumpart + 1.0
          tnummult = tnummult + pdata(np,prmult)
          if (pdata(np,prrp) .lt. crit_radius(pdata(np,prms),pdata(np,prt))) then
              tnumaerosol = tnumaerosol + pdata(np,prmult)
@@ -2095,7 +2094,7 @@
          radmax = droplet_diag0(19)
          Tpmax = droplet_diag0(20)
 #endif
-         if (tnumpart .gt. 0) then
+         if (tnumpart .gt. 0.0) then
             radavg = radavg/dble(tnumpart)
             radsqr = radsqr/dble(tnumpart)
             Tpavg = Tpavg/dble(tnumpart)
@@ -3439,7 +3438,7 @@
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
       real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk)
       integer, intent(in)    :: nbins
-      integer(i8), intent(in) :: tnumpart
+      real, intent(in) :: tnumpart
 
       integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid,binsid
       logical :: allinfo
