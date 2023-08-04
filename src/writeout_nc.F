@@ -1732,7 +1732,7 @@
       call disp_err( nf90_create(path=string,cmode=0,ncid=ncid) , .true. )
 #endif
 
-    call disp_err( nf90_def_dim(ncid,"xh",nparcelsLocal,npid) , .true. )
+    call disp_err( nf90_def_dim(ncid,"xh",int(nparcelsLocal),npid) , .true. )
     call disp_err( nf90_def_dim(ncid,"yh",1,yhid) , .true. )
     call disp_err( nf90_def_dim(ncid,"zh",1,zhid) , .true. )
     call disp_err( nf90_def_dim(ncid,"time",nf90_unlimited,timeid) , .true. )
@@ -1804,7 +1804,8 @@
         do np=1,nparcelsLocal
           pdata2(np) = pdata(np,n)
         enddo
-        call disp_err( nf90_put_var(ncid,varid,pdata2,(/1,time_index/),(/nparcelsLocal,1/)) , .true. )
+        call disp_err( nf90_put_var(ncid,varid,pdata2,(/1,time_index/), &
+                                     (/int(nparcelsLocal),1/)) , .true. )
       ENDDO
 
       ! close file
