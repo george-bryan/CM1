@@ -145,7 +145,7 @@
 
       type(randomNumberSequence) :: randomNumbers
 
-      integer :: num_fallout,idx,np_tmp                        !droplets which fell out of domain
+      integer :: num_fallout,idx                        !droplets which fell out of domain
       integer :: numDepart
       integer :: numDepartN, numDepartS, numDepartE, numDepartW, &
                  numDepartSW,numDepartSE,numDepartNE,numDepartNW
@@ -161,6 +161,7 @@
       integer :: ptrDepart(num_nn)                         ! Points to the begining of Depart_ind for various departure buffers
       integer :: ptrArrive(num_nn)                         ! Points to the begining of holes_ind for various arrival buffers
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
+      real    :: np_tmp
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
@@ -861,7 +862,8 @@
       end if    ! if floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse) 
       !This is helpful to see in the output, but not absolutely necessary:
 #ifdef MPI
-      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+      call mpi_allreduce(real(nparcelsLocalActive),np_tmp,1,mpi_real, &
+                         mpi_sum,mpi_comm_world,ierr)
 #endif
       if (myid==0) then 
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive

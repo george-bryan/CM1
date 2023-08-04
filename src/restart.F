@@ -1694,7 +1694,7 @@
         if ( myid .eq. 0 ) allocate(rbuf(nparcelstot,npvals))
         call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelstot )
 #else
-        nparcelsRest = real(nparcelsLocalActive)
+        nparcelsRest = int(nparcelsLocalActive, i8)
 #endif
         if(myid.eq.0)then
           if( restart_format.eq.1 )then
@@ -2252,6 +2252,7 @@
       integer :: beg_loc,end_loc
       integer :: nparcels_per_mpi(numprocs)       ! number of active droplets per MPI rank
                                                   ! that is read in from the restart file
+      real :: tmp
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -3665,7 +3666,7 @@
       if( myid.eq.0 )then
         if( restart_format.eq.1 )then
           read(50) nparcelsRest
-          nvar = int(nparcelsRest)
+          tmp = real(nparcelsRest)
           ! Read in the number of active droplets for each MPI rank
           do i = 1, numprocs
              read(50) nparcels_per_mpi(i)
@@ -3680,8 +3681,8 @@
         print *,'  nparcelsRest = ',nparcelsRest
       endif
 
-      call bcast_real(nparcelsRest)
-      nvar = int(nparcelsRest)
+      call bcast_real(tmp)
+      nvar = int(tmp)
 
       ! JS: the code section below does not work for > 2 billions droplets
       if ( iprcl.eq.1 .or. nvar.gt.0 ) then

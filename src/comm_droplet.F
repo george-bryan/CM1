@@ -877,7 +877,7 @@ contains
      implicit none
 
      integer, intent(out) :: nparcels_per_mpi(numprocs)   ! number of active droplets per MPI rank     
-     real, intent(out)    :: nparcelstot                  ! total number of active droplets
+     integer(i8), intent(out) :: nparcelstot              ! total number of active droplets
                                                           ! over the whole domain
 
      ! Local variable
@@ -886,18 +886,18 @@ contains
      ! Collect the number of active droplets from each MPI rank
      if ( myid .eq. 0 ) then
         nparcels_per_mpi(1) = nparcelsLocalActive
+        nparcelstot = nparcels_per_mpi(1)
         do i = 2, numprocs
            tag = 98765 + i - 1
            call mpi_recv(nparcels_per_mpi(i),1,MPI_INTEGER,i-1, &
                          tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE,ierr)
+           nparcelstot = nparcelstot + nparcels_per_mpi(i)
         end do
      else
         tag = 98765 + myid
         call mpi_send(nparcelsLocalActive,1,MPI_INTEGER, &
                       0,tag,MPI_COMM_WORLD,ierr)
-
      end if
-     nparcelstot = sum(real(nparcels_per_mpi))
 
      end subroutine CollectDropCount
 
@@ -934,23 +934,26 @@ contains
 
      ! Collect the information of active droplets from each MPI rank
      if ( myid .eq. 0 ) then
+        end_loc = min(nparcelsout,nparcelsLocalActive)
         do iv = 1, npvals
-           do np = 1, min(nparcelsout,nparcelsLocalActive) 
+           do np = 1, end_loc 
               rbuf(np,iv) = pdata(np,iv)
            end do
         end do
+        tmp = 0.0
         do i = 2, numprocs
            allocate( tmp_buf(nparcels_per_mpi(i),npvals) )
            tag = 98765 + i - 1
            call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvals, &
                          MPI_REAL,i-1,tag,MPI_COMM_WORLD, &
                          MPI_STATUS_IGNORE,ierr)
-           tmp = sum(real(nparcels_per_mpi(1:i-1)))+1.0
+           tmp = tmp + real(nparcels_per_mpi(i-1))
+           print *, "JS: tmp = ", tmp, ", nparcelsout = ", nparcelsout
            ! We only save first "nparcelsout" droplets for I/O
-           if ( int(tmp) <= nparcelsout ) then
-              beg_loc = int(tmp)
-              end_loc = int( min( real(beg_loc)+real(nparcels_per_mpi(i))-1.0, &
-                                  real(nparcelsout) ) )
+           if ( tmp+1 <= nparcelsout ) then
+              beg_loc = int(tmp)+1
+              end_loc = min( beg_loc+nparcels_per_mpi(i)-1, nparcelsout )
+              print *, "JS: beg_loc = ", beg_loc, ", end_loc = ", end_loc
               do iv = 1, npvals
                  do np = beg_loc, end_loc 
                     n = np - beg_loc + 1

@@ -1752,7 +1752,7 @@
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif
-      use constants, only : write_frac_droplet
+      use constants, only : write_frac_droplet, i8
 
       implicit none
 
@@ -1768,7 +1768,7 @@
 
 #ifdef MPI
       integer :: nparcels_per_mpi(numprocs)
-      real    :: nparcelstot
+      integer(i8) :: nparcelstot
       integer :: nparcelsout     ! this number must be able to be represented
                                  ! by an integer type to reduce memory
                                  ! pressure on I/O
@@ -1783,10 +1783,12 @@
 #ifdef MPI
     ! Collect number of active droplets from each MPI rank
     call CollectDropCount ( nparcels_per_mpi, nparcelstot )
+    if (myid == 0) print *, "JS: nparcels_per_mpi = ", nparcels_per_mpi, ", nparcelstot = ",nparcelstot
 
     ! Collect information of active droplets from each MPI rank
     if ( myid .eq. 0 ) then
        nparcelsout = int( max( 1.0, write_frac_droplet*nparcelstot ) )
+       if (myid == 0) print *, "JS: nparcelsout = ", nparcelsout 
        allocate(rbuf(nparcelsout,npvals))
     end if
     call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelsout )
