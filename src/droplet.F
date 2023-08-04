@@ -161,7 +161,7 @@
       integer :: ptrDepart(num_nn)                         ! Points to the begining of Depart_ind for various departure buffers
       integer :: ptrArrive(num_nn)                         ! Points to the begining of holes_ind for various arrival buffers
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
-      real    :: np_tmp
+      integer(i8) :: np_tmp
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
@@ -862,7 +862,7 @@
       end if    ! if floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse) 
       !This is helpful to see in the output, but not absolutely necessary:
 #ifdef MPI
-      call mpi_allreduce(real(nparcelsLocalActive),np_tmp,1,mpi_real, &
+      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_integer8, &
                          mpi_sum,mpi_comm_world,ierr)
 #endif
       if (myid==0) then 
@@ -1952,9 +1952,10 @@
       real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
+      integer(i8) :: tnumpart
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr, &
               Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop, &
-              tnumaerosol,tnumpart
+              tnumaerosol
 
       real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
@@ -2005,7 +2006,7 @@
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
       do np=1,nparcelsLocalActive
-         tnumpart = tnumpart + 1.0
+         tnumpart = tnumpart + 1
          tnummult = tnummult + pdata(np,prmult)
          if (pdata(np,prrp) .lt. crit_radius(pdata(np,prms),pdata(np,prt))) then
              tnumaerosol = tnumaerosol + pdata(np,prmult)
@@ -3179,7 +3180,7 @@
       integer, intent(out) :: my_reintro
     
       integer :: i,np
-      real :: tot_after_reintro
+      integer(i8) :: tot_after_reintro
       integer :: sum_buf(2)
       real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
       real :: binsdata(100)  !Discretized bins for cumulative SSGF
@@ -3268,12 +3269,12 @@
 
 #ifdef MPI
       !For deciding whether to inject more:
-      call mpi_allreduce(real(my_reintro+nparcelsLocalActive), &
-                         tot_after_reintro,1,mpi_real,mpi_sum, &
+      call mpi_allreduce(my_reintro+nparcelsLocalActive, &
+                         tot_after_reintro,1,mpi_integer8,mpi_sum, &
                          mpi_comm_world,ierr)
 #else
       !Calculate the total number which will occur after injection
-      tot_after_reintro = real(my_reintro+nparcelsLocalActive)
+      tot_after_reintro = my_reintro+nparcelsLocalActive
 #endif
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
@@ -3438,7 +3439,7 @@
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
       real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk)
       integer, intent(in)    :: nbins
-      real, intent(in) :: tnumpart
+      integer(i8), intent(in) :: tnumpart
 
       integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid,binsid
       logical :: allinfo

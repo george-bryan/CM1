@@ -131,7 +131,7 @@
  
 !-----------------------------------------------------------------------
 
-      integer(i8) :: n,iter
+      integer(i8) :: n
       integer i,j,k,kk,l,nn,nbub,nloop
       integer ic,jc,ifoo,jfoo
       real ric,rjc
@@ -179,7 +179,7 @@
       logical, parameter :: use_truly_random_pert  =  .false.
 
       real :: tmpx, tmpy, tmpz
-      real :: np_tmp
+      integer(i8) :: np_tmp
 
 !--------------------------
 
@@ -417,9 +417,8 @@
 
         i = 1
         nparcelsLocalActive = 0
-        iter = int(nparcelsInit, i8)
 
-        do n = 1, iter
+        do n = 1, nparcelsInit 
 
           rand = getRandomReal(randomNumbers)
           tmpx = rand*maxx
@@ -504,7 +503,8 @@
 
 #ifdef MPI
         ! Sanity check
-        call mpi_allreduce(real(nparcelsLocalActive),np_tmp,1,mpi_real,mpi_sum,mpi_comm_world,ierr)
+        call mpi_allreduce(nparcelsLocalActive,np_tmp,1, &
+                           mpi_integer8,mpi_sum,mpi_comm_world,ierr)
         if ( np_tmp .ne. nparcelsInit ) then
            print *
            print *,'  Error: nparcelsInit does not equal np_tmp '

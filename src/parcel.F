@@ -1783,12 +1783,10 @@
 #ifdef MPI
     ! Collect number of active droplets from each MPI rank
     call CollectDropCount ( nparcels_per_mpi, nparcelstot )
-    if (myid == 0) print *, "JS: nparcels_per_mpi = ", nparcels_per_mpi, ", nparcelstot = ",nparcelstot
 
     ! Collect information of active droplets from each MPI rank
     if ( myid .eq. 0 ) then
        nparcelsout = int( max( 1.0, write_frac_droplet*nparcelstot ) )
-       if (myid == 0) print *, "JS: nparcelsout = ", nparcelsout 
        allocate(rbuf(nparcelsout,npvals))
     end if
     call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelsout )
@@ -2383,7 +2381,7 @@
       write(50,401) string
       write(50,402) trim(cm1version)
       write(50,403) grads_undef
-      write(50,404) int(nparcelsInit, i8)
+      write(50,404) nparcelsInit
       write(50,405)
       write(50,406)
       write(50,407) prec

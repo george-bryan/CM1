@@ -2276,7 +2276,7 @@ end module cuda_rt
 #endif
             ! number of droplets read from / write to a restart file
             ! initialize its value as "nparcelsInit"
-            nparcelsRest = int(nparcelsInit, i8)
+            nparcelsRest = nparcelsInit
             if(dowr) write(outfile,*) 'PDATA: padding,nparcelsLocal,nparcelsMax',padding,nparcelsLocal,nparcelsMax
          end if
       else   ! if no parcels

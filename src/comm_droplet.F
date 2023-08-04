@@ -914,7 +914,7 @@ contains
      ! out restart / pdata files with the current I/O interface
 
      use input, only : myid,numprocs,ierr,nparcelsLocalActive, &
-                       nparcelsLocal,npvals
+                       nparcelsLocal,npvals,i8
      use mpi
 
      implicit none
@@ -929,8 +929,8 @@ contains
      ! Local variable
      integer :: i,n,np,iv,tag
      integer :: beg_loc,end_loc
+     integer(i8) :: tmp
      real, dimension(:,:), allocatable :: tmp_buf
-     real :: tmp
 
      ! Collect the information of active droplets from each MPI rank
      if ( myid .eq. 0 ) then
@@ -940,20 +940,18 @@ contains
               rbuf(np,iv) = pdata(np,iv)
            end do
         end do
-        tmp = 0.0
+        tmp = 1 
         do i = 2, numprocs
            allocate( tmp_buf(nparcels_per_mpi(i),npvals) )
            tag = 98765 + i - 1
            call mpi_recv(tmp_buf,nparcels_per_mpi(i)*npvals, &
                          MPI_REAL,i-1,tag,MPI_COMM_WORLD, &
                          MPI_STATUS_IGNORE,ierr)
-           tmp = tmp + real(nparcels_per_mpi(i-1))
-           print *, "JS: tmp = ", tmp, ", nparcelsout = ", nparcelsout
+           tmp = tmp + nparcels_per_mpi(i-1)
            ! We only save first "nparcelsout" droplets for I/O
-           if ( tmp+1 <= nparcelsout ) then
-              beg_loc = int(tmp)+1
+           if ( tmp <= nparcelsout ) then
+              beg_loc = tmp
               end_loc = min( beg_loc+nparcels_per_mpi(i)-1, nparcelsout )
-              print *, "JS: beg_loc = ", beg_loc, ", end_loc = ", end_loc
               do iv = 1, npvals
                  do np = beg_loc, end_loc 
                     n = np - beg_loc + 1

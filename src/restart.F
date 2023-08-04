@@ -2252,7 +2252,6 @@
       integer :: beg_loc,end_loc
       integer :: nparcels_per_mpi(numprocs)       ! number of active droplets per MPI rank
                                                   ! that is read in from the restart file
-      real :: tmp
 #endif
 #ifdef NETCDF
       integer :: varid,ncstatus
@@ -3666,7 +3665,6 @@
       if( myid.eq.0 )then
         if( restart_format.eq.1 )then
           read(50) nparcelsRest
-          tmp = real(nparcelsRest)
           ! Read in the number of active droplets for each MPI rank
           do i = 1, numprocs
              read(50) nparcels_per_mpi(i)
@@ -3675,14 +3673,14 @@
         elseif( restart_format.eq.2 )then
           call disp_err( nf90_inq_varid(ncid,"numparcels",varid) , .true. )
           call disp_err( nf90_get_var(ncid,varid,nparcelsRest,(/time_index/)) , .true. )
-          if( iprcl.eq.0 ) nparcelsRest = 0.0
+          if( iprcl.eq.0 ) nparcelsRest = 0
 #endif
         endif
         print *,'  nparcelsRest = ',nparcelsRest
       endif
 
-      call bcast_real(tmp)
-      nvar = int(tmp)
+      call bcast_int(nparcelsRest)
+      nvar = int(nparcelsRest)
 
       ! JS: the code section below does not work for > 2 billions droplets
       if ( iprcl.eq.1 .or. nvar.gt.0 ) then
@@ -3706,9 +3704,10 @@
 #ifdef MPI
                call mpi_bcast(nparcels_per_mpi,numprocs,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
                if ( myid .eq. 0 ) then
+                  beg_loc = 1
                   do i = 1, numprocs - 1
                      allocate( tmp_buf(nparcels_per_mpi(i+1),npvars) )
-                     beg_loc = sum(nparcels_per_mpi(1:i)) + 1
+                     beg_loc = beg_loc + nparcels_per_mpi(i)
                      end_loc = beg_loc + nparcels_per_mpi(i+1) - 1
                      do j = 1, npvars
                         do n = beg_loc, end_loc

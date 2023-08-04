@@ -9,6 +9,7 @@ end interface bcast_log
 
 interface bcast_int 
    module procedure bcast_int_scalar 
+   module procedure bcast_int8_scalar 
    module procedure bcast_int_vector
 end interface bcast_int
 
@@ -53,6 +54,22 @@ end interface bcast_double
       !$acc update device(val) if_present
 
       end subroutine bcast_int_scalar
+
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      subroutine bcast_int8_scalar(val)
+
+      use constants, only : i8
+#ifdef MPI
+      use mpi
+#endif
+      integer :: ierr
+      integer(i8),intent(inout) :: val
+#ifdef MPI
+      call MPI_BCAST(val,1,MPI_INTEGER8,0,MPI_COMM_WORLD,ierr)
+#endif
+      !$acc update device(val) if_present
+
+      end subroutine bcast_int8_scalar
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       subroutine bcast_int_vector(val,str_ind,end_ind)
