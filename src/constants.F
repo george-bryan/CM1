@@ -14,6 +14,8 @@
 
       !----------------
 
+      integer,parameter :: i8 = selected_int_kind(12)
+
       real, parameter ::  pi     = 3.1415926535897932384626433
       real, parameter ::  th0r   = 300.0
       real, parameter ::  to     = 273.15
@@ -71,6 +73,8 @@
                                                   ! "nparcelsMax" value
       integer :: padding                          ! The actual number of words used for 
                                                   ! padding the "pdata" array
+      real, parameter :: write_frac_droplet = 0.1 ! fraction of total active droplets
+                                                  ! to be written out to a binary file
 
       real, parameter :: neg_huge = -1.0e30       ! define a large negative number
 

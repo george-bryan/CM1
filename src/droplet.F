@@ -147,14 +147,13 @@
 
       type(randomNumberSequence) :: randomNumbers
 
-      integer :: num_fallout,idx,np_tmp                        !droplets which fell out of domain
+      integer :: num_fallout,idx                        !droplets which fell out of domain
       integer :: numDepart
       integer :: numDepartN, numDepartS, numDepartE, numDepartW, &
                  numDepartSW,numDepartSE,numDepartNE,numDepartNW
       integer, dimension(:), allocatable :: holes_fallout_ind  !their location index in pdata prior to removal
 
 #ifdef MPI 
-      integer :: num_holes                                 ! how many new droplets could be added to "pdata"
       integer, dimension(:), allocatable :: holes_ind      ! location index in "pdata" that can add a new droplet
       integer, dimension(:), allocatable :: Depart_ind     ! Index location in "pdata" of a point that is departing
       integer :: Depart(num_nn)                            ! Number of droplets that will enter each nearest 
@@ -164,6 +163,7 @@
       integer :: ptrDepart(num_nn)                         ! Points to the begining of Depart_ind for various departure buffers
       integer :: ptrArrive(num_nn)                         ! Points to the begining of holes_ind for various arrival buffers
       integer, dimension(nparcelsLocal) :: pdata_neighbor  ! array to store the new MPI region info for all the droplets
+      integer(i8) :: np_tmp
 #endif
       integer :: neighbor                                  ! indicate which MPI region a droplet stays after this time step 
 
@@ -877,7 +877,8 @@
       end if    !doinject
       !This is helpful to see in the output, but not absolutely necessary:
 #ifdef MPI
-      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+      call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_integer8, &
+                         mpi_sum,mpi_comm_world,ierr)
 #endif
       if (myid==0) then 
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
@@ -1966,8 +1967,9 @@
       real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
 
-      integer :: tnumpart
-      real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop,tnumaerosol
+      real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr, &
+              Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop, &
+              tnumaerosol,tnumpart
 
       real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
@@ -1996,7 +1998,7 @@
 
       !!!!!!! 0th order  !!!!!!!!
 
-      tnumpart = 0
+      tnumpart = 0.0
       tnumaerosol = 0.0
       tnumdrop = 0.0
       tnummult = 0.0
@@ -2018,7 +2020,7 @@
       !$acc          reduction(max:radmax,Tpmax) &
       !$acc          reduction(min:radmin,Tpmin)
       do np=1,nparcelsLocalActive
-         tnumpart = tnumpart + 1
+         tnumpart = tnumpart + 1.0
          tnummult = tnummult + pdata(np,prmult)
          if (pdata(np,prrp) .lt. crit_radius(pdata(np,prms),pdata(np,prt))) then
              tnumaerosol = tnumaerosol + pdata(np,prmult)
@@ -2107,7 +2109,7 @@
          radmax = droplet_diag0(19)
          Tpmax = droplet_diag0(20)
 #endif
-         if (tnumpart .gt. 0) then
+         if (tnumpart .gt. 0.0) then
             radavg = radavg/dble(tnumpart)
             radsqr = radsqr/dble(tnumpart)
             Tpavg = Tpavg/dble(tnumpart)
@@ -3191,7 +3193,8 @@
       double precision, intent(in) :: mtime
       integer, intent(out) :: my_reintro
     
-      integer :: i,np,tot_after_reintro
+      integer :: i,np
+      integer(i8) :: tot_after_reintro
       integer :: sum_buf(2)
       real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
       real :: binsdata(100)  !Discretized bins for cumulative SSGF
@@ -3280,7 +3283,9 @@
 
 #ifdef MPI
       !For deciding whether to inject more:
-      call mpi_allreduce(my_reintro+nparcelsLocalActive,tot_after_reintro,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+      call mpi_allreduce(my_reintro+nparcelsLocalActive, &
+                         tot_after_reintro,1,mpi_integer8,mpi_sum, &
+                         mpi_comm_world,ierr)
 #else
       !Calculate the total number which will occur after injection
       tot_after_reintro = my_reintro+nparcelsLocalActive
@@ -3447,7 +3452,8 @@
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
       real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk)
-      integer, intent(in)    :: tnumpart,nbins
+      integer, intent(in)    :: nbins
+      real, intent(in) :: tnumpart
 
       integer :: i,ncid,status,dimid,varid,time_index,timeid,tfile,zhid,binsid
       logical :: allinfo
@@ -3755,7 +3761,7 @@
 
     !!0th order
     call disp_err( nf90_inq_varid(ncid,"tnumpart",varid) , .true. )
-    call disp_err( nf90_put_var(ncid,varid,real(tnumpart),(/time_index/)) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,tnumpart,(/time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"tnummult",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,tnummult,(/time_index/)) , .true. )

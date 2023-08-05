@@ -1,5 +1,7 @@
   MODULE init3d_module
 
+  use constants, only : i8, write_frac_droplet
+
   implicit none
 
   private
@@ -129,7 +131,8 @@
  
 !-----------------------------------------------------------------------
 
-      integer i,j,k,kk,l,n,nn,nbub,nloop
+      integer(i8) :: n
+      integer i,j,k,kk,l,nn,nbub,nloop
       integer ic,jc,ifoo,jfoo
       real ric,rjc
       real xc,yc,zc,bhrad,bvrad,bptpert,beta,tmp,zdep
@@ -176,7 +179,7 @@
       logical, parameter :: use_truly_random_pert  =  .false.
 
       real :: tmpx, tmpy, tmpz
-      integer :: np_tmp
+      integer(i8) :: np_tmp
 
 !--------------------------
 
@@ -410,12 +413,12 @@
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
         !
         ! The generated random number is independent of compilers and MPI ranks
-        call new_RandomNumberSequence(randomNumbers, nparcelsMax)
+        call new_RandomNumberSequence(randomNumbers, max(1, int(nparcelsInit * write_frac_droplet)))
 
         i = 1
         nparcelsLocalActive = 0
 
-        do n=1,nparcelsInit
+        do n = 1, nparcelsInit 
 
           rand = getRandomReal(randomNumbers)
           tmpx = rand*maxx
@@ -500,7 +503,8 @@
 
 #ifdef MPI
         ! Sanity check
-        call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_int,mpi_sum,mpi_comm_world,ierr)
+        call mpi_allreduce(nparcelsLocalActive,np_tmp,1, &
+                           mpi_integer8,mpi_sum,mpi_comm_world,ierr)
         if ( np_tmp .ne. nparcelsInit ) then
            print *
            print *,'  Error: nparcelsInit does not equal np_tmp '

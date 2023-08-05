@@ -82,8 +82,8 @@
  npt       =  1,
  pdtra     =  1,
  iprcl     =  1,       !This turns on the parcels, and with prcl_droplet=1 below, makes them droplets
- nparcelsInit = 1e8,     ! initial number of particles over the whole domain
- nparcelsMax  = 5e8,   ! the total allowable number of particles over the whole domain
+ nparcelsInit = 100000000,     ! initial number of particles over the whole domain
+ nparcelsMax  = 500000000,   ! the total allowable number of particles over the whole domain
  injectHMax = 20.0,
  drop_mult = 1.e10,   !Droplet multiplicity: total number of droplets = nparcels*drop_mult
  drop_inject_elapse = 4.0,  !Time between spray injection
@@ -348,7 +348,7 @@
 
  &param14
  dodomaindiag   =    .true.,
- diagfrq        =     10.0,
+ diagfrq        =     50.0,
  /
 
  &param15
