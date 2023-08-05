@@ -1744,13 +1744,16 @@
       subroutine parcel_write(prec,rtime,qname,name_prcl,desc_prcl,unit_prcl,pdata,ploc)
       use input, only : maxq,maxvars,nparcelsLocal,npvals,output_format, &
                         myid,dowr,maxstring,string,outfile,numprocs,ierr, &
-                        nparcelsLocalActive
+                        nparcelsLocalActive,nparcelsInit
 #ifdef MPI
       use mpi
+      use comm_droplet_module, only : CollectDropCount, CollectDropInfo
 #endif
 #ifdef NETCDF
       use writeout_nc_module, only : writepdata_nc
 #endif
+      use constants, only : write_frac_droplet, i8
+
       implicit none
 
       integer, intent(inout) :: prec
@@ -1761,13 +1764,15 @@
       real, intent(in), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(inout), dimension(:,:) :: ploc
 
-      integer :: i,n,np,nparcelstot
+      integer :: i
 
 #ifdef MPI
-      real, dimension(:),allocatable :: sbuf
-      real, dimension(:,:),allocatable :: rbuf
-      integer, dimension(0:numprocs-1) :: displacements, counts, cnts
-      integer :: ierror
+      integer :: nparcels_per_mpi(numprocs)
+      integer(i8) :: nparcelstot
+      integer :: nparcelsout     ! this number must be able to be represented
+                                 ! by an integer type to reduce memory
+                                 ! pressure on I/O
+      real, dimension(:,:), allocatable :: rbuf
 #endif
 
 !----------------------------------------------------------------------
@@ -1775,45 +1780,16 @@
 
     !$acc update host(pdata)
 
-    ! JS: use MPI_GATHERV to collect all the droplet information
-    !     from different MPI ranks;
-    !     also collect the number of active droplets from each MPI rank
-
 #ifdef MPI
-    ! local buffer for sending array on each MPI rank
-    allocate(sbuf(0:nparcelsLocalActive-1))
+    ! Collect number of active droplets from each MPI rank
+    call CollectDropCount ( nparcels_per_mpi, nparcelstot )
+
+    ! Collect information of active droplets from each MPI rank
     if ( myid .eq. 0 ) then
-       ! initialize the displacement and count for the mpi_gatherv call
-       do i = 0, numprocs-1
-          displacements(i) = i
-          counts(i) = 1 
-       end do
+       nparcelsout = int( max( 1.0, write_frac_droplet*nparcelstot ) )
+       allocate(rbuf(nparcelsout,npvals))
     end if
-    ! collect number of active droplets from each MPI rank
-    call mpi_gatherv(nparcelsLocalActive,1,MPI_INTEGER,cnts,counts, &
-                     displacements,MPI_INTEGER,0,mpi_comm_world,ierror)
-    if ( myid .eq. 0 ) then
-       ! update the displacement and count for the second mpi_gatherv call
-       do i = 0, numprocs-1
-          if ( i == 0 ) then
-             displacements(i) = 0
-          else
-             displacements(i) = sum(cnts(0:i-1))
-          end if
-          counts(i) = cnts(i)
-       end do
-       ! local buffer for receiving array on root rank
-       nparcelstot = sum(counts)
-       allocate(rbuf(0:nparcelstot-1,0:npvals-1))
-    end if
-    ! collect the information of active droplets from each MPI rank
-    do i = 0, npvals-1
-       do np = 0, nparcelsLocalActive-1
-          sbuf(np) = pdata(np+1,i+1)
-       end do
-       call mpi_gatherv(sbuf,nparcelsLocalActive,MPI_REAL,rbuf(:,i),counts, &
-                        displacements,MPI_REAL,0,mpi_comm_world,ierror)
-    end do
+    call CollectDropInfo ( pdata, rbuf, nparcels_per_mpi, nparcelsout )
 #endif
 
     IF(myid.eq.0)THEN
@@ -1833,19 +1809,16 @@
         string = 'cm1out_pdata_'//prec_string//'.dat'
         if (dowr) write(*,*) 'DHR3:',string
 
-!!!        write(string(15:20),101) prec
-!!!101     format(i6.6)
-
-        if(dowr) write(outfile,*) string
+        if (dowr) write(outfile,*) string
         open(unit=61,file=string,form='unformatted',status='unknown')
 
         if(dowr) write(outfile,*)
         if(dowr) write(outfile,*) '  pdata prec = ',prec
         if(dowr) write(outfile,*) '  writing for total number of parcels:',nparcelstot
 
-        write(61) nparcelstot
+        write(61) nparcelsout 
 #ifdef MPI
-        write(61) rbuf(0:nparcelstot-1,0:npvals-1)
+        write(61) rbuf(1:nparcelsout,1:npvals)
 #else
         write(61) pdata(1:nparcelsLocalActive,1:npvals)
 #endif
@@ -2379,7 +2352,7 @@
       subroutine write_prclctl(name_prcl,desc_prcl,unit_prcl,prec)
       use input, only : maxvars,myid,string,maxstring,dowr,cm1version, &
           nparcelsInit,prcl_out,outfile
-      use constants , only : grads_undef
+      use constants , only : grads_undef, i8
       implicit none
 
       character(len=40), intent(in), dimension(maxvars) :: name_prcl,desc_prcl,unit_prcl
@@ -2436,7 +2409,7 @@
 401   format('dset ^',a)
 402   format('title CM1 parcel data output, using version ',a,'; time is generic, see variable mtime for actual times')
 403   format('undef ',f10.1)
-404   format('xdef ',i10,' linear 1 1')
+404   format('xdef ',i15,' linear 1 1')
 405   format('ydef          1 linear 0 1')
 406   format('zdef          1 linear 0 1')
 407   format('tdef ',i10,' linear 00:00Z01JAN0001 1YR')

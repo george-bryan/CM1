@@ -2423,7 +2423,7 @@
       endif
 
       ! for parcels:
-      nparcelsInit = max(1,nparcelsInit)
+      nparcelsInit = max(1_i8,nparcelsInit)
 
 !-----
 

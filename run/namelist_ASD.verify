@@ -3,7 +3,7 @@
  nx           =    128,
  ny           =    128,
  nz           =    128,
- ppnode       =      4,
+ ppnode       =      2,
  timeformat   =       1,
  timestats    =       1,
  terrain_flag = .false.,
@@ -83,7 +83,7 @@
  pdtra     =  1,
  iprcl     =  1,  !This turns on the parcels, and with prcl_droplet=1 below, makes them droplets
  nparcelsInit = 1,   ! initial number of particles over the whole domain
- nparcelsMax  = 5e6,   ! the total allowable number of particles over the whole domain
+ nparcelsMax  = 5000000,   ! the total allowable number of particles over the whole domain
  injectHMax = 20.0,
  drop_mult = 1.0e11,   !Droplet multiplicity: total number of droplets = nparcels*drop_mult
  drop_inject_elapse = 4.0,  !Time between spray injection

@@ -1,5 +1,6 @@
   MODULE input
 
+  use constants, only: i8
   implicit none
 
   public
@@ -92,7 +93,7 @@
               wbc,ebc,sbc,nbc,bbc,tbc,irbc,roflux,nudgeobc,                   &
               isnd,iwnd,itern,iinit,                                          &
               irandp,ibalance,iorigin,axisymm,imove,iptra,npt,pdtra,          &
-              iprcl,nparcelsInit,                                             &
+              iprcl,                                                          &
               stretch_x,stretch_y,stretch_z,                                  &
               bc_temp,ibw,ibe,ibs,ibn,npvals,npvars,                          &
               outfile,myid,numprocs,myi,myj,nf,nu,nv,nw,                      &
@@ -158,8 +159,10 @@
               bl_mynn_mixlength,bl_mynn_edmf,                                 &
               bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,           &
               bl_mynn_cloudmix,bl_mynn_mixqt,initflag,spp_pbl,bl_mynn_output, &
-              nutk,nvtk,nwtk,nparcelsLocal,nparcelsLocalActive,nparcelsMax,   &
-              nparcelsRest
+              nutk,nvtk,nwtk
+
+      integer(i8) :: nparcelsInit,nparcelsMax,nparcelsRest,nparcelsLocal, &
+                     nparcelsLocalActive
 
       !$acc declare create (ib,ie,jb,je,kb,ke,numq,nparcelsInit,npvals,nx,ny, &
       !$acc       axisymm,terrain_flag,ni,nj,nip1,njp1,nk,nkp1,nkm1,imoist,   &
