@@ -84,7 +84,8 @@
       use module_mp_nssl_2mom, only: ccn, lccn
       use poiss_module
       use parcel_module , only : getparcelzs
-      use droplet_module, only: initialize_droplet_histograms
+      use droplet_module, only: initialize_droplet_histograms, &
+                                check_droplet_ownership
 #ifdef MPI
       use mpi
 #endif
@@ -168,7 +169,7 @@
       integer :: tctype
       real :: dr,tem
       double precision :: tem1,tem2,temd
-      logical :: doit
+      logical :: doit,is_local
 
       real :: salinity
 
@@ -428,26 +429,14 @@
           tmpz = rand*injectHMax
 
           ! Check if this parcel falls into this MPI region
-          ! Exception case:
-          !   - if parcel is on a tile boundary, let the eastmost/northmost tile own it
-          !   - if parcel is on the northmost or eastmost boundary of the whole domain,
-          !     let the MPI rank which inclues that boundary owns it
-          if ( (tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1) .and. &
-                tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1)) .or. &
-               (tmpx .eq. xfref(nx+1) .and. xf(ni+1) .eq. xfref(nx+1) .and. & 
-                tmpy .ge. yf(1) .and. tmpy .lt. yf(nj+1)) .or. & 
-               (tmpy .eq. yfref(ny+1) .and. yf(nj+1) .eq. yfref(ny+1) .and. &
-                tmpx .ge. xf(1) .and. tmpx .lt. xf(ni+1)) .or. & 
-               (tmpx .eq. xfref(nx+1) .and. tmpy .eq. yfref(ny+1) .and. &
-                xf(ni+1) .eq. xfref(nx+1) .and. yf(nj+1) .eq. yfref(ny+1)) ) then
+          call check_droplet_ownership(tmpx,tmpy,xf,xfref,yf,yfref, &
+                                       is_local) 
+
+          if ( is_local ) then
 
              pdata(i,prx) = tmpx
              pdata(i,pry) = tmpy
              pdata(i,prz) = tmpz
-
-!             if(MODULO(n,100)==0) then 
-!               if(dowr) write(outfile,*) i,pdata(i,prx),pdata(i,pry),pdata(i,prz)
-!             endif
 
              if (prcl_droplet.eq.1) then
 
@@ -484,7 +473,6 @@
                 !Start the stopwatch for each particle at 0
                 pdata(i,prtime) = 0.0
 
-    
              end if ! end of if statement for prcl_droplet == 1
 
              i = i + 1

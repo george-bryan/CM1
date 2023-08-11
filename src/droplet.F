@@ -10,9 +10,8 @@
   implicit none
 
   private
-  public :: droplet_driver,droplet_diag,initialize_droplet_histograms
-
-
+  public :: droplet_driver,droplet_diag,initialize_droplet_histograms, &
+            check_droplet_ownership
 
   !These are quantities which are needed in the droplet_diag output, so must be public
   real :: num100,num1000
@@ -3918,6 +3917,157 @@
 
 
 #endif
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine check_droplet_ownership(x3d,y3d,xf,xfref,yf,yfref, &
+                                         is_local,neighbor,errcode)
+
+      ! This subroutine will check if a droplet falls into this MPI region or not
+      !     Exception case:
+      !       - if droplet is on a tile boundary, let the eastmost/northmost tile own it
+      !       - if droplet is on the northmost or eastmost boundary of the whole domain,
+      !         let the MPI rank which inclues that boundary owns it
+      !
+      ! Optionally, this subroutine will also calculate which neighbor
+      ! a droplet will move to.
+
+      !$acc routine seq
+
+      use input, only : ni,nj,ib,ie,jb,je,ngxy,nx,ny,dx,dy,mywest, &
+                        mysw,mynw,myeast,myse,myne,mysouth,mynorth
+      use constants, only : undefined_index
+
+      implicit none
+
+      real, intent(in) :: x3d, y3d
+      real, dimension(ib:ie+1), intent(in) :: xf
+      real, dimension(jb:je+1), intent(in) :: yf
+      real, dimension(1-ngxy:nx+ngxy+1), intent(in) :: xfref
+      real, dimension(1-ngxy:ny+ngxy+1), intent(in) :: yfref
+      logical, intent(out) :: is_local
+      integer, intent(out), optional :: neighbor, errcode
+
+      ! Local variable
+
+      is_local = .false.
+
+      ! normal case: a droplet falls within the domain or
+      !              on the westmost/southmost boundary
+      if ( x3d .ge. xf(1) .and. x3d .lt. xf(ni+1) .and. &
+           y3d .ge. yf(1) .and. y3d .lt. yf(nj+1) ) then
+         is_local = .true.
+      end if
+      ! special case: a droplet falls on the eastmost
+      !               boundary of the whole domain
+      if ( x3d .eq. xfref(nx+1) .and. xf(ni+1) .eq. xfref(nx+1) .and. &
+           y3d .ge. yf(1) .and. y3d .lt. yf(nj+1) ) then
+         is_local = .true.
+      end if
+      ! special case: a droplet falls on the northmost
+      !               boundary of the whole domain
+      if ( y3d .eq. yfref(ny+1) .and. yf(nj+1) .eq. yfref(ny+1) .and. &
+           x3d .ge. xf(1) .and. x3d .lt. xf(ni+1) ) then
+         is_local = .true.
+      end if
+      ! special case: a droplet falls on the upperright
+      !               corner of the whole domain
+      if ( x3d .eq. xfref(nx+1) .and. y3d .eq. yfref(ny+1) .and. &
+           xf(ni+1) .eq. xfref(nx+1) .and. &
+           yf(nj+1) .eq. yfref(ny+1) ) then
+         is_local = .true.
+      end if
+
+      ! check optional input
+      if ( present(neighbor) ) then
+         if ( .not. present(errcode) ) then
+            stop "neighbor is provided but errcode is not provided ..."
+         end if
+      end if
+      if ( present(errcode) ) then
+         if ( .not. present(neighbor) ) then
+            stop "errcode is provided but neighbor is not provided ..."
+         end if
+      end if
+
+      if ( present(neighbor) ) then
+         if ( is_local ) then 
+            neighbor = undefined_index
+            return
+         end if
+         if ( x3d .lt. xf(1) .and. y3d .ge. yf(1) .and. &
+              y3d .lt. yf(nj+1) ) then
+            if ( x3d .lt. xf(1)-dx*ni ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the west nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mywest
+         else if ( x3d .lt. xf(1) .and. y3d .lt. yf(1) ) then
+            if ( x3d .lt. xf(1)-dx*ni .or. y3d .lt. yf(1)-dy*nj ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the southwest nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mysw
+         else if ( x3d .lt. xf(1) .and. y3d .ge. yf(nj+1) ) then
+            if ( x3d .lt. xf(1)-dx*ni .or. y3d .ge. yf(nj+1)+dy*nj ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the northwest nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mynw
+         else if ( x3d .ge. xf(ni+1) .and. y3d .ge. yf(1) .and. &
+                   y3d .lt. yf(nj+1) ) then
+            if ( x3d .ge. xf(ni+1)+dx*ni ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the east nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = myeast
+         else if ( x3d .ge. xf(ni+1) .and. y3d .lt. yf(1) ) then
+            if ( x3d .ge. xf(ni+1)+dx*ni .or. y3d .lt. yf(1)-dy*nj ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the southeast nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = myse
+         else if ( x3d .ge. xf(ni+1) .and. y3d .ge. yf(nj+1) ) then
+            if ( x3d .ge. xf(ni+1)+dx*ni .or. y3d .ge. yf(nj+1)+dy*nj ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the northeast nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = myne
+         else if ( x3d .ge. xf(1) .and. x3d .lt. xf(ni+1) .and. &
+                   y3d .lt. yf(1) ) then
+            if ( y3d .lt. yf(1)-dy*nj ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the south nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mysouth
+         else if ( x3d .ge. xf(1) .and. x3d .lt. xf(ni+1) .and. &
+                   y3d .ge. yf(nj+1) ) then
+            if ( y3d .ge. yf(nj+1)+dy*nj ) then
+               print *,'BE_integration: Droplet jumped over &
+                        the north nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mynorth
+         else
+            ! This condition should never be entered
+            errcode = 12345
+            if ( x3d .ne. x3d .or. y3d .ne. y3d ) then
+               print *,'BE_integration: x or y position of droplet &
+                        is invalid: x3d = ', x3d, ', y3d = ', y3d
+            end if
+         end if     ! if statement for neighbor check
+      end if        ! if "neighbor" is present
+
+      end subroutine check_droplet_ownership
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
