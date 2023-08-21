@@ -143,6 +143,8 @@
 
       integer :: values(8),local_seed
 
+      integer :: doinject  !Do a call to droplet_inject at this time step?
+
       type(randomNumberSequence) :: randomNumbers
 
       integer :: num_fallout,idx                        !droplets which fell out of domain
@@ -801,12 +803,26 @@
 #endif
       u10_ssgf = u10_ssgf/dble(nx*ny)
 
-      !Only inject if a certain time has elapsed (specified in the namelist file)
-      if (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
-         !Only start droplet injection after a specified time
-         if (mtime .gt. drop_inject_time) then  !Only inject if past a certain time (specified in the namelist file)
 
-            call droplet_injection(pdata,xf,yf,dt,drop_inject_elapse,mtime,my_reintro)
+      doinject = 0
+
+      !Only inject if a certain time has elapsed (specified in the namelist file)
+      !Negative drop_inject_elapse means inject every time step
+      if (drop_inject_elapse .lt. 0.0) then
+         doinject = 1
+      elseif (floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse)) then
+         doinject = 1
+      end if
+
+      !Only inject if past a certain time (specified in the namelist file)
+      if (mtime .lt. drop_inject_time) then
+         doinject=0 
+      end if
+
+
+      if (doinject .eq. 1) then
+
+            call droplet_injection(pdata,xf,yf,max(drop_inject_elapse,dt),mtime,my_reintro)
 
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
@@ -858,8 +874,7 @@
                pdata(np,prprs) = prsval
                pdata(np,prrho) = rhoval
             end do
-         end if ! if mtime > 0
-      end if    ! if floor(mtime/drop_inject_elapse) .ne. floor((mtime+dt)/drop_inject_elapse) 
+      end if    !doinject
       !This is helpful to see in the output, but not absolutely necessary:
 #ifdef MPI
       call mpi_allreduce(nparcelsLocalActive,np_tmp,1,mpi_integer8, &
@@ -3158,7 +3173,7 @@
 
       end function crit_radius     
 
-      subroutine droplet_injection(pdata,xf,yf,dt,time_since_inject,mtime,my_reintro)
+      subroutine droplet_injection(pdata,xf,yf,time_since_inject,mtime,my_reintro)
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
@@ -3174,7 +3189,7 @@
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
       real, intent(in), dimension(ib:ie+1) :: xf
       real, intent(in), dimension(jb:je+1) :: yf
-      real, intent(in) :: dt,time_since_inject
+      real, intent(in) :: time_since_inject
       double precision, intent(in) :: mtime
       integer, intent(out) :: my_reintro
     
@@ -3264,7 +3279,7 @@
       !DHR SHOULD THERE BE AN ACC UPDATE HERE? num_injected is coming out as 0, but fixed after I add this line
       !$acc update device (num_injected)
 
-      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,dt,num_injected,mtime
+      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
 
 #ifdef MPI
       !For deciding whether to inject more:
