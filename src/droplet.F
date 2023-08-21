@@ -10,9 +10,8 @@
   implicit none
 
   private
-  public :: droplet_driver,droplet_diag,initialize_droplet_histograms
-
-
+  public :: droplet_driver,droplet_diag,initialize_droplet_histograms, &
+            check_droplet_ownership
 
   !These are quantities which are needed in the droplet_diag output, so must be public
   real :: num100,num1000
@@ -49,21 +48,28 @@
 
   CONTAINS
 
-      subroutine droplet_driver(dt,dbldt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs, &
-                               sigma,sigmaf,znt,rho,ua,va,wa,s10,pdata,                   &
-                               th_in,qa,th0,pi0,ppa,prs,ta,                               &
-                               pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                           &
-                               nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,reqs_p,                    &
-                               sw31,sw32,se31,se32,ss31,ss32,sn31,sn32,                   &
-                               n3w1,n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2,reqs_s,            &
-                               dpten,pdata_locind)
-      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj,nk,imp,jmp,kmp,rmp,cmp, &
-          kmt,npvals,npvars,cgs1,cgs2,cgs3,cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt, &
-          umove,vmove,nqv,terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
-          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult,prms,przs,pru,prv,prw,prt,prqv,prprs,prrho,prtime, &
-          timestats,time_droplet,time_droplet_inject,mytime,ierr,maxx,maxy,maxz, &
-          ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast,mywest,myid,nparcelsLocal,nparcelsLocalActive, &
-          time_phys_H2D,time_phys_D2H,drop_inject_elapse,drop_inject_time,time_dropC1,time_dropC2,time_dropC3,time_dropC4
+      subroutine droplet_driver (dt,dbldt,mtime,xh,uh,ruh,xf,yh,vh, &
+                                 rvh,yf,zh,mh,rmh,zf,mf,zs,sigma, &
+                                 sigmaf,znt,rho,ua,va,wa,s10,pdata, &
+                                 th_in,qa,th0,pi0,ppa,prs,ta,pw1,pw2, &
+                                 pe1,pe2,ps1,ps2,pn1,pn2,nw1,nw2,ne1, &
+                                 ne2,sw1,sw2,se1,se2,reqs_p,sw31,sw32, &
+                                 se31,se32,ss31,ss32,sn31,sn32,n3w1, &
+                                 n3w2,n3e1,n3e2,s3w1,s3w2,s3e1,s3e2, &
+                                 reqs_s,dpten,pdata_locind)
+
+      use input, only : ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,numq,ni,nj, &
+          nk,imp,jmp,kmp,rmp,cmp,kmt,npvals,npvars,cgs1,cgs2,cgs3, &
+          cgt1,cgt2,cgt3,bbc,tbc,imove,zt,rzt,umove,vmove,nqv, &
+          terrain_flag,nx,ny,axisymm,nodex,nodey,myi,myj,viscosity, &
+          prx,pry,prz,prsig,pract,prvpx,prvpy,prvpz,prtp,prrp,prmult, &
+          prms,przs,pru,prv,prw,prt,prqv,prprs,prrho,prtime, &
+          timestats,time_droplet,time_droplet_inject,mytime,ierr,maxx, &
+          maxy,maxz,ierr,mynw,mysw,myne,myse,mynorth,mysouth,myeast, &
+          mywest,myid,nparcelsLocal,nparcelsLocalActive, &
+          time_phys_H2D,time_phys_D2H,drop_inject_elapse, &
+          drop_inject_time,time_dropC1,time_dropC2,time_dropC3, &
+          time_dropC4,ngxy
       use constants
       use comm_module
       use comm_droplet_module
@@ -453,10 +459,11 @@
 !      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
 !      end if
 
-      call BE_integration(dt,dbldt,np,pdata,pdata_locind,xf,yf,x3d,y3d,z3d,sig3d, &
-                          uval,vval,wval,qval,rhoval,prsval,tval,Nup,rhop0, &
-                          taup0,rp0,part_grav1,part_grav2,part_grav3,debug, &
-                          neighbor,num_fallout,errcode)
+      call BE_integration (dt,dbldt,np,pdata,pdata_locind,xf,yf, &
+                           x3d,y3d,z3d,sig3d,uval,vval,wval,qval, &
+                           rhoval,prsval,tval,Nup,rhop0,taup0,rp0, &
+                           part_grav1,part_grav2,part_grav3,debug, &
+                           neighbor,num_fallout,errcode)
 
 #ifdef MPI
       if(neighbor .eq. mynorth) then 
@@ -509,9 +516,9 @@
 
     END DO nploop
     !$acc end parallel
-    if(errcode .gt. 0) then 
-      stop 'FATAL error occurred in the index search BE_integration'
-    endif
+    if (errcode .gt. 0) then 
+       stop 'FATAL error occurred in the index search BE_integration'
+    end if
 
 
     !$acc parallel default(present)
@@ -891,16 +898,20 @@
 
 !----------------------------------------------------------------------
 
-   subroutine BE_integration(dt,dbldt,np,pdata,pdata_locind,xf,yf,x3d,y3d, &
-                                z3d,sig3d,uval,vval,wval,qval,rhoval, &
-                                prsval,tval,Nup,rhop0,taup0,rp0, &
-                                part_grav1,part_grav2,part_grav3, &
-                                debug,neighbor,num_fallout,errcode)
+   subroutine BE_integration(dt,dbldt,np,pdata,pdata_locind,xf,yf, &
+                             x3d,y3d,z3d,sig3d,uval,vval,wval,qval, &
+                             rhoval,prsval,tval,Nup,rhop0,taup0,rp0, &
+                             part_grav1,part_grav2,part_grav3,debug, &
+                             neighbor,num_fallout,errcode)
+
       !$acc routine seq
+
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv,prw,prt,prqv,prprs,prrho,pract,prtime,prmult, &
-          ni,nj,mywest,mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal,myid,dx,dy,pi_sp,pi_dp
+          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv, &
+          prw,prt,prqv,prprs,prrho,pract,prtime,prmult,ni,nj,mywest, &
+          mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal, &
+          myid,dx,dy,pi_sp,pi_dp,ngxy
       use constants , only : rhow,rhow_dp,undefined_index
       use comm_module
       use parcel_module
@@ -941,10 +952,8 @@
       double precision :: taup_scale,dt_nondim
       double precision :: guess
       double precision :: rt_zeros(2),rt_start(2)
-    
+      logical :: is_local
       integer :: mflag,flag
-
-
 
       !Store interpolated quantities for the sake of statistics
       pdata(np,pru) = uval
@@ -1112,72 +1121,14 @@
       ! determine which new MPI region this droplet 
       ! enters or stays for the next time step
 
-      if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and.  &
-           (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
-           neighbor = undefined_index   ! undefined_index means this droplet
-                                        ! stays within the same MPI region
-      else if ( (x3d .lt. xf(1)) .and. (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
-           if ( x3d .lt. xf(1)-dx*ni ) then
-              print *,'BE_integration: Droplet jumped over west nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = mywest
-      else if ( (x3d .lt. xf(1)) .and. (y3d .lt. yf(1)) ) then
-           if ( (x3d .lt. xf(1)-dx*ni) .or. (y3d .lt. yf(1)-dy*nj) ) then
-              print *,'BE_integration: Droplet jumped over southwest nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = mysw
-      else if ( (x3d .lt. xf(1)) .and. (y3d .gt. yf(nj+1)) ) then
-           if ( (x3d .lt. xf(1)-dx*ni) .or. (y3d .gt. yf(nj+1)+dy*nj) ) then
-              print *,'BE_integration: Droplet jumped over northwest nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = mynw
-      else if ( (x3d .gt. xf(ni+1)) .and. (y3d .ge. yf(1)) .and. (y3d .le. yf(nj+1)) ) then
-           if ( x3d .gt. xf(ni+1)+dx*ni ) then
-              print *,'BE_integration: Droplet jumped over east nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = myeast
-      else if ( (x3d .gt. xf(ni+1)) .and. (y3d .lt. yf(1)) ) then
-           if ( (x3d .gt. xf(ni+1)+dx*ni) .or. (y3d .lt. yf(1)-dy*nj) ) then
-              print *,'BE_integration: Droplet jumped over southeast nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = myse
-      else if ( (x3d .gt. xf(ni+1)) .and. (y3d .gt. yf(nj+1)) ) then
-           if ( (x3d .gt. xf(ni+1)+dx*ni) .or. (y3d .gt. yf(nj+1)+dy*nj) ) then
-              print *,'BE_integration: Droplet jumped over northeast nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = myne
-      else if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and. (y3d .lt. yf(1)) ) then
-           if ( y3d .lt. yf(1)-dy*nj ) then
-              print *,'BE_integration: Droplet jumped over south nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = mysouth
-      else if ( (x3d .ge. xf(1)) .and. (x3d .le. xf(ni+1)) .and. (y3d .gt. yf(nj+1)) ) then
-           if ( y3d .gt. yf(nj+1)+dy*nj ) then
-              print *,'BE_integration: Droplet jumped over north nearest neighbor'
-              errcode = 50
-           end if
-           neighbor = mynorth
-      else
-           ! This condition should never be entered
-           errcode=200
-           if((x3d.ne.x3d) .or. (y3d.ne.y3d)) then 
-               print *,'BE_integration: x or y position of droplet is invalid: x3d,y3d: ',x3d,y3d
-           endif
-      end if
+      call check_droplet_ownership(x3d,y3d,xf,yf,is_local, &
+                                   neighbor,errcode)
 
       if ( neighbor .ne. undefined_index ) then
          pdata_locind(np,1) = undefined_index
          pdata_locind(np,2) = undefined_index
          pdata_locind(np,3) = undefined_index
       end if
-
 #endif
 
       if ( x3d .lt. minx ) then
@@ -1189,36 +1140,35 @@
          pdata_locind(np,1) = undefined_index
       end if
 
-      if( (y3d.gt.maxy).and.(axisymm.ne.1).and.(ny.ne.1) )then
-        y3d=y3d-(maxy-miny)
-        pdata_locind(np,2) = undefined_index
-      endif
-      if( (y3d.lt.miny).and.(axisymm.ne.1).and.(ny.ne.1) )then
-        y3d=y3d+(maxy-miny)
-        pdata_locind(np,2) = undefined_index
-      endif
+      if ( y3d .gt. maxy .and. axisymm .ne. 1 .and. ny .ne. 1 ) then
+         y3d = y3d - ( maxy - miny )
+         pdata_locind(np,2) = undefined_index
+      end if
+      if ( y3d .lt. miny .and. axisymm .ne. 1 .and. ny .ne. 1 ) then
+         y3d = y3d + ( maxy - miny )
+         pdata_locind(np,2) = undefined_index
+      end if
 
-      pdata(np,prx)=x3d
-      pdata(np,pry)=y3d
-      if( .not. terrain_flag )then
-        pdata(np,prz)=z3d
+      pdata(np,prx) = x3d
+      pdata(np,pry) = y3d
+      if ( .not. terrain_flag )then
+         pdata(np,prz) = z3d
       else
-        pdata(np,prsig)=sig3d
-      endif
+         pdata(np,prsig) = sig3d
+      end if
 
       ! If this droplet falls outside the bottom boundary,
       ! it "dies" and should not enter any other MPI rank
       ! even if its x/y location is valid
-      if (pdata(np,pract) .lt. 0.0) then
+      if ( pdata(np,pract) .lt. 0.0 ) then
          neighbor = undefined_index
          pdata_locind(np,1) = undefined_index
          pdata_locind(np,2) = undefined_index
-         !pdata(np,:) = neg_huge
       end if
 
-      if (pdata_locind(np,1) .eq. undefined_index .or. &
-          pdata_locind(np,2) .eq. undefined_index) then
-          pdata_locind(np,3) = undefined_index
+      if ( pdata_locind(np,1) .eq. undefined_index .or. &
+           pdata_locind(np,2) .eq. undefined_index ) then
+           pdata_locind(np,3) = undefined_index
       end if
 
       end subroutine BE_integration
@@ -3933,6 +3883,128 @@
 
 
 #endif
+
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      subroutine check_droplet_ownership(x3d,y3d,xf,yf,is_local, &
+                                         neighbor,errcode)
+
+      ! This subroutine will check if a droplet falls into this MPI region or not
+      !     Exception case:
+      !       - if droplet is on a tile boundary, let the eastmost/northmost tile own it
+      !       - if droplet is on the northmost or eastmost boundary of the whole domain,
+      !         let the MPI rank which inclues that boundary owns it
+      !
+      ! Optionally, this subroutine will also calculate which neighbor
+      ! a droplet will move to.
+
+      !$acc routine seq
+
+      use input, only : ni,nj,ib,ie,jb,je,ngxy,nx,ny,dx,dy,mywest, &
+                        mysw,mynw,myeast,myse,myne,mysouth,mynorth
+      use constants, only : undefined_index
+
+      implicit none
+
+      real, intent(in) :: x3d, y3d
+      real, dimension(ib:ie+1), intent(in) :: xf
+      real, dimension(jb:je+1), intent(in) :: yf
+      logical, intent(out) :: is_local
+      integer, intent(out), optional :: neighbor, errcode
+
+      ! Local variable
+
+      is_local = .false.
+
+      ! normal case: a droplet falls within the domain or
+      !              on the westmost/southmost boundary
+      if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. &
+           y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
+         is_local = .true.
+      end if
+
+      ! check optional input
+      if ( present(neighbor) ) then
+         if ( .not. present(errcode) ) then
+            stop "neighbor is provided but errcode is not provided ..."
+         end if
+      end if
+      if ( present(errcode) ) then
+         if ( .not. present(neighbor) ) then
+            stop "errcode is provided but neighbor is not provided ..."
+         end if
+      end if
+
+      if ( present(neighbor) ) then
+         if ( is_local ) then 
+            neighbor = undefined_index
+            return
+         end if
+         if ( x3d .lt. xf(1) .and. y3d .ge. yf(1) .and. &
+              y3d .le. yf(nj+1) ) then
+            if ( x3d .lt. xf(1)-dx*ni ) then
+               print *, 'Droplet jumped over west nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mywest
+         else if ( x3d .lt. xf(1) .and. y3d .lt. yf(1) ) then
+            if ( x3d .lt. xf(1)-dx*ni .or. y3d .lt. yf(1)-dy*nj ) then
+               print *, 'Droplet jumped over southwest nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mysw
+         else if ( x3d .lt. xf(1) .and. y3d .gt. yf(nj+1) ) then
+            if ( x3d .lt. xf(1)-dx*ni .or. y3d .gt. yf(nj+1)+dy*nj ) then
+               print *, 'Droplet jumped over northwest nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mynw
+         else if ( x3d .gt. xf(ni+1) .and. y3d .ge. yf(1) .and. &
+                   y3d .le. yf(nj+1) ) then
+            if ( x3d .gt. xf(ni+1)+dx*ni ) then
+               print *, 'Droplet jumped over east nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = myeast
+         else if ( x3d .gt. xf(ni+1) .and. y3d .lt. yf(1) ) then
+            if ( x3d .gt. xf(ni+1)+dx*ni .or. y3d .lt. yf(1)-dy*nj ) then
+               print *, 'Droplet jumped over southeast nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = myse
+         else if ( x3d .gt. xf(ni+1) .and. y3d .gt. yf(nj+1) ) then
+            if ( x3d .gt. xf(ni+1)+dx*ni .or. y3d .gt. yf(nj+1)+dy*nj ) then
+               print *, 'Droplet jumped over northeast nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = myne
+         else if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. &
+                   y3d .lt. yf(1) ) then
+            if ( y3d .lt. yf(1)-dy*nj ) then
+               print *, 'Droplet jumped over south nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mysouth
+         else if ( x3d .ge. xf(1) .and. x3d .le. xf(ni+1) .and. &
+                   y3d .gt. yf(nj+1) ) then
+            if ( y3d .gt. yf(nj+1)+dy*nj ) then
+               print *,'Droplet jumped over north nearest neighbor'
+               errcode = 50
+            end if
+            neighbor = mynorth
+         else
+            ! This condition should never be entered
+            errcode = 12345
+            if ( x3d .ne. x3d .or. y3d .ne. y3d ) then
+               print *, 'x or y position of droplet is invalid: x3d = ', &
+                        x3d, ', y3d = ', y3d
+            end if
+         end if     ! if statement for neighbor check
+      end if        ! if "neighbor" is present
+
+      end subroutine check_droplet_ownership
 
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
