@@ -84,8 +84,7 @@
       use module_mp_nssl_2mom, only: ccn, lccn
       use poiss_module
       use parcel_module , only : getparcelzs
-      use droplet_module, only: initialize_droplet_histograms, &
-                                check_droplet_ownership
+      use droplet_module, only: initialize_droplet_histograms
 #ifdef MPI
       use mpi
 #endif
@@ -169,7 +168,7 @@
       integer :: tctype
       real :: dr,tem
       double precision :: tem1,tem2,temd
-      logical :: doit,is_local
+      logical :: doit
 
       real :: salinity
 

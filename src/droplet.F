@@ -3888,8 +3888,7 @@
       !$acc routine seq
 
       use input, only : ni,nj,ib,ie,jb,je,ngxy,nx,ny,dx,dy,mywest, &
-                        mysw,mynw,myeast,myse,myne,mysouth,mynorth, &
-                        maxx,maxy
+                        mysw,mynw,myeast,myse,myne,mysouth,mynorth
       use constants, only : undefined_index
 
       implicit none
@@ -3910,25 +3909,6 @@
            y3d .ge. yf(1) .and. y3d .le. yf(nj+1) ) then
          is_local = .true.
       end if
-!      ! special case: a droplet falls on the eastmost
-!      !               boundary of the whole domain
-!      if ( x3d .eq. maxx .and. xf(ni+1) .eq. maxx .and. &
-!           y3d .ge. yf(1) .and. y3d .lt. yf(nj+1) ) then
-!         is_local = .true.
-!      end if
-!      ! special case: a droplet falls on the northmost
-!      !               boundary of the whole domain
-!      if ( y3d .eq. maxy .and. yf(nj+1) .eq. maxy .and. &
-!           x3d .ge. xf(1) .and. x3d .lt. xf(ni+1) ) then
-!         is_local = .true.
-!      end if
-!      ! special case: a droplet falls on the upperright
-!      !               corner of the whole domain
-!      if ( x3d .eq. maxx .and. y3d .eq. maxy .and. &
-!           xf(ni+1) .eq. maxx .and. &
-!           yf(nj+1) .eq. maxy ) then
-!         is_local = .true.
-!      end if
 
       ! check optional input
       if ( present(neighbor) ) then
