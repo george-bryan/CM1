@@ -132,7 +132,7 @@
  
 !-----------------------------------------------------------------------
 
-      integer(i8) :: n
+      integer :: n, iter
       integer i,j,k,kk,l,nn,nbub,nloop
       integer ic,jc,ifoo,jfoo
       real ric,rjc
@@ -180,6 +180,7 @@
       logical, parameter :: use_truly_random_pert  =  .false.
 
       real :: tmpx, tmpy, tmpz
+      real :: xrange, yrange
       integer(i8) :: np_tmp
 
 !--------------------------
@@ -418,76 +419,81 @@
 
         i = 1
         nparcelsLocalActive = 0
+        xrange = xf(ni+1) - xf(1)
+        yrange = yf(nj+1) - yf(1)
 
-        do n = 1, nparcelsInit 
+        iter = floor(real(nparcelsInit) / real(numprocs))
+        if ( mod(real(nparcelsInit),real(numprocs)) /= 0 ) then
+           ! handle the case where nparcelsInit can not be divided
+           ! evenly between different MPI ranks
+           if ( myid == 0 ) iter = nparcelsInit - iter * (numprocs - 1)
+        end if
+
+        do n = 1, iter
 
           rand = getRandomReal(randomNumbers)
-          tmpx = rand*maxx
+          tmpx = xf(1)+rand*xrange
           rand = getRandomReal(randomNumbers)
-          tmpy = rand*maxy
+          tmpy = yf(1)+rand*yrange
           rand = getRandomReal(randomNumbers)
           tmpz = rand*injectHMax
 
-          ! Check if this parcel falls into this MPI region
-          call check_droplet_ownership(tmpx,tmpy,xf,xfref,yf,yfref, &
-                                       is_local) 
+          pdata(i,prx) = tmpx
+          pdata(i,pry) = tmpy
+          pdata(i,prz) = tmpz
 
-          if ( is_local ) then
+          if (prcl_droplet.eq.1) then
 
-             pdata(i,prx) = tmpx
-             pdata(i,pry) = tmpy
-             pdata(i,prz) = tmpz
-
-             if (prcl_droplet.eq.1) then
-
-                pdata(i,prvpx) = 0.0
-                pdata(i,prvpy) = 0.0
-                pdata(i,prvpz) = 0.0
+             pdata(i,prvpx) = 0.0
+             pdata(i,prvpy) = 0.0
+             pdata(i,prvpz) = 0.0
      
-                !Droplet size (radius)
-                pdata(i,prrp) = 2.0e-6
+             !Droplet size (radius)
+             pdata(i,prrp) = 2.0e-6
      
-                !Droplet solute mass
-                salinity = 0.034
-                pdata(i,prms) = salinity*rhow*4.0/3.0*pi*pdata(i,prrp)**3
+             !Droplet solute mass
+             salinity = 0.034
+             pdata(i,prms) = salinity*rhow*4.0/3.0*pi*pdata(i,prrp)**3
      
-                !Droplet temperature
-                pdata(i,prtp) = 302.0
+             !Droplet temperature
+             pdata(i,prtp) = 302.0
      
-                !Droplet multiplicity
-                pdata(i,prmult) = drop_mult
+             !Droplet multiplicity
+             pdata(i,prmult) = drop_mult
         
-                !Is droplet alive?
-                pdata(i,pract) = 1.0
+             !Is droplet alive?
+             pdata(i,pract) = 1.0
      
-                !Initialize the interpolated quantities to zero
-                pdata(i,pru) = 0.0
-                pdata(i,prv) = 0.0
-                pdata(i,prw) = 0.0
-                !Set to something realistic so it doesn't break the stats at initiation
-                pdata(i,prt) = 302.0
-                pdata(i,prqv) = 0.01
-                pdata(i,prprs) = 101325.0
-                pdata(i,prrho) = 1.0
+             !Initialize the interpolated quantities to zero
+             pdata(i,pru) = 0.0
+             pdata(i,prv) = 0.0
+             pdata(i,prw) = 0.0
+             !Set to something realistic so it doesn't break the stats at initiation
+             pdata(i,prt) = 302.0
+             pdata(i,prqv) = 0.01
+             pdata(i,prprs) = 101325.0
+             pdata(i,prrho) = 1.0
        
-                !Start the stopwatch for each particle at 0
-                pdata(i,prtime) = 0.0
+             !Start the stopwatch for each particle at 0
+             pdata(i,prtime) = 0.0
 
-             end if ! end of if statement for prcl_droplet == 1
+          end if ! end of if statement for prcl_droplet == 1
 
-             i = i + 1
-             nparcelsLocalActive = nparcelsLocalActive + 1
+          i = i + 1
+          nparcelsLocalActive = nparcelsLocalActive + 1
 
-#ifdef MPI   
-             if ( i .gt. nparcelsLocal ) then
-                write(*,*) "Not enough space to initialize the droplets on myid = ", myid 
-                write(*,*) 'Please increase the value of namelist variable "nparcelsMax" or the value of "pdata_buffer" in the constants.F' 
-                stop "Stop the program..."
-             end if
+#ifdef MPI
+          if ( i .gt. nparcelsLocal ) then
+             write(*,*) "Not enough space to initialize the &
+                         droplets on myid = ", myid 
+             write(*,*) 'Please increase the value of namelist &
+                         variable "nparcelsMax" or the value of &
+                         "pdata_buffer" in the constants.F' 
+             stop "Stop the program..."
+          end if
 #endif
-          end if    ! end of if statement for xf/yf check
 
-        end do      ! end of loop for nparcelsInit
+        end do      ! end of loop for iter 
 
 #ifdef MPI
         ! Sanity check
