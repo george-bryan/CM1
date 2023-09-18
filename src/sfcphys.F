@@ -17,7 +17,7 @@
 
       subroutine getcecd(xh,u1,v1,s1,t1,q1,za,u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       use input, only: ib,ie,jb,je,ibl,iel,jbl,jel,ni,nj,use_avg_sfc,set_znt, &
-          set_ust,cecd,cnstcd,cnstce,cnst_ust,isfcflx,time_sfcphys,timestats,mytime
+          set_ust,cecd,cnstcd,cnstce,cnst_ust,isfcflx,time_sfcphys,timestats,mytime,myid
       use constants
 #ifdef MPI
       use mpi
@@ -93,6 +93,8 @@
       !$acc end parallel
        
 
+      if (myid.eq.0) write(*,*) 'DHR1:',avgsfct,avgsfcq
+
     endif
 
 !-----------------------------------------------------------------------
@@ -167,6 +169,7 @@
       
     enddo
     enddo
+      if (myid.eq.0) write(*,*) 'DHR2:',th10(1,1),q10(1,1)
 
   ELSE  sfc_options
 
@@ -390,31 +393,62 @@
 
   ELSE
 
+
+   IF ( testcase.eq.12 ) THEN
+       !Don't use the first grid point -- use the 10-meter 
+
+       !  sensible heat flux:
+       !$omp parallel do default(shared) private(i,j,pisfc)
+       !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
+       DO j=1,nj
+         do i=1,ni
+           pisfc = (psfc(i,j)*rp00)**rovcp
+           thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th10(i,j))
+         enddo
+       ENDDO
+
+       !  latent heat flux:
+       IF(imoist.eq.1)THEN
+         !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
+         !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
+         DO j=1,nj
+           do i=1,ni
+             qvsat=rslf(psfc(i,j),tsk(i,j))
+             qsfc(i,j)=qvsat
+             qvflux(i,j)=cq(i,j)*s10(i,j)*(qvsat-q10(i,j))*mavail(i,j)
+           enddo
+         ENDDO
+       ENDIF
+
+    ELSE
+
     ! normal code:
 
 
-    !  sensible heat flux:
-    !$omp parallel do default(shared) private(i,j,pisfc)
-    !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
-    DO j=1,nj
-      do i=1,ni
-        pisfc = (psfc(i,j)*rp00)**rovcp
-        thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
-      enddo
-    ENDDO
+       !  sensible heat flux:
+       !$omp parallel do default(shared) private(i,j,pisfc)
+       !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
+       DO j=1,nj
+         do i=1,ni
+           pisfc = (psfc(i,j)*rp00)**rovcp
+           thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
+         enddo
+       ENDDO
 
-    !  latent heat flux:
-    IF(imoist.eq.1)THEN
-      !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
-      !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
-      DO j=1,nj
-        do i=1,ni
-          qvsat=rslf(psfc(i,j),tsk(i,j))
-          qsfc(i,j)=qvsat
-          qvflux(i,j)=cq(i,j)*s10(i,j)*(qvsat-qva(i,j,1))*mavail(i,j)
-        enddo
-      ENDDO
-    ENDIF
+       !  latent heat flux:
+       IF(imoist.eq.1)THEN
+         !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
+         !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
+         DO j=1,nj
+           do i=1,ni
+             qvsat=rslf(psfc(i,j),tsk(i,j))
+             qsfc(i,j)=qvsat
+             qvflux(i,j)=cq(i,j)*s10(i,j)*(qvsat-qva(i,j,1))*mavail(i,j)
+           enddo
+         ENDDO
+       ENDIF
+
+    ENDIF   
 
   ENDIF  setting_flux
 

@@ -6615,7 +6615,7 @@
 
     !----------
 
-      if( ( testcase.eq.1 .or. testcase.eq.11 ) .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )then
+      if( ( testcase.eq.1 .or. testcase.eq.11 .or. testcase.eq.12 ) .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )then
         use_avg_sfc = .true.
       else
         use_avg_sfc = .false.
