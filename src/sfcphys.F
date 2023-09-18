@@ -15,7 +15,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getcecd(xh,u1,v1,s1,za,u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      subroutine getcecd(xh,u1,v1,s1,t1,q1,za,u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       use input, only: ib,ie,jb,je,ibl,iel,jbl,jel,ni,nj,use_avg_sfc,set_znt, &
           set_ust,cecd,cnstcd,cnstce,cnst_ust,isfcflx,time_sfcphys,timestats,mytime
       use constants
@@ -25,19 +25,20 @@
       implicit none
 
       real, intent(in), dimension(ib:ie) :: xh
-      real, intent(inout), dimension(ib:ie,jb:je) :: u1,v1,s1
+      real, intent(inout), dimension(ib:ie,jb:je) :: u1,v1,s1,t1,q1
       real, intent(in), dimension(ib:ie,jb:je) :: za
-      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10
+      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,th10,q10,qsfc
       real, intent(in), dimension(ib:ie,jb:je) :: xland
-      real, intent(inout), dimension(ib:ie,jb:je) :: znt,ust,cd,ch,cq
-      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      real, intent(inout), dimension(ib:ie,jb:je) :: znt,ust,cd,ch,cq,tsk,psfc
+      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
 
       integer :: i,j,i1,i2,j1,j2,n,nmax
-      real :: wsp,wlast,var,rznt,usave,vsave,ssave
+      real :: wsp,wlast,var,rznt,usave,vsave,ssave,zos,thst,qst,pisfc
+      real :: tsave,qsave
       logical :: convergeFail
 
-      !$acc declare present(xh,za,xland,u1,v1,s1,u10,v10,s10, &
-      !$acc                 znt,ust,cd,ch,cq)
+      !$acc declare present(xh,za,xland,u1,v1,s1,t1,q1,u10,v10,s10,th10,q10, &
+      !$acc                 znt,ust,tsk,qsfc,cd,ch,cq)
 
 !-----------------------------------------------------------------------
 !
@@ -76,6 +77,8 @@
       usave = u1(1,1)
       vsave = v1(1,1)
       ssave = s1(1,1)
+      tsave = t1(1,1)
+      qsave = q1(1,1)
 
       !$acc loop gang vector collapse(2)
       do j=j1,j2
@@ -83,6 +86,8 @@
         u1(i,j) = avgsfcu
         v1(i,j) = avgsfcv
         s1(i,j) = avgsfcs
+        t1(i,j) = avgsfct
+        q1(i,j) = avgsfcq
       enddo
       enddo
       !$acc end parallel
@@ -137,7 +142,7 @@
  !       Does this section of code need to be GPUized? 
 !!!    stop 'getcecd: cecd.eq.1'
 
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
+    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt,zos,thst,qst,pisfc)
     !$omp parallel do default(shared) private(i,j,var,rznt)
     do j=j1,j2
     do i=i1,i2
@@ -149,6 +154,17 @@
       v10(i,j) = v1(i,j)*var
       s10(i,j) = s1(i,j)*var
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
+
+      !Also get the simple MO th10 and q10
+      zos = 10.0/exp(karman*ust(i,j)/u10(i,j)/cnstce)
+      thst = karman*(t1(i,j)-tsk(i,j))/alog(za(i,j)/zos)
+      pisfc = (psfc(i,j)*rp00)**rovcp
+      th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
+
+
+      qst = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/zos)
+      q10(i,j) = qsfc(i,j) + qst/karman*alog(10.0/zos)
+      
     enddo
     enddo
 
@@ -305,7 +321,7 @@
 
 
       subroutine sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail,   &
-                         rho,rf,u1,v1,s1,ppi,tha,qva,qbsfc,psfc,u10,v10,s10,qsfc,znt,rtime)
+                         rho,rf,u1,v1,s1,ppi,tha,qva,qbsfc,psfc,u10,v10,s10,th10,q10,qsfc,znt,rtime)
       use input, only: ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ibm,iem,jbm,jem,kbm,kem,ni,nj, &
           set_flx,cnst_shflx,imoist,cnst_lhflx,testcase,dx,dy,timestats,time_sfcphys,mytime          
       use constants
@@ -325,7 +341,7 @@
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rho,rf,ppi,tha
       real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem) :: qva
       double precision, intent(inout) :: qbsfc
-      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,qsfc
+      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,qsfc,th10,q10
       real, intent(inout), dimension(ib:ie,jb:je) :: znt
       real, intent(in) :: rtime
 
@@ -1082,7 +1098,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      subroutine getavgsfc(u1,v1,s1,t1,q1,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       use input, only : ib,ie,jb,je,ni,nj,nx,ny,timestats,time_sfcphys, &
           mytime,ierr
 #ifdef MPI
@@ -1090,12 +1106,12 @@
 #endif
       implicit none
 
-      real, intent(in), dimension(ib:ie,jb:je) :: u1,v1,s1,t1
-      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      real, intent(in), dimension(ib:ie,jb:je) :: u1,v1,s1,t1,q1
+      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
 
       integer :: i,j
       double precision :: temd
-      !$acc declare present(u1,v1,s1,t1)
+      !$acc declare present(u1,v1,s1,t1,q1)
 
 !-----------------------------------------------------------------------
 
@@ -1103,14 +1119,15 @@
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
-      !$acc parallel default(present)  reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
-      !$acc loop gang vector collapse(2) reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      !$acc parallel default(present)  reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
+      !$acc loop gang vector collapse(2) reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       do j=1,nj
       do i=1,ni
         avgsfcu = avgsfcu + u1(i,j)
         avgsfcv = avgsfcv + v1(i,j)
         avgsfcs = avgsfcs + s1(i,j)
         avgsfct = avgsfct + t1(i,j)
+        avgsfcq = avgsfcq + q1(i,j)
       enddo
       enddo
       !$acc end parallel
@@ -1120,6 +1137,7 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcq,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
       temd = 1.0/dble(nx*ny)
@@ -1127,6 +1145,7 @@
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
+      avgsfcq = avgsfcq*temd
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
 

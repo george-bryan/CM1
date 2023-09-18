@@ -88,7 +88,7 @@ end module cuda_rt
       double precision :: mtime,stattim,taptim,rsttim,radtim,prcltim,diagtim,azimavgtim,hifrqtim
       double precision :: adt,acfl,dbldt
       double precision :: mass1,mass2
-      double precision :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      double precision :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
       logical :: misc_detail
       logical :: dosfcflx
       logical, dimension(maxq) :: cloudvar,rhovar
@@ -131,7 +131,7 @@ end module cuda_rt
       real, dimension(:,:,:), allocatable :: gx,gxu,gy,gyv
       real, dimension(:,:,:), allocatable :: rain,sws,svs,sps,srs,sgs,sus,shs
       real, dimension(:,:), allocatable :: tsk,znt,rznt,zntmp,ust,stau,tst,qst,z0t,z0q,thflux,qvflux,  &
-                                           cd,ch,cq,u1,v1,s1,t1,xland,psfc,tlh,f2d,psmth,prate,ustt,ut,vt,st
+                                           cd,ch,cq,u1,v1,s1,t1,q1,xland,psfc,tlh,f2d,psmth,prate,ustt,ut,vt,st
       real, dimension(:,:), allocatable :: radbcw,radbce
       real, dimension(:,:), allocatable :: radbcs,radbcn
       real, dimension(:,:), allocatable :: dtu,dtu0,dtv,dtv0
@@ -346,6 +346,7 @@ end module cuda_rt
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
+      avgsfcq = 0.0
       nudgeobc = 0
       alphobc = 60.0
       diagtim = 0.0
@@ -1537,6 +1538,8 @@ end module cuda_rt
       s1 = 0.0
       allocate(     t1(ib:ie,jb:je) )
       t1 = 0.0
+      allocate(     q1(ib:ie,jb:je) )
+      q1 = 0.0
       allocate(  xland(ib:ie,jb:je) )
       xland = 0.0
       allocate(   psfc(ib:ie,jb:je) )
@@ -2116,9 +2119,9 @@ end module cuda_rt
       u10e = 0.0
       allocate(   v10e(ibmyj:iemyj,jbmyj:jemyj) )
       v10e = 0.0
-      allocate(   th10(ibmyj:iemyj,jbmyj:jemyj) )
+      allocate(   th10(ibl:iel,jbl:jel) )
       th10 = 0.0
-      allocate(    q10(ibmyj:iemyj,jbmyj:jemyj) )
+      allocate(    q10(ibl:iel,jbl:jel) )
       q10 = 0.0
       allocate( tshltr(ibmyj:iemyj,jbmyj:jemyj) )
       tshltr = 0.0
@@ -2517,7 +2520,7 @@ end module cuda_rt
                               trecs,trecw,arecs,arecw,                             &
                               nwrite,nwritet,nwritea,nwriteh,nrst,nstatout,        &
                               num_soil_layers,nrad2d,                              &
-                              avgsfcu,avgsfcv,avgsfcs,avgsfct,                     &
+                              avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq,             &
                               dt,dtlast,mtime,ndt,adt,acfl,dbldt,mass1,            &
                               stattim,taptim,rsttim,radtim,prcltim,                &
                               qbudget,asq,bsq,qname,                               &
@@ -2841,7 +2844,7 @@ end module cuda_rt
 !$acc              phim,phih,swspd,cpmm,zol,mavail,mol,rmol, &
 !$acc              dsxy,cda,psim,psih,psiq,fm,fh,th2,q2,t2, &
 !$acc              gamk,cmz,csz,ce1z,ce2z,stau,ustt,ut,vt,st, &
-!$acc              cd,ch,cq,tlh,u1,v1,s1,t1,znt,zntmp,ust,hfx, &
+!$acc              cd,ch,cq,tlh,u1,v1,s1,t1,q1,znt,zntmp,ust,hfx, &
 !$acc              qfx,qsfc,tsk,tmn,tslb,sws,svs,sps,srs,sgs, &
 !$acc              sus,shs,bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12, &
 !$acc              t13,t22,t23,t33,thflux,qvflux,radbcw,radbce, &
@@ -3385,13 +3388,13 @@ end module cuda_rt
         call nvtxStartRange("srf_and_turb",id=5)
 #endif
       call sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget, &
-                   avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
+                   avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq,              &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
                    yh,vh,rvh,yf,vf,rvf,                              &
                    rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,zf,mf,rmf,  &
                    pi0s,rth0s,pi0,rho0,prs0,thv0,th0,qv0,rr0,rf0,rrf0, &
                    zs,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv,        &
-                   tsk,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1,tlh,f2d,ustt,ut,vt,st,   &
+                   tsk,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1,q1,tlh,f2d,ustt,ut,vt,st,   &
                    dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,     &
                    divx,rho,rr,rf,prs,                               &
                    t11,t12,t13,t22,t23,t33,                          &
@@ -3979,7 +3982,7 @@ end module cuda_rt
                                trecs,trecw,arecs,arecw,                             &
                                nwrite,nwritet,nwritea,nwriteh,nrst,nstatout,        &
                                num_soil_layers,nrad2d,                              &
-                               avgsfcu,avgsfcv,avgsfcs,avgsfct,                     &
+                               avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq,             &
                                dt,dtlast,mtime,ndt,adt,acfl,dbldt,mass1,            &
                                stattim,taptim,rsttim,radtim,prcltim,                &
                                qbudget,asq,bsq,qname,                               &

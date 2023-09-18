@@ -11,7 +11,7 @@
                                trecs,trecw,arecs,arecw,                             &
                                nwrite,nwritet,nwritea,nwriteh,nrst,nstatout,        &
                                num_soil_layers,nrad2d,                              &
-                               avgsfcu,avgsfcv,avgsfcs,avgsfct,                     &
+                               avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq,             &
                                dt,dtlast,mtime,ndt,adt,acfl,dbldt,mass1,            &
                                stattim,taptim,rsttim,radtim,prcltim,                &
                                qbudget,asq,bsq,qname,                               &
@@ -64,7 +64,7 @@
       integer, intent(in) :: nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,trecs,trecw,arecs,arecw
       integer, intent(in) :: nwrite,nwritet,nwritea,nwriteh,nrst,nstatout
       integer, intent(in) :: num_soil_layers,nrad2d
-      double precision, intent(in)    :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      double precision, intent(in)    :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
       real, intent(in) :: dt,dtlast
       integer, intent(in) :: ndt
       double precision, intent(in) :: adt,acfl,dbldt
@@ -350,7 +350,7 @@
       write(50) rsttim
       write(50) radtim
       write(50) prcltim
-      !$acc update host(adt,acfl,dbldt,mass1,avgsfcu,avgsfcv,avgsfcs,avgsfct) if_present
+      !$acc update host(adt,acfl,dbldt,mass1,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq) if_present
       write(50) adt
       write(50) acfl
       write(50) dbldt
@@ -359,6 +359,7 @@
       write(50) avgsfcv
       write(50) avgsfcs
       write(50) avgsfct
+      write(50) avgsfcq
     ENDIF
 #ifdef NETCDF
   ELSEIF( restart_format.eq.2 )THEN
@@ -504,6 +505,9 @@
 
       call disp_err( nf90_inq_varid(ncid,"avgsfct",varid) , .true. )
       call disp_err( nf90_put_var(ncid,varid,avgsfct,(/time_index/)) , .true. )
+
+      call disp_err( nf90_inq_varid(ncid,"avgsfcq",varid) , .true. )
+      call disp_err( nf90_put_var(ncid,varid,avgsfcq,(/time_index/)) , .true. )
 
     ENDIF
 #endif
@@ -2106,7 +2110,7 @@
                               trecs,trecw,arecs,arecw,                             &
                               nwrite,nwritet,nwritea,nwriteh,nrst,nstatout,        &
                               num_soil_layers,nrad2d,                              &
-                              avgsfcu,avgsfcv,avgsfcs,avgsfct,                     &
+                              avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq,             &
                               dt,dtlast,mtime,ndt,adt,acfl,dbldt,mass1,            &
                               stattim,taptim,rsttim,radtim,prcltim,                &
                               qbudget,asq,bsq,qname,                               &
@@ -2162,7 +2166,7 @@
       integer, intent(inout) :: nstep,srec,sirec,urec,vrec,wrec,nrec,mrec,prec,trecs,trecw,arecs,arecw
       integer, intent(inout) :: nwrite,nwritet,nwritea,nwriteh,nrst,nstatout
       integer, intent(in) :: num_soil_layers,nrad2d
-      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
       real, intent(inout) :: dt,dtlast
       integer, intent(inout) :: ndt
       double precision, intent(inout) :: adt,acfl,dbldt
@@ -2475,6 +2479,7 @@
       read(50) avgsfcv
       read(50) avgsfcs
       read(50) avgsfct
+      read(50) avgsfcq
     ENDIF
 #ifdef NETCDF
   ELSEIF( restart_format.eq.2 )THEN
@@ -2621,6 +2626,9 @@
       call disp_err( nf90_inq_varid(ncid,"avgsfct",varid) , .true. )
       call disp_err( nf90_get_var(ncid,varid,avgsfct,(/time_index/)) , .true. )
 
+      call disp_err( nf90_inq_varid(ncid,"avgsfcq",varid) , .true. )
+      call disp_err( nf90_get_var(ncid,varid,avgsfcq,(/time_index/)) , .true. )
+
     ENDIF
 #endif
   ENDIF
@@ -2672,6 +2680,7 @@
       call bcast_double(avgsfcv)
       call bcast_double(avgsfcs)
       call bcast_double(avgsfct)
+      call bcast_double(avgsfcq)
 
 !---------------------------------------------------------------
 ! budget variables:

@@ -11,13 +11,13 @@
   CONTAINS
 
       subroutine sfc_and_turb(getsfc,getpbl,nstep,dt,dosfcflx,cloudvar,qbudget,  &
-                   avgsfcu,avgsfcv,avgsfcs,avgsfct,                  &
+                   avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq,                  &
                    xh,rxh,arh1,arh2,uh,ruh,xf,rxf,arf1,arf2,uf,ruf,  &
                    yh,vh,rvh,yf,vf,rvf,                              &
                    rds,sigma,rdsf,sigmaf,zh,mh,rmh,c1,c2,zf,mf,rmf,  &
                    pi0s,rth0s,pi0,rho0,prs0,thv0,th0,qv0,rr0,rf0,rrf0, &
                    zs,gz,rgz,gzu,rgzu,gzv,rgzv,gx,gxu,gy,gyv,        &
-                   tsk,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1,tlh,f2d,ustt,ut,vt,st,   &
+                   tsk,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1,q1,tlh,f2d,ustt,ut,vt,st,   &
                    dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,     &
                    divx,rho,rr,rf,prs,                               &
                    t11,t12,t13,t22,t23,t33,                          &
@@ -109,7 +109,7 @@
       logical, intent(in) :: dosfcflx
       logical, intent(in), dimension(maxq) :: cloudvar
       double precision, intent(inout), dimension(nbudget) :: qbudget
-      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
       real, intent(in), dimension(ib:ie) :: xh,rxh,arh1,arh2,uh,ruh
       real, intent(in), dimension(ib:ie+1) :: xf,rxf,arf1,arf2,uf,ruf
       real, intent(in), dimension(jb:je) :: yh,vh,rvh
@@ -124,7 +124,7 @@
       real, intent(in), dimension(itb:ite,jtb:jte) :: gz,rgz,gzu,rgzu,gzv,rgzv
       real, intent(in), dimension(itb:ite,jtb:jte,ktb:kte) :: gx,gxu,gy,gyv
       real, intent(inout), dimension(ib:ie,jb:je) :: tsk,znt,rznt,zntmp,ust,stau,tst,qst,z0t,z0q,thflux,qvflux,  &
-                                                     cd,ch,cq,u1,v1,s1,t1,psfc,tlh,ustt,ut,vt,st
+                                                     cd,ch,cq,u1,v1,s1,t1,q1,psfc,tlh,ustt,ut,vt,st
       real, intent(in),    dimension(ib:ie,jb:je) :: xland,f2d
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,rho,rr,rf,prs
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: t11,t12,t13,t22,t23,t33
@@ -151,7 +151,7 @@
       real, intent(inout), dimension(ibr:ier,jbr:jer,kbr:ker) :: swten,lwten
       real, intent(inout) , dimension(ibdt:iedt,jbdt:jedt,kbdt:kedt,ntdiag) :: tdiag
       integer, intent(inout), dimension(ibl:iel,jbl:jel) :: lu_index,kpbl2d
-      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,hfx,qfx, &
+      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,th10,q10,hfx,qfx, &
                                       hpbl,wspd,phim,phih,psim,psih,psiq,gz1oz0,br,brcr, &
                                       CHS,CHS2,CQS2,CPMM,ZOL,MAVAIL,          &
                                       MOL,RMOL,REGIME,LH,FLHC,FLQC,QGH,       &
@@ -159,7 +159,7 @@
                                       gsw,glw,chklowq,capg,snowc,snowh,qcg,dsxy,wstar,delta,prkpp,fm,fh
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: charn,msang,scurx,scury,zkmax,cd_out,ch_out,wscale,wscaleu
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: mznt,swspd,smois,taux,tauy,hpbl2d,evap2d,heat2d
-      real, intent(inout), dimension(ibmyj:iemyj,jbmyj:jemyj) :: mixht,akhs,akms,ct,snow,sice,thz0,qz0,uz0,vz0,u10e,v10e,th10,q10,tshltr,qshltr,pshltr,z0base,zntmyj
+      real, intent(inout), dimension(ibmyj:iemyj,jbmyj:jemyj) :: mixht,akhs,akms,ct,snow,sice,thz0,qz0,uz0,vz0,u10e,v10e,tshltr,qshltr,pshltr,z0base,zntmyj
       integer, intent(inout), dimension(ibmyj:iemyj,jbmyj:jemyj) :: lowlyr,ivgtyp
       real, intent(inout), dimension(ibmyj:iemyj,jbmyj:jemyj,kbmyj:kemyj) :: tke_myj,el_myj
       real, intent(inout), dimension(ibmyj:iemyj,kbmyj:kemyj,nmyj) :: tmp_myj
@@ -225,12 +225,12 @@
     !$acc declare &
     !$acc present(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
     !$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0)                      &
-    !$acc present(tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1, &
+    !$acc present(tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1,q1, &
     !$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,   &
     !$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
     !$acc      rrv,rrw,ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,     &
     !$acc      thterm,qa,kmh,kmv,khh,khv,tkea,tke3d,nm,defv,defh,lenscl,dissten,  &
-    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,hfx,qfx,hpbl, &
+    !$acc      epst,epsd1,epsd2,thpten,upten,vpten,psfc,u10,v10,s10,th10,q10,hfx,qfx,hpbl, &
     !$acc      wspd,gz1oz0,br,swspd,cpmm,zol,mavail,mol,qsfc,dsxy,cda,psim,psih,  &
 #ifdef MPI
     !$acc      nw1,nw2,ne1,ne2,sw1,sw2,se1,se2,kw1,kw2,ke1,ke2,ks1,ks2,kn1,kn2,   &
@@ -567,6 +567,7 @@
             v1(i,j) = 0.5*( vgr(i,j,kval) + vgr(i,j+1,kval) )
             s1(i,j) = sqrt(u1(i,j)**2+v1(i,j)**2)
             t1(i,j) = th0(i,j,kval)+tha(i,j,kval)
+            q1(i,j) = qa(i,j,kval,nqv)
             ppten(i,j,1) = zh(i,j,kval)
           enddo
           enddo
@@ -643,12 +644,12 @@
          ENDIF
 
         IF( use_avg_sfc .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )THEN
-            call getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+            call getavgsfc(u1,v1,s1,t1,q1,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
         ENDIF
 
         IF( sfcmodel.eq.1 )THEN
 
-          call getcecd(xh,u1,v1,s1,ppten(ib,jb,1),u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+          call getcecd(xh,u1,v1,s1,t1,q1,ppten(ib,jb,1),u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
 
           if( tbc.eq.3 )then
             !$acc parallel loop gang vector collapse(2) default(present) 
@@ -666,7 +667,7 @@
           if(isfcflx.eq.1)then
             call sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail, &
                          rho,rf,u1,v1,s1,ppi,tha,divx, &
-                         qbudget(8),psfc,u10,v10,s10,qsfc,znt,rtime)
+                         qbudget(8),psfc,u10,v10,s10,th10,q10,qsfc,znt,rtime)
           endif
 
           ! get sfc diagnostics needed by pbl scheme:
