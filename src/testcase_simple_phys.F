@@ -97,7 +97,7 @@
 !-----------------------------------------------------------------------
 !     hurricane boundary layer (Bryan et al, 2017, BLM)
 
-      IF( testcase.eq.6 .or. testcase.eq.10 )THEN
+      IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.12 )THEN
 
         ! get domain averages:
         call     get_avg_uvt(uavg,vavg,thavg,cavg,th0,ua,va,tha,ruh,ruf,rvh,rvf)

@@ -4998,7 +4998,7 @@
           td_rdamp = ntdiag
         endif
 
-        if( testcase.eq.10 )then
+        if( testcase.eq.10 .or. testcase.eq.12 )then
           ntdiag = ntdiag + 1
           td_nudge = ntdiag
         endif
@@ -5176,7 +5176,7 @@
           qd_mp = nqdiag
         endif
 
-        if( testcase.eq.10 )then
+        if( testcase.eq.10 .or. testcase.eq.12 )then
           nqdiag = nqdiag + 1
           qd_nudge = nqdiag
         endif
