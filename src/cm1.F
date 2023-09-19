@@ -2844,7 +2844,7 @@ end module cuda_rt
 !$acc              phim,phih,swspd,cpmm,zol,mavail,mol,rmol, &
 !$acc              dsxy,cda,psim,psih,psiq,fm,fh,th2,q2,t2, &
 !$acc              gamk,cmz,csz,ce1z,ce2z,stau,ustt,ut,vt,st, &
-!$acc              cd,ch,cq,tlh,u1,v1,s1,t1,q1,znt,zntmp,ust,hfx, &
+!$acc              cd,ch,cq,tlh,u1,v1,s1,t1,q1,th10,q10,znt,zntmp,ust,hfx, &
 !$acc              qfx,qsfc,tsk,tmn,tslb,sws,svs,sps,srs,sgs, &
 !$acc              sus,shs,bud2,ufrc,vfrc,thfrc,qvfrc,t11,t12, &
 !$acc              t13,t22,t23,t33,thflux,qvflux,radbcw,radbce, &

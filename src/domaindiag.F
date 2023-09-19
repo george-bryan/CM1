@@ -1125,7 +1125,7 @@
       !c-c-c-c-c-c-c-c-c-c
 
     ziflag:  &
-    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 .or. testcase.eq.12 )THEN
+    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 .or. testcase.eq.15 )THEN
 
         zimin =  1.0e30
         zimax = -1.0e30
@@ -1218,7 +1218,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.12 )THEN
+    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.15 )THEN
 
       nvar = nvar+1
       varname(nvar) = 'zitb'
@@ -1250,7 +1250,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.12 )THEN
+    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.15 )THEN
 
         nvar = nvar+1
         varname(nvar) = 'zwspmax'
@@ -5205,7 +5205,7 @@
 !!!      ENDIF
 
 
-      IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.12 )THEN
+      IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.15 )THEN
 
         nvar = nvar+1
         varname(nvar) = 'dvdr'

@@ -875,11 +875,11 @@
         pi_sfc   =    1.0     ! Exner function at surface
         lapse    = -0.0030581 ! potential temperature lapse rate (K/m)
 
-        IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.12)THEN
+        IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.15)THEN
           !  hurricane boundary layer (Bryan et al, 2017, BLM)
           lapse  =  0.005
         ENDIF
-        IF( testcase.eq.10 .or. testcase.eq.12 )THEN
+        IF( testcase.eq.10 .or. testcase.eq.15 )THEN
           rhval = 0.90
         ENDIF
 
@@ -2799,7 +2799,7 @@
 
     !-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-c-!
 
-    IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.12 )THEN
+    IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.15 )THEN
 
       ! hurricane boundary layer (Bryan et al, 2017, BLM)
 

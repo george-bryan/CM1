@@ -4998,7 +4998,7 @@
           td_rdamp = ntdiag
         endif
 
-        if( testcase.eq.10 .or. testcase.eq.12 )then
+        if( testcase.eq.10 .or. testcase.eq.15 )then
           ntdiag = ntdiag + 1
           td_nudge = ntdiag
         endif
@@ -5176,7 +5176,7 @@
           qd_mp = nqdiag
         endif
 
-        if( testcase.eq.10 .or. testcase.eq.12 )then
+        if( testcase.eq.10 .or. testcase.eq.15 )then
           nqdiag = nqdiag + 1
           qd_nudge = nqdiag
         endif
@@ -6615,7 +6615,7 @@
 
     !----------
 
-      if( ( testcase.eq.1 .or. testcase.eq.11 .or. testcase.eq.12 ) .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )then
+      if( ( testcase.eq.1 .or. testcase.eq.11 .or. testcase.eq.15 ) .and. ( sfcmodel.eq.1 .or. sfcmodel.eq.5 ) )then
         use_avg_sfc = .true.
       else
         use_avg_sfc = .false.

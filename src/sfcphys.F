@@ -93,7 +93,7 @@
       !$acc end parallel
        
 
-      if (myid.eq.0) write(*,*) 'DHR1:',avgsfct,avgsfcq
+      if (myid.eq.0) write(*,*) 'DHR2:',avgsfct,avgsfcq
 
     endif
 
@@ -169,7 +169,7 @@
       
     enddo
     enddo
-      if (myid.eq.0) write(*,*) 'DHR2:',th10(1,1),q10(1,1)
+      if (myid.eq.0) write(*,*) 'DHR3:',th10(1,1),q10(1,1),tsk(1,1),qsfc(1,1)
 
   ELSE  sfc_options
 
@@ -394,7 +394,7 @@
   ELSE
 
 
-   IF ( testcase.eq.12 ) THEN
+   IF ( testcase.eq.15 ) THEN
        !Don't use the first grid point -- use the 10-meter 
 
        !  sensible heat flux:

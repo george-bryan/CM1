@@ -191,8 +191,10 @@
            settings. 
 
     11 =   SAS convective PBL
+    12 =   IB stuff?
+    13 =   ??
 
-    12 =   Hurricane boundary layer with LES laden with spray
+    15 =   Hurricane boundary layer with LES laden with spray
            - Based on Richter & Wainwright (2023, GRL)
            - Almost same as testcase 10, but with no nudging, other tweaks
            - 2023 Derecho ASD project 
