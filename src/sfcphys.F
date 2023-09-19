@@ -93,7 +93,6 @@
       !$acc end parallel
        
 
-      if (myid.eq.0) write(*,*) 'DHR2:',avgsfct,avgsfcq
 
     endif
 
@@ -158,7 +157,7 @@
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
 
       !Also get the simple MO th10 and q10
-      zos = 10.0/exp(karman*ust(i,j)/u10(i,j)/cnstce)
+      zos = 10.0/exp(karman*ust(i,j)/s10(i,j)/cnstce)
       thst = karman*(t1(i,j)-tsk(i,j))/alog(za(i,j)/zos)
       pisfc = (psfc(i,j)*rp00)**rovcp
       th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
@@ -169,7 +168,6 @@
       
     enddo
     enddo
-      if (myid.eq.0) write(*,*) 'DHR3:',th10(1,1),q10(1,1),tsk(1,1),qsfc(1,1)
 
   ELSE  sfc_options
 
