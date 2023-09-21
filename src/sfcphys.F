@@ -158,8 +158,8 @@
 
       !Also get the simple MO th10 and q10
       zos = 10.0/exp(karman*ust(i,j)/s10(i,j)/cnstce)
-      thst = karman*(t1(i,j)-tsk(i,j))/alog(za(i,j)/zos)
       pisfc = (psfc(i,j)*rp00)**rovcp
+      thst = karman*(t1(i,j)-tsk(i,j)/pisfc)/alog(za(i,j)/zos)
       th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
 
 
@@ -291,6 +291,8 @@
         u10(i,j) = u10(1,1)
         v10(i,j) = v10(1,1)
         s10(i,j) = s10(1,1)
+        th10(i,j) = th10(1,1)
+        q10(i,j) = q10(1,1)
         znt(i,j) = znt(1,1)
         ust(i,j) = ust(1,1)
         cd(i,j) = cd(1,1)
