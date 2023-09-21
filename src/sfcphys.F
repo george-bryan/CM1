@@ -73,13 +73,15 @@
       j1 = 1
       j2 = 1
 
-      !$acc parallel default(present)
+      !$acc serial default(present)
       usave = u1(1,1)
       vsave = v1(1,1)
       ssave = s1(1,1)
       tsave = t1(1,1)
       qsave = q1(1,1)
+      !$acc end serial
 
+      !$acc parallel default(present)
       !$acc loop gang vector collapse(2)
       do j=j1,j2
       do i=i1,i2
@@ -91,8 +93,6 @@
       enddo
       enddo
       !$acc end parallel
-       
-
 
     endif
 
@@ -143,8 +143,8 @@
  !       Does this section of code need to be GPUized? 
 !!!    stop 'getcecd: cecd.eq.1'
 
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt,zos,thst,qst,pisfc)
     !$omp parallel do default(shared) private(i,j,var,rznt)
+    !$acc parallel loop gang vector collapse(2) default(present)
     do j=j1,j2
     do i=i1,i2
       cd(i,j) = max(1.0e-10,cnstcd)
@@ -161,7 +161,6 @@
       pisfc = (psfc(i,j)*rp00)**rovcp
       thst = karman*(t1(i,j)-tsk(i,j)/pisfc)/alog(za(i,j)/zos)
       th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
-
 
       qst = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/zos)
       q10(i,j) = qsfc(i,j) + qst/karman*alog(10.0/zos)
@@ -300,11 +299,13 @@
         cq(i,j) = cq(1,1)
       enddo
       enddo
+      !$acc end parallel
 
+      !$acc serial default(present)
       u1(1,1) = usave
       v1(1,1) = vsave
       s1(1,1) = ssave
-      !$acc end parallel
+      !$acc end serial
 
     endif
 
@@ -399,7 +400,7 @@
 
        !  sensible heat flux:
        !$omp parallel do default(shared) private(i,j,pisfc)
-       !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
+       !$acc parallel loop gang vector collapse(2) default(present)
        DO j=1,nj
          do i=1,ni
            pisfc = (psfc(i,j)*rp00)**rovcp
@@ -410,7 +411,7 @@
        !  latent heat flux:
        IF(imoist.eq.1)THEN
          !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
-         !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
+         !$acc parallel loop gang vector collapse(2) default(present)
          DO j=1,nj
            do i=1,ni
              qvsat=rslf(psfc(i,j),tsk(i,j))
@@ -424,10 +425,9 @@
 
     ! normal code:
 
-
        !  sensible heat flux:
        !$omp parallel do default(shared) private(i,j,pisfc)
-       !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
+       !$acc parallel loop gang vector collapse(2) default(present)
        DO j=1,nj
          do i=1,ni
            pisfc = (psfc(i,j)*rp00)**rovcp
@@ -438,7 +438,7 @@
        !  latent heat flux:
        IF(imoist.eq.1)THEN
          !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
-         !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
+         !$acc parallel loop gang vector collapse(2) default(present)
          DO j=1,nj
            do i=1,ni
              qvsat=rslf(psfc(i,j),tsk(i,j))
@@ -1153,6 +1153,7 @@
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
+      avgsfcq = 0.0
       !$acc parallel default(present)  reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       !$acc loop gang vector collapse(2) reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       do j=1,nj
