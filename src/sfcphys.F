@@ -305,6 +305,8 @@
       u1(1,1) = usave
       v1(1,1) = vsave
       s1(1,1) = ssave
+      t1(1,1) = tsave
+      q1(1,1) = qsave
       !$acc end serial
 
     endif
