@@ -5666,9 +5666,9 @@
     enddo
     !$acc end parallel
 
-    !$acc update self(gamk(2))
+    !$acc kernels default(present)
     gamk(1) = gamk(2)
-    !$acc update device(gamk(1))
+    !$acc end kernels
  
     endif  doinggamk
 
