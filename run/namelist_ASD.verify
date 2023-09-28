@@ -25,7 +25,7 @@
 
  &param2
  cm1setup  =  1,
- testcase  =  10,
+ testcase  =  15,
  adapt_dt  =  0,
  irst      =  0,
  rstnum    =  1,
