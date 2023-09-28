@@ -73,13 +73,12 @@
       j1 = 1
       j2 = 1
 
-      !$acc serial default(present)
+      !$acc update self(u1(1,1),v1(1,1),s1(1,1),t1(1,1),q1(1,1))
       usave = u1(1,1)
       vsave = v1(1,1)
       ssave = s1(1,1)
       tsave = t1(1,1)
       qsave = q1(1,1)
-      !$acc end serial
 
       !$acc parallel default(present)
       !$acc loop gang vector collapse(2)
@@ -301,13 +300,12 @@
       enddo
       !$acc end parallel
 
-      !$acc serial default(present)
       u1(1,1) = usave
       v1(1,1) = vsave
       s1(1,1) = ssave
       t1(1,1) = tsave
       q1(1,1) = qsave
-      !$acc end serial
+      !$acc update device(u1(1,1),v1(1,1),s1(1,1),t1(1,1),q1(1,1))
 
     endif
 

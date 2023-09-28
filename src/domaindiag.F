@@ -4270,10 +4270,9 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(nm(ib,jb,kb),savg)
-        !$acc serial default(present)
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end serial
+        !$acc update device(savg(1),savg(nk+1))
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
 
@@ -10677,28 +10676,25 @@
           enddo
           !$acc end parallel
 
-          !$acc serial default(present)
           sfs(1) = sfst
-          !$acc end serial
+          !$acc update device(sfs(1))
 
           if( bcturbs.eq.3 )then
-            !$acc serial default(present)
             sfs(nk+1) = sfst
-            !$acc end serial
+            !$acc update device(sfs(nk+1))
           endif
 
         ELSE  sfcfl
 
           IF( bcturbs.eq.1 )THEN
-            !$acc serial default(present)
             sfs(1) = 0.0
             sfs(nk+1) = 0.0
-            !$acc end serial
+            !$acc update device(sfs(1),sfs(nk+1))
           ELSEIF( bcturbs.eq.2 )THEN
-            !$acc serial default(present)
+            !$acc update self(sfs(2),sfs(nk))
             sfs(1) = sfs(2)
             sfs(nk+1) = sfs(nk)
-            !$acc end serial
+            !$acc update device(sfs(1),sfs(nk+1))
           ENDIF
 
         ENDIF  sfcfl

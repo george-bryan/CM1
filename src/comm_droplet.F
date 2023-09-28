@@ -813,11 +813,12 @@ contains
         !$acc end parallel
 
         ! special treament for the last value in the array
-        !$acc serial default(present)
+        !$acc update self(pdata_neighbor(nparcelsLocalActive), &
+        !$acc             Cidx(nparcelsLocalActive))
         if(pdata_neighbor(nparcelsLocalActive).eq.dir) then
            Depart_ind(ptrdir+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
         endif
-        !$acc end serial 
+        !$acc update device(Depart_ind(ptrdir+Cidx(nparcelsLocalActive)))
 
         !$acc end data
 

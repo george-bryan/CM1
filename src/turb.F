@@ -5666,10 +5666,9 @@
     enddo
     !$acc end parallel
 
-
-    !$acc serial default(present)
+    !$acc update self(gamk(2))
     gamk(1) = gamk(2)
-    !$acc end serial 
+    !$acc update device(gamk(1))
  
     endif  doinggamk
 

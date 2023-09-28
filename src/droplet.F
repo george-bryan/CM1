@@ -596,11 +596,11 @@
      !$acc end parallel
 
      ! Special treatment for the last value in the array
-     !$acc serial default(present)
+     !$acc update self(msk(nparcelsLocal),Cindx(nparcelsLocal))
      if(msk(nparcelsLocal)) then
        holes_ind(Cindx(nparcelsLocal)+1) = nparcelsLocal
      endif
-     !$acc end serial
+     !$acc update device(holes_ind(Cindx(nparcelsLocal)+1))
 
      !$acc end data
 
