@@ -190,6 +190,16 @@
            profiles.  See "tqnudge" in solve.F for more information and 
            settings. 
 
+    11 =   SAS convective PBL
+    12 =   IB stuff?
+    13 =   ??
+
+    15 =   Hurricane boundary layer with LES laden with spray
+           - Based on Richter & Wainwright (2023, GRL)
+           - Almost same as testcase 10, but with no nudging, other tweaks
+           - 2023 Derecho ASD project 
+
+
 
  adapt_dt - Use adaptive timestep?  (0=no, 1=yes)
             Model automatically adjusts timestep to maintain stability.

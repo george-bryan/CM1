@@ -15,9 +15,9 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getcecd(xh,u1,v1,s1,za,u10,v10,s10,xland,znt,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      subroutine getcecd(xh,u1,v1,s1,t1,q1,za,u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       use input, only: ib,ie,jb,je,ibl,iel,jbl,jel,ni,nj,use_avg_sfc,set_znt, &
-          set_ust,cecd,cnstcd,cnstce,cnst_ust,isfcflx,time_sfcphys,timestats,mytime
+          set_ust,cecd,cnstcd,cnstce,cnst_ust,isfcflx,time_sfcphys,timestats,mytime,myid
       use constants
 #ifdef MPI
       use mpi
@@ -25,19 +25,20 @@
       implicit none
 
       real, intent(in), dimension(ib:ie) :: xh
-      real, intent(inout), dimension(ib:ie,jb:je) :: u1,v1,s1
+      real, intent(inout), dimension(ib:ie,jb:je) :: u1,v1,s1,t1,q1
       real, intent(in), dimension(ib:ie,jb:je) :: za
-      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10
+      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,th10,q10,qsfc
       real, intent(in), dimension(ib:ie,jb:je) :: xland
-      real, intent(inout), dimension(ib:ie,jb:je) :: znt,ust,cd,ch,cq
-      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      real, intent(inout), dimension(ib:ie,jb:je) :: znt,ust,cd,ch,cq,tsk,psfc
+      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
 
       integer :: i,j,i1,i2,j1,j2,n,nmax
-      real :: wsp,wlast,var,rznt,usave,vsave,ssave
+      real :: wsp,wlast,var,rznt,usave,vsave,ssave,zos,thst,qst,pisfc
+      real :: tsave,qsave
       logical :: convergeFail
 
-      !$acc declare present(xh,za,xland,u1,v1,s1,u10,v10,s10, &
-      !$acc                 znt,ust,cd,ch,cq)
+      !$acc declare present(xh,za,xland,u1,v1,s1,t1,q1,u10,v10,s10,th10,q10, &
+      !$acc                 znt,ust,tsk,qsfc,cd,ch,cq)
 
 !-----------------------------------------------------------------------
 !
@@ -72,21 +73,26 @@
       j1 = 1
       j2 = 1
 
-      !$acc parallel default(present)
+      !$acc kernels default(present)
       usave = u1(1,1)
       vsave = v1(1,1)
       ssave = s1(1,1)
+      tsave = t1(1,1)
+      qsave = q1(1,1)
+      !$acc end kernels
 
+      !$acc parallel default(present)
       !$acc loop gang vector collapse(2)
       do j=j1,j2
       do i=i1,i2
         u1(i,j) = avgsfcu
         v1(i,j) = avgsfcv
         s1(i,j) = avgsfcs
+        t1(i,j) = avgsfct
+        q1(i,j) = avgsfcq
       enddo
       enddo
       !$acc end parallel
-       
 
     endif
 
@@ -137,8 +143,8 @@
  !       Does this section of code need to be GPUized? 
 !!!    stop 'getcecd: cecd.eq.1'
 
-    !$acc parallel loop gang vector collapse(2) default(present) private(i,j,var,rznt)
     !$omp parallel do default(shared) private(i,j,var,rznt)
+    !$acc parallel loop gang vector collapse(2) default(present)
     do j=j1,j2
     do i=i1,i2
       cd(i,j) = max(1.0e-10,cnstcd)
@@ -149,6 +155,16 @@
       v10(i,j) = v1(i,j)*var
       s10(i,j) = s1(i,j)*var
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
+
+      !Also get the simple MO th10 and q10
+      zos = 10.0/exp(karman*ust(i,j)/s10(i,j)/cnstce)
+      pisfc = (psfc(i,j)*rp00)**rovcp
+      thst = karman*(t1(i,j)-tsk(i,j)/pisfc)/alog(za(i,j)/zos)
+      th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
+
+      qst = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/zos)
+      q10(i,j) = qsfc(i,j) + qst/karman*alog(10.0/zos)
+      
     enddo
     enddo
 
@@ -274,6 +290,8 @@
         u10(i,j) = u10(1,1)
         v10(i,j) = v10(1,1)
         s10(i,j) = s10(1,1)
+        th10(i,j) = th10(1,1)
+        q10(i,j) = q10(1,1)
         znt(i,j) = znt(1,1)
         ust(i,j) = ust(1,1)
         cd(i,j) = cd(1,1)
@@ -281,11 +299,15 @@
         cq(i,j) = cq(1,1)
       enddo
       enddo
+      !$acc end parallel
 
+      !$acc kernels default(present)
       u1(1,1) = usave
       v1(1,1) = vsave
       s1(1,1) = ssave
-      !$acc end parallel
+      t1(1,1) = tsave
+      q1(1,1) = qsave
+      !$acc end kernels
 
     endif
 
@@ -305,7 +327,7 @@
 
 
       subroutine sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail,   &
-                         rho,rf,u1,v1,s1,ppi,tha,qva,qbsfc,psfc,u10,v10,s10,qsfc,znt,rtime)
+                         rho,rf,u1,v1,s1,ppi,tha,qva,qbsfc,psfc,u10,v10,s10,th10,q10,qsfc,znt,rtime)
       use input, only: ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ibm,iem,jbm,jem,kbm,kem,ni,nj, &
           set_flx,cnst_shflx,imoist,cnst_lhflx,testcase,dx,dy,timestats,time_sfcphys,mytime          
       use constants
@@ -325,7 +347,7 @@
       real, intent(in), dimension(ib:ie,jb:je,kb:ke) :: rho,rf,ppi,tha
       real, intent(in), dimension(ibm:iem,jbm:jem,kbm:kem) :: qva
       double precision, intent(inout) :: qbsfc
-      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,qsfc
+      real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,qsfc,th10,q10
       real, intent(inout), dimension(ib:ie,jb:je) :: znt
       real, intent(in) :: rtime
 
@@ -374,31 +396,61 @@
 
   ELSE
 
+
+   IF ( testcase.eq.15 ) THEN
+       !Don't use the first grid point -- use the 10-meter 
+
+       !  sensible heat flux:
+       !$omp parallel do default(shared) private(i,j,pisfc)
+       !$acc parallel loop gang vector collapse(2) default(present)
+       DO j=1,nj
+         do i=1,ni
+           pisfc = (psfc(i,j)*rp00)**rovcp
+           thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th10(i,j))
+         enddo
+       ENDDO
+
+       !  latent heat flux:
+       IF(imoist.eq.1)THEN
+         !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
+         !$acc parallel loop gang vector collapse(2) default(present)
+         DO j=1,nj
+           do i=1,ni
+             qvsat=rslf(psfc(i,j),tsk(i,j))
+             qsfc(i,j)=qvsat
+             qvflux(i,j)=cq(i,j)*s10(i,j)*(qvsat-q10(i,j))*mavail(i,j)
+           enddo
+         ENDDO
+       ENDIF
+
+    ELSE
+
     ! normal code:
 
+       !  sensible heat flux:
+       !$omp parallel do default(shared) private(i,j,pisfc)
+       !$acc parallel loop gang vector collapse(2) default(present)
+       DO j=1,nj
+         do i=1,ni
+           pisfc = (psfc(i,j)*rp00)**rovcp
+           thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
+         enddo
+       ENDDO
 
-    !  sensible heat flux:
-    !$omp parallel do default(shared) private(i,j,pisfc)
-    !$acc parallel loop gang vector  default(present) private(i,j,pisfc)
-    DO j=1,nj
-      do i=1,ni
-        pisfc = (psfc(i,j)*rp00)**rovcp
-        thflux(i,j)=ch(i,j)*s10(i,j)*(tsk(i,j)/pisfc-th0(i,j,1)-tha(i,j,1))
-      enddo
-    ENDDO
+       !  latent heat flux:
+       IF(imoist.eq.1)THEN
+         !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
+         !$acc parallel loop gang vector collapse(2) default(present)
+         DO j=1,nj
+           do i=1,ni
+             qvsat=rslf(psfc(i,j),tsk(i,j))
+             qsfc(i,j)=qvsat
+             qvflux(i,j)=cq(i,j)*s10(i,j)*(qvsat-qva(i,j,1))*mavail(i,j)
+           enddo
+         ENDDO
+       ENDIF
 
-    !  latent heat flux:
-    IF(imoist.eq.1)THEN
-      !$omp parallel do default(shared) private(i,j,pisfc,qvsat)
-      !$acc parallel loop gang vector default(present) private(i,j,pisfc,qvsat)
-      DO j=1,nj
-        do i=1,ni
-          qvsat=rslf(psfc(i,j),tsk(i,j))
-          qsfc(i,j)=qvsat
-          qvflux(i,j)=cq(i,j)*s10(i,j)*(qvsat-qva(i,j,1))*mavail(i,j)
-        enddo
-      ENDDO
-    ENDIF
+    ENDIF   
 
   ENDIF  setting_flux
 
@@ -1082,7 +1134,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getavgsfc(u1,v1,s1,t1,avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      subroutine getavgsfc(u1,v1,s1,t1,q1,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       use input, only : ib,ie,jb,je,ni,nj,nx,ny,timestats,time_sfcphys, &
           mytime,ierr
 #ifdef MPI
@@ -1090,12 +1142,12 @@
 #endif
       implicit none
 
-      real, intent(in), dimension(ib:ie,jb:je) :: u1,v1,s1,t1
-      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct
+      real, intent(in), dimension(ib:ie,jb:je) :: u1,v1,s1,t1,q1
+      double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
 
       integer :: i,j
       double precision :: temd
-      !$acc declare present(u1,v1,s1,t1)
+      !$acc declare present(u1,v1,s1,t1,q1)
 
 !-----------------------------------------------------------------------
 
@@ -1103,14 +1155,16 @@
       avgsfcv = 0.0
       avgsfcs = 0.0
       avgsfct = 0.0
-      !$acc parallel default(present)  reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
-      !$acc loop gang vector collapse(2) reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct)
+      avgsfcq = 0.0
+      !$acc parallel default(present)  reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
+      !$acc loop gang vector collapse(2) reduction(+:avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       do j=1,nj
       do i=1,ni
         avgsfcu = avgsfcu + u1(i,j)
         avgsfcv = avgsfcv + v1(i,j)
         avgsfcs = avgsfcs + s1(i,j)
         avgsfct = avgsfct + t1(i,j)
+        avgsfcq = avgsfcq + q1(i,j)
       enddo
       enddo
       !$acc end parallel
@@ -1120,6 +1174,7 @@
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcv,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcs,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
       call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfct,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+      call MPI_ALLREDUCE(MPI_IN_PLACE,avgsfcq,1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
 #endif
 
       temd = 1.0/dble(nx*ny)
@@ -1127,6 +1182,7 @@
       avgsfcv = avgsfcv*temd
       avgsfcs = avgsfcs*temd
       avgsfct = avgsfct*temd
+      avgsfcq = avgsfcq*temd
 
       if(timestats.ge.1) time_sfcphys=time_sfcphys+mytime()
 

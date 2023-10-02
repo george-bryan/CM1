@@ -1125,7 +1125,7 @@
       !c-c-c-c-c-c-c-c-c-c
 
     ziflag:  &
-    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 )THEN
+    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.11 .or. testcase.eq.15 )THEN
 
         zimin =  1.0e30
         zimax = -1.0e30
@@ -1218,7 +1218,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 )THEN
+    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.15 )THEN
 
       nvar = nvar+1
       varname(nvar) = 'zitb'
@@ -1250,7 +1250,7 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
-    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 )THEN
+    IF( ( testcase.ge.1 .and. testcase.le.7 ) .or. testcase.eq.9 .or. testcase.eq.10 .or. testcase.eq.15 )THEN
 
         nvar = nvar+1
         varname(nvar) = 'zwspmax'
@@ -4270,10 +4270,10 @@
         vargrid(nvar) = 'w'
 
         call getavg3d(nm(ib,jb,kb),savg)
-        !$acc serial default(present)
+        !$acc kernels default(present)
         savg(1) = grads_undef
         savg(nk+1) = grads_undef
-        !$acc end serial
+        !$acc end kernels
         call write3d(savg,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
       ENDIF
 
@@ -5205,7 +5205,7 @@
 !!!      ENDIF
 
 
-      IF( testcase.eq.6 .or. testcase.eq.10 )THEN
+      IF( testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.15 )THEN
 
         nvar = nvar+1
         varname(nvar) = 'dvdr'
@@ -10677,28 +10677,28 @@
           enddo
           !$acc end parallel
 
-          !$acc serial default(present)
+          !$acc kernels default(present)
           sfs(1) = sfst
-          !$acc end serial
+          !$acc end kernels
 
           if( bcturbs.eq.3 )then
-            !$acc serial default(present)
+            !$acc kernels default(present)
             sfs(nk+1) = sfst
-            !$acc end serial
+            !$acc end kernels
           endif
 
         ELSE  sfcfl
 
           IF( bcturbs.eq.1 )THEN
-            !$acc serial default(present)
+            !$acc kernels default(present)
             sfs(1) = 0.0
             sfs(nk+1) = 0.0
-            !$acc end serial
+            !$acc end kernels
           ELSEIF( bcturbs.eq.2 )THEN
-            !$acc serial default(present)
+            !$acc kernels default(present) 
             sfs(1) = sfs(2)
             sfs(nk+1) = sfs(nk)
-            !$acc end serial
+            !$acc end kernels
           ENDIF
 
         ENDIF  sfcfl

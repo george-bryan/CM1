@@ -1557,11 +1557,11 @@
           enddo
         enddo
 
-      ELSEIF( testcase.eq.1 .or. testcase.eq.2 .or. testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.11 )THEN
+      ELSEIF( testcase.eq.1 .or. testcase.eq.2 .or. testcase.eq.6 .or. testcase.eq.10 .or. testcase.eq.11 .or. testcase.eq.15 )THEN
 
         ! 1: convective boundary layer (Sullivan and Patton, 2011, JAS)
         ! 2: shear-driven boundary layer (Moeng and Sullivan, 1994, JAS)
-        ! 6: hurricane boundary layer (Bryan et al, 2017, BLM)
+        ! 6,10,15: hurricane boundary layer (Bryan et al, 2017, BLM)
 
         amplitude = 0.10
 

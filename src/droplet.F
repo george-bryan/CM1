@@ -596,11 +596,11 @@
      !$acc end parallel
 
      ! Special treatment for the last value in the array
-     !$acc serial default(present)
+     !$acc kernels default(present) 
      if(msk(nparcelsLocal)) then
        holes_ind(Cindx(nparcelsLocal)+1) = nparcelsLocal
      endif
-     !$acc end serial
+     !$acc end kernels
 
      !$acc end data
 

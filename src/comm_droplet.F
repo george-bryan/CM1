@@ -813,11 +813,11 @@ contains
         !$acc end parallel
 
         ! special treament for the last value in the array
-        !$acc serial default(present)
+        !$acc kernels default(present) 
         if(pdata_neighbor(nparcelsLocalActive).eq.dir) then
            Depart_ind(ptrdir+Cidx(nparcelsLocalActive)) = nparcelsLocalActive
         endif
-        !$acc end serial 
+        !$acc end kernels
 
         !$acc end data
 
