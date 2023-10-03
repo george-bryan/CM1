@@ -226,6 +226,7 @@
     !$acc present(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
     !$acc        pi0,rho0,th0,rf0,rrf0,zs,gx,gy,xland,u0,v0)                      &
     !$acc present(tsk,znt,zntmp,ust,stau,thflux,qvflux,cd,ch,cq,u1,v1,s1,t1,q1, &
+    !$acc      tst,qst,z0t,z0q,                                                   &
     !$acc      ustt,ut,vt,st,dum1,dum2,dum3,dum4,dum5,dum6,dum7,dum8,dum9,divx,   &
     !$acc      rho,rr,rf,prs,t11,t12,t13,t22,t23,t33,m11,m12,m13,m22,m23,m33,rru, &
     !$acc      rrv,rrw,ua,va,wa,ugr,vgr,ppi,ppten,sten,sadv,tha,thten,thten1,     &
@@ -649,7 +650,7 @@
 
         IF( sfcmodel.eq.1 )THEN
 
-          call getcecd(xh,u1,v1,s1,t1,q1,ppten(ib,jb,1),u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
+          call getcecd(xh,u1,v1,s1,t1,q1,ppten(ib,jb,1),u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,tst,qst,z0t,z0q,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
 
           if( tbc.eq.3 )then
             !$acc parallel loop gang vector collapse(2) default(present) 
