@@ -156,15 +156,6 @@
       s10(i,j) = s1(i,j)*var
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
 
-      !Also get the simple MO th10 and q10
-      zos = 10.0/exp(karman*ust(i,j)/s10(i,j)/cnstce)
-      pisfc = (psfc(i,j)*rp00)**rovcp
-      thst = karman*(t1(i,j)-tsk(i,j)/pisfc)/alog(za(i,j)/zos)
-      th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
-
-      qst = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/zos)
-      q10(i,j) = qsfc(i,j) + qst/karman*alog(10.0/zos)
-      
     enddo
     enddo
 
@@ -255,6 +246,16 @@
             ! constant value (from namelist.input):
             ch(i,j) = cnstce
             cq(i,j) = cnstce
+
+            !Also get the simple MO th10 and q10
+            zos = 10.0/exp(karman*ust(i,j)/s10(i,j)/cnstce)
+            pisfc = (psfc(i,j)*rp00)**rovcp
+            thst = karman*(t1(i,j)-tsk(i,j)/pisfc)/alog(za(i,j)/zos)
+            th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
+
+            qst = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/zos)
+            q10(i,j) = qsfc(i,j) + qst/karman*alog(10.0/zos)
+      
           ELSEIF(cecd.eq.2)THEN
             ! Deacon's formula:  see Rotunno and Emanuel (1987, JAS, p. 547)
             ch(i,j) = 1.1e-3+(4.0e-5*s10(i,j))
