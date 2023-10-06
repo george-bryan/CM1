@@ -3806,7 +3806,7 @@ end module cuda_rt
                    pp3d,sadv,ppten ,sten,th3d,thten,thten1,thterm,             &
                    q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen,                 &
                    nm,defv,defh,lenscl,dissten,epst,epsd1,epsd2,pt3d,          &
-                   rain,hfx,qfx,u10,v10,s10,t2,q2,th2,mznt,                    &
+                   rain,hfx,qfx,u10,v10,s10,th10,q10,t2,q2,th2,mznt,           &
                    hpbl,wspd,zol,mol,rmol,br,brcr,phim,phih,psim,psih,         &
                    thpten,qvpten,qcpten,qipten,upten,vpten,qnipten,qncpten,xkzh,xkzq,xkzm, &
                    qsfc,o30,zir,swten,lwten,swtenc,lwtenc,cldfra,              &
