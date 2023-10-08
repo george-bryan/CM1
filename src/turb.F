@@ -75,7 +75,7 @@
           td_diss,td_pbl,pertflx,radopt,outfile,dodomaindiag,cnst_znt,isftcflx,iz0tlnd,adapt_dt, &
           bl_mynn_edmf,bl_mynn_tkeadvect,bl_mynn_tkebudget,bl_mynn_cloudpdf,bl_mynn_mixlength,bl_mynn_edmf, &
           bl_mynn_edmf_mom,bl_mynn_edmf_tke,bl_mynn_mixscalars,bl_mynn_output,bl_mynn_cloudmix,bl_mynn_mixqt, &
-          icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag
+          icloud_bl,spp_pbl,oml_gamma,grav_settling,initflag,cnstcd
       use constants
       use bc_module, only: bc2d, bcw, bcs, bcu2, bcv2, bcw2, bcs2_2d
       use comm_module
@@ -221,6 +221,10 @@
       ! mynn:
       real, dimension(ibmynn:iemynn,jbmynn:jemynn,kbmynn:kemynn) :: RQNWFABLTEN,RQNIFABLTEN
       logical :: FLAG_QC,FLAG_QNC,FLAG_QNI,FLAG_QNWFA,FLAG_QNIFA
+
+      real :: z10tmp,wt_top,wt_bot
+      double precision :: u10tmp,v10tmp,s10tmp,th10tmp,q10tmp
+      integer :: k10idx_t,k10idx_b
 
     !$acc declare &
     !$acc present(xh,uh,ruh,xf,arf1,arf2,uf,vh,rvh,vf,zh,mh,rmh,c1,c2,zf,mf,rmf,   &
@@ -663,6 +667,48 @@
             enddo
             enddo
           endif
+
+          !For spray-laden HBL, use an interpolated u10, th10, q10
+          if (testcase.eq.15) then
+
+             !First find the z-index on either side of the 10-meter mark
+             do k=1,nk
+                z10tmp = zh(1,1,k)
+                if (z10tmp .ge. 10.0) EXIT
+             enddo
+             k10idx_t = k
+             k10idx_b = k-1
+             wt_top = (10.0-zh(1,1,k10idx_b))/(zh(1,1,k10idx_t)-zh(1,1,k10idx_b))
+             wt_bot = (zh(1,1,k10idx_t)-10.0)/(zh(1,1,k10idx_t)-zh(1,1,k10idx_b))
+
+             !Now that we have the 10-meter index, interpolate
+             !$acc parallel loop gang vector collapse(2) default(present) 
+             do j=1,nj
+             do i=1,ni
+                u10(i,j) = ugr(i,j,k10idx_b)*wt_bot + ugr(i,j,k10idx_t)*wt_top
+                v10(i,j) = vgr(i,j,k10idx_b)*wt_bot + vgr(i,j,k10idx_t)*wt_top
+                s10(i,j) = sqrt(u10(i,j)**2 + v10(i,j)**2)
+                th10(i,j) = (tha(i,j,k10idx_b)+th0(i,j,k10idx_b))*wt_bot + (tha(i,j,k10idx_t)+th0(i,j,k10idx_t))*wt_top
+                q10(i,j) = qa(i,j,k10idx_b,nqv)*wt_bot + qa(i,j,k10idx_t,nqv)*wt_top
+             enddo
+             enddo
+
+             !Now perform a 2D average
+             call getavgsfc(u10,v10,s10,th10,q10,u10tmp,v10tmp,s10tmp,th10tmp,q10tmp)
+
+             !$acc parallel loop gang vector collapse(2) default(present) 
+             do j=1,nj
+             do i=1,ni
+                u10(i,j) = u10tmp
+                v10(i,j) = v10tmp
+                s10(i,j) = s10tmp
+                th10(i,j) = th10tmp
+                q10(i,j) = q10tmp
+                ust(i,j) = max( sqrt(cnstcd)*s10(i,j) , 1.0e-6 )
+             enddo
+             enddo
+          end if
+
 
 
           if(isfcflx.eq.1)then

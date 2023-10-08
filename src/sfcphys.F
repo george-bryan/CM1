@@ -258,8 +258,6 @@
             qst(i,j) = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/z0q(i,j))
             q10(i,j) = qsfc(i,j) + qst(i,j)/karman*alog(10.0/z0q(i,j))
 
-            if (myid.eq.0) write(*,'(a8,5e15.6)') 'DHR1:',z0t(i,j),tst(i,j),th10(i,j),qst(i,j),q10(i,j)
-      
           ELSEIF(cecd.eq.2)THEN
             ! Deacon's formula:  see Rotunno and Emanuel (1987, JAS, p. 547)
             ch(i,j) = 1.1e-3+(4.0e-5*s10(i,j))
@@ -338,7 +336,7 @@
       subroutine sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail,   &
                          rho,rf,u1,v1,s1,ppi,tha,qva,qbsfc,psfc,u10,v10,s10,th10,q10,qsfc,znt,rtime)
       use input, only: ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ibm,iem,jbm,jem,kbm,kem,ni,nj, &
-          set_flx,cnst_shflx,imoist,cnst_lhflx,testcase,dx,dy,timestats,time_sfcphys,mytime          
+          set_flx,cnst_shflx,imoist,cnst_lhflx,testcase,dx,dy,timestats,time_sfcphys,mytime,myid
       use constants
       use cm1libs , only : rslf
       implicit none
