@@ -672,6 +672,7 @@
           if (testcase.eq.15) then
 
              !First find the z-index on either side of the 10-meter mark
+             !$acc update self(zh)
              do k=1,nk
                 z10tmp = zh(1,1,k)
                 if (z10tmp .ge. 10.0) EXIT
