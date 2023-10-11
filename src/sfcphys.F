@@ -15,7 +15,7 @@
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
 
-      subroutine getcecd(xh,u1,v1,s1,t1,q1,za,u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
+      subroutine getcecd(xh,u1,v1,s1,t1,q1,za,u10,v10,s10,th10,q10,xland,znt,tsk,qsfc,psfc,ust,tst,qst,z0t,z0q,cd,ch,cq,avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq)
       use input, only: ib,ie,jb,je,ibl,iel,jbl,jel,ni,nj,use_avg_sfc,set_znt, &
           set_ust,cecd,cnstcd,cnstce,cnst_ust,isfcflx,time_sfcphys,timestats,mytime,myid
       use constants
@@ -29,16 +29,17 @@
       real, intent(in), dimension(ib:ie,jb:je) :: za
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: u10,v10,s10,th10,q10,qsfc
       real, intent(in), dimension(ib:ie,jb:je) :: xland
-      real, intent(inout), dimension(ib:ie,jb:je) :: znt,ust,cd,ch,cq,tsk,psfc
+      real, intent(inout), dimension(ib:ie,jb:je) :: znt,ust,cd,ch,cq,tsk,psfc,tst,qst,z0t,z0q
       double precision, intent(inout) :: avgsfcu,avgsfcv,avgsfcs,avgsfct,avgsfcq
 
       integer :: i,j,i1,i2,j1,j2,n,nmax
-      real :: wsp,wlast,var,rznt,usave,vsave,ssave,zos,thst,qst,pisfc
+      !real :: wsp,wlast,var,rznt,usave,vsave,ssave,zos,thst,qst,pisfc
+      real :: wsp,wlast,var,rznt,usave,vsave,ssave,pisfc
       real :: tsave,qsave
       logical :: convergeFail
 
       !$acc declare present(xh,za,xland,u1,v1,s1,t1,q1,u10,v10,s10,th10,q10, &
-      !$acc                 znt,ust,tsk,qsfc,cd,ch,cq)
+      !$acc                 znt,ust,tst,qst,z0t,z0q,tsk,qsfc,cd,ch,cq)
 
 !-----------------------------------------------------------------------
 !
@@ -156,15 +157,6 @@
       s10(i,j) = s1(i,j)*var
       ust(i,j) = max( s1(i,j)*karman/alog(za(i,j)*rznt) , 1.0e-6 )
 
-      !Also get the simple MO th10 and q10
-      zos = 10.0/exp(karman*ust(i,j)/s10(i,j)/cnstce)
-      pisfc = (psfc(i,j)*rp00)**rovcp
-      thst = karman*(t1(i,j)-tsk(i,j)/pisfc)/alog(za(i,j)/zos)
-      th10(i,j) = tsk(i,j)/pisfc + thst/karman*alog(10.0/zos)
-
-      qst = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/zos)
-      q10(i,j) = qsfc(i,j) + qst/karman*alog(10.0/zos)
-      
     enddo
     enddo
 
@@ -255,6 +247,17 @@
             ! constant value (from namelist.input):
             ch(i,j) = cnstce
             cq(i,j) = cnstce
+
+            !Also get the simple MO th10 and q10
+            z0t(i,j) = 10.0/exp(karman*ust(i,j)/s10(i,j)/cnstce)
+            pisfc = (psfc(i,j)*rp00)**rovcp
+            tst(i,j) = karman*(t1(i,j)-tsk(i,j)/pisfc)/alog(za(i,j)/z0t(i,j))
+            th10(i,j) = tsk(i,j)/pisfc + tst(i,j)/karman*alog(10.0/z0t(i,j))
+
+            z0q(i,j) = z0t(i,j)
+            qst(i,j) = karman*(q1(i,j)-qsfc(i,j))/alog(za(i,j)/z0q(i,j))
+            q10(i,j) = qsfc(i,j) + qst(i,j)/karman*alog(10.0/z0q(i,j))
+
           ELSEIF(cecd.eq.2)THEN
             ! Deacon's formula:  see Rotunno and Emanuel (1987, JAS, p. 547)
             ch(i,j) = 1.1e-3+(4.0e-5*s10(i,j))
@@ -294,6 +297,10 @@
         q10(i,j) = q10(1,1)
         znt(i,j) = znt(1,1)
         ust(i,j) = ust(1,1)
+        tst(i,j) = tst(1,1)
+        qst(i,j) = qst(1,1)
+        z0t(i,j) = z0t(1,1)
+        z0q(i,j) = z0q(1,1)
         cd(i,j) = cd(1,1)
         ch(i,j) = ch(1,1)
         cq(i,j) = cq(1,1)
@@ -329,7 +336,7 @@
       subroutine sfcflux(dt,ruh,xf,rvh,pi0s,ch,cq,pi0,thv0,th0,rf0,tsk,thflux,qvflux,mavail,   &
                          rho,rf,u1,v1,s1,ppi,tha,qva,qbsfc,psfc,u10,v10,s10,th10,q10,qsfc,znt,rtime)
       use input, only: ib,ie,jb,je,kb,ke,ibl,iel,jbl,jel,ibm,iem,jbm,jem,kbm,kem,ni,nj, &
-          set_flx,cnst_shflx,imoist,cnst_lhflx,testcase,dx,dy,timestats,time_sfcphys,mytime          
+          set_flx,cnst_shflx,imoist,cnst_lhflx,testcase,dx,dy,timestats,time_sfcphys,mytime,myid
       use constants
       use cm1libs , only : rslf
       implicit none

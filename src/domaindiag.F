@@ -45,7 +45,7 @@
                    pp3d,sadv,ppten ,qice,th3d,thv  ,thl   ,buoy  ,             &
                    q3d,qten,kmh,kmv,khh,khv,tkea,tke3d,tketen,                 &
                    nm,defv,defh,lenscl,dissten,epst,epsd1,epsd2,pt3d,          &
-                   rain,hfx,qfx,u10,v10,s10,t2,q2,th2,mznt,                    &
+                   rain,hfx,qfx,u10,v10,s10,th10,q10,t2,q2,th2,mznt,           &
                    hpbl,wspd,zol,mol,rmol,br,brcr,phim,phih,psim,psih,         &
                    thpten,qvpten,qcpten,qipten,upten,vpten,qnipten,qncpten,xkzh,xkzq,xkzm, &
                    qsfc,o30,zir,swten,lwten,swtenc,lwtenc,cldfra,              &
@@ -129,7 +129,7 @@
     real, intent(inout), dimension(ib:ie,jb:je,kb:ke+1) :: nm,defv,defh,lenscl,dissten,epst,epsd1,epsd2
     real, intent(in), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pt3d
     real, intent(in), dimension(ib:ie,jb:je,nrain) :: rain
-    real, intent(in), dimension(ibl:iel,jbl:jel) :: hfx,qfx,u10,v10,s10,t2,q2,th2,mznt
+    real, intent(in), dimension(ibl:iel,jbl:jel) :: hfx,qfx,u10,v10,s10,th10,q10,t2,q2,th2,mznt
     real, intent(in), dimension(ibl:iel,jbl:jel) :: hpbl,wspd,zol,mol,rmol,br,brcr,phim,phih,psim,psih,qsfc
     real, intent(in), dimension(ibb:ieb,jbb:jeb,kbb:keb) :: thpten,qvpten,qcpten,qipten,upten,vpten
     real, intent(in), dimension(ibb:ieb,jbb:jeb,kbb:keb) :: xkzh,xkzq,xkzm
@@ -794,6 +794,37 @@
 
       !c-c-c-c-c-c-c-c-c-c
 
+      nvar = nvar+1
+      varname(nvar) = 'th10'
+    if( imove.eq.1 )then
+      vardesc(nvar) = 'potential temp. at 10m'
+    else
+      vardesc(nvar) = 'potential temp. at 10m'
+    endif
+      varunit(nvar) = 'K'
+      varlvls(nvar) = 0
+      vargrid(nvar) = '2'
+      call getavg2d( th10  ,savg2d)
+      call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: Potential temperature at 10m (K)= ',savg2d
+
+      !c-c-c-c-c-c-c-c-c-c
+
+      nvar = nvar+1
+      varname(nvar) = 'q10'
+    if( imove.eq.1 )then
+      vardesc(nvar) = 'water vapor mixing ratio at 10m'
+    else
+      vardesc(nvar) = 'water vapor mixing ratio at 10m'
+    endif
+      varunit(nvar) = 'kg/kg'
+      varlvls(nvar) = 0
+      vargrid(nvar) = '2'
+      call getavg2d( q10  ,savg2d)
+      call write2d(savg2d,trecs,trecw,vargrid,nvar,varname,vardesc,varunit)
+      if( myid.eq.0 ) print *,'  Metric: Water vapor mixing ratio at 10m (K)= ',savg2d
+
+      !c-c-c-c-c-c-c-c-c-c
       nvar = nvar+1
       varname(nvar) = 't2'
       vardesc(nvar) = 'diagnostic 2-m temperature'
