@@ -3262,7 +3262,6 @@
 
       !Update the cumulative injection statistics
       num_injected = num_injected + real(my_reintro)*drop_mult
-      !DHR SHOULD THERE BE AN ACC UPDATE HERE? num_injected is coming out as 0, but fixed after I add this line
       !$acc update device (num_injected)
 
       if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
@@ -3279,6 +3278,7 @@
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
                                                      !does not make the global exceed nparcelsMax
+
          !$acc data copyin(dFssum,binsdata) create(randomNumbers,randomNumbers%state)
          !$acc parallel loop gang vector default(present) reduction(+:mass_injected,eng_injected,m1_injected,m2_injected) private(randomNumbers)
          do j=1,my_reintro
@@ -3290,15 +3290,18 @@
                call new_RandomNumberSequence(randomNumbers, local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
+
                !Set the droplet radius based on the sea spray generation function (SSGF)
                !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
                !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
-               rand = getRandomReal(randomNumbers)
+
                !$acc loop seq
                do i = 1,99
                   if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
                      rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
-                  end if
+                  else
+                     rad_init = 0.0
+                     print *, 'DHR2 CAUTION',i,a,dFssum(i),binsdata(i)
                end do
                rad_init = rad_init*1.0e-6
 
