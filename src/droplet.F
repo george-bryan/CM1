@@ -1951,8 +1951,8 @@
 
       !!!!! update module variable first !!!!!
 
-      !$acc update host (num_destroyed,mass_destroyed,eng_destroyed,m1_destroyed,m2_destroyed,
-      !$acc              num_injected,mass_injected,eng_injected,m1_injected,m2_injected,
+      !$acc update host (num_destroyed,mass_destroyed,eng_destroyed,m1_destroyed,m2_destroyed, &
+      !$acc              num_injected,mass_injected,eng_injected,m1_injected,m2_injected, &
       !$acc              num100,num1000)
 
       !$acc data create (dumzh,dumzf,partnum,multnum,partmass,numconc,massconc,Tpsrc,qvsrc,qf, &
@@ -2500,7 +2500,7 @@
 
       !$acc update device (hist_restime,hist_fallrad,num_destroyed, &
       !$acc                mass_destroyed,num_injected,mass_injected, &
-      !$acc                eng_destroyed,m1_destroyed,m2_destroyed,eng_injected,
+      !$acc                eng_destroyed,m1_destroyed,m2_destroyed,eng_injected, &
       !$acc                m1_injected,m2_injected, &
       !$acc                num100,num1000)
 
