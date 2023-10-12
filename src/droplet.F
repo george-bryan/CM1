@@ -3302,6 +3302,7 @@
                   else
                      rad_init = 0.0
                      print *, 'DHR2 CAUTION',i,a,dFssum(i),binsdata(i)
+                  end if
                end do
                rad_init = rad_init*1.0e-6
 
