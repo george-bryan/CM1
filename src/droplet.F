@@ -3165,7 +3165,7 @@
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract,prtime, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
                         time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax, &
-                        drop_w_init,drop_mult,tsk0,pi_sp,myid
+                        drop_w_init,drop_mult,tsk0,pi_sp,myid,nx,ny,dx,dy
       use constants
       use MersenneTwister_mod
 #ifdef MPI
@@ -3262,17 +3262,30 @@
 
       !Define these here
       !These are the LOCAL area for EACH processor
-      xrange = xf(ni+1)-xf(1)
-      yrange = yf(nj+1)-yf(1)
+      !xrange = xf(ni+1)-xf(1)
+      !yrange = yf(nj+1)-yf(1)
       zrange = injectHMax
 
-      my_reintro = floor(xrange*yrange*time_since_inject*totdrops/drop_mult)      !Number of droplets to be produced by this MPI task
+      xrange = dx*nx
+      yrange = dy*ny
+
+      my_reintro_tmp = xrange*yrange*time_since_inject*totdrops/drop_mult
+#ifdef MPI
+      my_reintro = floor(my_reintro_tmp/sngl(numprocs))
+
+      if (myid.eq.0) then
+         my_reintro = my_reintro + mod(my_reintro_tmp,sngl(numprocs))
+      end if
+#else
+      my_reintro = floor(my_reintro_tmp)
+#endif
 
       !Update the cumulative injection statistics
       num_injected = num_injected + real(my_reintro)*drop_mult
       !$acc update device (num_injected)
 
-      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
+      !if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
+      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,my_reintro_tmp,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
 
 #ifdef MPI
       !For deciding whether to inject more:
