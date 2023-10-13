@@ -3165,7 +3165,7 @@
                         prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract,prtime, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
                         time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax, &
-                        drop_w_init,drop_mult,tsk0,pi_sp
+                        drop_w_init,drop_mult,tsk0,pi_sp,myid
       use constants
       use MersenneTwister_mod
 #ifdef MPI
@@ -3182,11 +3182,11 @@
       integer :: i,np
       integer(i8) :: tot_after_reintro
       integer :: sum_buf(2)
-      real :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
-      real :: binsdata(100)  !Discretized bins for cumulative SSGF
+      double precision :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
+      double precision :: binsdata(100)  !Discretized bins for cumulative SSGF
 
-      real :: totdrops  !Total number being produced during this call to droplet_injection
-      real :: rad_init  !Initial radius, being calculated one at a time according to SSGF
+      double precision :: totdrops  !Total number being produced during this call to droplet_injection
+      double precision :: rad_init  !Initial radius, being calculated one at a time according to SSGF
       real :: u10
       type(randomNumberSequence) :: randomNumbers
 
@@ -3194,19 +3194,20 @@
       real :: salinity
       real :: my_reintro_tmp  !A temporaray variable to store a real version of my_reintro
       
-      real :: c1,c2,c3,u14,cdn10,a,rand
-      real :: a1,a2,r80,r0,dh_ssgf
-      real :: dFsdr80(100),dFmsdr0(100),dr80_dr0
-      integer :: iter,nbin,num_create,j,ierr
-
       !implementing the Andreas 1998 sea spray generation function
       !Set the parameters of the two lognormals:
-      real :: rmin10_ssgf,rmax10_ssgf
+      double precision :: c1,c2,c3,u14,cdn10,a,rand
+      double precision :: a1,a2,r80,r0,dh_ssgf
+      double precision :: dFsdr80(100),dFmsdr0(100),dr80_dr0
+      integer :: iter,nbin,num_create,j,ierr
+
+      double precision :: rmin10_ssgf,rmax10_ssgf
       integer :: local_seed
 
-      rmin10_ssgf = log10(2e-06)
-      rmax10_ssgf = log10(500e-06)
-      dh_ssgf = 0.0242
+      rmin10_ssgf = log10(2d-06)
+      rmax10_ssgf = log10(500d-06)
+      !dh_ssgf = 0.0242
+      dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/100.0
 
   !   ===== update x-axis for each bin =====
       binsdata(1) = rmin10_ssgf
@@ -3214,15 +3215,19 @@
         binsdata(i+1)= dh_ssgf+binsdata(i)
       end do
 
-      binsdata = 1e6*(10**binsdata)
+      if (myid.eq.0) print *, 'DHR3.0:',binsdata(100),binsdata(99),rmin10_ssgf,0d4
+
+      binsdata = 1.0d6*(10**binsdata)
+
+      if (myid.eq.0) print *, 'DHR3.1:',binsdata(100),binsdata(99)
   
       ! Now figure out how many particles are produced in each of
       ! those bins. This is a function of u10
       u10 = min(u10_ssgf,50.0)
 
-      c1 = 10*smithssgf(u10,10.0,0.4)
+      c1 = 10*smithssgf(u10,dble(10.0),dble(0.4))
       c2 = c1*(37.5**1.8)
-      c3 = c2*(100**5.2)
+      c3 = c2*(100.0**5.2)
       dFssum(1) = 0
       do i = 1,100
          r0 = binsdata(i)
@@ -3230,14 +3235,14 @@
          r80 = 0.518*r0**0.976;
  
          ! now apply these to Eqs. 3.5 in Andreas 1998
-         if (r80 .lt. 10) then
-           dFsdr80(i) =  smithssgf(u10,r80,0.4)
-         elseif ((r80 .ge. 10) .and. (r80 .lt. 37.5)) then
+         if (r80 .lt. 10.0) then
+           dFsdr80(i) =  smithssgf(u10,r80,dble(0.4))
+         elseif ((r80 .ge. 10.0) .and. (r80 .lt. 37.5)) then
            dFsdr80(i) = c1/r80
-         elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100)) then
+         elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100.0)) then
            dFSdr80(i) = c2*r80**-2.8
-         elseif ((r80 .ge. 100) .and. (r80 .lt. 250)) then
-           dFsdr80(i) = c3*r80**-8
+         elseif ((r80 .ge. 100.0) .and. (r80 .lt. 250.0)) then
+           dFsdr80(i) = c3*r80**-8.0
          endif
  
          ! apply eq. 3.8 from Andreas 1998
@@ -3249,6 +3254,9 @@
            dFssum(i+1) = dFssum(i) + dFmsdr0(i)
          endif
       end do
+
+      if (myid.eq.0) print *, 'DHR3.2:',dFsdr80(100),dFsdr80(99),dFmsdr0(100),dFmsdr0(99)
+      if (myid.eq.0) print *, 'DHR3.3:',c1,c2,c3,dFssum(101),dFssum(100)
 
       totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
 
@@ -3299,10 +3307,7 @@
                do i = 1,99
                   if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
                      rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
-                  else
-                     rad_init = 0.0
-                     print *, 'DHR2 CAUTION',i,a,dFssum(i),binsdata(i)
-                  end if
+                  end if 
                end do
                rad_init = rad_init*1.0e-6
 
@@ -3356,26 +3361,27 @@
 
     function smithssgf(u10,r80,vk)
     implicit none
-    real :: u10,r80,cdn10,vk,u14
-    real :: a1,a2,smithssgf
+    real :: u10
+    double precision :: r80,cdn10,vk,u14
+    double precision :: a1,a2,smithssgf
 
 
     ! added SEA93 function
-    if (u10 .ge. 4 .and. u10 .lt. 11) then
-       cdn10 = 1.2e-3
+    if (u10 .ge. 4.0 .and. u10 .lt. 11.0) then
+       cdn10 = 1.2d-3
     elseif (u10 .ge. 11) then
-       cdn10 = 1e-3*(0.49 + 0.065*u10)
+       cdn10 = 1d-3*(0.49 + 0.065*u10)
     end if
 
     ! calculate 14 m wind speed
-    u14 = u10*(1 + (sqrt(cdn10)/vk)*alog(14.0/10.0))
+    u14 = u10*(1 + (sqrt(cdn10)/vk)*log(14.0/10.0))
   
     a1 = 10**(0.0676*u14 + 2.43)
     a2 = 10**(0.959*sqrt(u14) - 1.476)
   
 
     ! calcaulate dFs/dr80 (Eq. A1 in Andreas 1998)
-    smithssgf = a1*exp(-3.1*(alog(r80/2.1))**2) + a2*exp(-3.3*(alog(r80/9.2))**2)
+    smithssgf = a1*exp(-3.1*(log(r80/2.1))**2) + a2*exp(-3.3*(log(r80/9.2))**2)
 
     end function smithssgf
 
