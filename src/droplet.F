@@ -3285,6 +3285,7 @@
 #endif
 
       if (myid.eq.0) print *, 'DHR3.4:',my_reintro,my_reintro+nparcelsLocalActive,num_injected,totdrops
+      print *, 'DHR3.5:',myid,my_reintro
       
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
