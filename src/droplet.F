@@ -3225,7 +3225,7 @@
       ! those bins. This is a function of u10
       u10 = min(u10_ssgf,50.0)
 
-      c1 = 10*smithssgf(u10,dble(10.0),dble(0.4))
+      c1 = 10.0*smithssgf(u10,dble(10.0),dble(0.4))
       c2 = c1*(37.5**1.8)
       c3 = c2*(100.0**5.2)
       dFssum(1) = 0
@@ -3283,6 +3283,9 @@
       !Calculate the total number which will occur after injection
       tot_after_reintro = my_reintro+nparcelsLocalActive
 #endif
+
+      if (myid.eq.0) print *, 'DHR3.4:',my_reintro,my_reintro+nparcelsLocalActive,num_injected,totdrops
+      
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
                                                      !does not make the global exceed nparcelsMax
