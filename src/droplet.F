@@ -3315,7 +3315,8 @@
             if (random_droplets) then
                ! initialize a new random number generator for each
                ! injected droplet
-               local_seed = floor(29.*mtime) + (97*myid) + (7*j)
+               !local_seed = floor(29.*mtime) + (97*myid) + (7*j)
+               local_seed = 10
                call new_RandomNumberSequence(randomNumbers, local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
