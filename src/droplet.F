@@ -3280,6 +3280,10 @@
       my_reintro = floor(my_reintro_tmp)
 #endif
 
+      !Now that my_reintro has been calculated, reset to the LOCAL area for initializing droplet location
+      xrange = xf(ni+1)-xf(1)
+      yrange = yf(nj+1)-yf(1)
+
       !Update the cumulative injection statistics
       num_injected = num_injected + real(my_reintro)*drop_mult
       !$acc update device (num_injected)
