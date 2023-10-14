@@ -454,12 +454,6 @@
                                  xh,xf,yh,yf,zh,zf,zs,znt,sigma,sigmaf, &
                                  ua,va,wa,ta,qa,rho,prs,sigdot)
 
-!      !Temporary for testing purposes; comment out for GPU run as
-!      "write" function is not supported on the GPU
-!      rhval = (ru*tval*rhoval*qval)/(mw*eslf(prsval,tval))
-!      if (rhval .lt. 0.3 .or. rhval .gt. 1.2) then
-!      write(*,'(a8,i,8e15.6)') 'DHR3',np,rhval,tval,rhoval,qval,x3d,y3d,z3d,pdata(np,prrp)
-!      end if
 
       call BE_integration (dt,dbldt,np,pdata,pdata_locind,xf,yf, &
                            x3d,y3d,z3d,sig3d,uval,vval,wval,qval, &
@@ -3215,12 +3209,8 @@
         binsdata(i+1)= dh_ssgf+binsdata(i)
       end do
 
-      if (myid.eq.0) print *, 'DHR3.0:',binsdata(100),binsdata(99),rmin10_ssgf,0d4
-
       binsdata = 1.0d6*(10**binsdata)
 
-      if (myid.eq.0) print *, 'DHR3.1:',binsdata(100),binsdata(99)
-  
       ! Now figure out how many particles are produced in each of
       ! those bins. This is a function of u10
       u10 = min(u10_ssgf,50.0)
@@ -3255,9 +3245,6 @@
          endif
       end do
 
-      if (myid.eq.0) print *, 'DHR3.2:',dFsdr80(100),dFsdr80(99),dFmsdr0(100),dFmsdr0(99)
-      if (myid.eq.0) print *, 'DHR3.3:',c1,c2,c3,dFssum(101),dFssum(100)
-
       totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
 
       !Define these here
@@ -3273,8 +3260,9 @@
 #ifdef MPI
       my_reintro = floor(my_reintro_tmp/sngl(numprocs))
 
-      if (myid.eq.0) then
-         my_reintro = my_reintro + mod(my_reintro_tmp,sngl(numprocs))
+      !Processors 0 through the remainder-1 will create an extra particle
+      if (myid .lt. mod(my_reintro_tmp,sngl(numprocs))) then 
+         my_reintro = my_reintro + 1
       end if
 #else
       my_reintro = floor(my_reintro_tmp)
@@ -3288,7 +3276,6 @@
       num_injected = num_injected + real(my_reintro)*drop_mult
       !$acc update device (num_injected)
 
-      !if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
       if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,my_reintro_tmp,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
 
 #ifdef MPI
@@ -3301,9 +3288,6 @@
       tot_after_reintro = my_reintro+nparcelsLocalActive
 #endif
 
-      if (myid.eq.0) print *, 'DHR3.4:',my_reintro,my_reintro+nparcelsLocalActive,num_injected,totdrops
-      print *, 'DHR3.5:',myid,my_reintro
-      
 
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
                                                      !does not make the global exceed nparcelsMax
@@ -3315,8 +3299,7 @@
             if (random_droplets) then
                ! initialize a new random number generator for each
                ! injected droplet
-               !local_seed = floor(29.*mtime) + (97*myid) + (7*j)
-               local_seed = 10
+               local_seed = floor(29.*mtime) + (97*myid) + (7*j)
                call new_RandomNumberSequence(randomNumbers, local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
