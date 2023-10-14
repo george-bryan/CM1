@@ -3320,6 +3320,7 @@
                call new_RandomNumberSequence(randomNumbers, local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
+               a = dble(j)/dble(my_reintro)-1.0d-8
 
                !Set the droplet radius based on the sea spray generation function (SSGF)
                !Loop over all of the discretized bins of the SSGF. Based on the random number, choose which bin to draw the radius from
