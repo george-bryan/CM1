@@ -3261,7 +3261,7 @@
       my_reintro = floor(my_reintro_tmp/sngl(numprocs))
 
       !Processors 0 through the remainder-1 will create an extra particle
-      if (myid .lt. mod(my_reintro_tmp,sngl(numprocs))) then 
+      if (myid .lt. floor(mod(my_reintro_tmp,sngl(numprocs)))) then 
          my_reintro = my_reintro + 1
       end if
 #else
