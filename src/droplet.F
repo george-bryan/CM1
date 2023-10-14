@@ -3247,12 +3247,8 @@
 
       totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
 
-      !Define these here
-      !These are the LOCAL area for EACH processor
-      !xrange = xf(ni+1)-xf(1)
-      !yrange = yf(nj+1)-yf(1)
-      zrange = injectHMax
 
+      !Define xrange and yrange to be WHOLE domain area, to calculate the total droplet number
       xrange = dx*nx
       yrange = dy*ny
 
@@ -3271,12 +3267,13 @@
       !Now that my_reintro has been calculated, reset to the LOCAL area for initializing droplet location
       xrange = xf(ni+1)-xf(1)
       yrange = yf(nj+1)-yf(1)
+      zrange = injectHMax
 
       !Update the cumulative injection statistics
       num_injected = num_injected + real(my_reintro)*drop_mult
       !$acc update device (num_injected)
 
-      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,my_reintro_tmp,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
+      if (myid==0) write(*,'(a15,i,9e15.6)')  'DROP INJECTION:',my_reintro,my_reintro_tmp,drop_mult,u10,totdrops,xrange,yrange,num_injected,mtime,time_since_inject
 
 #ifdef MPI
       !For deciding whether to inject more:
