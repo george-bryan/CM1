@@ -872,7 +872,6 @@
                pdata(np,prv) = vval
                pdata(np,prw) = wval
                pdata(np,prt) = tval
-               !pdata(np,prtp) = tval
                pdata(np,prqv) = qval
                pdata(np,prprs) = prsval
                pdata(np,prrho) = rhoval
@@ -3200,7 +3199,6 @@
 
       rmin10_ssgf = log10(2d-06)
       rmax10_ssgf = log10(500d-06)
-      !dh_ssgf = 0.0242
       dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/100.0
 
   !   ===== update x-axis for each bin =====
