@@ -705,7 +705,6 @@
                 s10(i,j) = s10tmp
                 th10(i,j) = th10tmp
                 q10(i,j) = q10tmp
-                ust(i,j) = max( sqrt(cnstcd)*s10(i,j) , 1.0e-6 )
              enddo
              enddo
           end if
