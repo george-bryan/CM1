@@ -3197,6 +3197,11 @@
       double precision :: rmin10_ssgf,rmax10_ssgf
       integer :: local_seed
 
+      double precision :: my_max,my_min
+
+      my_max = -1.0
+      my_min = 1.0d15
+
       rmin10_ssgf = log10(2d-06)
       rmax10_ssgf = log10(500d-06)
       dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/100.0
@@ -3310,6 +3315,15 @@
                   end if 
                end do
                rad_init = rad_init*1.0e-6
+
+               if (rad_init .gt. my_max) then
+                  my_max = rad_init
+                  print *, 'DHR2.0',a,my_max
+               end if
+               if (rad_init .lt. my_min) then
+                  my_min = rad_init
+                  print *, 'DHR2.1',a,my_min
+               end if
 
                !Random location
                rand = getRandomReal(randomNumbers)
