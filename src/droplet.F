@@ -3316,7 +3316,7 @@
                end do
                rad_init = rad_init*1.0e-6
 
-               if (myid.eq.0) print *, 'DHR2.0',local_seed,mtime,rand,rad_init
+               if (myid.eq.0) print *, 'DHR2.0',j,my_reintro,mtime,local_seed,rand,rad_init
 
                !if (rad_init .gt. my_max) then
                !   my_max = rad_init
