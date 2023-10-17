@@ -3301,7 +3301,6 @@
                ! injected droplet
                !local_seed = floor(29.*mtime) + (97*myid) + (7*j)
                local_seed = floor(29.*mtime) + (7*j)
-               local_seed = 10
                call new_RandomNumberSequence(randomNumbers, local_seed)
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
@@ -3318,13 +3317,15 @@
                end do
                rad_init = rad_init*1.0e-6
 
+               if (j.eq.1 .and. myid.eq.0) print *, 'DHR2.0',local_seed,mtime,rand,rad_init
+
                if (rad_init .gt. my_max) then
                   my_max = rad_init
-                  if (myid.eq.0) print *, 'DHR2.0',a,rand,totdrops,my_max
+                  if (myid.eq.0) print *, 'DHR2.1',a,my_max
                end if
                if (rad_init .lt. my_min) then
                   my_min = rad_init
-                  if (myid.eq.0) print *, 'DHR2.1',a,rand,totdrops,my_min
+                  if (myid.eq.0) print *, 'DHR2.2',a,my_min
                end if
 
                !Random location
