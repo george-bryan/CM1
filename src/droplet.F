@@ -375,7 +375,8 @@
     !$acc parallel default(present)
     !$acc loop gang vector reduction(+:num_fallout) reduction(max:errcode) &
     !$acc reduction(+:numDepartN,numDepartS,numDepartE,numDepartW) &
-    !$acc reduction(+:numDepartNW,numDepartSW,numDepartNE,numDepartSE)
+    !$acc reduction(+:numDepartNW,numDepartSW,numDepartNE,numDepartSE) &
+    !$acc reduction(+:num_destroyed,mass_destroyed,eng_destroyed,m1_destroyed,m2_destroyed)
 #endif
     nploop:  &
     DO np=1,nparcelsLocalActive
@@ -1072,19 +1073,14 @@
             num_fallout = num_fallout + 1
             !Collect some statistics on those falling out:
 
-            !$acc atomic update
             num_destroyed = num_destroyed + pdata(np,prmult)
 
-            !$acc atomic update
             mass_destroyed = mass_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)
 
-            !$acc atomic update
             eng_destroyed = eng_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*cpl*pdata(np,prtp)
 
-            !$acc atomic update
             m1_destroyed = m1_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpx)
  
-            !$acc atomic update
             m2_destroyed = m2_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpy)
  
             !Log this dead particle into the relevant histograms
