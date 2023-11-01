@@ -1807,7 +1807,6 @@
         !string = 'cm1out_pdata.dat'
         write(prec_string,'(i6.6)') prec
         string = 'cm1out_pdata_'//prec_string//'.dat'
-        if (dowr) write(*,*) 'DHR3:',string
 
         if (dowr) write(outfile,*) string
         open(unit=61,file=string,form='unformatted',status='unknown')
