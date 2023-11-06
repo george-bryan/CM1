@@ -2348,6 +2348,7 @@
             uf3mean(iz) = droplet_diag1(iz,25)
             kmoist(iz) = droplet_diag1(iz,26)
             wk(iz) = droplet_diag1(iz,27)
+            wtmp(iz) = droplet_diag1(iz,28)
          end do
  
 #endif
