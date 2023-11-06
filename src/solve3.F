@@ -262,7 +262,7 @@
       real, intent(inout), dimension(ibl:iel,jbl:jel) :: tmn,tml,t0ml,hml,h0ml,huml,hvml,tmoml
       real, intent(inout), dimension(ibp:iep,jbp:jep,kbp:kep,npt) :: pta,pt3d,ptten
       real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
-      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke,6) :: dpten
+      double precision, intent(inout), dimension(ib:ie,jb:je,kb:ke,7) :: dpten
       real, intent(in), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: cfb
       real, intent(in), dimension(kpb:kpe) :: cfa,cfc,ad1,ad2
       complex, intent(inout), dimension(ipb:ipe,jpb:jpe,kpb:kpe) :: pdt,lgbth,lgbph
@@ -961,6 +961,7 @@
             dpten(i,j,k,4) = 0.0
             dpten(i,j,k,5) = 0.0
             dpten(i,j,k,6) = 0.0
+            dpten(i,j,k,7) = 0.0
           enddo
           enddo
           enddo

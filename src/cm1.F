@@ -2295,7 +2295,7 @@ end module cuda_rt
       allocate(  pdata_locind(nparcelsLocal,3) )
       pdata_locind = undefined_index
 
-      allocate( dpten(ib:ie,jb:je,kb:ke,6) )
+      allocate( dpten(ib:ie,jb:je,kb:ke,7) )
       dpten = 0.0
 
       allocate( flag(ib:ie,jb:je,kb:ke) )
@@ -3539,7 +3539,7 @@ end module cuda_rt
         !     array with size "nparcels*npvals" (saving memory space) 
         !     and thus implemented below 
         if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
-           call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
+           call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten,wa,qa,tha,th0,pi0,ppi,rho)
         end if
 
         nrec = nrec + 1
