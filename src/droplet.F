@@ -2358,7 +2358,8 @@
             dzf = dumzf(iz+1)-dumzf(iz)
             numconc(iz) = multnum(iz)/dzf/xl/yl
             massconc(iz) = partmass(iz)/dzf/xl/yl
-            wk(iz) = wk(iz) - kmoist(iz)*wtmp(iz)  !So that it's fluctuations <w'k'>
+            !wk(iz) = wk(iz) - kmoist(iz)*wtmp(iz)  !So that it's fluctuations <w'k'>
+            wk(iz) = wtmp(iz)
             if (abs(partnum(iz)) .gt. 1.0e-10) then
                vp1mean(iz) = vp1mean(iz)/partnum(iz)
                vp2mean(iz) = vp2mean(iz)/partnum(iz)
