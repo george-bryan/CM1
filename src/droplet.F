@@ -2227,7 +2227,7 @@
          kmoist_tmp = 0.0
          wk_tmp = 0.0
          winterp_tmp = 0.0
-         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp,kmoist_tmp,wk_tmp)
+         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp,kmoist_tmp,wk_tmp,winterp_tmp)
          do j=1,nj
             do i=1,ni
                m1src_tmp = m1src_tmp + dpten(i,j,k,3)
