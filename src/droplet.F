@@ -2241,7 +2241,7 @@
                lhv=lv1-lv2*ta_tmp
                kmoist_tmp = kmoist_tmp + ta_tmp*(cp + qt*cpl) + lhv*qa(i,j,k,nqv)
                winterp_tmp = winterp_tmp + 0.5*(wa(i,j,k)+wa(i,j,k+1))
-               wk_tmp = wk_tmp + (0.5*(wa(i,j,k)+wa(i,j,k+1)))*kmoist_tmp
+               wk_tmp = wk_tmp + (0.5*(wa(i,j,k)+wa(i,j,k+1)))*(ta_tmp*(cp + qt*cpl) + lhv*qa(i,j,k,nqv))
             end do
          end do
          m1src(k) = m1src_tmp/real(nx*ny)
@@ -2358,8 +2358,7 @@
             dzf = dumzf(iz+1)-dumzf(iz)
             numconc(iz) = multnum(iz)/dzf/xl/yl
             massconc(iz) = partmass(iz)/dzf/xl/yl
-            !wk(iz) = wk(iz) - kmoist(iz)*wtmp(iz)  !So that it's fluctuations <w'k'>
-            wk(iz) = wtmp(iz)
+            wk(iz) = wk(iz) - kmoist(iz)*wtmp(iz)  !So that it's fluctuations <w'k'>
             if (abs(partnum(iz)) .gt. 1.0e-10) then
                vp1mean(iz) = vp1mean(iz)/partnum(iz)
                vp2mean(iz) = vp2mean(iz)/partnum(iz)
