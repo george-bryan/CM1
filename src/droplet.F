@@ -1933,7 +1933,7 @@
       real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk),kmoist(nk),mse(nk),wk(nk),wtmp(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
 
-      integer, parameter :: num0 = 26, num1 = 28   !Number of 0th and 1st order statistics in droplet_diag
+      integer, parameter :: num0 = 26, num1 = 29   !Number of 0th and 1st order statistics in droplet_diag
       real :: rad10_tmp
       double precision :: qstar_tmp
       integer :: ibin
