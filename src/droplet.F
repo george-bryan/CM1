@@ -1924,13 +1924,13 @@
       !real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
       real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
       real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
-      real :: kmoist_tmp,wk_tmp,qt,lhv,ta_tmp,winterp_tmp
+      real :: kmoist_tmp,wk_tmp,qt,lhv,ta_tmp,winterp_tmp,mse_tmp
 
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr, &
               Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop, &
               tnumaerosol,tnumpart
 
-      real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk),kmoist(nk),wk(nk),wtmp(nk)
+      real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk),kmoist(nk),mse(nk),wk(nk),wtmp(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
 
       integer, parameter :: num0 = 26, num1 = 28   !Number of 0th and 1st order statistics in droplet_diag
@@ -1955,7 +1955,7 @@
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              uf1mean,uf2mean,uf3mean, &
-      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp,kmoist,wk,wtmp)
+      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp,kmoist,mse,wk,wtmp)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -2151,6 +2151,7 @@
          qfsat(k) = 0.0
          qstardp(k) = 0.0d0
          kmoist(k) = 0.0
+         mse(k) = 0.0
          wk(k) = 0.0
          wtmp(k) = 0.0
       end do
@@ -2225,9 +2226,10 @@
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
          kmoist_tmp = 0.0
+         mse_tmp = 0.0
          wk_tmp = 0.0
          winterp_tmp = 0.0
-         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp,kmoist_tmp,wk_tmp,winterp_tmp)
+         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp,kmoist_tmp,mse_tmp,wk_tmp,winterp_tmp)
          do j=1,nj
             do i=1,ni
                m1src_tmp = m1src_tmp + dpten(i,j,k,3)
@@ -2240,6 +2242,7 @@
                ta_tmp = (th0(i,j,k)+th_in(i,j,k))*(pi0(i,j,k)+ppa(i,j,k))
                lhv=lv1-lv2*ta_tmp
                kmoist_tmp = kmoist_tmp + ta_tmp*(cp + qt*cpl) + lhv*qa(i,j,k,nqv)
+               mse_tmp = mse_tmp + ta_tmp*(cp + qt*cpl) + lhv*qa(i,j,k,nqv) + (1+qt)*g*dumzh(k)
                winterp_tmp = winterp_tmp + 0.5*(wa(i,j,k)+wa(i,j,k+1))
                wk_tmp = wk_tmp + (0.5*(wa(i,j,k)+wa(i,j,k+1)))*(ta_tmp*(cp + qt*cpl) + lhv*qa(i,j,k,nqv))
             end do
@@ -2250,6 +2253,7 @@
          Tpsrc(k) = Tpsrc_tmp/real(nx*ny)
          qvsrc(k) = qvsrc_tmp/real(nx*ny)
          kmoist(k) = kmoist_tmp/real(nx*ny)
+         mse(k) = mse_tmp/real(nx*ny)
          wk(k) = wk_tmp/real(nx*ny)
          wtmp(k) = winterp_tmp/real(nx*ny)
       end do
@@ -2271,7 +2275,7 @@
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              uf1mean,uf2mean,uf3mean, &
-      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp,kmoist,wk,wtmp)
+      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp,kmoist,mse,wk,wtmp)
 
 #ifdef MPI
 
@@ -2305,6 +2309,7 @@
          droplet_diag1(iz,26) = kmoist(iz)
          droplet_diag1(iz,27) = wk(iz)
          droplet_diag1(iz,28) = wtmp(iz)
+         droplet_diag1(iz,29) = mse(iz)
       end do
 
       ! The root rank will collect the diagnostic from different MPI ranks
@@ -2349,6 +2354,7 @@
             kmoist(iz) = droplet_diag1(iz,26)
             wk(iz) = droplet_diag1(iz,27)
             wtmp(iz) = droplet_diag1(iz,28)
+            mse(iz) = droplet_diag1(iz,29)
          end do
  
 #endif
@@ -2495,7 +2501,7 @@
 #endif
       call writedropdiag_nc(nrec,nbins, &
            rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,wk)
+           dumzh,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk)
 #ifdef MPI
       end if
 #endif
@@ -3475,7 +3481,7 @@
 
       subroutine writedropdiag_nc(nrec,nbins,&
                                   rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,wk)
+                                  zhvec,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk)
       use input
       use constants
       use netcdf
@@ -3484,7 +3490,7 @@
 
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
-      real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),kmoist(nk),wk(nk)
+      real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),kmoist(nk),mse(nk),wk(nk)
       integer, intent(in)    :: nbins
       real, intent(in) :: tnumpart
 
@@ -3775,8 +3781,12 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged moist enthalpy, including droplets") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","J/kg") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"mse",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged moist static energy, including droplets") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","J/kg") , .true. )
+
     call disp_err( nf90_def_var(ncid,"wk",nf90_float,(/zhid,timeid/),varid) , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged moist enthalpy flux <wk>, NOTE: not fluctuations, assumes <w>=0") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Horizontally averaged moist enthalpy flux <w'k'>") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","J-m/kg-s ") , .true. )
 
 
@@ -3987,6 +3997,9 @@
 
     call disp_err( nf90_inq_varid(ncid,"kmoist",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,kmoist,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"mse",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,mse,(/1,time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"wk",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,wk,(/1,time_index/)) , .true. )
