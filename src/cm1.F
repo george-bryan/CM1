@@ -3538,6 +3538,7 @@ end module cuda_rt
         !     The second method is expected to avoid the creation of an
         !     array with size "nparcels*npvals" (saving memory space) 
         !     and thus implemented below 
+        if(timestats.ge.1) time_stat=time_stat+mytime()
         if ( iprcl.eq.1 .and. prcl_droplet.eq.1 ) then
            call droplet_diag(rtime,nrec,zh,zf,pdata,pdata_locind,dpten)
         end if
@@ -3554,7 +3555,7 @@ end module cuda_rt
           enddo
         endif
         if(myid.eq.0) print *,'  next stattim = ',stattim
-        if(timestats.ge.1) time_stat=time_stat+mytime()
+        if(timestats.ge.1) time_statD=time_statD+mytime()
       endif
 
 
@@ -4041,7 +4042,7 @@ end module cuda_rt
 
         if(timestats.eq.2)then
           steptime2=time_sound+time_poiss+time_buoyan+time_turb+            &
-                    time_diffu+time_microphy+time_stat+time_cflq+           &
+                    time_diffu+time_microphy+time_stat+time_statD+time_cflq+           &
                     time_bc+time_nvtx+time_integ+time_rdamp+time_divx+    &
                     time_misc+time_misc01+time_misc02+time_misc03+time_misc04+time_misc05+ &
                     time_misc06+time_misc07+time_misc08+time_misc09+time_misc10+ &
@@ -4060,7 +4061,6 @@ end module cuda_rt
                     time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+                &
                     time_dpc+time_parceli_reduce+time_lb+         &
                     time_dropC1+time_dropC2+time_dropC3+time_dropC4+ &
-                    time_dropC4a+time_dropC4b+time_dropC4c+time_dropC4d+time_dropC4e+time_dropC4f+ &
 #endif
                     time_advs+time_advu+time_advv+time_advw+                &
                     time_phys_H2D + time_phys_D2H
@@ -4241,9 +4241,15 @@ end module cuda_rt
         sum = 0.0
         call MPI_REDUCE(time_pbl     ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_pbl = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_stat    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_stat = sum/float(numprocs)
+
+        sum = 0.0
+        call MPI_REDUCE(time_statD   ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
+        time_statD = sum/float(numprocs)
+
         sum = 0.0
         call MPI_REDUCE(time_cflq    ,sum,1,MPI_REAL,MPI_SUM,0,MPI_COMM_WORLD,ierr)
         time_cflq = sum/float(numprocs)
@@ -4467,7 +4473,7 @@ end module cuda_rt
 #endif
 
       time_solve=time_sound+time_poiss+time_buoyan+time_turb+             &
-                  time_diffu+time_microphy+time_stat+time_cflq+           &
+                  time_diffu+time_microphy+time_stat+time_statD+time_cflq+           &
                   time_bc+time_nvtx+time_integ+time_rdamp+time_divx+ &
                   time_misc+time_misc01+time_misc02+time_misc03+time_misc04+time_misc05+ & 
                   time_misc11+time_misc12+time_misc13+time_misc14+time_misc15+ &
@@ -4486,7 +4492,6 @@ end module cuda_rt
                   time_mps2+time_mps4+time_mpq2+time_mptk2+time_mpb+            &
                   time_dpc+time_lb+                         &
                   time_dropC1+time_dropC2+time_dropC3+time_dropC4+ &
-                  time_dropC4a+time_dropC4b+time_dropC4c+time_dropC4d+time_dropC4e+time_dropC4f+ &
 #endif
                   time_advs+time_advu+time_advv+time_advw+                &
                   time_phys_H2D+time_phys_D2H
@@ -4531,6 +4536,7 @@ end module cuda_rt
       write(outfile,100) 'radiatio',time_rad,time_rad/time_solve
       write(outfile,100) 'pbl     ',time_pbl,time_pbl/time_solve
       write(outfile,100) 'stat    ',time_stat,time_stat/time_solve
+      write(outfile,100) 'statD   ',time_statD,time_statD/time_solve
       write(outfile,100) 'cflq    ',time_cflq,time_cflq/time_solve
       write(outfile,100) 'bc      ',time_bc,time_bc/time_solve
       write(outfile,100) 'bcs     ',time_bcs,time_bcs/time_solve
@@ -4613,12 +4619,12 @@ end module cuda_rt
       write(outfile,100) 'dropC2  ',time_dropC2,time_dropC2/time_solve
       write(outfile,100) 'dropC3  ',time_dropC3,time_dropC3/time_solve
       write(outfile,100) 'dropC4  ',time_dropC4,time_dropC4/time_solve
-      write(outfile,100) 'dropC4a ',time_dropC4a,time_dropC4a/time_solve
-      write(outfile,100) 'dropC4b ',time_dropC4b,time_dropC4b/time_solve
-      write(outfile,100) 'dropC4c ',time_dropC4c,time_dropC4c/time_solve
-      write(outfile,100) 'dropC4d ',time_dropC4d,time_dropC4d/time_solve
-      write(outfile,100) 'dropC4e ',time_dropC4e,time_dropC4e/time_solve
-      write(outfile,100) 'dropC4f ',time_dropC4f,time_dropC4f/time_solve
+      !write(outfile,100) 'dropC4a ',time_dropC4a,time_dropC4a/time_solve
+      !write(outfile,100) 'dropC4b ',time_dropC4b,time_dropC4b/time_solve
+      !write(outfile,100) 'dropC4c ',time_dropC4c,time_dropC4c/time_solve
+      !write(outfile,100) 'dropC4d ',time_dropC4d,time_dropC4d/time_solve
+      !write(outfile,100) 'dropC4e ',time_dropC4e,time_dropC4e/time_solve
+      !write(outfile,100) 'dropC4f ',time_dropC4f,time_dropC4f/time_solve
       write(outfile,100) 'parceliA',time_parceli_reduce,time_parceli_reduce/time_solve
       write(outfile,100) 'dpc     ',time_dpc,time_dpc/time_solve
 #endif

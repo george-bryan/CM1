@@ -233,7 +233,7 @@
 !  timestats:
 
       real clock_rate,time_sound,time_buoyan,time_turb,              &
-           time_diffu,time_microphy,time_stat,time_cflq,time_bc,     &
+           time_diffu,time_microphy,time_stat,time_statD,time_cflq,time_bc,     &
            time_bcs,time_bcst,time_bcs2, &
            time_integ,time_rdamp,time_divx,time_write,time_nvtx,     &
            time_misc,time_misc01,time_misc02,time_misc03,time_misc04,time_misc05, &
@@ -251,7 +251,6 @@
            time_mps2,time_mps4,time_mpq2,time_mptk2,time_mpb,time_dpc,        &
            time_parcels,time_parceli,time_droplet, &
            time_dropC1,time_dropC2,time_dropC3,time_dropC4, &
-           time_dropC4a,time_dropC4b,time_dropC4c,time_dropC4d,time_dropC4e,time_dropC4f, &
            time_droplet_inject, time_parceli_reduce, &
            time_rad,time_pbl,time_swath,time_pdef,      &
            time_prsrho,time_restart,time_poiss,time_diag,            &

@@ -193,9 +193,7 @@ contains
     use input, only : myid,nparcelsLocal,npvals,mynw,mysw,myne, &
                       myse,myeast,mywest,mynorth,mysouth,ierr, &
                       pract,nparcelsLocalActive, &
-                      timestats,mytime, &
-      time_dropC4a,time_dropC4b,time_dropC4c, &
-      time_dropC4d,time_dropC4e,time_dropC4f
+                      timestats,mytime
     use constants, only: undefined_index,neg_huge,num_nn,inorth, &
                          isouth,iwest,ieast,inw,ine,isw,ise
     use mpi
@@ -281,7 +279,6 @@ contains
      !$acc             droplet_n2,droplet_s2,droplet_w2,droplet_e2,     &
      !$acc             droplet_nw2,droplet_ne2,droplet_sw2,droplet_se2)
 
-     if(timestats.ge.1) time_dropC4a=time_dropC4a+mytime()
 
      ! extract the information of droplets that will leave the current MPI region 
      ! and reset the corresponding "pdata" record to a large negative value
@@ -310,12 +307,10 @@ contains
      if(Depart(ise) .gt. 0) &
         call packDroplets(ise, Depart, ptrDepart, Depart_ind, pdata, droplet_se1)
 
-     if(timestats.ge.1) time_dropC4b=time_dropC4b+mytime()
 
 
      ! initiate the MPI non-blocking receive interface to 
      ! obtain new droplet information from the nearest neighbors
-     if(timestats.ge.1) time_dropC4c=time_dropC4c+mytime()
 
      n_recv   = 0
      if ( Arrive(inorth) .ne. 0 ) then
@@ -489,7 +484,6 @@ contains
        end if
        n = n + 1
      end do
-     if(timestats.ge.1) time_dropC4d=time_dropC4d+mytime()
 
     ! make sure that all the non-blocking MPI send operations are complete
 
@@ -498,7 +492,6 @@ contains
        call mpi_waitall(n_send,reqs(9:9+n_send-1),status1(1:mpi_status_size,9:9+n_send-1),ierr)
     end if
 
-     if(timestats.ge.1) time_dropC4e=time_dropC4e+mytime()
 
      ! free up the memory for temporary variables
      !$acc end data
@@ -520,7 +513,6 @@ contains
      if (allocated(droplet_sw1)) deallocate(droplet_sw1)
      if (allocated(droplet_sw2)) deallocate(droplet_sw2)
 
-     if(timestats.ge.1) time_dropC4f=time_dropC4f+mytime()
 
   end subroutine comm_droplet_value
 
