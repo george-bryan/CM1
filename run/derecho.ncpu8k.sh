@@ -9,12 +9,12 @@
 module --force purge
 module load ncarenv/23.06 intel cray-mpich/8.1.25 ncarcompilers/1.0.0
 # mpiexec -n 8192 -ppn 128 ./cpu.exe --namelist namelist.scale1k.gpu >& derecho.intel.ncpu8k.scale.1024.log
-mpiexec -n 8192 -ppn 128 ./cpu.intel.exe --namelist namelist.scale1kB.cpu >& derecho.intel.ncpu8k.scaleB.1024.log
+mpiexec -n 8192 -ppn 128 ./cpu.intel.exe --namelist namelist.scale1k.cpu >& derecho.intel.ncpu8k.scale.1024.log
 
 
-module --force purge
-module load ncarenv/23.06 nvhpc/23.5 cray-mpich/8.1.25 ncarcompilers/1.0.0
-mpiexec -n 8192 -ppn 128 ./cpu.nvhpc.exe --namelist namelist.scale1k.cpu >& derecho.nvhpc.ncpu8k.scale.1024.log
+#module --force purge
+#module load ncarenv/23.06 nvhpc/23.5 cray-mpich/8.1.25 ncarcompilers/1.0.0
+#mpiexec -n 8192 -ppn 128 ./cpu.nvhpc.exe --namelist namelist.scale1k.cpu >& derecho.nvhpc.ncpu8k.scale.1024.log
 
 
 
