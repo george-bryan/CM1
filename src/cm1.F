@@ -4619,12 +4619,6 @@ end module cuda_rt
       write(outfile,100) 'dropC2  ',time_dropC2,time_dropC2/time_solve
       write(outfile,100) 'dropC3  ',time_dropC3,time_dropC3/time_solve
       write(outfile,100) 'dropC4  ',time_dropC4,time_dropC4/time_solve
-      !write(outfile,100) 'dropC4a ',time_dropC4a,time_dropC4a/time_solve
-      !write(outfile,100) 'dropC4b ',time_dropC4b,time_dropC4b/time_solve
-      !write(outfile,100) 'dropC4c ',time_dropC4c,time_dropC4c/time_solve
-      !write(outfile,100) 'dropC4d ',time_dropC4d,time_dropC4d/time_solve
-      !write(outfile,100) 'dropC4e ',time_dropC4e,time_dropC4e/time_solve
-      !write(outfile,100) 'dropC4f ',time_dropC4f,time_dropC4f/time_solve
       write(outfile,100) 'parceliA',time_parceli_reduce,time_parceli_reduce/time_solve
       write(outfile,100) 'dpc     ',time_dpc,time_dpc/time_solve
 #endif
