@@ -4468,7 +4468,7 @@
       subroutine set_time_to_zero
       use input, only : time_sound,time_poiss,time_advs,time_phys_H2D,time_phys_D2H, &
           time_H2D,time_D2H,time_advu,time_advv,time_advw,time_buoyan,time_turb, &
-          time_diffu,time_microphy,time_dbz,time_stat,time_cflq,time_bc,time_bcs, &
+          time_diffu,time_microphy,time_dbz,time_stat,time_statD,time_cflq,time_bc,time_bcs, &
           time_bcs2,time_bcst,time_misc,time_misc01,time_misc02,time_misc03,time_misc04, &
           time_misc05,time_misc06,time_misc07,time_misc08,time_misc09,time_misc10, &
           time_misc11,time_misc12,time_misc13,time_misc14,time_misc15,time_misc16, &
@@ -4476,7 +4476,6 @@
           time_misc23,time_integ,time_rdamp,time_divx,time_write,time_nvtx,time_restart, &
           time_ttend,time_cor,time_fall,time_satadj,time_sfcphys,time_parcels,time_parceli, &
           time_droplet,time_dropC1,time_dropC2,time_dropC3,time_dropC4, &
-          time_dropC4a,time_dropC4b,time_dropC4c,time_dropC4d,time_dropC4e,time_dropC4f, &
           time_droplet_inject, time_parceli_reduce,time_rad,time_pbl,time_swath, &
           time_pdef,time_prsrho,time_diag,time_azimavg,time_hifrq,time_ercyl,time_mpu1, &
           time_mpv1,time_mpw1,time_mpp1,time_mpu2,time_mpv2,time_mpw2,time_mpp2,time_mps1, &
@@ -4502,6 +4501,7 @@
       time_microphy=0.0
       time_dbz=0.0
       time_stat=0.0
+      time_statD=0.0
       time_cflq=0.0
       time_bc=0.0
       time_bcs=0.0
@@ -4549,12 +4549,6 @@
       time_dropC2=0.0
       time_dropC3=0.0
       time_dropC4=0.0
-      time_dropC4a=0.0
-      time_dropC4b=0.0
-      time_dropC4c=0.0
-      time_dropC4d=0.0
-      time_dropC4e=0.0
-      time_dropC4f=0.0
       time_droplet_inject=0.0
       time_parceli_reduce=0.0
       time_rad=0.0
