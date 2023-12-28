@@ -1919,7 +1919,7 @@
       real, intent(in), dimension(ib:ie,jb:je,kb:ke,numq) :: qa
       real, intent(inout), dimension(ib:ie,jb:je,kb:ke) :: pi0,th0,th_in,ppa,rho
 
-      integer :: np,iz,i,j,k
+      integer :: np,iz,i,j,k,ir
       integer :: kflag
       !real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
       real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
@@ -1932,6 +1932,8 @@
 
       real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk),kmoist(nk),mse(nk),wk(nk),wtmp(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
+
+      real :: partnumrz(nk,nbins),multnumrz(nk,nbins),vp3meanrz(nk,nbins)
 
       integer, parameter :: num0 = 26, num1 = 29   !Number of 0th and 1st order statistics in droplet_diag
       real :: rad10_tmp
@@ -2431,6 +2433,98 @@
       end if
 #endif
 
+
+
+
+      !!!!!!! 2nd order  !!!!!!!!
+
+
+      !$acc parallel loop gang vector default(present)
+      do k = 1, nk
+      do ir = 1,nbins
+         partnumrz(k,ir) = 0.0
+         multnumrz(k,ir) = 0.0
+         vp3meanrz(k,ir) = 0.0
+      end do
+      end do
+      !$acc end parallel
+
+      !! Number concentration
+
+      !$acc parallel loop gang vector default(present)
+      do np=1,nparcelsLocalActive
+
+         !First need its vertical location
+         kflag = 1
+         k = pdata_locind(np,3) 
+         call find_vertical_location_index (k,pdata(np,prz),kb,ke+1,dumzf(:),kflag,.TRUE.)
+
+         !Then need its radius location
+         rad10_tmp = log10(pdata(np,prrp))
+        
+         !Figure out which bin it belongs to
+         if (rad10_tmp .gt. rmax10 + 0.5*dhrad) then
+            ibin = nbins
+         elseif (rad10_tmp .lt. rmin10 - 0.5*dhrad) then
+            ibin = 1
+         else
+            ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)+1
+         end if
+
+         !$acc atomic update
+         partnumrz(k,ibin) = partnumrz(k,ibin) + 1.0
+
+         !$acc atomic update
+         multnumrz(k,ibin) = multnumrz(k,ibin) + pdata(np,prmult)
+
+         !$acc atmoic update
+         vp3meanrz(k,ibin) = vp3meanrz(k,ibin) + pdata(np,prvpz)
+
+      end do
+
+
+      !$acc update host (partnumrz,multnumrz,vp3meanrz)
+
+#ifdef MPI
+       !Sum up the histograms across MPI processes
+       if (myid == 0) then
+          call mpi_reduce(MPI_IN_PLACE,partnumrz,nk*nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(MPI_IN_PLACE,multnumrz,nk*nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(MPI_IN_PLACE,vp3meanrz,nk*nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       else
+          call mpi_reduce(partnumrz,partnumrz,nk*nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(multnumrz,multnumrz,nk*nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+          call mpi_reduce(vp3meanrz,vp3meanrz,nk*nbins,MPI_REAL, &
+                         MPI_SUM,0,MPI_COMM_WORLD,ierr)
+       end if
+
+      if ( myid == 0 ) then 
+#endif
+         !These summed quantities need to be normalized
+         !Either by the number of horizontal grid points or number of droplets (depends on quantity)
+         do iz=1,nk
+         do ir=1,nbins
+            dzf = dumzf(iz+1)-dumzf(iz)
+            multnumrz(iz,ir) = multnumrz(iz,ir)/dzf/xl/yl
+            if (abs(partnumrz(iz,ir)) .gt. 1.0e-10) then
+               vp3meanrz(iz,ir) = vp3meanrz(iz,ir)/partnumrz(iz,ir)
+            else
+               vp3meanrz(iz,ir) = 0.0
+            end if
+         end do
+         end do
+#ifdef MPI
+      end if
+#endif
+
+
+
+
       !!!!!!! HISTOGRAMS  !!!!!!!!
 
       ! One last type of droplet stat is the histogram
@@ -2501,7 +2595,7 @@
 #endif
       call writedropdiag_nc(nrec,nbins, &
            rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk)
+           dumzh,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk,multnumrz,vp3meanrz)
 #ifdef MPI
       end if
 #endif
@@ -3481,7 +3575,7 @@
 
       subroutine writedropdiag_nc(nrec,nbins,&
                                   rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk)
+                                  zhvec,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk,multnumrz,vp3meanrz)
       use input
       use constants
       use netcdf
@@ -3491,6 +3585,7 @@
       integer, intent(inout) :: nrec
       real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
       real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),kmoist(nk),mse(nk),wk(nk)
+      real,    intent(in)    :: multnumrz(nk,nbins),vp3meanrz(nk,nbins)
       integer, intent(in)    :: nbins
       real, intent(in) :: tnumpart
 
@@ -3790,6 +3885,18 @@
     call disp_err( nf90_put_att(ncid,varid,"units","J-m/kg-s ") , .true. )
 
 
+
+    !!2nd order (radiue-height statistics)
+    call disp_err( nf90_def_var(ncid,"multnumrz",nf90_float,(/zhid,binsid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Size-resolved particle number concentration with height") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","#/m^3 ") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"vp3meanrz",nf90_float,(/zhid,binsid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Size-resolved particle average vertical velocity with height") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","m/s ") , .true. )
+
+
+
     !!Histograms (histograms of various droplet properties)
     call disp_err( nf90_def_var(ncid,"bins_radius",nf90_float,(/binsid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","histogram bin centers for radius") , .true. )
@@ -4003,6 +4110,14 @@
 
     call disp_err( nf90_inq_varid(ncid,"wk",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,wk,(/1,time_index/)) , .true. )
+
+    !!2nd order
+    call disp_err( nf90_inq_varid(ncid,"multnumrz",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,multnumrz,(/1,1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"vp3meanrz",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,vp3meanrz,(/1,1,time_index/)) , .true. )
+
 
     !!Histograms
     call disp_err( nf90_inq_varid(ncid,"bins_radius",varid) , .true. )
