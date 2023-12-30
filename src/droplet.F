@@ -3315,16 +3315,17 @@
       
       !implementing the Andreas 1998 sea spray generation function
       !Set the parameters of the two lognormals:
-      double precision :: c1,c2,c3,u14,cdn10,a,rand
+      double precision :: c1,c2,c3,u14,cdn10,a,rand,c4,m
       double precision :: a1,a2,r80,r0,dh_ssgf
       double precision :: dFsdr80(100),dFmsdr0(100),dr80_dr0
       integer :: iter,nbin,num_create,j,ierr
+      integer :: ssgf_type  !1 for Andreas 1998, 2 for Ortiz-Suslow 2016
 
       double precision :: rmin10_ssgf,rmax10_ssgf
       integer :: local_seed
 
       rmin10_ssgf = log10(2d-06)
-      rmax10_ssgf = log10(500d-06)
+      rmax10_ssgf = log10(1000d-06)
       dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/100.0
 
   !   ===== update x-axis for each bin =====
@@ -3337,27 +3338,52 @@
 
       ! Now figure out how many particles are produced in each of
       ! those bins. This is a function of u10
-      u10 = min(u10_ssgf,50.0)
+      u10 = min(u10_ssgf,55.0)
 
+      ssgf_type = 2
+
+      !For Andreas 1998 model
       c1 = 10.0*smithssgf(u10,dble(10.0),dble(0.4))
       c2 = c1*(37.5**1.8)
       c3 = c2*(100.0**5.2)
+
+      !For modfying with Ortiz-Suslow 2016
+      m = 0.0434*u10 - 5.83
+      c4 = c2*100**-2.8*(10**6*1.963*(100**1.025))**-m
+
       dFssum(1) = 0
       do i = 1,100
          r0 = binsdata(i)
          ! calculate radius at 80%RH
          r80 = 0.518*r0**0.976;
  
-         ! now apply these to Eqs. 3.5 in Andreas 1998
-         if (r80 .lt. 10.0) then
-           dFsdr80(i) =  smithssgf(u10,r80,dble(0.4))
-         elseif ((r80 .ge. 10.0) .and. (r80 .lt. 37.5)) then
-           dFsdr80(i) = c1/r80
-         elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100.0)) then
-           dFSdr80(i) = c2*r80**-2.8
-         elseif ((r80 .ge. 100.0) .and. (r80 .lt. 250.0)) then
-           dFsdr80(i) = c3*r80**-8.0
-         endif
+         if (ssgf_type.eq.1) then
+
+             ! now apply these to Eqs. 3.5 in Andreas 1998
+             if (r80 .lt. 10.0) then
+               dFsdr80(i) =  smithssgf(u10,r80,dble(0.4))
+             elseif ((r80 .ge. 10.0) .and. (r80 .lt. 37.5)) then
+               dFsdr80(i) = c1/r80
+             elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100.0)) then
+               dFSdr80(i) = c2*r80**-2.8
+             elseif (r80 .ge. 100.0) then
+               dFsdr80(i) = c3*r80**-8.0
+             endif
+
+         elseif (ssgf_type.eq.2) then
+
+             ! Almost the same, except change the spume for > 100 for Ortiz-Suslow
+             if (r80 .lt. 10.0) then
+               dFsdr80(i) =  smithssgf(u10,r80,dble(0.4))
+             elseif ((r80 .ge. 10.0) .and. (r80 .lt. 37.5)) then
+               dFsdr80(i) = c1/r80
+             elseif ((r80 .ge. 37.5) .and. (r80 .lt. 100.0)) then
+               dFSdr80(i) = c2*r80**-2.8
+             elseif (r80 .ge. 100.0) then
+               dFsdr80(i) = c4*(10**6*1.963*r80**1.025)**m
+             endif
+
+         end if
  
          ! apply eq. 3.8 from Andreas 1998
          dFmsdr0(i) = 3.5*dFsdr80(i)*0.506*r0**-0.024
