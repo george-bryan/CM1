@@ -1957,7 +1957,8 @@
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              uf1mean,uf2mean,uf3mean, &
-      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp,kmoist,mse,wk,wtmp)
+      !$acc              Tpmsqr,m1src,m2src,m3src,qstardp,kmoist,mse,wk,wtmp, &
+      !$acc               partnumrz,multnumrz,vp3meanrz)
 
       !!!!!!! 0th order  !!!!!!!!
 
@@ -2477,7 +2478,7 @@
          !$acc atomic update
          multnumrz(k,ibin) = multnumrz(k,ibin) + pdata(np,prmult)
 
-         !$acc atmoic update
+         !$acc atomic update
          vp3meanrz(k,ibin) = vp3meanrz(k,ibin) + pdata(np,prvpz)
 
       end do
@@ -3325,7 +3326,7 @@
       integer :: local_seed
 
       rmin10_ssgf = log10(2d-06)
-      rmax10_ssgf = log10(1000d-06)
+      rmax10_ssgf = log10(500d-06)
       dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/100.0
 
   !   ===== update x-axis for each bin =====
@@ -3338,9 +3339,9 @@
 
       ! Now figure out how many particles are produced in each of
       ! those bins. This is a function of u10
-      u10 = min(u10_ssgf,55.0)
+      u10 = min(u10_ssgf,50.0)
 
-      ssgf_type = 2
+      ssgf_type = 1
 
       !For Andreas 1998 model
       c1 = 10.0*smithssgf(u10,dble(10.0),dble(0.4))
