@@ -350,6 +350,10 @@
 #endif
       character(len=20) :: text1,text2
 
+      integer :: num_dropsub,i_dropsub
+      real :: dt_dropsub
+      double precision :: dbldt_dropsub,mtime_dropsub
+
 !--------------------------------------------------------------------
       !$acc declare present(rrw)
 
@@ -950,6 +954,15 @@
         ifdroplet:  &
         if (prcl_droplet.ge.1) then
 
+          num_dropsub = 5
+          mtime_dropsub = mtime
+          do i_dropsub = 1,num_dropsub
+          if (myid.eq.0) print *, 'DHR2: In dropsub loop, i_dropsub=',i_dropsub
+
+          dt_dropsub = dt/real(num_dropsub)
+          dbldt_dropsub = dbldt/dble(num_dropsub)
+          
+
           !$acc parallel default(present) private(i,j,k)
           !$acc loop gang vector collapse(3)
           do k=kb,ke
@@ -967,7 +980,7 @@
           enddo
           !$acc end parallel
 
-          call   droplet_driver(dt,dbldt,mtime,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs, &
+          call   droplet_driver(dt_dropsub,dbldt_dropsub,mtime_dropsub,xh,uh,ruh,xf,yh,vh,rvh,yf,zh,mh,rmh,zf,mf,zs, &
                                sigma,sigmaf,zntmp,rho,rru,rrv,rrw,s10,pdata,              &
                                tha,qa,th0,pi0,ppi,prs,dum1,                               &
                                pw1,pw2,pe1,pe2,ps1,ps2,pn1,pn2,                           &
@@ -1016,14 +1029,16 @@
             do k=1,nk
             do j=1,nj+1
             do i=1,ni+1
-              th3d(i,j,k)=th3d(i,j,k)+dt*dpten(i,j,k,1)
-              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)+dt*dpten(i,j,k,2)
-              u3d(i,j,k)=u3d(i,j,k)+dt*dpten(i,j,k,3)
-              v3d(i,j,k)=v3d(i,j,k)+dt*dpten(i,j,k,4)
-              w3d(i,j,k)=w3d(i,j,k)+dt*dpten(i,j,k,5)
+              th3d(i,j,k)=th3d(i,j,k)+dt_dropsub*dpten(i,j,k,1)
+              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)+dt_dropsub*dpten(i,j,k,2)
+              u3d(i,j,k)=u3d(i,j,k)+dt_dropsub*dpten(i,j,k,3)
+              v3d(i,j,k)=v3d(i,j,k)+dt_dropsub*dpten(i,j,k,4)
+              w3d(i,j,k)=w3d(i,j,k)+dt_dropsub*dpten(i,j,k,5)
             enddo
             enddo
             enddo
+
+
             if(timestats.ge.1) time_parcels=time_parcels+mytime()
             call bcs(th3d)
             call bcs(q3d(ib,jb,kb,nqv))
@@ -1075,6 +1090,9 @@
             enddo
             if(timestats.ge.1) time_integ=time_integ+mytime()
           ENDIF
+
+          mtime_dropsub = mtime_dropsub + dbldt_dropsub
+          enddo ! droplet sub-loop         
 
         else  ifdroplet
           stop 'solve3: before call to parcel_driver'

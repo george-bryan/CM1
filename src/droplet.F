@@ -823,6 +823,7 @@
          doinject=0 
       end if
 
+     if (myid.eq.0) print *, 'DHR3:',mtime,dt,dbldt,doinject,floor(mtime/dble(drop_inject_elapse)),floor((mtime+dbldt)/dble(drop_inject_elapse))
 
       if (doinject .eq. 1) then
 
