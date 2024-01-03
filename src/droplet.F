@@ -823,8 +823,6 @@
          doinject=0 
       end if
 
-     if (myid.eq.0) print *, 'DHR3:',mtime,dt,dbldt,doinject,floor(mtime/dble(drop_inject_elapse)),floor((mtime+dbldt)/dble(drop_inject_elapse))
-
       if (doinject .eq. 1) then
 
             call droplet_injection(pdata,xf,yf,max(drop_inject_elapse,dt),mtime,my_reintro)
@@ -1959,7 +1957,7 @@
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              uf1mean,uf2mean,uf3mean, &
       !$acc              Tpmsqr,m1src,m2src,m3src,qstardp,kmoist,mse,wk,wtmp, &
-      !$acc               partnumrz,multnumrz,vp3meanrz)
+      !$acc               partnumrz,multnumrz,vp3meanrz) 
 
       !!!!!!! 0th order  !!!!!!!!
 
