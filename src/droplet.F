@@ -16,7 +16,8 @@
   !These are quantities which are needed in the droplet_diag output, so must be public
   real :: num100,num1000
   integer, parameter :: nbins = 514  !Bins for the droplet histograms
-  real,dimension(nbins) :: bins_restime,hist_restime  !Histograms for droplet residence time
+  real,dimension(nbins) :: bins_restime  !Bins for droplet residence time
+  real,dimension(nbins,nbins) :: hist_restime  !Droplet residence time joint pdf (with size)
   real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10,hist_fallrad  !Histograms for droplet radius
   real :: restime_min,restime_max,restime_min10,restime_max10,dhres !Bin parameters for droplet residence time
   real :: dhrad,rmin,rmax,rmin10,rmax10  !Bin parameters for droplet size
@@ -942,7 +943,7 @@
       real :: tp0
       real :: sig1
       real :: top,bot,restime10_tmp,rad10_tmp
-      integer :: i,j,k,ibin
+      integer :: i,j,k,ibin,ibin_res
       double precision :: taup,volp,rhop
       double precision :: taup_scale,dt_nondim
       double precision :: guess
@@ -1087,15 +1088,12 @@
             restime10_tmp = log10(pdata(np,prtime))
 
             if (restime10_tmp .gt. restime_max10 + 0.5*dhres) then
-               ibin = nbins
+               ibin_res = nbins
             elseif (restime10_tmp .lt. restime_min10 - 0.5*dhres) then
-               ibin = 1
+               ibin_res = 1
             else
-               ibin = (floor((restime10_tmp-(restime_min10-0.5*dhres))/dhres)+1)+1
+               ibin_res = (floor((restime10_tmp-(restime_min10-0.5*dhres))/dhres)+1)+1
             end if
-       
-            !$acc atomic update
-            hist_restime(ibin) = hist_restime(ibin) + pdata(np,prmult)
 
             !The the droplet size at fallout
             rad10_tmp = log10(pdata(np,prrp))
@@ -1107,6 +1105,9 @@
             else
                ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)+1
             end if
+
+            !$acc atomic update
+            hist_restime(ibin_res,ibin) = hist_restime(ibin_res,ibin) + pdata(np,prmult)
 
             !$acc atomic update
             hist_fallrad(ibin) = hist_fallrad(ibin) + pdata(np,prmult)
@@ -2571,7 +2572,7 @@
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
           call mpi_reduce(MPI_IN_PLACE,hist_radius10,nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
-          call mpi_reduce(MPI_IN_PLACE,hist_restime,nbins,MPI_REAL, &
+          call mpi_reduce(MPI_IN_PLACE,hist_restime,nbins*nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
           call mpi_reduce(MPI_IN_PLACE,hist_fallrad,nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
@@ -2580,7 +2581,7 @@
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
           call mpi_reduce(hist_radius10,hist_radius10,nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
-          call mpi_reduce(hist_restime,hist_restime,nbins,MPI_REAL, &
+          call mpi_reduce(hist_restime,hist_restime,nbins*nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
           call mpi_reduce(hist_fallrad,hist_fallrad,nbins,MPI_REAL, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
@@ -3940,8 +3941,8 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each bin only for those under 10m") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
 
-    call disp_err( nf90_def_var(ncid,"hist_restime",nf90_float,(/binsid,timeid/),varid) , .true. )
-    call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each residence time bin over the past statfrq time") , .true. )
+    call disp_err( nf90_def_var(ncid,"hist_restime",nf90_float,(/binsid,binsid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","total count for each residence time bin and radius bin over the past statfrq time") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","#") , .true. )
 
     call disp_err( nf90_def_var(ncid,"hist_fallrad",nf90_float,(/binsid,timeid/),varid) , .true. )
@@ -4159,7 +4160,7 @@
     call disp_err( nf90_put_var(ncid,varid,hist_radius10,(/1,time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"hist_restime",varid) , .true. )
-    call disp_err( nf90_put_var(ncid,varid,hist_restime,(/1,time_index/)) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,hist_restime,(/1,1,time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"hist_fallrad",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,hist_fallrad,(/1,time_index/)) , .true. )
