@@ -954,7 +954,7 @@
         ifdroplet:  &
         if (prcl_droplet.ge.1) then
 
-          num_dropsub = 5
+          num_dropsub = 1
           mtime_dropsub = mtime
           do i_dropsub = 1,num_dropsub
           if (myid.eq.0) print *, 'DHR2: In dropsub loop, i_dropsub=',i_dropsub

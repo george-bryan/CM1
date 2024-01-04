@@ -3341,7 +3341,7 @@
       ! those bins. This is a function of u10
       u10 = min(u10_ssgf,50.0)
 
-      ssgf_type = 2
+      ssgf_type = 1
 
       !For Andreas 1998 model
       c1 = 10.0*smithssgf(u10,dble(10.0),dble(0.4))
@@ -3484,7 +3484,7 @@
             salinity = 0.034
             pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
             pdata(np,prtp) = tsk0   !Set to the SST
-            pdata(np,prmult) = 1.0e9
+            pdata(np,prmult) = drop_mult
             pdata(np,pract) = 1.0
             !Set to something realistic so it doesn't break the stats at initiation
             pdata(np,pru) = 0.0
