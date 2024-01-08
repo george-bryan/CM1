@@ -3303,7 +3303,7 @@
       integer(i8) :: tot_after_reintro
       integer :: sum_buf(2)
       double precision :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
-      double precision :: binsdata(100)  !Discretized bins for cumulative SSGF
+      double precision :: binsdata(100),binsdata10(100)  !Discretized bins for SSGF; "10" is for the log10 value
 
       double precision :: totdrops  !Total number being produced during this call to droplet_injection
       double precision :: rad_init  !Initial radius, being calculated one at a time according to SSGF
@@ -3317,7 +3317,7 @@
       !implementing the Andreas 1998 sea spray generation function
       !Set the parameters of the two lognormals:
       double precision :: c1,c2,c3,u14,cdn10,a,rand,c4,m
-      double precision :: a1,a2,r80,r0,dh_ssgf
+      double precision :: a1,a2,r80,r0,dh_ssgf,r_interval
       double precision :: dFsdr80(100),dFmsdr0(100),dr80_dr0
       integer :: iter,nbin,num_create,j,ierr
       integer :: ssgf_type  !1 for Andreas 1998, 2 for Ortiz-Suslow 2016
@@ -3327,15 +3327,16 @@
 
       rmin10_ssgf = log10(2d-06)
       rmax10_ssgf = log10(500d-06)
-      dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/100.0
+      dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/99.0
 
   !   ===== update x-axis for each bin =====
-      binsdata(1) = rmin10_ssgf
+      binsdata10(1) = rmin10_ssgf
+      binsdata(1) = 1.0d6*(10**binsdata10(1))
       do i = 1,99
-        binsdata(i+1)= dh_ssgf+binsdata(i)
+        binsdata10(i+1)= dh_ssgf+binsdata10(i)
+        binsdata(i+1) = 1.0d6*(10**binsdata10(i))
       end do
 
-      binsdata = 1.0d6*(10**binsdata)
 
       ! Now figure out how many particles are produced in each of
       ! those bins. This is a function of u10
@@ -3440,7 +3441,7 @@
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
                                                      !does not make the global exceed nparcelsMax
 
-         !$acc data copyin(dFssum,binsdata) create(randomNumbers,randomNumbers%state)
+         !$acc data copyin(dFssum,binsdata,binsdata10) create(randomNumbers,randomNumbers%state)
          !$acc parallel loop gang vector default(present) reduction(+:mass_injected,eng_injected,m1_injected,m2_injected) private(randomNumbers)
          do j=1,my_reintro
             np=nparcelsLocalActive+j
@@ -3457,9 +3458,10 @@
                !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
 
                !$acc loop seq
-               do i = 1,99
+               do i = 1,100
                   if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
-                     rad_init = binsdata(i) + rand*(binsdata(i+1)-binsdata(i))
+                     r_interval = 10**(binsdata10(i)+dh_ssgf/2.0) - 10**(binsdata10(i)-dh_ssgf/2.0)
+                     rad_init = binsdata(i) + 2.0*(rand-0.5)*r_interval
                   end if 
                end do
                rad_init = rad_init*1.0e-6
