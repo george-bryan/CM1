@@ -6045,6 +6045,10 @@
 
           npvals = npvals+1
           npvars = npvars+1
+          prrp0 = npvals  !Droplet radius at birth
+
+          npvals = npvals+1
+          npvars = npvars+1
           prms = npvals  !Droplet solute (i.e. salt) mass
 
           npvals = npvals+1

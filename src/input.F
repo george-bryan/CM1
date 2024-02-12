@@ -80,7 +80,7 @@
               prx,pry,prz,pru,prv,prw,prth,prt,prprs,prtime,                  &
               prpt1,prpt2,prqv,prq1,prq2,prnc1,prnc2,prkm,prkh,prtke,         &
               prdbz,prb,prvpg,przv,prrho,prqsl,prqsi,prznt,prust,przs,prsig,  &
-              prvpx,prvpy,prvpz,prrp,prms,prtp,prmult,pract,                  &
+              prvpx,prvpy,prvpz,prrp,prrp0,prms,prtp,prmult,pract,            &
               nql1,nql2,nqs1,nqs2,nnc1,nnc2,nvl1,nvl2,nzl1,nzl2,              &
               nbudget,budrain,cm1setup,testcase,                              &
               adapt_dt,irst,rstnum,iconly,                                    &

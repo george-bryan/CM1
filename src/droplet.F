@@ -15,7 +15,7 @@
 
   !These are quantities which are needed in the droplet_diag output, so must be public
   real :: num100,num1000
-  integer, parameter :: nbins = 514  !Bins for the droplet histograms
+  integer, parameter :: nbins = 258  !Bins for the droplet histograms
   real,dimension(nbins) :: bins_restime  !Bins for droplet residence time
   real,dimension(nbins,nbins) :: hist_restime  !Droplet residence time joint pdf (with size)
   real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10,hist_fallrad  !Histograms for droplet radius
@@ -25,6 +25,8 @@
   double precision :: u10_ssgf 
   real :: num_destroyed,num_injected,mass_destroyed,mass_injected !Cumulative particle counts between droplet_diag calls
   real :: eng_destroyed,eng_injected,m1_destroyed,m2_destroyed,m1_injected,m2_injected   !Same but for droplet internal energy and momentum
+  real :: mass_reentry,eng_reentry,m1_reentry,m2_reentry
+  double precision :: mass_evap,mass_dpten
 
   ! If we already know that a parcel stays on the same process 
   !    in the previous time step and it is still here, we start 
@@ -44,8 +46,9 @@
   !$acc declare create (hist_restime,hist_radius,hist_radius10, &
   !$acc                 hist_fallrad,restime_min,restime_max, &
   !$acc                 restime_min10,restime_max10,dhres,dhrad, &
-  !$acc                 rmin,rmax,rmin10,rmax10,num_destroyed, &
+  !$acc                 rmin,rmax,rmin10,rmax10,num_destroyed,mass_evap,mass_dpten, &
   !$acc                 num_injected,mass_destroyed,mass_injected, &
+  !$acc                 mass_reentry,eng_reentry,m1_reentry,m2_reentry, &
   !$acc                 eng_destroyed,eng_injected,m1_destroyed,m2_destroyed,m1_injected,m2_injected, &
   !$acc                 num100,num1000)
 
@@ -72,7 +75,7 @@
           mywest,myid,nparcelsLocal,nparcelsLocalActive, &
           time_phys_H2D,time_phys_D2H,drop_inject_elapse, &
           drop_inject_time,time_dropC1,time_dropC2,time_dropC3, &
-          time_dropC4,ngxy
+          time_dropC4,ngxy,dx,dy,dz
       use constants
       use comm_module
       use comm_droplet_module
@@ -142,6 +145,8 @@
       real :: Nup,salinity,part_grav1,part_grav2,part_grav3
       real :: xv,yv,zv,dV,wtx,wty,wtz,wtt
       real :: esl
+
+      double precision :: foot
 
       real :: uval,vval,wval,qval,prsval,tval,rhoval,rhval
       real :: sigdot
@@ -377,7 +382,7 @@
     !$acc loop gang vector reduction(+:num_fallout) reduction(max:errcode) &
     !$acc reduction(+:numDepartN,numDepartS,numDepartE,numDepartW) &
     !$acc reduction(+:numDepartNW,numDepartSW,numDepartNE,numDepartSE) &
-    !$acc reduction(+:num_destroyed,mass_destroyed,eng_destroyed,m1_destroyed,m2_destroyed)
+    !$acc reduction(+:num_destroyed,mass_destroyed,mass_evap,mass_dpten,eng_destroyed,m1_destroyed,m2_destroyed,mass_reentry,eng_reentry,m1_reentry,m2_reentry)
 #endif
     nploop:  &
     DO np=1,nparcelsLocalActive
@@ -504,6 +509,8 @@
       dtpdt  = (pdata(np,prtp)-dtpdt)/dt
       dmpdt  = (rhow*4.0/3.0*pi*pdata(np,prrp)**3-dmpdt)/dt
 
+      mass_evap = mass_evap + dmpdt*dt*pdata(np,prmult)
+
 
       !Project the feedback onto the grid, using ORIGINAL location
       call project_feedback(iflag,jflag,kflag,x3d0,y3d0,z3d0,sig3d0, &
@@ -517,6 +524,21 @@
     if (errcode .gt. 0) then 
        stop 'FATAL error occurred in the index search BE_integration'
     end if
+
+
+    !$acc parallel default(present) private(i,j,k) reduction(+:foot,mass_dpten)
+    !$acc loop gang reduction(+:mass_dpten)
+    do k=1,nk
+      foot = 0.0d0
+      !$acc loop vector collapse(2) reduction(+:foot)
+      do j=1,nj
+      do i=1,ni
+        foot=foot + rho(i,j,k)*dpten(i,j,k,2)*ruh(i)*rvh(j)*rmh(i,j,k)*dt*(dx*dy*dz)
+      enddo
+      enddo
+      mass_dpten=mass_dpten+foot
+    enddo
+    !$acc end parallel
 
 
     !$acc parallel default(present)
@@ -904,10 +926,10 @@
 
       use input, only : ib,ie,jb,je,kb,ke,numq,npvals,nx,ny,viscosity, &
           pr_num,sc_num,axisymm,terrain_flag,maxz,minx,maxx,miny,maxy, &
-          prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv, &
+          prvpx,prvpy,prvpz,prrp,prrp0,prms,prtp,prx,pry,prsig,prz,pru,prv, &
           prw,prt,prqv,prprs,prrho,pract,prtime,prmult,ni,nj,mywest, &
           mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal, &
-          myid,dx,dy,pi_sp,pi_dp,ngxy
+          myid,dx,dy,pi_sp,pi_dp,ngxy,tsk0
       use constants , only : rhow,rhow_dp,undefined_index,cpl
       use comm_module
       use parcel_module
@@ -1082,6 +1104,15 @@
             m1_destroyed = m1_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpx)
  
             m2_destroyed = m2_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpy)
+ 
+            !Reentry is initial minus final
+            mass_reentry = mass_reentry + ( (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp0)**3)*pdata(np,prmult) - (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult) )
+
+            eng_reentry = eng_reentry + ( (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp0)**3)*pdata(np,prmult)*cpl*tsk0 -(pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*cpl*pdata(np,prtp) ) 
+
+            m1_reentry = m1_reentry + ( 0 - (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpx) )
+ 
+            m2_reentry = m2_reentry + ( 0 - (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpy) )
  
             !Log this dead particle into the relevant histograms
             !First residence time
@@ -1923,19 +1954,19 @@
       integer :: kflag
       !real :: dumzh(kb:ke),dumzf(kb:ke+1),dzf,xl,yl
       real :: dumzh(1:nk),dumzf(kb:ke+1),dzf,xl,yl
-      real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp
+      real :: Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp,rhovsrc_tmp
       real :: kmoist_tmp,wk_tmp,qt,lhv,ta_tmp,winterp_tmp,mse_tmp
 
       real :: radavg,radsqr,radmin,radmax,Tpavg,Tpmin,Tpmax,Tpsqr, &
               Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumdrop, &
-              tnumaerosol,tnumpart
+              tnumaerosol,tnumpart,tmasspart
 
-      real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk),kmoist(nk),mse(nk),wk(nk),wtmp(nk)
+      real :: partnum(nk),multnum(nk),partmass(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),Tpsrc(nk),qvsrc(nk),rhovsrc(nk),qf(nk),Tf(nk),radmean(nk),radmsqr(nk),Tpmean(nk),Tpmsqr(nk),qfsat(nk),m1src(nk),m2src(nk),m3src(nk),qstarmean(nk),kmoist(nk),mse(nk),wk(nk),wtmp(nk)
       double precision, dimension(nk) :: qstardp,radmsqrdp
 
       real :: partnumrz(nk,nbins),multnumrz(nk,nbins),vp3meanrz(nk,nbins)
 
-      integer, parameter :: num0 = 26, num1 = 29   !Number of 0th and 1st order statistics in droplet_diag
+      integer, parameter :: num0 = 33, num1 = 30   !Number of 0th and 1st order statistics in droplet_diag
       real :: rad10_tmp
       double precision :: qstar_tmp
       integer :: ibin
@@ -1949,11 +1980,12 @@
 
       !!!!! update module variable first !!!!!
 
-      !$acc update host (num_destroyed,mass_destroyed,eng_destroyed,m1_destroyed,m2_destroyed, &
+      !$acc update host (num_destroyed,mass_destroyed,mass_evap,mass_dpten,eng_destroyed,m1_destroyed,m2_destroyed, &
       !$acc              num_injected,mass_injected,eng_injected,m1_injected,m2_injected, &
+      !$acc              mass_reentry,eng_reentry,m1_reentry,m2_reentry, &
       !$acc              num100,num1000)
 
-      !$acc data create (dumzh,dumzf,partnum,multnum,partmass,numconc,massconc,Tpsrc,qvsrc,qf, &
+      !$acc data create (dumzh,dumzf,partnum,multnum,partmass,numconc,massconc,Tpsrc,qvsrc,rhovsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              uf1mean,uf2mean,uf3mean, &
@@ -1966,6 +1998,7 @@
       tnumaerosol = 0.0
       tnumdrop = 0.0
       tnummult = 0.0
+      tmasspart = 0.0
       radavg = 0.0
       radsqr = 0.0
       Tpavg = 0.0
@@ -1986,6 +2019,7 @@
       do np=1,nparcelsLocalActive
          tnumpart = tnumpart + 1.0
          tnummult = tnummult + pdata(np,prmult)
+         tmasspart = tmasspart + (rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
          if (pdata(np,prrp) .lt. crit_radius(pdata(np,prms),pdata(np,prt))) then
              tnumaerosol = tnumaerosol + pdata(np,prmult)
          else
@@ -2030,31 +2064,38 @@
       droplet_diag0(20) = m2_injected
       droplet_diag0(21) = num100
       droplet_diag0(22) = num1000
-      droplet_diag0(23) = radmin
-      droplet_diag0(24) = Tpmin
-      droplet_diag0(25) = radmax
-      droplet_diag0(26) = Tpmax
+      droplet_diag0(23) = tmasspart
+      droplet_diag0(24) = mass_evap
+      droplet_diag0(25) = mass_dpten
+      droplet_diag0(26) = mass_reentry
+      droplet_diag0(27) = eng_reentry
+      droplet_diag0(28) = m1_reentry
+      droplet_diag0(29) = m2_reentry
+      droplet_diag0(30) = radmin
+      droplet_diag0(31) = Tpmin
+      droplet_diag0(32) = radmax
+      droplet_diag0(33) = Tpmax
 
       ! The root rank will collect the diagnostic from different MPI ranks
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),22,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(1),num0-4,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),22,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(droplet_diag0(1),droplet_diag0(1),num0-4,MPI_DOUBLE_PRECISION, &
                          MPI_SUM,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(23),2,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(num0-3),2,MPI_DOUBLE_PRECISION, &
                          MPI_MIN,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(23),droplet_diag0(23),2,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(droplet_diag0(num0-3),droplet_diag0(num0-3),2,MPI_DOUBLE_PRECISION, &
                          MPI_MIN,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then
-         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(25),2,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(MPI_IN_PLACE,droplet_diag0(num0-1),2,MPI_DOUBLE_PRECISION, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       else
-         call mpi_reduce(droplet_diag0(25),droplet_diag0(25),2,MPI_DOUBLE_PRECISION, &
+         call mpi_reduce(droplet_diag0(num0-1),droplet_diag0(num0-1),2,MPI_DOUBLE_PRECISION, &
                          MPI_MAX,0,MPI_COMM_WORLD,ierr)
       end if
       if ( myid == 0 ) then 
@@ -2080,10 +2121,17 @@
          m2_injected = droplet_diag0(20)
          num100 = droplet_diag0(21)
          num1000 = droplet_diag0(22)
-         radmin = droplet_diag0(23)
-         Tpmin = droplet_diag0(24)
-         radmax = droplet_diag0(25)
-         Tpmax = droplet_diag0(26)
+         tmasspart = droplet_diag0(23)
+         mass_evap = droplet_diag0(24)
+         mass_dpten = droplet_diag0(25)
+         mass_reentry = droplet_diag0(26)
+         eng_reentry = droplet_diag0(27)
+         m1_reentry = droplet_diag0(28)
+         m2_reentry = droplet_diag0(29)
+         radmin = droplet_diag0(30)
+         Tpmin = droplet_diag0(31)
+         radmax = droplet_diag0(32)
+         Tpmax = droplet_diag0(33)
 #endif
          if (tnumpart .gt. 0.0) then
             radavg = radavg/dble(tnumpart)
@@ -2145,6 +2193,7 @@
          m3src(k) = 0.0
          Tpsrc(k) = 0.0
          qvsrc(k) = 0.0
+         rhovsrc(k) = 0.0
          Tf(k) = 0.0
          qf(k) = 0.0
          Tpmean(k) = 0.0
@@ -2228,11 +2277,12 @@
          m3src_tmp = 0.0
          Tpsrc_tmp = 0.0
          qvsrc_tmp = 0.0
+         rhovsrc_tmp = 0.0
          kmoist_tmp = 0.0
          mse_tmp = 0.0
          wk_tmp = 0.0
          winterp_tmp = 0.0
-         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp,kmoist_tmp,mse_tmp,wk_tmp,winterp_tmp)
+         !$acc loop vector collapse(2) reduction(+:Tpsrc_tmp,qvsrc_tmp,rhovsrc_tmp,m1src_tmp,m2src_tmp,m3src_tmp,kmoist_tmp,mse_tmp,wk_tmp,winterp_tmp)
          do j=1,nj
             do i=1,ni
                m1src_tmp = m1src_tmp + dpten(i,j,k,3)
@@ -2240,6 +2290,7 @@
                m3src_tmp = m3src_tmp + dpten(i,j,k,5)
                Tpsrc_tmp = Tpsrc_tmp + dpten(i,j,k,1)
                qvsrc_tmp = qvsrc_tmp + dpten(i,j,k,2)
+               rhovsrc_tmp = rhovsrc_tmp + dpten(i,j,k,2)*rho(i,j,k)
 
                qt = qa(i,j,k,nqv) + dpten(i,j,k,7)/rho(i,j,k)  !Total mixing ratio of vapor + liquid
                ta_tmp = (th0(i,j,k)+th_in(i,j,k))*(pi0(i,j,k)+ppa(i,j,k))
@@ -2255,6 +2306,7 @@
          m3src(k) = m3src_tmp/real(nx*ny)
          Tpsrc(k) = Tpsrc_tmp/real(nx*ny)
          qvsrc(k) = qvsrc_tmp/real(nx*ny)
+         rhovsrc(k) = rhovsrc_tmp/real(nx*ny)
          kmoist(k) = kmoist_tmp/real(nx*ny)
          mse(k) = mse_tmp/real(nx*ny)
          wk(k) = wk_tmp/real(nx*ny)
@@ -2274,7 +2326,7 @@
          yl = tot_y_len
       endif
 
-      !$acc update host (dumzf,dumzh,numconc,massconc,partnum,multnum,partmass,Tpsrc,qvsrc,qf, &
+      !$acc update host (dumzf,dumzh,numconc,massconc,partnum,multnum,partmass,Tpsrc,qvsrc,rhovsrc,qf, &
       !$acc              Tf,radmean,Tpmean,qfsat,vp1mean,vp2mean, &
       !$acc              vp3mean,vp1msqr,vp2msqr,vp3msqr,radmsqrdp, &
       !$acc              uf1mean,uf2mean,uf3mean, &
@@ -2313,6 +2365,7 @@
          droplet_diag1(iz,27) = wk(iz)
          droplet_diag1(iz,28) = wtmp(iz)
          droplet_diag1(iz,29) = mse(iz)
+         droplet_diag1(iz,30) = rhovsrc(iz)
       end do
 
       ! The root rank will collect the diagnostic from different MPI ranks
@@ -2358,6 +2411,7 @@
             wk(iz) = droplet_diag1(iz,27)
             wtmp(iz) = droplet_diag1(iz,28)
             mse(iz) = droplet_diag1(iz,29)
+            rhovsrc(iz) = droplet_diag1(iz,30)
          end do
  
 #endif
@@ -2595,8 +2649,8 @@
       if ( myid == 0 ) then
 #endif
       call writedropdiag_nc(nrec,nbins, &
-           rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
-           dumzh,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk,multnumrz,vp3meanrz)
+           rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,tmasspart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg, &
+           dumzh,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,rhovsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk,multnumrz,vp3meanrz)
 #ifdef MPI
       end if
 #endif
@@ -2606,6 +2660,12 @@
       hist_fallrad = 0.0
       num_destroyed = 0.0
       mass_destroyed = 0.0
+      mass_evap = 0.0
+      mass_dpten = 0.0
+      mass_reentry = 0.0
+      eng_reentry = 0.0
+      m1_reentry = 0.0
+      m2_reentry = 0.0
       eng_destroyed = 0.0
       m1_destroyed = 0.0
       m2_destroyed = 0.0
@@ -2619,8 +2679,9 @@
       
 
       !$acc update device (hist_restime,hist_fallrad,num_destroyed, &
-      !$acc                mass_destroyed,num_injected,mass_injected, &
+      !$acc                mass_destroyed,mass_evap,mass_dpten,num_injected,mass_injected, &
       !$acc                eng_destroyed,m1_destroyed,m2_destroyed,eng_injected, &
+      !$acc                mass_reentry,eng_reentry,m1_reentry,m2_reentry, &
       !$acc                m1_injected,m2_injected, &
       !$acc                num100,num1000)
 
@@ -3282,7 +3343,7 @@
       !Inject new particles according to some rule
       !Here use the sea spray generation function (SSGF) of Andreas (1998)
       use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
-                        prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract,prtime, &
+                        prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prrp0,prtp,prms,pract,prtime, &
                         prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
                         time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax, &
                         drop_w_init,drop_mult,tsk0,pi_sp,myid,nx,ny,dx,dy
@@ -3483,6 +3544,7 @@
             pdata(np,prvpy) = 0.0
             pdata(np,prvpz) = drop_w_init   !Specified in namelist file
             pdata(np,prrp) = rad_init
+            pdata(np,prrp0) = rad_init
             salinity = 0.034
             pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
             pdata(np,prtp) = tsk0   !Set to the SST
@@ -3579,6 +3641,12 @@
     hist_fallrad = 0.0
     num_destroyed = 0.0
     mass_destroyed = 0.0
+    mass_evap = 0.0
+    mass_dpten = 0.0
+    mass_reentry = 0.0
+    eng_reentry = 0.0
+    m1_reentry = 0.0
+    m2_reentry = 0.0
     eng_destroyed = 0.0
     m1_destroyed = 0.0
     m2_destroyed = 0.0
@@ -3593,8 +3661,9 @@
     !$acc update device(hist_restime,hist_fallrad,restime_min, &
     !$acc               restime_max,restime_min10,restime_max10, &
     !$acc               dhres,dhrad,rmin,rmax,rmin10,rmax10, &
-    !$acc               num_destroyed,mass_destroyed,num_injected,mass_injected, &
+    !$acc               num_destroyed,mass_destroyed,mass_evap,mass_dpten,num_injected,mass_injected, &
     !$acc               eng_destroyed,m1_destroyed,m2_destroyed,eng_injected,m1_injected,m2_injected, &
+    !$acc               mass_reentry,eng_reentry,m1_reentry,m2_reentry, &
     !$acc               num100,num1000)
 
     end subroutine initialize_droplet_histograms
@@ -3603,8 +3672,8 @@
 #ifdef NETCDF
 
       subroutine writedropdiag_nc(nrec,nbins,&
-                                  rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
-                                  zhvec,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk,multnumrz,vp3meanrz)
+                                  rtime,tnumpart,tnummult,tnumaerosol,tnumdrop,tmasspart,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,&
+                                  zhvec,numconc,massconc,vp1mean,vp2mean,vp3mean,uf1mean,uf2mean,uf3mean,vp1msqr,vp2msqr,vp3msqr,m1src,m2src,m3src,Tpsrc,qvsrc,rhovsrc,Tf,qf,Tpmean,Tpmsqr,radmean,radmsqr,qfsat,qstarmean,kmoist,mse,wk,multnumrz,vp3meanrz)
       use input
       use constants
       use netcdf
@@ -3612,8 +3681,8 @@
       implicit none
 
       integer, intent(inout) :: nrec
-      real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop
-      real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),kmoist(nk),mse(nk),wk(nk)
+      real,    intent(in)    :: rtime,radavg,radsqr,radmin,radmax,Tpavg,Tpsqr,Tpmin,Tpmax,Tfavg,qfavg,prsavg,rhoavg,tnummult,tnumaerosol,tnumdrop,tmasspart
+      real,    intent(in)    :: zhvec(nk),numconc(nk),massconc(nk),vp1mean(nk),vp2mean(nk),vp3mean(nk),vp1msqr(nk),vp2msqr(nk),vp3msqr(nk),m1src(nk),m2src(nk),m3src(nk),Tpsrc(nk),qvsrc(nk),rhovsrc(nk),Tf(nk),qf(nk),Tpmean(nk),Tpmsqr(nk),radmean(nk),radmsqr(nk),qfsat(nk),qstarmean(nk),uf1mean(nk),uf2mean(nk),uf3mean(nk),kmoist(nk),mse(nk),wk(nk)
       real,    intent(in)    :: multnumrz(nk,nbins),vp3meanrz(nk,nbins)
       integer, intent(in)    :: nbins
       real, intent(in) :: tnumpart
@@ -3703,6 +3772,10 @@
     call disp_err( nf90_put_att(ncid,varid,"long_name","Total number of activated droplets in domain (including multiplicity)") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","No units") , .true. )
 
+    call disp_err( nf90_def_var(ncid,"tmasspart",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Total mass of liquid water in droplets (including multiplicity)") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
+
     call disp_err( nf90_def_var(ncid,"radavg",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average droplet radius for all droplet") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","m") , .true. )
@@ -3769,6 +3842,30 @@
 
     call disp_err( nf90_def_var(ncid,"mass_destroyed",nf90_float,timeid,varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Mass droplets that fell out since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"mass_evap",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Total change in mass due to evaporation since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"mass_dpten",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Total change in vapor source due to evaporation since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"mass_reentry",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Net change in re-entrant droplet mass since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"eng_reentry",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Net change in re-entrant droplet energy since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"m1_reentry",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Net change in re-entrant droplet x-momentum since last entry") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"m2_reentry",nf90_float,timeid,varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Net change in re-entrant droplet y-momentum since last entry") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","kg") , .true. )
 
     call disp_err( nf90_def_var(ncid,"eng_destroyed",nf90_float,timeid,varid) , .true. )
@@ -3868,6 +3965,10 @@
     call disp_err( nf90_def_var(ncid,"qvsrc",nf90_float,(/zhid,timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the water vapor mixing ratio") , .true. )
     call disp_err( nf90_put_att(ncid,varid,"units","(kg/kg)/s") , .true. )
+
+    call disp_err( nf90_def_var(ncid,"rhovsrc",nf90_float,(/zhid,timeid/),varid) , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"long_name","Droplet-induced tendency term for the water vapor density") , .true. )
+    call disp_err( nf90_put_att(ncid,varid,"units","(kg/m^3)/s") , .true. )
 
     call disp_err( nf90_def_var(ncid,"Tf",nf90_float,(/zhid,timeid/),varid) , .true. )
     call disp_err( nf90_put_att(ncid,varid,"long_name","Average temperature at droplet location") , .true. )
@@ -3983,6 +4084,9 @@
     call disp_err( nf90_inq_varid(ncid,"tnumdrop",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,tnumdrop,(/time_index/)) , .true. )
 
+    call disp_err( nf90_inq_varid(ncid,"tmasspart",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,tmasspart,(/time_index/)) , .true. )
+
     call disp_err( nf90_inq_varid(ncid,"radavg",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,radavg,(/time_index/)) , .true. )
 
@@ -4033,6 +4137,24 @@
 
     call disp_err( nf90_inq_varid(ncid,"mass_destroyed",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,mass_destroyed,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"mass_reentry",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,mass_reentry,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"eng_reentry",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,eng_reentry,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"m1_reentry",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,m1_reentry,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"m2_reentry",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,m2_reentry,(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"mass_evap",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,real(mass_evap),(/time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"mass_dpten",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,real(mass_dpten),(/time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"eng_destroyed",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,eng_destroyed,(/time_index/)) , .true. )
@@ -4106,6 +4228,9 @@
 
     call disp_err( nf90_inq_varid(ncid,"qvsrc",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,qvsrc,(/1,time_index/)) , .true. )
+
+    call disp_err( nf90_inq_varid(ncid,"rhovsrc",varid) , .true. )
+    call disp_err( nf90_put_var(ncid,varid,rhovsrc,(/1,time_index/)) , .true. )
 
     call disp_err( nf90_inq_varid(ncid,"Tf",varid) , .true. )
     call disp_err( nf90_put_var(ncid,varid,Tf,(/1,time_index/)) , .true. )

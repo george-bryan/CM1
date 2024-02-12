@@ -449,6 +449,7 @@
      
              !Droplet size (radius)
              pdata(i,prrp) = 2.0e-6
+             pdata(i,prrp0) = 2.0e-6
      
              !Droplet solute mass
              salinity = 0.034
