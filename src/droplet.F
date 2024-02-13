@@ -11,7 +11,7 @@
 
   private
   public :: droplet_driver,droplet_diag,initialize_droplet_histograms, &
-            check_droplet_ownership
+            check_droplet_ownership,particle_seed
 
   !These are quantities which are needed in the droplet_diag output, so must be public
   real :: num100,num1000
@@ -27,6 +27,8 @@
   real :: eng_destroyed,eng_injected,m1_destroyed,m2_destroyed,m1_injected,m2_injected   !Same but for droplet internal energy and momentum
   real :: mass_reentry,eng_reentry,m1_reentry,m2_reentry
   double precision :: mass_evap,mass_dpten
+
+  integer :: particle_seed
 
   ! If we already know that a parcel stays on the same process 
   !    in the previous time step and it is still here, we start 
@@ -206,8 +208,16 @@
       !    deterministic but varies between different MPI ranks and time steps
       ! 2) Otherwise, use David's original form with date and time to achieve
       !    more randomness but unmatched results between initial and restart runs
-      local_seed = int(mtime) * 1000 + myid          ! -(myid+values(8)+values(7)+values(6))
-      call new_RandomNumberSequence(randomNumbers, local_seed)
+
+#ifdef MPI
+        particle_seed =  (myid+values(8)+values(7)+values(6))
+#else
+        particle_seed =  values(8)+values(7)+values(6)
+#endif
+
+      !particle_seed = int(mtime) * 1000 + myid      
+      if (myid .eq. 0) print *, 'DHR7',particle_seed
+      call new_RandomNumberSequence(randomNumbers, particle_seed)
 
       num_fallout = 0  !Reset the number of droplets that have fallen out of physical domain
       errcode     = 0  ! Number of errors that occurred in the index search 
@@ -3385,6 +3395,7 @@
 
       double precision :: rmin10_ssgf,rmax10_ssgf
       integer :: local_seed
+      integer :: values(8)
 
       rmin10_ssgf = log10(2d-06)
       rmax10_ssgf = log10(500d-06)
@@ -3502,6 +3513,14 @@
       if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
                                                      !does not make the global exceed nparcelsMax
 
+       call date_and_time(values=values)
+#ifdef MPI
+        particle_seed =  (myid+values(8)+values(7)+values(6))
+#else
+        particle_seed =  values(8)+values(7)+values(6)
+#endif
+        if (myid .eq. 0) print *, 'DHR7',particle_seed
+
          !$acc data copyin(dFssum,binsdata,binsdata10) create(randomNumbers,randomNumbers%state)
          !$acc parallel loop gang vector default(present) reduction(+:mass_injected,eng_injected,m1_injected,m2_injected) private(randomNumbers)
          do j=1,my_reintro
@@ -3509,8 +3528,11 @@
             if (random_droplets) then
                ! initialize a new random number generator for each
                ! injected droplet
-               local_seed = floor(29.*mtime) + (97*myid) + (7*j)
-               call new_RandomNumberSequence(randomNumbers, local_seed)
+
+               !To get a repeatable sequence 
+               !particle_seed = floor(29.*mtime) + (97*myid) + (7*j)
+               call new_RandomNumberSequence(randomNumbers, j*particle_seed)
+
                rand = getRandomReal(randomNumbers)
                a = totdrops*rand
 
@@ -3568,6 +3590,7 @@
             call finalize_randomNumberSequence(randomNumbers)
          end do
          !$acc end data
+
          !Then once the new droplets have been added, update nparcelsLocalActive
          nparcelsLocalActive = nparcelsLocalActive + my_reintro
       else

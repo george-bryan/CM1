@@ -84,7 +84,7 @@
       use module_mp_nssl_2mom, only: ccn, lccn
       use poiss_module
       use parcel_module , only : getparcelzs
-      use droplet_module, only: initialize_droplet_histograms
+      use droplet_module, only: initialize_droplet_histograms,particle_seed
 #ifdef MPI
       use mpi
 #endif
@@ -171,12 +171,13 @@
       logical :: doit
 
       real :: salinity
+      integer :: values(8)
 
       ! Note:  By default, CM1 uses the same set of psuedorandom numbers 
       !        every time it is called.  To use truly random perturbations 
       !        (ie, different sets of random perturbations every time CM1 
       !        is used), then change this varliable to .true.
-      logical, parameter :: use_truly_random_pert  =  .false.
+      logical, parameter :: use_truly_random_pert  =  .true.
 
       real :: tmpx, tmpy, tmpz
       real :: xrange, yrange
@@ -414,7 +415,18 @@
         !     https://github.com/ESCOMP/CESM_share/blob/main/RandNum/src/mt19937/mersennetwister_mod.F90
         !
         ! The generated random number is independent of compilers and MPI ranks
-        call new_RandomNumberSequence(randomNumbers, max(1, int(nparcelsInit * write_frac_droplet)))
+        call date_and_time(VALUES=values)
+        !To get repeatable sequence
+        !particle_seed =  max(1, int(nparcelsInit * write_frac_droplet))
+
+        !Randomize based on date/time
+#ifdef MPI
+        particle_seed =  (myid+values(8)+values(7)+values(6))
+#else
+        particle_seed =  values(8)+values(7)+values(6)
+#endif
+        print *, 'DHR6',particle_seed
+        call new_RandomNumberSequence(randomNumbers, particle_seed)
 
         i = 1
         nparcelsLocalActive = 0
