@@ -3570,7 +3570,7 @@
             salinity = 0.034
             pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
             pdata(np,prtp) = tsk0   !Set to the SST
-            pdata(np,prmult) = 1.0e9
+            pdata(np,prmult) = drop_mult
             pdata(np,pract) = 1.0
             !Set to something realistic so it doesn't break the stats at initiation
             pdata(np,pru) = 0.0
