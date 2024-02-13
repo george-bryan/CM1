@@ -3342,7 +3342,7 @@
       ! those bins. This is a function of u10
       u10 = min(u10_ssgf,50.0)
 
-      ssgf_type = 1
+      ssgf_type = 2
 
       !For Andreas 1998 model
       c1 = 10.0*smithssgf(u10,dble(10.0),dble(0.4))
