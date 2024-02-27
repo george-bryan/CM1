@@ -6485,6 +6485,7 @@
         ! speed of sound for compressible-Boussinesq equations (psolver=6)
         !                and modified compressible equations (psolver=7)
         csound = 300.0
+        csound = 10.0
         if( testcase.eq.11 ) csound = 50.0
         if( testcase.eq.14 ) csound = 10.0
         if(dowr) write(outfile,*)

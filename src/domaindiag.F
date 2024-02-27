@@ -10739,6 +10739,9 @@
           if(bc_temp.eq.1)then
             ! specified theta at boundary
 
+            sfst1 = 0.0
+            sfst2 = 0.0
+
             !$acc parallel default(present) reduction(+:sfst1,sfst2) 
             !$acc loop gang vector collapse(2) reduction(+:sfst1,sfst2)
             do j=1,nj

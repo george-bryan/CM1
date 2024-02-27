@@ -62,6 +62,45 @@
     endif
 
       END FUNCTION RSLF
+
+!
+! ---------------------------------------------------------------------
+! THIS FUNCTION CALCULATES THE LIQUID SATURATION VAPOR MIXING RATIO AS
+! A FUNCTION OF TEMPERATURE AND PRESSURE
+!
+      DOUBLE PRECISION FUNCTION dRSLF(P,T)
+      !$acc routine seq
+
+      use input, only : ptype
+      use constants
+      IMPLICIT NONE
+      DOUBLE PRECISION ESL,X,T,P
+
+!  Note to self ... this should be changed, somehow, in the future.
+!  GHB 060806
+
+    if(ptype.eq.1.or.ptype.eq.2.or.ptype.eq.3.or.ptype.eq.5.or.ptype.eq.6)then
+
+      ! from Bolton (1980, MWR)
+      esl=611.2 * EXP( 17.67 * ( T  - 273.15 ) / ( T  - 29.65 ) )
+      ! 171023 (fix for very cold temps):
+      esl = min( esl , p*0.5 )
+      drslf= eps * ESL /(P-ESL)
+
+    elseif(ptype.eq.4)then
+
+      drslf=380.00*exp(17.2693882-4097.8531/(t-35.86))/p
+
+    else
+
+      esl=611.2 * EXP( 17.67 * ( T  - 273.15 ) / ( T  - 29.65 ) )
+      ! 171023 (fix for very cold temps):
+      esl = min( esl , p*0.5 )
+      drslf= eps * ESL /(P-ESL)
+
+    endif
+
+      END FUNCTION dRSLF
 !
 ! ---------------------------------------------------------------------
 ! THIS FUNCTION CALCULATES THE LIQUID SATURATION VAPOR PRESSURE AS

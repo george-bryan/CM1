@@ -954,7 +954,7 @@
         ifdroplet:  &
         if (prcl_droplet.ge.1) then
 
-          num_dropsub = 5
+          num_dropsub = 1
           mtime_dropsub = mtime
           do i_dropsub = 1,num_dropsub
           if (myid.eq.0) print *, 'DHR2: In dropsub loop, i_dropsub=',i_dropsub
@@ -1034,6 +1034,9 @@
               u3d(i,j,k)=u3d(i,j,k)+dt_dropsub*dpten(i,j,k,3)
               v3d(i,j,k)=v3d(i,j,k)+dt_dropsub*dpten(i,j,k,4)
               w3d(i,j,k)=w3d(i,j,k)+dt_dropsub*dpten(i,j,k,5)
+          
+              !DHR KLUDGE FOR SWALL
+              q3d(i,j,k,nqv)=q3d(i,j,k,nqv)-dt_dropsub*7.6e-5
             enddo
             enddo
             enddo

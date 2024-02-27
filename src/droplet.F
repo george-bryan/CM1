@@ -15,7 +15,7 @@
 
   !These are quantities which are needed in the droplet_diag output, so must be public
   real :: num100,num1000
-  integer, parameter :: nbins = 514  !Bins for the droplet histograms
+  integer, parameter :: nbins = 258  !Bins for the droplet histograms
   real,dimension(nbins) :: bins_restime  !Bins for droplet residence time
   real,dimension(nbins,nbins) :: hist_restime  !Droplet residence time joint pdf (with size)
   real,dimension(nbins) :: bins_radius,hist_radius,hist_radius10,hist_fallrad  !Histograms for droplet radius
@@ -792,21 +792,21 @@
       u10_ssgf = 0.0
       ! If _VERIFY macro is enabled than perform the following sum on
       ! the CPU 
-#ifdef _VERIFY
-      !$acc update host(s10)
-#else
-      !$acc parallel loop gang vector reduction(+:u10_ssgf)
-#endif
-      do j=1,nj
-         do i=1,ni
-            u10_ssgf = u10_ssgf + s10(i,j)
-         end do
-      end do
-
-#ifdef MPI
-      call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
-#endif
-      u10_ssgf = u10_ssgf/dble(nx*ny)
+!#ifdef _VERIFY
+!      !$acc update host(s10)
+!#else
+!      !$acc parallel loop gang vector reduction(+:u10_ssgf)
+!#endif
+!      do j=1,nj
+!         do i=1,ni
+!            u10_ssgf = u10_ssgf + s10(i,j)
+!         end do
+!      end do
+!
+!#ifdef MPI
+!      call mpi_allreduce(mpi_in_place,u10_ssgf,1,mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
+!#endif
+!      u10_ssgf = u10_ssgf/dble(nx*ny)
 
 
       doinject = 0
@@ -826,7 +826,7 @@
 
       if (doinject .eq. 1) then
 
-            call droplet_injection(pdata,xf,yf,max(drop_inject_elapse,dt),mtime,my_reintro)
+            call droplet_injection_pi(pdata,xf,yf,max(drop_inject_elapse,dt),mtime,my_reintro)
 
             !This loop isn't strictly necessary, but populate the interpolated values to the newly injected particles
             !Doesn't affect solution at all! Since interpolation happens at start of droplet_driver 
@@ -3158,7 +3158,7 @@
       !$acc routine seq
       use constants, only : rhow_dp,mw,ru,surften,ion,os,ms,cp_dp,cpl_dp,lv1_dp,lv2_dp
       use input, only : viscosity,pr_num,sc_num,pi_dp
-      use cm1libs , only : deslf
+      use cm1libs , only : drslf,deslf
       implicit none
 
       double precision, intent(in) :: diffnorm,tempr,tempt,taup_scale,dt_nondim,prsval,rhoval,tval,qval,Tp,m_s,radius
@@ -3166,7 +3166,7 @@
       integer, intent(in) :: np
       integer, intent(inout) :: flag
 
-      double precision :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv
+      double precision :: esa,dnext,rhop,Rep,taup,rprime,Tprime,qstr,Shp,Nup,VolP,lhv,qstr_test
       double precision :: Tnext,rnext
       double precision :: tmp
 
@@ -3195,7 +3195,9 @@
           flag = 1
         else
           qstr = (mw/(ru*Tnext*rhoval))*esa*dexp( tmp )
+          qstr_test = drslf(dble(prsval),dble(tval))*dexp( tmp )
         endif
+
         !!!!!!!!!!!!!!!!!!
 
         !!! Radius !!!
@@ -3215,7 +3217,7 @@
       !$acc routine seq
       use constants , only : rhow_dp,mw,ms,surften,ion,os,ru,lv1_dp,lv2_dp
       use input, only : viscosity,pr_num,sc_num,pi_dp
-      use cm1libs , only : deslf
+      use cm1libs , only : deslf,drslf
       implicit none
 
       real, intent(in) :: prsval,rhoval,tval,qval,Tp,m_s,radius
@@ -3484,7 +3486,7 @@
             salinity = 0.034
             pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
             pdata(np,prtp) = tsk0   !Set to the SST
-            pdata(np,prmult) = 1.0e9
+            pdata(np,prmult) = drop_mult
             pdata(np,pract) = 1.0
             !Set to something realistic so it doesn't break the stats at initiation
             pdata(np,pru) = 0.0
@@ -3537,6 +3539,140 @@
     smithssgf = a1*exp(-3.1*(log(r80/2.1))**2) + a2*exp(-3.3*(log(r80/9.2))**2)
 
     end function smithssgf
+
+    subroutine droplet_injection_pi(pdata,xf,yf,time_since_inject,mtime,my_reintro)
+      !Inject new particles according to some rule
+      !Here use the pi chamber protocol: uniform aerosols at centerplane
+      use input, only : nparcelsLocal,npvals,myid,ni,nj,ib,ie,jb,je, &
+                        prx,pry,prz,pru,prv,prw,prvpx,prvpy,prvpz,prrp,prtp,prms,pract,prtime, &
+                        prmult,prt,prrho,prprs,prqv,nparcelsLocalActive,numprocs,nparcelsMax, &
+                        time_phys_H2D,time_phys_D2H,time_droplet,timestats,mytime,injectHMax, &
+                        drop_w_init,drop_mult,tsk0,pi_sp,myid,nx,ny,nz,dx,dy,dz
+      use constants
+      use MersenneTwister_mod
+#ifdef MPI
+      use mpi
+#endif
+
+      real, intent(inout), dimension(nparcelsLocal,npvals) :: pdata
+      real, intent(in), dimension(ib:ie+1) :: xf
+      real, intent(in), dimension(jb:je+1) :: yf
+      real, intent(in) :: time_since_inject
+      double precision, intent(in) :: mtime
+      integer, intent(out) :: my_reintro
+    
+      integer :: i,np
+      integer(i8) :: tot_after_reintro
+      integer :: sum_buf(2)
+
+      double precision :: rad_init  !Initial radius
+      double precision :: rand
+      type(randomNumberSequence) :: randomNumbers
+
+      real :: xrange,yrange,zrange
+      real :: salinity
+      real :: my_reintro_tmp  !A temporaray variable to store a real version of my_reintro
+      
+      integer :: iter,nbin,num_create,j,ierr
+
+      integer :: local_seed
+
+
+      my_reintro_tmp = 0.01*(1./60.)*(10.**6.)*time_since_inject*4 !total for a 4m^3 vol chamber
+
+#ifdef MPI
+      my_reintro = floor(my_reintro_tmp/sngl(numprocs))
+
+      !Processors 0 through the remainder-1 will create an extra particle
+      if (myid .lt. floor(mod(my_reintro_tmp,sngl(numprocs)))) then 
+         my_reintro = my_reintro + 1
+      end if
+#else
+      my_reintro = floor(my_reintro_tmp)
+#endif
+
+      !Now that my_reintro has been calculated, reset to the LOCAL area for initializing droplet location
+      xrange = xf(ni+1)-xf(1)
+      yrange = yf(nj+1)-yf(1)
+      zrange = nz*dz/2.0
+
+      !Update the cumulative injection statistics
+      num_injected = num_injected + real(my_reintro)*drop_mult
+      !$acc update device (num_injected)
+
+      if (myid==0) write(*,'(a15,i,8e15.6)')  'DROP INJECTION:',my_reintro,my_reintro_tmp,drop_mult,xrange,yrange,zrange,num_injected,mtime,time_since_inject
+
+#ifdef MPI
+      !For deciding whether to inject more:
+      call mpi_allreduce(my_reintro+nparcelsLocalActive, &
+                         tot_after_reintro,1,mpi_integer8,mpi_sum, &
+                         mpi_comm_world,ierr)
+#else
+      !Calculate the total number which will occur after injection
+      tot_after_reintro = my_reintro+nparcelsLocalActive
+#endif
+
+
+      if (tot_after_reintro .lt. nparcelsMax) then   !Only add particles if the total number injected
+                                                     !does not make the global exceed nparcelsMax
+
+         !$acc data create(randomNumbers,randomNumbers%state)
+         !$acc parallel loop gang vector default(present) reduction(+:mass_injected,eng_injected,m1_injected,m2_injected) private(randomNumbers)
+         do j=1,my_reintro
+            np=nparcelsLocalActive+j
+            if (random_droplets) then
+               ! initialize a new random number generator for each
+               ! injected droplet
+               local_seed = floor(29.*mtime) + (97*myid) + (7*j)
+
+               rad_init = 2.0e-7
+
+               !Random location
+               rand = getRandomReal(randomNumbers)
+               pdata(np,prx) = xf(1)+rand*xrange
+               rand = getRandomReal(randomNumbers)
+               pdata(np,pry) = yf(1)+rand*yrange
+               pdata(np,prz) = zrange
+            else
+               rad_init = 1.0e-6
+               pdata(np,prx) = xf(1) + xrange/2.0
+               pdata(np,pry) = yf(1) + yrange/2.0
+               pdata(np,prz) = zrange
+            end if
+            pdata(np,prvpx) = 0.0
+            pdata(np,prvpy) = 0.0
+            pdata(np,prvpz) = drop_w_init   !Specified in namelist file
+            pdata(np,prrp) = rad_init
+            salinity = 0.066
+            pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
+            pdata(np,prtp) = 290.0  
+            pdata(np,prmult) = drop_mult
+            pdata(np,pract) = 1.0
+            !Set to something realistic so it doesn't break the stats at initiation
+            pdata(np,pru) = 0.0
+            pdata(np,prv) = 0.0
+            pdata(np,prw) = 0.0
+            pdata(np,prt) = 290.0
+            pdata(np,prqv) = 0.01
+            pdata(np,prprs) = 101325.0
+            pdata(np,prrho) = 1.0
+            pdata(np,prtime) = 0.0
+            !Update mass_injected for statistics purposes
+            mass_injected = mass_injected + (pdata(np,prms)+rhow*4.0/3.0*pi*pdata(np,prrp)**3)*pdata(np,prmult)
+            eng_injected = eng_injected + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*cpl*pdata(np,prtp)
+            m1_injected = m1_injected + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpx)
+            m2_injected = m2_injected + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpy)
+
+            call finalize_randomNumberSequence(randomNumbers)
+         end do
+         !$acc end data
+         !Then once the new droplets have been added, update nparcelsLocalActive
+         nparcelsLocalActive = nparcelsLocalActive + my_reintro
+      else
+         if (myid == 0) write(*,*) 'WARNING CANNOT ADD MORE PARTICLES, WILL EXCEED NPARCELSMAX'  
+      end if
+
+    end subroutine droplet_injection_pi
 
     subroutine initialize_droplet_histograms
 

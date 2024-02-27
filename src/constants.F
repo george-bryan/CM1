@@ -189,7 +189,8 @@
       ms     = 0.05844d0   !kg/mol, molecular weight of salt (or droplet solute)
       surften= 7.28d-2   !Droplet surface tension
       ion    = 2.0d0       !# of ions available in solute
-      os     = 1.093d0     !Droplet osmotic coefficient
+      !os     = 1.093d0     !Droplet osmotic coefficient
+      os     = 1.0d0     !Droplet osmotic coefficient
       ru     = 8.3144d0    !J/mol-K Universal gas constant
 
 

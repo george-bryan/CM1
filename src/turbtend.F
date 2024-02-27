@@ -426,7 +426,7 @@
         ! water vapor mixing ratio:
         ! (assume saturation)
         ptcb = rslf( base_pbot , ptc_bot*base_pibot )
-        ptct = 0.9*rslf( base_ptop , ptc_top*base_pitop )
+        ptct = rslf( base_ptop , ptc_top*base_pitop )
         kappa = viscosity/sc_num
       else
         ptcb = 0.0

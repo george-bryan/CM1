@@ -448,14 +448,14 @@
              pdata(i,prvpz) = 0.0
      
              !Droplet size (radius)
-             pdata(i,prrp) = 2.0e-6
+             pdata(i,prrp) = 2.0e-7
      
              !Droplet solute mass
-             salinity = 0.034
+             salinity = 0.066
              pdata(i,prms) = salinity*rhow*4.0/3.0*pi*pdata(i,prrp)**3
      
              !Droplet temperature
-             pdata(i,prtp) = 302.0
+             pdata(i,prtp) = 290.0
      
              !Droplet multiplicity
              pdata(i,prmult) = drop_mult
@@ -468,7 +468,7 @@
              pdata(i,prv) = 0.0
              pdata(i,prw) = 0.0
              !Set to something realistic so it doesn't break the stats at initiation
-             pdata(i,prt) = 302.0
+             pdata(i,prt) = 290.0
              pdata(i,prqv) = 0.01
              pdata(i,prprs) = 101325.0
              pdata(i,prrho) = 1.0

@@ -1289,10 +1289,11 @@
 
         zl1 = 15000.0    ! tropopause height
 
-        ttype =  2    ! 1 = reversible
+        ttype =  1    ! 1 = reversible
                       ! 2 = pseudoadiabatic
 
-        psurf = 101510.0    ! surface pressure (Pa)
+        !psurf = 101510.0    ! surface pressure (Pa)
+        psurf = 83230.0    ! surface pressure (Pa)
 
       DO j=jb,je
       DO i=ib,ie
