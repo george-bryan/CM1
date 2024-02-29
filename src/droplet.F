@@ -3624,6 +3624,7 @@
                ! initialize a new random number generator for each
                ! injected droplet
                local_seed = floor(29.*mtime) + (97*myid) + (7*j)
+               call new_RandomNumberSequence(randomNumbers, local_seed)
 
                rad_init = 2.0e-7
 
@@ -3641,7 +3642,7 @@
             end if
             pdata(np,prvpx) = 0.0
             pdata(np,prvpy) = 0.0
-            pdata(np,prvpz) = drop_w_init   !Specified in namelist file
+            pdata(np,prvpz) = 0.0   !Specified in namelist file
             pdata(np,prrp) = rad_init
             salinity = 0.066
             pdata(np,prms) = salinity*rhow*4.0/3.0*pi*pdata(np,prrp)**3
