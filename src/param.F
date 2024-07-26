@@ -340,6 +340,10 @@
       call bcast_int(bc_temp)
       call bcast_real(ptc_top)
       call bcast_real(ptc_bot)
+      call bcast_real(ptc_n)
+      call bcast_real(ptc_s)
+      call bcast_real(ptc_e)
+      call bcast_real(ptc_w)
       call bcast_real(viscosity) ! DEVICE
       call bcast_real(pr_num)    ! DEVICE
       call bcast_real(sc_num)    ! DEVICE
@@ -2767,6 +2771,10 @@
       if(dowr) write(outfile,*) 'bc_temp   =',bc_temp
       if(dowr) write(outfile,*) 'ptc_top   =',ptc_top
       if(dowr) write(outfile,*) 'ptc_bot   =',ptc_bot
+      if(dowr) write(outfile,*) 'ptc_n     =',ptc_n
+      if(dowr) write(outfile,*) 'ptc_s     =',ptc_s
+      if(dowr) write(outfile,*) 'ptc_e     =',ptc_e
+      if(dowr) write(outfile,*) 'ptc_w     =',ptc_w
       if(dowr) write(outfile,*) 'viscosity =',viscosity
       if(dowr) write(outfile,*) 'pr_num    =',pr_num
       if(dowr) write(outfile,*) 'sc_num    =',sc_num

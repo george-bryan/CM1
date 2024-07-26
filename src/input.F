@@ -182,7 +182,7 @@
            dx_inner,dx_outer,nos_x_len,tot_x_len,                             &
            dy_inner,dy_outer,nos_y_len,tot_y_len,                             &
            ztop,str_bot,str_top,dz_bot,dz_top,                                &
-           ptc_top,ptc_bot,viscosity,pr_num,sc_num,                           &
+           ptc_top,ptc_bot,ptc_n,ptc_s,ptc_e,ptc_w,viscosity,pr_num,sc_num,   &
            rdx,rdy,rdz,rdx2,rdy2,rdz2,rdx4,rdy4,rdz4,                         &
            minx,maxx,miny,maxy,maxz,zt,rzt,pmin,                              &
            sfctheta,thec_mb,qt_mb,smeps,tsmall,qsmall,cflmax,ksmax,           &
@@ -282,7 +282,7 @@
       namelist /param4/ stretch_x,dx_inner,dx_outer,nos_x_len,tot_x_len
       namelist /param5/ stretch_y,dy_inner,dy_outer,nos_y_len,tot_y_len
       namelist /param6/ stretch_z,ztop,str_bot,str_top,dz_bot,dz_top
-      namelist /param7/ bc_temp,ptc_top,ptc_bot,viscosity,pr_num,sc_num
+      namelist /param7/ bc_temp,ptc_top,ptc_bot,ptc_n,ptc_s,ptc_e,ptc_w,viscosity,pr_num,sc_num
       namelist /param8/ var1,var2,var3,var4,var5,var6,var7,var8,var9,var10,   &
                         var11,var12,var13,var14,var15,var16,var17,var18,var19,var20
       namelist /param9/                                                       &
