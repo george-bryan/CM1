@@ -36,10 +36,6 @@
   !    not move between processes within this subroutine?
   integer, parameter :: location_offset = 16
 
-  ! set this variable to ".true." to rebounce the particles
-  ! falling off the bottom (i.e., conserve the total droplet number)
-  logical, parameter :: use_wall_bc = .false.
-
   !For testing: set this parameter to ".false." to make droplet injection deterministic (not random)
   logical, parameter :: random_droplets = .true.
 
@@ -797,7 +793,6 @@
 !----------------------------------------------------------------------
 ! Final thing: Inject droplets which will be active on the next call of droplet_driver
 ! Requires inputting the current 10-meter wind speed
-   if ( .not. use_wall_bc ) then  
       u10_ssgf = 0.0
       ! If _VERIFY macro is enabled than perform the following sum on
       ! the CPU 
@@ -895,7 +890,6 @@
       if (myid==0) then 
          write(*,'(a8,3i)')  'DHR1:',myid,np_tmp,nparcelsLocalActive
       end if
-   end if  ! end of "if use_wall_bc" statement
 
    if(timestats.ge.1) time_droplet_inject=time_droplet_inject+mytime()
 
@@ -916,7 +910,7 @@
           prvpx,prvpy,prvpz,prrp,prms,prtp,prx,pry,prsig,prz,pru,prv, &
           prw,prt,prqv,prprs,prrho,pract,prtime,prmult,ni,nj,mywest, &
           mysw,mynw,myeast,myse,myne,mysouth,mynorth,nparcelsLocal, &
-          myid,dx,dy,pi_sp,pi_dp,ngxy
+          myid,dx,dy,pi_sp,pi_dp,ngxy,ebc,wbc,nbc,sbc
       use constants , only : rhow,rhow_dp,undefined_index,cpl
       use comm_module
       use parcel_module
@@ -951,7 +945,7 @@
       real :: Rep,Shp,diffnorm
       real :: tp0
       real :: sig1
-      real :: top,bot,restime10_tmp,rad10_tmp
+      real :: top,bot,east,west,south,north,restime10_tmp,rad10_tmp
       integer :: i,j,k,ibin,ibin_res
       double precision :: taup,volp,rhop
       double precision :: taup_scale,dt_nondim
@@ -1066,67 +1060,89 @@
       !Wall BCs:
       top = maxz-1.0e-4
       bot = 1.0e-4
-      if ( z3d .gt. top ) then
-         z3d = top - (z3d - top)
-         pdata(np,prvpz) = -pdata(np,prvpz)
-         pdata_locind(np,3) = undefined_index
-      elseif ( z3d .lt. bot ) then
-         if ( use_wall_bc ) then
-            ! use Wall BC
-            z3d = bot + (bot-z3d)
-            pdata(np,prvpz) = -pdata(np,prvpz)
-         else
-            ! fall off the bottom and "die"
-            z3d = 1.0e-6            !Just temporary 
-            pdata(np,pract) = -1.0  !Signal this as no longer alive
-            num_fallout = num_fallout + 1
-            !Collect some statistics on those falling out:
+      east = maxx - 1.0e-4
+      west = 1.0e-4
+      north = maxy - 1.0e-4
+      south = 1.0e-4
 
-            num_destroyed = num_destroyed + pdata(np,prmult)
+      !Start with top/bottom walls
+      !if ( z3d .gt. top ) then
+      !   z3d = top - (z3d - top)
+      !   pdata(np,prvpz) = -pdata(np,prvpz)
+      !   pdata_locind(np,3) = undefined_index
+      !elseif ( z3d .lt. bot ) then
+      !if (z3d.gt.top .or. z3d.lt.bot .or. x3d.gt.east .or. x3d.lt.west .or. y3d.gt.north .or. y3d.lt.south) then
+      if (z3d.gt.top .or. z3d.lt.bot) then
 
-            mass_destroyed = mass_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)
+         ! fall off the bottom and "die"
+         z3d = 1.0e-6            !Just temporary 
+         pdata(np,pract) = -1.0  !Signal this as no longer alive
+      end if
 
-            eng_destroyed = eng_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*cpl*pdata(np,prtp)
+      if (x3d.gt.east .and. ebc.eq.4) then
+         pdata(np,pract) = -1.0  !Signal this as no longer alive
+      end if
 
-            m1_destroyed = m1_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpx)
+      if (x3d.lt.west .and. wbc.eq.4) then
+         pdata(np,pract) = -1.0  !Signal this as no longer alive
+      end if
+
+      if (y3d.gt.north .and. nbc.eq.4) then
+         pdata(np,pract) = -1.0  !Signal this as no longer alive
+      end if
+
+      if (y3d.lt.south .and. sbc.eq.4) then
+         pdata(np,pract) = -1.0  !Signal this as no longer alive
+      end if
+
+
+      !Collect statistics on all of those that have died
+      if (pdata(np,pract).lt.0.0) then
+
+          num_fallout = num_fallout + 1
+          !Collect some statistics on those falling out:
+
+          num_destroyed = num_destroyed + pdata(np,prmult)
+
+          mass_destroyed = mass_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)
+
+          eng_destroyed = eng_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*cpl*pdata(np,prtp)
+
+          m1_destroyed = m1_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpx)
  
-            m2_destroyed = m2_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpy)
+          m2_destroyed = m2_destroyed + (pdata(np,prms)+rhow*4.0/3.0*pi_sp*pdata(np,prrp)**3)*pdata(np,prmult)*pdata(np,prvpy)
  
-            !Log this dead particle into the relevant histograms
-            !First residence time
-            restime10_tmp = log10(pdata(np,prtime))
+          !Log this dead particle into the relevant histograms
+          !First residence time
+          restime10_tmp = log10(pdata(np,prtime))
 
-            if (restime10_tmp .gt. restime_max10 + 0.5*dhres) then
-               ibin_res = nbins
-            elseif (restime10_tmp .lt. restime_min10 - 0.5*dhres) then
-               ibin_res = 1
-            else
-               ibin_res = (floor((restime10_tmp-(restime_min10-0.5*dhres))/dhres)+1)+1
-            end if
+          if (restime10_tmp .gt. restime_max10 + 0.5*dhres) then
+             ibin_res = nbins
+          elseif (restime10_tmp .lt. restime_min10 - 0.5*dhres) then
+             ibin_res = 1
+          else
+             ibin_res = (floor((restime10_tmp-(restime_min10-0.5*dhres))/dhres)+1)+1
+          end if
 
-            !The the droplet size at fallout
-            rad10_tmp = log10(pdata(np,prrp))
-        
-            if (rad10_tmp .gt. rmax10 + 0.5*dhrad) then
-               ibin = nbins
-            elseif (rad10_tmp .lt. rmin10 - 0.5*dhrad) then
-               ibin = 1
-            else
-               ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)+1
-            end if
+          !The the droplet size at fallout
+          rad10_tmp = log10(pdata(np,prrp))
+      
+          if (rad10_tmp .gt. rmax10 + 0.5*dhrad) then
+             ibin = nbins
+          elseif (rad10_tmp .lt. rmin10 - 0.5*dhrad) then
+             ibin = 1
+          else
+             ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)+1
+          end if
 
-            !$acc atomic update
-            hist_restime(ibin_res,ibin) = hist_restime(ibin_res,ibin) + pdata(np,prmult)
+          !$acc atomic update
+          hist_restime(ibin_res,ibin) = hist_restime(ibin_res,ibin) + pdata(np,prmult)
 
-            !$acc atomic update
-            hist_fallrad(ibin) = hist_fallrad(ibin) + pdata(np,prmult)
-         end if 
-         pdata_locind(np,3) = undefined_index
+          !$acc atomic update
+          hist_fallrad(ibin) = hist_fallrad(ibin) + pdata(np,prmult)
+          pdata_locind(np,3) = undefined_index
       endif
 
-      ! New for cm1r17:  if parcel exits domain,
-      ! just assume periodic lateral boundary conditions
-      ! (no matter what actual settings are for wbc,ebc,sbc,nbc)
 
 #ifdef MPI
       ! determine which new MPI region this droplet 
@@ -1142,20 +1158,21 @@
       end if
 #endif
 
-      if ( x3d .lt. minx ) then
+      !Only wrap around if wbc,ebc,nbc,sbc aren't set to no-slip
+      if ( x3d .lt. minx .and. wbc.ne.4 ) then
          x3d = x3d + ( maxx - minx )
          pdata_locind(np,1) = undefined_index
       end if
-      if ( x3d .gt. maxx ) then
+      if ( x3d .gt. maxx .and. ebc.ne.4) then
          x3d = x3d - ( maxx - minx )
          pdata_locind(np,1) = undefined_index
       end if
 
-      if ( y3d .gt. maxy .and. axisymm .ne. 1 .and. ny .ne. 1 ) then
+      if ( y3d .gt. maxy .and. axisymm .ne. 1 .and. ny .ne. 1 .and. nbc.ne.4 ) then
          y3d = y3d - ( maxy - miny )
          pdata_locind(np,2) = undefined_index
       end if
-      if ( y3d .lt. miny .and. axisymm .ne. 1 .and. ny .ne. 1 ) then
+      if ( y3d .lt. miny .and. axisymm .ne. 1 .and. ny .ne. 1 .and. sbc.ne.4 ) then
          y3d = y3d + ( maxy - miny )
          pdata_locind(np,2) = undefined_index
       end if
