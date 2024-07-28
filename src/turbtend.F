@@ -65,7 +65,7 @@
       !$acc present(gx,gxu,gy,gyv) &
       !$acc present(turbx,turby,turbz) &
       !$acc present(sten) &
-      !$acc present(rho,rr,rf,s,khh,khv,dum7,dum8)
+      !$acc present(rho,rr,rf,s,khh,khv,dum7,dum8) &
       !$acc present(pi0,prs0)
 
 !---------------------------------------------------------------
