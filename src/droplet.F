@@ -1144,7 +1144,7 @@
             elseif (rad10_tmp .lt. rmin10 - 0.5*dhrad) then
                ibin = 1
             else
-               ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)+1
+               ibin = (floor((rad10_tmp-(rmin10-0.5*dhrad))/dhrad)+1)
             end if
 
             !$acc atomic update
@@ -3369,12 +3369,15 @@
       real, intent(in) :: time_since_inject
       double precision, intent(in) :: mtime
       integer, intent(out) :: my_reintro
+
+      integer, parameter :: nbin = 100
     
       integer :: i,np
       integer(i8) :: tot_after_reintro
       integer :: sum_buf(2)
-      double precision :: dFssum(101)  !Discretized cumulative spray generation function (to be calculated)
-      double precision :: binsdata(100),binsdata10(100)  !Discretized bins for SSGF; "10" is for the log10 value
+      double precision :: dFssum(nbin+1)  !Discretized cumulative spray generation function (to be calculated)
+      double precision :: binsdata(nbin),binsdata10(nbin)  !Discretized bins for SSGF; "10" is for the log10 value
+      double precision :: binsdata_edge(nbin+1),binsdata10_edge(nbin+1) !Bin edges
 
       double precision :: totdrops  !Total number being produced during this call to droplet_injection
       double precision :: rad_init  !Initial radius, being calculated one at a time according to SSGF
@@ -3389,25 +3392,35 @@
       !Set the parameters of the two lognormals:
       double precision :: c1,c2,c3,u14,cdn10,a,rand,c4,m
       double precision :: a1,a2,r80,r0,dh_ssgf,r_interval
-      double precision :: dFsdr80(100),dFmsdr0(100),dr80_dr0
-      integer :: iter,nbin,num_create,j,ierr
+      double precision :: dFsdr80(nbin),dFmsdr0(nbin),dr80_dr0
+      integer :: iter,num_create,j,ierr
       integer :: ssgf_type  !1 for Andreas 1998, 2 for Ortiz-Suslow 2016
 
       double precision :: rmin10_ssgf,rmax10_ssgf
       integer :: local_seed
       integer :: values(8)
 
+
+      !Define the bin centers and edges
       rmin10_ssgf = log10(2d-06)
       rmax10_ssgf = log10(500d-06)
-      dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/99.0
+      dh_ssgf = (rmax10_ssgf-rmin10_ssgf)/dble(nbin-1)
 
-  !   ===== update x-axis for each bin =====
       binsdata10(1) = rmin10_ssgf
       binsdata(1) = 1.0d6*(10**binsdata10(1))
-      do i = 1,99
+      binsdata10_edge(1) = rmin10_ssgf - dh_ssgf/2.0
+      binsdata_edge(1) = 1.0d6*(10**binsdata10_edge(1))
+
+      do i = 1,nbin-1
         binsdata10(i+1)= dh_ssgf+binsdata10(i)
-        binsdata(i+1) = 1.0d6*(10**binsdata10(i))
+        binsdata(i+1) = 1.0d6*(10**binsdata10(i+1))
+
+        binsdata10_edge(i+1) = dh_ssgf + binsdata10_edge(i)
+        binsdata_edge(i+1) = 1.0d6*(10**binsdata10_edge(i+1))
       end do
+
+      binsdata10_edge(nbin+1) = rmax10_ssgf + dh_ssgf/2.0
+      binsdata_edge(nbin+1) = 1.0d6*(10**binsdata10_edge(nbin+1))
 
 
       ! Now figure out how many particles are produced in each of
@@ -3426,7 +3439,7 @@
       c4 = c2*100**-2.8*(10**6*1.963*(100**1.025))**-m
 
       dFssum(1) = 0
-      do i = 1,100
+      do i = 1,nbin
          r0 = binsdata(i)
          ! calculate radius at 80%RH
          r80 = 0.518*r0**0.976;
@@ -3463,13 +3476,13 @@
          dFmsdr0(i) = 3.5*dFsdr80(i)*0.506*r0**-0.024
  
          if (i==1) then
-           dFssum(i+1) = dFmsdr0(i)
+           dFssum(i+1) = dFmsdr0(i)*(binsdata_edge(i+1)-binsdata_edge(i))
          elseif (i .gt. 1) then
-           dFssum(i+1) = dFssum(i) + dFmsdr0(i)
+           dFssum(i+1) = dFssum(i) + dFmsdr0(i)*(binsdata_edge(i+1)-binsdata_edge(i))
          endif
       end do
 
-      totdrops = dFssum(101)    !totdrops at this point is # per unit area per unit time
+      totdrops = dFssum(nbin+1)    !totdrops at this point is # per unit area per unit time
 
 
       !Define xrange and yrange to be WHOLE domain area, to calculate the total droplet number
@@ -3541,7 +3554,7 @@
                !Once a bind is identified by the conditional statement, the radius is set to a random number between the edges of the bin
 
                !$acc loop seq
-               do i = 1,100
+               do i = 1,nbin
                   if ((a .gt. dFssum(i)) .and. (a .le. dFssum(i+1))) then
                      r_interval = 10**(binsdata10(i)+dh_ssgf/2.0) - 10**(binsdata10(i)-dh_ssgf/2.0)
                      rad_init = binsdata(i) + 2.0*(rand-0.5)*r_interval
